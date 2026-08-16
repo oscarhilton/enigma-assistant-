@@ -18,9 +18,15 @@ import { ShadowModeBanner } from "./shadow";
 function PersistentModeBanners() {
   const { pathname } = useLocation();
   const onDemoRoute = pathname === "/demo" || pathname.startsWith("/demo/");
+  const shadowEnv =
+    typeof import.meta !== "undefined" &&
+    import.meta.env?.VITE_ENIGMA_MODE === "shadow";
+  // Demo chrome must not override an active Shadow session (ADR-008 / S01).
   return (
     <>
-      <DemoModeBanner active={onDemoRoute ? true : undefined} />
+      <DemoModeBanner
+        active={onDemoRoute ? (shadowEnv ? false : true) : undefined}
+      />
       <ShadowModeBanner />
     </>
   );

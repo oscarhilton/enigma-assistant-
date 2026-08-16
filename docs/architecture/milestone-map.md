@@ -126,7 +126,7 @@ Branches: `ticket/Sxx-slug`. Demo Mode is **frozen** for polish — do not add F
 
 | # | Milestone | Status | Ticket |
 | --- | --- | --- | --- |
-| S01 | Env flag + scaffold + refuse Demo migration | `in_progress` | [S01](../../tickets/shadow/S01-shadow-scaffold.md) |
+| S01 | Env flag + scaffold + refuse Demo migration | `done` | [S01](../../tickets/shadow/S01-shadow-scaffold.md) |
 | S02 | Shadow storage isolation | `todo` | [S02](../../tickets/shadow/S02-shadow-storage.md) |
 | S03 | Notification suppression | `todo` | [S03](../../tickets/shadow/S03-notification-suppression.md) |
 | S04 | Shadow attention log | `todo` | [S04](../../tickets/shadow/S04-shadow-attention-log.md) |

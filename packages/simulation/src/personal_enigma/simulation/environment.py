@@ -276,6 +276,7 @@ class ShadowEnvironment:
         return SHADOW_BANNER_TEXT
 
     def register_source(self, source: object) -> None:
+        assert_source_allowed_for_mode(self.mode, source)
         self._sources.append(source)
 
     @property

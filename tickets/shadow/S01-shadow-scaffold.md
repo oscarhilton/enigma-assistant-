@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #65) |
 | Branch | `ticket/S01-shadow-scaffold` |
 | Domain | `shadow` |
 | Baseline | `v0.2.0-demo` (Phase 2.5 PASS) |
