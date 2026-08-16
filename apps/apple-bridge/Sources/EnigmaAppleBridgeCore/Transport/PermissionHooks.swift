@@ -13,6 +13,7 @@ public struct PermissionHooks: Sendable {
     private let calendarIsAuthorised: @Sendable () -> Bool
     private let calendarRequestAccess: @Sendable () async -> Bool
     private let remindersSource: RemindersSource
+    private let contactsSource: ContactsSource
 
     public init(
         calendarIsAuthorised: @escaping @Sendable () -> Bool = {
@@ -21,21 +22,25 @@ public struct PermissionHooks: Sendable {
         calendarRequestAccess: @escaping @Sendable () async -> Bool = {
             await EventKitCalendarAccess().requestReadAccess()
         },
-        remindersSource: RemindersSource = RemindersSource()
+        remindersSource: RemindersSource = RemindersSource(),
+        contactsSource: ContactsSource = ContactsSource()
     ) {
         self.calendarIsAuthorised = calendarIsAuthorised
         self.calendarRequestAccess = calendarRequestAccess
         self.remindersSource = remindersSource
+        self.contactsSource = contactsSource
     }
 
-    /// Permission prompt. Calendar/Reminders use EventKit; other sources remain stubs.
+    /// Permission prompt. Calendar/Reminders/Contacts use system APIs; notes remain stubs.
     public func requestAuthorisation(for source: BridgeSourceID) async -> Bool {
         switch source {
         case .calendar:
             return await calendarRequestAccess()
         case .reminders:
             return await remindersSource.requestAuthorisation()
-        case .contacts, .notes:
+        case .contacts:
+            return await contactsSource.requestAccess()
+        case .notes:
             return false
         }
     }
@@ -47,7 +52,9 @@ public struct PermissionHooks: Sendable {
             return calendarIsAuthorised()
         case .reminders:
             return remindersSource.isAuthorised()
-        case .contacts, .notes:
+        case .contacts:
+            return contactsSource.isAuthorised()
+        case .notes:
             return false
         }
     }

@@ -18,6 +18,7 @@ let package = Package(
                 .linkedFramework("Network"),
                 .linkedFramework("Security"),
                 .linkedFramework("EventKit"),
+                .linkedFramework("Contacts"),
             ]
         ),
         .executableTarget(

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M10-apple-contacts` |
 | Domain | `apple-bridge` |
 
@@ -36,11 +36,11 @@
 
 ## Acceptance criteria
 
-- [ ] Request Contacts permission via `CNContactStore`
-- [ ] Map to `PrivatePerson`
-- [ ] `EntityResolver` unifies email / calendar invite name / contact → HMAC `PERSON_*`
-- [ ] Contact identity mappings remain private/local
-- [ ] `GET /contacts/changes`
+- [x] Request Contacts permission via `CNContactStore`
+- [x] Map to `PrivatePerson`
+- [x] `EntityResolver` unifies email / calendar invite name / contact → HMAC `PERSON_*`
+- [x] Contact identity mappings remain private/local
+- [x] `GET /contacts/changes`
 
 ## Test plan
 

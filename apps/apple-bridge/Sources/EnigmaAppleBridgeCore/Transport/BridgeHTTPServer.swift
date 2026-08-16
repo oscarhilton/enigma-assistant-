@@ -4,7 +4,7 @@ import Network
 /// Local-only HTTP server for the Apple Bridge.
 ///
 /// Binds to `127.0.0.1` or a Unix domain socket, requires bearer auth, and exposes
-/// `GET /health`, `GET /capabilities`, `GET /calendar/*`, and `GET /reminders/changes`.
+/// `GET /health`, `GET /capabilities`, `GET /calendar/*`, `GET /reminders/changes`, and `GET /contacts/changes`.
 /// Never calls LLM providers.
 public final class BridgeHTTPServer: @unchecked Sendable {
     public let endpoint: BridgeEndpoint
@@ -12,6 +12,7 @@ public final class BridgeHTTPServer: @unchecked Sendable {
     private let permissionHooks: PermissionHooks
     private let calendarSource: CalendarSource
     private let remindersSource: RemindersSource
+    private let contactsSource: ContactsSource
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.personal-enigma.bridge-http")
 
@@ -20,13 +21,18 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         token: String,
         permissionHooks: PermissionHooks? = nil,
         calendarSource: CalendarSource = CalendarSource(),
-        remindersSource: RemindersSource = RemindersSource()
+        remindersSource: RemindersSource = RemindersSource(),
+        contactsSource: ContactsSource = ContactsSource()
     ) {
         self.endpoint = endpoint
         self.auth = BridgeAuth(expectedToken: token)
         self.calendarSource = calendarSource
         self.remindersSource = remindersSource
-        self.permissionHooks = permissionHooks ?? PermissionHooks(remindersSource: remindersSource)
+        self.contactsSource = contactsSource
+        self.permissionHooks = permissionHooks ?? PermissionHooks(
+            remindersSource: remindersSource,
+            contactsSource: contactsSource
+        )
     }
 
     public var isRunning: Bool { listener != nil }
@@ -162,6 +168,10 @@ public final class BridgeHTTPServer: @unchecked Sendable {
             let cursor = query["cursor"]
             let response = remindersSource.changes(cursor: cursor)
             let body = try BridgeJSON.encode(response)
+            return (200, "application/json", body)
+        case ("GET", "/contacts/changes"):
+            let batch = try contactsSource.changes(since: query["cursor"])
+            let body = try BridgeJSON.encode(batch)
             return (200, "application/json", body)
         default:
             return (
