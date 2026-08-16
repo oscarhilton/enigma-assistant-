@@ -33,6 +33,11 @@ from personal_enigma.simulation.engine import assert_demo_storage_root
 # Fixed epoch so UI smoke tests are deterministic without D5 event engine.
 _DEMO_EPOCH = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
 
+
+def _demo_wall_now() -> datetime:
+    """Wall clock for Demo UI realtime playback (not used by domain logic)."""
+    return datetime.now(tz=UTC)
+
 # Baseline catalog — private UI names; priority ≠ confidence; rank ≠ confidence.
 _STUB_ATTENTION_BASE: list[dict[str, Any]] = [
     {
@@ -263,7 +268,12 @@ class SpeedBody(BaseModel):
 
 @dataclass
 class DemoSession:
-    """In-process Demo clock session for UI timeline controls (pre-D5 engine)."""
+    """In-process Demo clock session for UI timeline controls (pre-D5 engine).
+
+    ``SimulationClock`` only moves on explicit ``advance*`` calls. Interactive
+    Demo Mode maps wall-clock elapsed × ``speed`` onto those advances so that
+    speed 1×/10×/100× actually play after reset (speed 0 = pause).
+    """
 
     scenario: str = "alex-v1"
     speed: float = 1.0
@@ -271,6 +281,7 @@ class DemoSession:
     suppressed_count: int = _DEFAULT_SUPPRESSED
     action_log: list[dict[str, Any]] = field(default_factory=list)
     env: DemoEnvironment = field(init=False)
+    _wall_anchor: datetime | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         # Session start reseeds in-memory state only — do not wipe on-disk demo
@@ -284,6 +295,43 @@ class DemoSession:
         self.attention_items = deepcopy(_STUB_ATTENTION_BASE)
         self.suppressed_count = _DEFAULT_SUPPRESSED
         self.action_log = []
+        # Arm on first sync_realtime so reset responses stay at the epoch.
+        self._wall_anchor = None
+
+    def sync_realtime(self) -> None:
+        """Apply wall-clock × speed onto the simulation clock when playing."""
+        if self.speed <= 0 or self.clock.paused:
+            self._wall_anchor = None
+            return
+        wall = _demo_wall_now()
+        if self._wall_anchor is None:
+            self._wall_anchor = wall
+            return
+        elapsed = wall - self._wall_anchor
+        if elapsed <= timedelta(0):
+            return
+        self.clock.advance(elapsed * self.speed)
+        self._wall_anchor = wall
+
+    def set_speed(self, speed: float) -> None:
+        self.sync_realtime()
+        self.speed = speed
+        if speed == 0:
+            self.clock.pause()
+            self._wall_anchor = None
+        else:
+            self.clock.resume()
+            self._wall_anchor = _demo_wall_now()
+
+    def advance_step(self) -> None:
+        self.sync_realtime()
+        self.clock.advance(timedelta(hours=1))
+        self._wall_anchor = _demo_wall_now()
+
+    def advance_day(self) -> None:
+        self.sync_realtime()
+        self.clock.advance_days(1)
+        self._wall_anchor = _demo_wall_now()
 
     def wipe_and_bootstrap_storage(self) -> Path:
         """Wipe the active scenario Demo root and write a fresh checkpoint.
@@ -320,6 +368,7 @@ class DemoSession:
         return clock
 
     def status_payload(self) -> dict[str, Any]:
+        self.sync_realtime()
         mode = environment_mode_from_env()
         active = mode is EnvironmentMode.DEMO
         # D10 compression stats: signals considered vs surfaced / suppressed.
@@ -347,6 +396,7 @@ class DemoSession:
         }
 
     def attention_payload(self) -> dict[str, Any]:
+        self.sync_realtime()
         items = sorted(
             self.attention_items,
             key=lambda row: float(row["attention_rank"]),
@@ -363,6 +413,7 @@ class DemoSession:
 
     def suppressed_payload(self, reason: str | None = None) -> dict[str, Any]:
         """Developer-only inspector — never expose ScenarioSignalClass labels."""
+        self.sync_realtime()
         items = list(_STUB_SUPPRESSED)
         if reason is not None:
             if reason not in _SUPPRESSION_FILTERS:
@@ -517,7 +568,7 @@ def install_demo_routes(application: FastAPI) -> None:
         with _lock_for(application):
             session = _session_for(application)
             # Without D5 event queue, step advances one simulated hour.
-            session.clock.advance(timedelta(hours=1))
+            session.advance_step()
             return session.status_payload()
 
     @application.post("/demo/timeline/day")
@@ -525,7 +576,7 @@ def install_demo_routes(application: FastAPI) -> None:
         _require_demo()
         with _lock_for(application):
             session = _session_for(application)
-            session.clock.advance_days(1)
+            session.advance_day()
             return session.status_payload()
 
     @application.post("/demo/timeline/speed")
@@ -533,11 +584,7 @@ def install_demo_routes(application: FastAPI) -> None:
         _require_demo()
         with _lock_for(application):
             session = _session_for(application)
-            session.speed = body.speed
-            if body.speed == 0:
-                session.clock.pause()
-            else:
-                session.clock.resume()
+            session.set_speed(body.speed)
             return session.status_payload()
 
     @application.post("/demo/reset")

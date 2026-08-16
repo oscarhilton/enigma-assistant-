@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -90,6 +91,74 @@ def test_demo_suppressed_inspector(monkeypatch: pytest.MonkeyPatch) -> None:
     assert bad.status_code == 400
     empty = client.get("/demo/suppressed", params={"reason": ""})
     assert empty.status_code == 400
+
+
+def test_status_advances_with_wall_clock_when_playing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Speed > 0 maps wall elapsed onto SimulationClock (interactive Demo UX)."""
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    wall = {"t": datetime(2026, 6, 1, 12, 0, 0, tzinfo=UTC)}
+
+    def fake_wall() -> datetime:
+        return wall["t"]
+
+    monkeypatch.setattr(
+        "personal_enigma.api.routes.demo._demo_wall_now",
+        fake_wall,
+    )
+    client = TestClient(create_app())
+    before = client.get("/demo/status").json()["simulated_time"]
+    wall["t"] = wall["t"] + timedelta(seconds=5)
+    after = client.get("/demo/status").json()["simulated_time"]
+    assert after is not None and before is not None
+    assert after > before
+    # 1× for 5 wall seconds → +5 simulated seconds
+    assert after.startswith("2026-01-01T09:00:05")
+
+
+def test_status_frozen_when_paused(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    wall = {"t": datetime(2026, 6, 1, 12, 0, 0, tzinfo=UTC)}
+
+    def fake_wall() -> datetime:
+        return wall["t"]
+
+    monkeypatch.setattr(
+        "personal_enigma.api.routes.demo._demo_wall_now",
+        fake_wall,
+    )
+    client = TestClient(create_app())
+    client.post("/demo/timeline/speed", json={"speed": 0})
+    before = client.get("/demo/status").json()["simulated_time"]
+    wall["t"] = wall["t"] + timedelta(seconds=30)
+    after = client.get("/demo/status").json()["simulated_time"]
+    assert after == before
+
+
+def test_reset_leaves_clock_playing_at_1x(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    monkeypatch.setenv("ENIGMA_HOME", str(tmp_path / ".enigma-home"))
+    wall = {"t": datetime(2026, 6, 1, 12, 0, 0, tzinfo=UTC)}
+
+    def fake_wall() -> datetime:
+        return wall["t"]
+
+    monkeypatch.setattr(
+        "personal_enigma.api.routes.demo._demo_wall_now",
+        fake_wall,
+    )
+    client = TestClient(create_app())
+    client.post("/demo/timeline/speed", json={"speed": 0})
+    body = client.post("/demo/reset").json()
+    assert body["speed"] == 1.0
+    assert body["paused"] is False
+    before = body["simulated_time"]
+    wall["t"] = wall["t"] + timedelta(seconds=2)
+    after = client.get("/demo/status").json()["simulated_time"]
+    assert after > before
 
 
 def test_timeline_step_and_speed(monkeypatch: pytest.MonkeyPatch) -> None:
