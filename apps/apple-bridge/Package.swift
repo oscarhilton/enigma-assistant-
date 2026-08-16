@@ -13,7 +13,12 @@ let package = Package(
     targets: [
         .target(
             name: "EnigmaAppleBridgeCore",
-            path: "Sources/EnigmaAppleBridgeCore"
+            path: "Sources/EnigmaAppleBridgeCore",
+            linkerSettings: [
+                .linkedFramework("Network"),
+                .linkedFramework("Security"),
+                .linkedFramework("EventKit"),
+            ]
         ),
         .executableTarget(
             name: "EnigmaAppleBridge",

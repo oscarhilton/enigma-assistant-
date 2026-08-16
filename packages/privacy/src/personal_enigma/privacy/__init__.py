@@ -6,6 +6,7 @@ from personal_enigma.privacy.allowlist import (
     REMOTE_PAYLOAD_ALLOWLIST_DOC,
     REMOTE_PAYLOAD_TOP_LEVEL_KEYS,
 )
+from personal_enigma.privacy.inspector import InspectionResult, inspect_transformed_context
 from personal_enigma.privacy.invariants import (
     PrivacyInvariantError,
     assert_no_private_person_fields,
@@ -22,7 +23,6 @@ from personal_enigma.privacy.notes_policy import (
     notes_default_privacy_level,
     wholesale_note_body_remote_safe,
 )
-from personal_enigma.privacy.inspector import InspectionResult, inspect_transformed_context
 from personal_enigma.privacy.remote import RemoteInferenceConfig, may_send_remotely
 
 __all__ = [

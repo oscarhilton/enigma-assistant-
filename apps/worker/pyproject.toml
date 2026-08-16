@@ -7,7 +7,10 @@ dependencies = [
   "personal-enigma-domain",
   "personal-enigma-ingestion",
   "personal-enigma-attention",
+  "personal-enigma-embeddings",
   "personal-enigma-fixtures",
+  "personal-enigma-api",
+  "personal-enigma-reasoning",
 ]
 
 [project.scripts]
@@ -24,4 +27,7 @@ packages = ["src/personal_enigma"]
 personal-enigma-domain = { workspace = true }
 personal-enigma-ingestion = { workspace = true }
 personal-enigma-attention = { workspace = true }
+personal-enigma-embeddings = { workspace = true }
 personal-enigma-fixtures = { workspace = true }
+personal-enigma-api = { workspace = true }
+personal-enigma-reasoning = { workspace = true }

@@ -16,8 +16,16 @@ class StubHmacResolver:
     Stable for a given key + anchor material — suitable for golden tests.
     """
 
-    def __init__(self, key: bytes | str = b"enigma-stub-hmac-key") -> None:
-        self._key = key.encode("utf-8") if isinstance(key, str) else key
+    def __init__(self, key: bytes | str) -> None:
+        """Require an explicit key so stub pseudonyms are never globally shared."""
+        if isinstance(key, str):
+            if not key:
+                raise ValueError("StubHmacResolver key must be non-empty")
+            self._key = key.encode("utf-8")
+        else:
+            if not key:
+                raise ValueError("StubHmacResolver key must be non-empty")
+            self._key = key
 
     def resolve_person(self, person: PrivatePerson) -> Pseudonym:
         anchors: list[str] = []

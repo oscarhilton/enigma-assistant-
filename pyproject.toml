@@ -9,11 +9,13 @@ dependencies = [
   "personal-enigma-ingestion",
   "personal-enigma-privacy",
   "personal-enigma-transformation",
+  "personal-enigma-reasoning",
   "personal-enigma-attention",
   "personal-enigma-embeddings",
   "personal-enigma-fixtures",
   "personal-enigma-identity",
   "personal-enigma-dedupe",
+  "personal-enigma-obligations",
   "personal-enigma-api",
   "personal-enigma-worker",
 ]
@@ -24,11 +26,13 @@ members = [
   "packages/ingestion",
   "packages/privacy",
   "packages/transformation",
+  "packages/reasoning",
   "packages/attention",
   "packages/embeddings",
   "packages/fixtures",
   "packages/identity",
   "packages/dedupe",
+  "packages/obligations",
   "apps/api",
   "apps/worker",
 ]
@@ -38,11 +42,13 @@ personal-enigma-domain = { workspace = true }
 personal-enigma-ingestion = { workspace = true }
 personal-enigma-privacy = { workspace = true }
 personal-enigma-transformation = { workspace = true }
+personal-enigma-reasoning = { workspace = true }
 personal-enigma-attention = { workspace = true }
 personal-enigma-embeddings = { workspace = true }
 personal-enigma-fixtures = { workspace = true }
 personal-enigma-identity = { workspace = true }
 personal-enigma-dedupe = { workspace = true }
+personal-enigma-obligations = { workspace = true }
 personal-enigma-api = { workspace = true }
 personal-enigma-worker = { workspace = true }
 
@@ -60,11 +66,13 @@ testpaths = [
   "packages/ingestion/tests",
   "packages/privacy/tests",
   "packages/transformation/tests",
+  "packages/reasoning/tests",
   "packages/attention/tests",
   "packages/embeddings/tests",
   "packages/fixtures/tests",
   "packages/identity/tests",
   "packages/dedupe/tests",
+  "packages/obligations/tests",
   "apps/api/tests",
   "apps/worker/tests",
 ]
@@ -78,11 +86,13 @@ src = [
   "packages/ingestion/src",
   "packages/privacy/src",
   "packages/transformation/src",
+  "packages/reasoning/src",
   "packages/attention/src",
   "packages/embeddings/src",
   "packages/fixtures/src",
   "packages/identity/src",
   "packages/dedupe/src",
+  "packages/obligations/src",
   "apps/api/src",
   "apps/worker/src",
 ]
@@ -96,11 +106,13 @@ include = [
   "packages/ingestion/src",
   "packages/privacy/src",
   "packages/transformation/src",
+  "packages/reasoning/src",
   "packages/attention/src",
   "packages/embeddings/src",
   "packages/fixtures/src",
   "packages/identity/src",
   "packages/dedupe/src",
+  "packages/obligations/src",
   "apps/api/src",
   "apps/worker/src",
 ]
