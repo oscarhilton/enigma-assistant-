@@ -39,6 +39,19 @@ export type DemoStatus = {
   engine_state?: string;
 };
 
+/** Secondary can-wait bucket on the Demo attention surface (not product chrome). */
+export type CanWaitCategoryId =
+  | "upcoming_calendar"
+  | "open_threads"
+  | "informational"
+  | "automated_noise";
+
+export type CanWaitGroup = {
+  id: CanWaitCategoryId;
+  label: string;
+  count: number;
+};
+
 /** Attention card fields — priority ≠ confidence; rank ≠ confidence. */
 export type DemoAttentionItem = {
   id: string;
@@ -70,6 +83,10 @@ export type DemoAttentionPayload = {
   signals_considered?: number;
   surfaced_count?: number;
   suppressed_count?: number;
+  /** Optional secondary buckets for expanded “can wait” (Demo fixtures). */
+  can_wait_groups?: CanWaitGroup[];
+  /** ISO timestamp of last attention evaluation when the API provides one. */
+  evaluated_at?: string | null;
 };
 
 export type DemoMemoryItem = {
@@ -124,6 +141,8 @@ export type DemoSuppressedItem = {
   deadline: string;
   decision: "suppressed";
   why_not: string[];
+  /** Optional Demo fixture field for secondary can-wait grouping. */
+  can_wait_category?: CanWaitCategoryId;
 };
 
 export type DemoSuppressedPayload = {

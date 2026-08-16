@@ -58,15 +58,23 @@ describe("Demo chrome stubs", () => {
       expect(screen.getByText(/Review Atlas proposal/i)).toBeInTheDocument();
     });
     expect(screen.getByTestId("attention-headline")).toHaveTextContent(
-      /2 things matter now/i,
+      /2 things need your attention/i,
     );
     expect(screen.getByText(/Fictional scenario · Alex Morgan/i)).toBeInTheDocument();
     expect(screen.getByText(/Follow up with Maya/i)).toBeInTheDocument();
     expect(screen.getByTestId("attention-badges-att-atlas-review")).toHaveTextContent(
       /HIGH PRIORITY · DUE SOON/i,
     );
-    expect(screen.getByText(/Deadline approaching\./i)).toBeInTheDocument();
-    expect(screen.getByText(/Thread waiting on you\./i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /You said you'd review this before Friday, and it still appears unfinished\./i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Maya is still waiting for a scheduling response\./i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Deadline approaching\./i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Thread waiting on you\./i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reminder:/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Email:/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Calendar:/i)).not.toBeInTheDocument();
@@ -74,16 +82,81 @@ describe("Demo chrome stubs", () => {
     expect(screen.queryByText(/score\s+0\./i)).not.toBeInTheDocument();
     expect(screen.queryByText("4/5")).not.toBeInTheDocument();
     expect(screen.queryByText("0.91")).not.toBeInTheDocument();
+    expect(screen.getByTestId("attention-holding-note")).toHaveTextContent(
+      /holding 47 lower-priority signals/i,
+    );
     expect(screen.getByTestId("attention-can-wait")).toHaveTextContent(
       /Show 47 that can wait/i,
     );
+    expect(screen.getByTestId("attention-last-evaluated")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /why\?/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^done$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^snooze$/i }).length).toBeGreaterThan(0);
     expect(screen.queryByText(/scenario truth/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^refresh$/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("attention-can-wait"));
-    expect(screen.getByText(/holding 47 lower-priority signals/i)).toBeInTheDocument();
+    expect(screen.getByTestId("attention-can-wait")).toHaveTextContent(
+      /Hide what can wait/i,
+    );
+    expect(screen.getByTestId("attention-can-wait-groups")).toHaveTextContent(
+      /Upcoming calendar/i,
+    );
+    expect(screen.getByTestId("attention-can-wait-groups")).toHaveTextContent(
+      /Open threads/i,
+    );
+    expect(screen.getByTestId("attention-can-wait-groups")).toHaveTextContent(
+      /Informational/i,
+    );
+    expect(screen.getByTestId("attention-can-wait-groups")).toHaveTextContent(
+      /Automated \/ noise/i,
+    );
+  });
+
+  it("AttentionDashboard empty silence keeps holding copy without Refresh", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        ...FIXTURE_ATTENTION_PAYLOAD,
+        items: [],
+        surfaced_count: 0,
+        suppressed_count: 47,
+        evaluated_at: "2026-01-01T08:58:00+00:00",
+      }),
+    ) as unknown as typeof fetch;
+
+    render(
+      <MemoryRouter>
+        <AttentionDashboard
+          fetchImpl={fetchImpl}
+          nowMs={Date.parse("2026-01-01T09:00:00Z")}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("attention-headline")).toHaveTextContent(
+        /Nothing needs you right now/i,
+      );
+    });
+    expect(screen.getByText(/Fictional scenario · Alex Morgan/i)).toBeInTheDocument();
+    expect(screen.getByTestId("attention-holding-note")).toHaveTextContent(
+      /holding 47 lower-priority signals out of view/i,
+    );
+    expect(screen.getByTestId("attention-can-wait")).toHaveTextContent(
+      /^Show 47 that can wait$/,
+    );
+    expect(screen.getByTestId("attention-last-evaluated")).toHaveTextContent(
+      /Last evaluated 2 minutes ago/i,
+    );
+    expect(screen.queryByRole("button", { name: /^refresh$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Great job/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No open attention items/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("attention-can-wait"));
+    expect(screen.getByTestId("attention-can-wait")).toHaveTextContent(
+      /Hide what can wait/i,
+    );
+    expect(screen.getByTestId("attention-can-wait-groups")).toBeInTheDocument();
   });
 
   it("AttentionDashboard Done removes an item via stub action", async () => {

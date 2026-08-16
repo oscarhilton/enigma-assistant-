@@ -105,11 +105,22 @@ Rough priority policy for the default interrupt surface:
 | 1 | Context only |
 | 0 | Discard |
 
-Cap the default view: “what actually matters right now” should not dump every legitimate open loop. Prefer “N things matter now” + optional “Show K that can wait.”
+Cap the default view: “what actually needs your attention” should not dump every legitimate open loop. Prefer “N things need your attention” + optional “Show K that can wait.”
+
+### Demo attention surface shape (frozen)
+
+The live Demo Attention surface copy/layout is **frozen** for polish:
+
+- Headline: “Nothing needs you right now” / “N things need your attention”
+- Empty silence is an active decision (holding-signals sentence + secondary “Show N that can wait” + “Last evaluated …”) — no Refresh CTA, no celebration empty states
+- Expanded can-wait is secondary category counts, not a mini Attention list
+- Card face: title + compact badges + one natural reason sentence + Why?/Done/Snooze
+- **Done / Snooze are Demo / Assisted only** — Shadow must not show intervening actions
+- Reliability of *which* two cards surface is the next hard problem, not more card chrome
 
 ### 6. Card UX vs Why
 
-User-facing cards: title, compact priority/due, one short reason, actions.  
+User-facing cards: title, compact priority/due, one short natural reason, actions.  
 Evidence dumps (`Reminder: …; Email: …; Calendar: …`) belong in **Why**, not the card body. Debug/eval dashboards are fine in the lab; they must not become the product Attention design.
 
 ## PrizeVault as pollution canary
