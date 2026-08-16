@@ -77,6 +77,27 @@ export type DemoAttentionItem = {
   evidence_ids: string[];
 };
 
+/** Optional next step — useful, never urgent Attention chrome. */
+export type DemoNextActionCategory =
+  | "movement"
+  | "maintenance"
+  | "rest"
+  | "obligation"
+  | "open_loop";
+
+export type DemoNextAction = {
+  id: string;
+  /** Short imperative title ("Go for a short walk"). */
+  title: string;
+  /** Compact duration glance ("~15 min"). */
+  duration_label: string;
+  /** One supporting sentence — not a priority badge. */
+  reason: string;
+  category: DemoNextActionCategory;
+  /** Product invariant: Next Action is always optional. */
+  optional: true;
+};
+
 export type DemoAttentionPayload = {
   items: DemoAttentionItem[];
   simulated_time?: string | null;
@@ -87,6 +108,11 @@ export type DemoAttentionPayload = {
   can_wait_groups?: CanWaitGroup[];
   /** ISO timestamp of last attention evaluation when the API provides one. */
   evaluated_at?: string | null;
+  /**
+   * Optional “worth doing” candidates — never Attention / never empty in Demo UI.
+   * When omitted, the client falls back to fixtures + derivation from top item.
+   */
+  next_actions?: DemoNextAction[];
 };
 
 export type DemoMemoryItem = {

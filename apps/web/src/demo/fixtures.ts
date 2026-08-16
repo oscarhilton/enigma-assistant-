@@ -6,6 +6,9 @@ import type {
   DemoSuppressedPayload,
   DemoWhyPayload,
 } from "./types";
+import { FIXTURE_NEXT_ACTIONS } from "./nextActionCopy";
+
+export { FIXTURE_NEXT_ACTIONS } from "./nextActionCopy";
 
 export const FIXTURE_STATUS: DemoStatus = {
   active: true,
@@ -67,6 +70,7 @@ export const FIXTURE_ATTENTION_PAYLOAD: DemoAttentionPayload = {
   surfaced_count: 2,
   suppressed_count: 47,
   can_wait_groups: FIXTURE_CAN_WAIT_GROUPS,
+  next_actions: FIXTURE_NEXT_ACTIONS,
   simulated_time: FIXTURE_STATUS.simulated_time,
   evaluated_at: "2026-01-01T08:58:00+00:00",
 };
