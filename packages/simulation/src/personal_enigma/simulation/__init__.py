@@ -26,6 +26,7 @@ from personal_enigma.simulation.scenario import (
     load_scenario,
     try_load_scenario,
 )
+from personal_enigma.simulation.scenario_rng import scenario_rng
 
 __all__ = [
     "DEMO_BANNER_TEXT",
@@ -46,6 +47,7 @@ __all__ = [
     "discover_scenarios",
     "environment_mode_from_env",
     "load_scenario",
+    "scenario_rng",
     "storage_root_for",
     "try_load_scenario",
 ]

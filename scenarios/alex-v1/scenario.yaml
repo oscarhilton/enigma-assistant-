@@ -3,6 +3,7 @@
 id: alex-v1
 version: "0.1.0-scaffold"
 status: scaffold
+seed: alex-v1
 persona: persona.yaml
 timezone: Europe/London
 start_at: "2026-01-05T08:00:00Z"
