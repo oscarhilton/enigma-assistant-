@@ -1,0 +1,33 @@
+{
+  "kind": "calendar#events",
+  "summary": "Personal",
+  "items": [
+    {
+      "id": "evt_design_review",
+      "status": "confirmed",
+      "htmlLink": "https://www.google.com/calendar/event?eid=design",
+      "summary": "Design review",
+      "description": "Bring notes",
+      "location": "Room A",
+      "creator": {"email": "alex@example.com", "displayName": "Alex"},
+      "organizer": {"email": "alex@example.com", "displayName": "Alex"},
+      "start": {"dateTime": "2026-08-16T14:00:00Z"},
+      "end": {"dateTime": "2026-08-16T15:00:00Z"},
+      "attendees": [
+        {"email": "alex@example.com", "displayName": "Alex", "organizer": true},
+        {"email": "sam@example.com", "displayName": "Sam"}
+      ],
+      "recurrence": ["RRULE:FREQ=WEEKLY;INTERVAL=1"],
+      "updated": "2026-08-15T12:00:00.000Z",
+      "transparency": "opaque"
+    },
+    {
+      "id": "evt_cancelled",
+      "status": "cancelled",
+      "summary": "Cancelled standup",
+      "start": {"dateTime": "2026-08-16T09:00:00Z"},
+      "end": {"dateTime": "2026-08-16T09:15:00Z"}
+    }
+  ],
+  "nextSyncToken": "sync-primary-1"
+}

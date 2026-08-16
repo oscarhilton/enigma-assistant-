@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M00b-settings` |
 | Domain | `platform` |
 
@@ -33,10 +33,10 @@
 
 ## Acceptance criteria
 
-- [ ] Settings UI lists calendars with enable/disable checkboxes (fixture or API-backed)
-- [ ] API persists which calendar sources Enigma watches
-- [ ] Shows Apple permission placeholders (Calendar, Reminders, Contacts, Notes)
-- [ ] Disabled sources are not scheduled for sync
+- [x] Settings UI lists calendars with enable/disable checkboxes (fixture or API-backed)
+- [x] API persists which calendar sources Enigma watches
+- [x] Shows Apple permission placeholders (Calendar, Reminders, Contacts, Notes)
+- [x] Disabled sources are not scheduled for sync
 
 ## Test plan
 
