@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #34) |
 | Branch | `ticket/D10-demo-ui` |
 | Domain | `demo-ui` |
 
