@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M03-enigma-transformation` |
 | Domain | `transformation` |
 
@@ -34,10 +34,10 @@
 
 ## Acceptance criteria
 
-- [ ] Transformer maps private records → Enigma context with entity pseudonyms
-- [ ] Default `may_transmit_remotely` is conservative (false unless policy allows)
-- [ ] Notes path extracts minimal passages, not wholesale bodies
-- [ ] Interface remains provider-agnostic
+- [x] Transformer maps private records → Enigma context with entity pseudonyms
+- [x] Default `may_transmit_remotely` is conservative (false unless policy allows)
+- [x] Notes path extracts minimal passages, not wholesale bodies
+- [x] Interface remains provider-agnostic
 
 ## Test plan
 
