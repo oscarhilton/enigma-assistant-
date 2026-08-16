@@ -34,7 +34,10 @@ class AppleNotesSource:
             return ChangeBatch(items=[], next_cursor=None, exhausted=True)
 
         items: list[dict[str, Any]] = []
-        for raw in payload.get("items") or []:
+        raw_items = payload.get("items")
+        if not isinstance(raw_items, list):
+            raw_items = []
+        for raw in raw_items:
             if not isinstance(raw, Mapping):
                 continue
             try:
