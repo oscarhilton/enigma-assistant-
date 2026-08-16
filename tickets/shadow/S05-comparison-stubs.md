@@ -23,11 +23,12 @@
 
 - S04 shadow attention log
 - Phase 2.5 exit report shape
+- SE01–SE03 (detailed action join, suppress audit, weekly review artefacts — prefer soft; do not block S05 type stubs)
 
 ## Unlocks / enhances
 
 - Structured place to measure the seven questions without claiming answers yet
-
+- Feeds [shadow-evaluation.md](../../docs/architecture/shadow-evaluation.md) instrumentation
 ## Non-goals
 
 - Implementing full longitudinal user studies

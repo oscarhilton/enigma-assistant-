@@ -1,0 +1,11 @@
+{
+  "schema": "shadow.user_action/v0",
+  "id": "ua_stub_001",
+  "observed_at": "2026-08-16T12:00:00Z",
+  "kind": "open",
+  "subject_ref": {
+    "type": "message",
+    "id": "msg_stub_1"
+  },
+  "source_hint": "mail"
+}

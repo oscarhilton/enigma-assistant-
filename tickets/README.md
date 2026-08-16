@@ -24,13 +24,14 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), or `ticket/Sxx-slug` (Phase 3 Shadow) — see each ticket’s Branch field.
+3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
 7. When merging, set Status to `done` and reference the PR.
-8. **Demo Mode never shares Private storage roots or HMAC / PERSON_\* keys** ([ADR-005](../docs/adr/005-demo-private-storage-roots.md)). Do not point `ENIGMA_DATABASE_URL` for Demo at the Private DB.
-9. **Shadow Mode never shares Demo or Private roots** ([ADR-008](../docs/adr/008-shadow-storage-roots.md)). Demo→Shadow migration is impossible. Demo Mode is frozen for polish — prefer `tickets/shadow/` over new F-*/Demo UI work.
+8. **Merge gate:** CI green + agent self code-review before merge; do not block on Copilot when credits unavailable.
+9. **Demo Mode never shares Private storage roots or HMAC / PERSON_\* keys** ([ADR-005](../docs/adr/005-demo-private-storage-roots.md)). Do not point `ENIGMA_DATABASE_URL` for Demo at the Private DB.
+10. **Shadow Mode never shares Demo or Private roots** ([ADR-008](../docs/adr/008-shadow-storage-roots.md)). Demo→Shadow migration is impossible. Demo Mode is frozen for polish — prefer `tickets/shadow/` over new F-*/Demo UI work.
 
 ## Domains
 
@@ -53,8 +54,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
 | demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md)) — **frozen** for polish |
-| shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06); [shadow-mode.md](../docs/architecture/shadow-mode.md) |
-
+| shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval artefacts ([SE01](./shadow/SE01-action-vs-attention.md)–[SE03](./shadow/SE03-weekly-shadow-review.md)); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md). SE* must not edit `EnvironmentMode`. |
 ## Ingestion file ownership (do not cross)
 
 | Ticket | Owned path |
@@ -79,9 +79,9 @@ Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milesto
 Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).  
 Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; do not invent a top-level D13 for corpus).  
 Shadow Mode: [docs/architecture/shadow-mode.md](../docs/architecture/shadow-mode.md) (S01–S06 after `v0.2.0-demo`).  
+Shadow evaluation rubric: [docs/architecture/shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) (seven post-Alex questions · SE01–SE03).  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
-
 ## Phase 2 corpus extension (D08 subtasks)
 
 | Ticket | Status | Notes |

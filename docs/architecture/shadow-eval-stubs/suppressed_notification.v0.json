@@ -1,0 +1,11 @@
+{
+  "schema": "shadow.suppressed_notification/v0",
+  "id": "sn_stub_001",
+  "would_have_notified_at": "2026-08-16T11:50:01Z",
+  "candidate_id": "ac_stub_001",
+  "channel": "tray",
+  "suppression_reason": "shadow_mode",
+  "rank": 1,
+  "score": 0.91,
+  "subject_ref": { "type": "message", "id": "msg_stub_1" }
+}

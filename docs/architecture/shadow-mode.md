@@ -93,6 +93,8 @@ API and web stubs ship with S01; fuller chrome lands with later Shadow tickets.
 
 Shadow exists to confront the seven questions in [shadow-mode-questions.md](./shadow-mode-questions.md). Those questions are **evaluation goals** for Phase 3 — metrics, journals, and comparison stubs (S05) — not a checklist of features to ship in S01–S04.
 
+Detailed observables, stub schemas, and weekly review layout: [shadow-evaluation.md](./shadow-evaluation.md) (SE01–SE03).
+
 1. Act-on recognition  
 2. Nearly-forgot  
 3. Importance overestimate  
@@ -115,8 +117,8 @@ Shadow bootstrap is allowed because Phase 2.5 exit is PASS (`docs/reports/phase-
 | `apps/api` | `/shadow/*` banner / status stubs |
 | `apps/web` | SHADOW MODE banner stub |
 | `packages/attention` | Shadow attention log wiring (S04) |
-| `packages/evaluation` | Comparison stubs vs Demo-shaped metrics (S05) |
-| `tickets/shadow/` | S01–S06 work units |
+| `packages/evaluation` | Comparison stubs vs Demo-shaped metrics (S05); Shadow eval artefacts (SE01–SE03) |
+| `tickets/shadow/` | S01–S06 work units + SE01–SE03 eval instrumentation |
 
 ## Ticket order
 
