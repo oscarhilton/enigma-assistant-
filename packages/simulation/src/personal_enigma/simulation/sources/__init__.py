@@ -87,6 +87,24 @@ def package_events(package: ScenarioPackage | Iterable[ScenarioEvent]) -> list[S
     return list(package)
 
 
+def as_str_list(value: Any) -> list[str]:
+    """Coerce an untyped scenario payload field into a list of strings."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value] if value else []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    return [str(value)]
+
+
+def as_str_mapping(value: Any) -> dict[str, str]:
+    """Coerce an untyped scenario payload field into a string mapping."""
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): str(item) for key, item in value.items()}
+
+
 def __getattr__(name: str) -> Any:
     module_suffix = _EXPORTS.get(name)
     if module_suffix is None:
@@ -111,6 +129,8 @@ __all__ = [
     "SyntheticNotesSource",
     "SyntheticReminderSource",
     "_aware",
+    "as_str_list",
+    "as_str_mapping",
     "batch_from_items",
     "cursor_index",
     "events_for_source",

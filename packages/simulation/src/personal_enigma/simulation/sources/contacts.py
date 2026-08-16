@@ -11,6 +11,7 @@ from personal_enigma.ingestion.protocol import ChangeBatch, SyncCursor
 from personal_enigma.simulation.scenario import ScenarioEvent, ScenarioPackage
 from personal_enigma.simulation.sources import (
     NAMESPACE,
+    as_str_list,
     batch_from_items,
     cursor_index,
     events_for_source,
@@ -22,19 +23,19 @@ from personal_enigma.simulation.sources import (
 def person_from_event(event: ScenarioEvent) -> PrivatePerson:
     payload = event.payload
     raw_id = str(payload.get("id") or event.id)
-    emails = list(payload.get("email_addresses") or [])
+    emails = as_str_list(payload.get("email_addresses"))
     if payload.get("email"):
-        emails = [payload["email"], *emails]
-    phones = list(payload.get("phone_numbers") or [])
+        emails = [str(payload["email"]), *emails]
+    phones = as_str_list(payload.get("phone_numbers"))
     if payload.get("phone"):
-        phones = [payload["phone"], *phones]
+        phones = [str(payload["phone"]), *phones]
     return PrivatePerson(
         id=uuid5(NAMESPACE, raw_id),
         display_name=payload.get("display_name") or payload.get("name"),
-        aliases=list(payload.get("aliases") or []),
-        email_addresses=[str(e) for e in emails],
-        phone_numbers=[str(p) for p in phones],
-        organisations=list(payload.get("organisations") or []),
+        aliases=as_str_list(payload.get("aliases")),
+        email_addresses=emails,
+        phone_numbers=phones,
+        organisations=as_str_list(payload.get("organisations")),
         provider_ids={"synthetic": stable_id("contact", raw_id)},
     )
 

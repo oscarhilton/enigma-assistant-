@@ -10,6 +10,7 @@ from personal_enigma.ingestion.protocol import ChangeBatch, SyncCursor
 from personal_enigma.simulation.scenario import ScenarioEvent, ScenarioPackage
 from personal_enigma.simulation.sources import (
     _aware,
+    as_str_mapping,
     batch_from_items,
     cursor_index,
     events_for_source,
@@ -30,7 +31,7 @@ def note_from_event(event: ScenarioEvent) -> PrivateNote:
         body_text=str(payload.get("body_text") or payload.get("body") or ""),
         created_at=_aware(payload.get("created_at") or event.at),
         updated_at=_aware(event.at),
-        metadata={str(k): str(v) for k, v in (payload.get("metadata") or {}).items()},
+        metadata=as_str_mapping(payload.get("metadata")),
     )
 
 

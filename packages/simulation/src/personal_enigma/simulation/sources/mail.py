@@ -11,6 +11,7 @@ from personal_enigma.ingestion.protocol import ChangeBatch, SyncCursor
 from personal_enigma.simulation.scenario import ScenarioEvent, ScenarioPackage
 from personal_enigma.simulation.sources import (
     _aware,
+    as_str_list,
     batch_from_items,
     cursor_index,
     events_for_source,
@@ -67,7 +68,7 @@ def message_from_event(event: ScenarioEvent) -> PrivateMessage:
             payload.get("received_at")
             or (event.at if event.type == "email.receive" else None)
         ),
-        labels=list(payload.get("labels") or []),
+        labels=as_str_list(payload.get("labels")),
     )
 
 

@@ -64,10 +64,11 @@ def test_synthetics_satisfy_datasource_like_production() -> None:
     for source in synthetics:
         assert isinstance(source, DataSource)
     for cls in _PRODUCTION_SOURCES:
-        assert issubclass(cls, DataSource) or isinstance(
-            getattr(cls, "get_changes", None), object
-        )
+        # runtime_checkable Protocol: structural check via a throwaway instance shape
         assert callable(getattr(cls, "get_changes", None))
+        assert "get_changes" in cls.__dict__ or any(
+            "get_changes" in base.__dict__ for base in cls.__mro__
+        )
 
 
 def test_round_trip_mail_and_reminders() -> None:
