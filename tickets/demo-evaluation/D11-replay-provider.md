@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/D11-replay-provider` |
 | Domain | `demo-evaluation` |
 | Baseline | `v0.1.0-mvp` |
@@ -35,10 +35,10 @@
 
 ## Acceptance criteria
 
-- [ ] Record sanitised provider request/response pairs from Demo runs (TransformedContext only)
-- [ ] Replay provider serves recordings by request hash / scenario step
-- [ ] Eval runner can run fully offline with replay
-- [ ] Mismatch behaviour is explicit (fail vs passthrough policy documented)
+- [x] Record sanitised provider request/response pairs from Demo runs (TransformedContext only)
+- [x] Replay provider serves recordings by request hash / scenario step
+- [x] Eval runner can run fully offline with replay
+- [x] Mismatch behaviour is explicit (fail vs passthrough policy documented)
 
 ## Test plan
 
