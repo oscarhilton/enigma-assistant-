@@ -41,7 +41,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | transformation | [transformation/](./transformation/) | `packages/transformation` |
 | privacy | [privacy/](./privacy/) | `packages/privacy`, `apps/web` inspector |
 | reasoning | [reasoning/](./reasoning/) | `packages/reasoning` |
-| attention | [attention/](./attention/) | `packages/attention` |
+| attention | [attention/](./attention/) | `packages/attention` ([M06](./attention/M06-attention-engine.md), [M06a](./attention/M06a-attention-surface-policy.md)) |
 | apple-bridge | [apple-bridge/](./apple-bridge/) | `apps/apple-bridge` + pinned ingestion sources |
 | google | [google/](./google/) | pinned gmail / google_calendar sources |
 | retrieval | [retrieval/](./retrieval/) | `packages/embeddings` |
@@ -99,6 +99,7 @@ Do not invent speculative F-* work during D08c. Once the merge gate is green, cl
 1. Correctness: `F-background-basic` → `F-background-threading` → `F-background-identity` → `F-background-canonical-isolation` → `F-background-no-alert`
 2. Quality: `F-background-volume-vs-importance` → `F-retrieval-keyword-pollution`
 3. Import boundary: `F-corpus-real-domain-rewrite` → `F-corpus-live-url` → `F-corpus-secret-like-string` → `F-corpus-unexpected-real-entity`
+4. Attention surface (post–D14 wind tunnel): [F-attention-surface-wind-tunnel](./demo-scenario/F-attention-surface-wind-tunnel.md) · [M06a](./attention/M06a-attention-surface-policy.md) — see [attention-surface.md](../docs/architecture/attention-surface.md). Taxonomy follow-up: [M06b](./attention/M06b-message-origin-taxonomy.md).
 
 ## Ticket template fields
 

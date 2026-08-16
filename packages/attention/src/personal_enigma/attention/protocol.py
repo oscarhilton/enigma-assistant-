@@ -15,6 +15,8 @@ class AttentionItem(BaseModel):
     kind: AttentionKind
     score: float = 0.0
     evidence_ids: list[str] = Field(default_factory=list)
+    # 1–5 product priority. 0 means "derive from kind" via surface policy.
+    priority: int = 0
 
 
 @runtime_checkable

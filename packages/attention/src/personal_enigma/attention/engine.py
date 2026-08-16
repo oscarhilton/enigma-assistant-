@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from personal_enigma.attention.kinds import AttentionKind
 from personal_enigma.attention.protocol import AttentionItem
+from personal_enigma.attention.surface import assign_surface_priority
 
 # Higher weight → surfaces first. Explicit reminders beat weak email inferences.
 KIND_PRIORITY: dict[AttentionKind, float] = {
@@ -11,11 +12,15 @@ KIND_PRIORITY: dict[AttentionKind, float] = {
     AttentionKind.CALENDAR_OBLIGATION: 75.0,
     AttentionKind.INFERRED_OBLIGATION: 50.0,
     AttentionKind.INFERRED_COMMITMENT: 25.0,
+    AttentionKind.PENDING_REPLY: 15.0,
 }
 
 # Soft email / message inferences; never outrank EXPLICIT_REMINDER via raw score alone.
 WEAK_INFERRED_KINDS: frozenset[AttentionKind] = frozenset(
-    {AttentionKind.INFERRED_COMMITMENT},
+    {
+        AttentionKind.INFERRED_COMMITMENT,
+        AttentionKind.PENDING_REPLY,
+    },
 )
 
 _WEAK_SCORE_CAP = 20.0
@@ -44,10 +49,14 @@ class HeuristicAttentionEngine:
         """Return items ordered by what matters most (highest score first).
 
         Each returned item is a copy whose ``score`` is the effective score
-        (kind priority + raw score, with weak inferences clamped).
+        (kind priority + raw score, with weak inferences clamped) and whose
+        ``priority`` band is filled from kind when unset.
         """
         ranked: list[AttentionItem] = []
         for item in items:
-            ranked.append(item.model_copy(update={"score": effective_score(item)}))
+            scored = assign_surface_priority(
+                item.model_copy(update={"score": effective_score(item)})
+            )
+            ranked.append(scored)
         ranked.sort(key=lambda i: (-i.score, i.title.casefold(), i.kind.value))
         return ranked

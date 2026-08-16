@@ -66,6 +66,8 @@ Do **not** invent a top-level D13 for background corpus. Extend D03–D12 accept
 | D13 | Demo Why + Attention UX polish | `done` | [D13](../../tickets/demo-ui/D13-demo-why-attention-ux.md) |
 | D14 | Live Demo attention (alex-v1 pipeline) | `in_progress` | [D14](../../tickets/demo-ui/D14-live-demo-attention.md) |
 
+Post-D14 attention quality (not a new D08 letter): [attention surface policy](./attention-surface.md) · [M06a](../../tickets/attention/M06a-attention-surface-policy.md) · [M06b taxonomy follow-up](../../tickets/attention/M06b-message-origin-taxonomy.md) · [F-attention-surface-wind-tunnel](../../tickets/demo-scenario/F-attention-surface-wind-tunnel.md).
+
 ### Phase 2 waves
 
 ```text

@@ -24,6 +24,7 @@ def test_all_attention_kinds_distinguished() -> None:
         AttentionKind.INFERRED_OBLIGATION,
         AttentionKind.EXPLICIT_REMINDER,
         AttentionKind.INFERRED_COMMITMENT,
+        AttentionKind.PENDING_REPLY,
         AttentionKind.CALENDAR_OBLIGATION,
     }
     assert kinds == set(AttentionKind)
@@ -31,6 +32,10 @@ def test_all_attention_kinds_distinguished() -> None:
     assert (
         KIND_PRIORITY[AttentionKind.EXPLICIT_REMINDER]
         > KIND_PRIORITY[AttentionKind.INFERRED_COMMITMENT]
+    )
+    assert (
+        KIND_PRIORITY[AttentionKind.INFERRED_COMMITMENT]
+        > KIND_PRIORITY[AttentionKind.PENDING_REPLY]
     )
 
 
@@ -107,7 +112,8 @@ def test_review_proposal_scenario_top_is_explicit_reminder() -> None:
     kinds_present = {item.kind for item in ranked}
     assert AttentionKind.EXPLICIT_REMINDER in kinds_present
     assert AttentionKind.INFERRED_COMMITMENT in kinds_present
-    assert AttentionKind.CALENDAR_OBLIGATION in kinds_present
+    # Bare calendar existence is not attention (surface policy).
+    assert AttentionKind.CALENDAR_OBLIGATION not in kinds_present
 
 
 def test_review_proposal_via_registry_includes_inferred_obligation() -> None:

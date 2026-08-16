@@ -106,7 +106,8 @@ def test_apple_google_calendar_duplicates_one_attention_item() -> None:
     assert items[0].title == "Review proposal"
 
 
-def test_unrelated_sources_remain_separate() -> None:
+def test_unrelated_calendar_existence_is_not_an_obligation() -> None:
+    """Bare dentist event is context, not a second Attention/Obligation item."""
     pack = review_proposal_scenario()
     other = build_calendar_event(
         id="evt_dentist",
@@ -122,7 +123,5 @@ def test_unrelated_sources_remain_separate() -> None:
         calendar_events=[*pack.calendar_events, other],
     )
 
-    assert len(obligations) == 2
-    descriptions = {o.description for o in obligations}
-    assert "Review proposal" in descriptions
-    assert "Dentist appointment" in descriptions
+    assert len(obligations) == 1
+    assert obligations[0].description == "Review proposal"

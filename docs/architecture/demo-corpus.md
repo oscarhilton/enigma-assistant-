@@ -156,6 +156,8 @@ Top-level milestones stay D01–D12. Corpus work is D08 subtasks:
 
 Related amendments: D03 (background/profile schema), D04 (multi-stream mail), D05 (timeline merge), D06 (`ScenarioSignalClass`), D07 (noise metrics), D09–D12 (developer corpora, UI suppression stats, scale replay, compression demo).
 
+**Wind tunnel:** D14 live Attention on alex-v1 produced a “successful failure” dump (calendar noise + machine mail + merge pollution). Regression policy: [attention-surface.md](./attention-surface.md).
+
 ## Phase 2.5 exit → Shadow Mode
 
 Stop expanding Demo Mode when:

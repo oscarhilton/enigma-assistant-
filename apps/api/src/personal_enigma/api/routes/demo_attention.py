@@ -3,6 +3,9 @@
 Reuses existing packages only. Background streams are built once per session
 reset so interactive day/step clicks stay cheap (demo profile, not D08e scale).
 Remote reasoning stays off.
+
+Surface policy (attention wind tunnel): calendar existence is not attention;
+noise is not commitment; default view surfaces P4–P5 (P3 with timing).
 """
 
 from __future__ import annotations
@@ -15,7 +18,15 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid5
 
-from personal_enigma.attention import AttentionItem, AttentionKind, HeuristicAttentionEngine
+from personal_enigma.attention import (
+    AttentionItem,
+    AttentionKind,
+    HeuristicAttentionEngine,
+    filter_surfaced,
+    parse_due_from_body,
+    ui_priority_for_kind,
+    why_now_glance_for_deadline,
+)
 from personal_enigma.attention.engine import KIND_PRIORITY
 from personal_enigma.domain import (
     PrivateCalendarEvent,
@@ -35,18 +46,12 @@ from personal_enigma.simulation.sources.reminders import SyntheticReminderSource
 _ATTENTION_NS = UUID("a14e0000-0000-4000-8000-000000000014")
 _DUE_RE = re.compile(r"Due\s+(\S+)")
 
-_KIND_UI_PRIORITY: dict[AttentionKind, int] = {
-    AttentionKind.EXPLICIT_REMINDER: 5,
-    AttentionKind.CALENDAR_OBLIGATION: 4,
-    AttentionKind.INFERRED_OBLIGATION: 3,
-    AttentionKind.INFERRED_COMMITMENT: 2,
-}
-
 _KIND_REASON: dict[AttentionKind, str] = {
     AttentionKind.EXPLICIT_REMINDER: "EXPLICIT_REMINDER",
     AttentionKind.CALENDAR_OBLIGATION: "CALENDAR_OBLIGATION",
     AttentionKind.INFERRED_OBLIGATION: "INFERRED_OBLIGATION",
     AttentionKind.INFERRED_COMMITMENT: "INFERRED_COMMITMENT",
+    AttentionKind.PENDING_REPLY: "PENDING_REPLY",
 }
 
 
@@ -162,13 +167,17 @@ def _when_from_body(body: str) -> str | None:
     return f"Due {due.date().isoformat()}"
 
 
-def _why_now_glance(item: AttentionItem, *, when: str | None) -> str:
-    if when is not None:
-        return "Deadline approaching"
+def _why_now_glance(item: AttentionItem, *, now: datetime) -> str:
+    due = parse_due_from_body(item.body)
+    labeled = why_now_glance_for_deadline(due, now=now)
+    if labeled is not None:
+        return labeled
     if item.kind is AttentionKind.EXPLICIT_REMINDER:
         return "Open reminder"
     if item.kind is AttentionKind.CALENDAR_OBLIGATION:
         return "On your calendar"
+    if item.kind is AttentionKind.PENDING_REPLY:
+        return "Waiting on your reply"
     if item.kind is AttentionKind.INFERRED_COMMITMENT:
         return "Thread or follow-up"
     return "Open loop"
@@ -176,6 +185,7 @@ def _why_now_glance(item: AttentionItem, *, when: str | None) -> str:
 
 def _confidence_from_ranked(item: AttentionItem) -> float:
     base = KIND_PRIORITY[item.kind]
+    # Raw obligation confidence was stored before rank; recover from clamped bonus.
     return max(0.0, min(1.0, float(item.score) - base))
 
 
@@ -237,32 +247,37 @@ def refresh_attention_payloads(
         reminders=reminders,
         messages=messages,
         calendar_events=events,
+        now=until,
     )
     ranked = HeuristicAttentionEngine(remote_llm_enabled=False).rank(raw_items)
-    max_score = max((float(item.score) for item in ranked), default=1.0)
+    # Default Attention view: P4–P5 (P3 with timing); P2 stays candidate-only.
+    surfaced_items = filter_surfaced(ranked, now=until)
+    max_score = max((float(item.score) for item in surfaced_items), default=1.0)
 
     rows: list[dict[str, Any]] = []
     why_by_id: dict[str, dict[str, Any]] = {}
-    for item in ranked:
+    for item in surfaced_items:
         item_id = attention_item_id(item)
         if item_id in dismissed_ids:
             continue
         when = _when_from_body(item.body)
-        glance = _why_now_glance(item, when=when)
+        glance = _why_now_glance(item, now=until)
+        priority = ui_priority_for_kind(item.kind)
         row = {
             "id": item_id,
             "title": item.title,
             "when": when,
             "why_now_glance": glance,
-            "body": item.body,
+            # Card stays short; full evidence dump lives on Why.
+            "body": item.title,
             "kind": item.kind.value,
-            "priority": _KIND_UI_PRIORITY.get(item.kind, 2),
+            "priority": item.priority or priority,
             "confidence": round(_confidence_from_ranked(item), 4),
             "attention_rank": round(_attention_rank(item, max_score=max_score), 4),
             "evidence_ids": list(item.evidence_ids),
         }
         rows.append(row)
-        why_by_id[item_id] = build_why_payload(row)
+        why_by_id[item_id] = build_why_payload({**row, "body": item.body})
 
     considered = (
         sum(1 for r in reminders if not r.is_completed)
