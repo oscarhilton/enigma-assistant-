@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/D10-demo-ui` |
 | Domain | `demo-ui` |
 
@@ -32,9 +32,9 @@
 
 ## Acceptance criteria
 
-- [ ] Timeline controls (step / day / speed as available)
-- [ ] Attention dashboard, memory browser, why view, privacy inspector hooks
-- [ ] Simulation status + persistent `DEMO MODE — FICTIONAL DATA ONLY` banner
+- [x] Timeline controls (step / day / speed as available)
+- [x] Attention dashboard, memory browser, why view, privacy inspector hooks
+- [x] Simulation status + persistent `DEMO MODE — FICTIONAL DATA ONLY` banner
 
 ## Test plan
 

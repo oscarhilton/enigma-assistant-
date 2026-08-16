@@ -7,13 +7,17 @@ objects — Enigma discovers those downstream.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Literal
+from random import Random
+from typing import Any, Literal, TypeGuard
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+
+from personal_enigma.simulation.scenario_rng import rng_for_package, scenario_rng
 
 SOURCE_EVENT_TYPES = frozenset(
     {
@@ -60,6 +64,7 @@ class ScenarioManifest(BaseModel):
     description: str = ""
     persona: str | None = None
     start_at: datetime | None = None
+    seed: str | None = None
 
     @field_validator("start_at", mode="before")
     @classmethod
@@ -67,6 +72,16 @@ class ScenarioManifest(BaseModel):
         if isinstance(value, str):
             return _parse_instant(value)
         return value
+
+    @field_validator("seed")
+    @classmethod
+    def _validate_seed(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = value.strip()
+        if not text:
+            raise ValueError("seed must be non-empty when set")
+        return text
 
 
 class ScenarioEvent(BaseModel):
@@ -122,6 +137,15 @@ class ScenarioPackage(BaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
 
+    @property
+    def effective_seed(self) -> str:
+        """Seed used for deterministic generation (manifest seed or scenario id)."""
+        return self.manifest.seed or self.manifest.id
+
+    def rng(self) -> Random:
+        """Return a seeded RNG for corpus / adapter generation helpers."""
+        return rng_for_package(self)
+
 
 @dataclass
 class ScenarioLoadResult:
@@ -168,10 +192,22 @@ def _read_yaml(path: Path) -> Any:
         return yaml.safe_load(handle)
 
 
+def _try_read_yaml(path: Path, *, label: str) -> tuple[Any | None, str | None]:
+    """Read YAML, returning ``(data, error)`` instead of raising."""
+    try:
+        return _read_yaml(path), None
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        return None, f"{label}: {exc}"
+
+
 def _collect_timeline_files(timeline_dir: Path) -> list[Path]:
     if not timeline_dir.is_dir():
         return []
     return sorted(p for p in timeline_dir.glob("*.yaml") if p.is_file())
+
+
+def _is_relative_instant(value: object) -> TypeGuard[str]:
+    return isinstance(value, str) and (value.startswith("+") or value.startswith("-"))
 
 
 def _load_events(
@@ -182,16 +218,21 @@ def _load_events(
 ) -> tuple[list[ScenarioEvent], list[str]]:
     events: list[ScenarioEvent] = []
     errors: list[str] = []
-    base = start_at or datetime(2026, 1, 1, tzinfo=UTC)
     for index, raw in enumerate(raw_events):
         if not isinstance(raw, dict):
             errors.append(f"{origin}[{index}]: expected mapping")
             continue
         data = dict(raw)
         at_value = data.get("at")
-        if isinstance(at_value, str) and (at_value.startswith("+") or at_value.startswith("-")):
+        if isinstance(at_value, str) and _is_relative_instant(at_value):
+            if start_at is None:
+                errors.append(
+                    f"{origin}[{index}]: relative instant {at_value!r} requires "
+                    "manifest start_at"
+                )
+                continue
             try:
-                data["at"] = resolve_relative_instant(base, at_value)
+                data["at"] = resolve_relative_instant(start_at, at_value)
             except ValueError as exc:
                 errors.append(f"{origin}[{index}]: {exc}")
                 continue
@@ -228,16 +269,23 @@ def try_load_scenario(path: Path | str) -> ScenarioLoadResult:
         manifest = ScenarioManifest.model_validate(
             {k: v for k, v in raw_manifest.items() if k != "events"}
         )
-    except (ValidationError, ValueError, yaml.YAMLError) as exc:
+    except (OSError, ValidationError, ValueError, yaml.YAMLError) as exc:
         return ScenarioLoadResult(errors=[f"scenario.yaml: {exc}"])
+
+    if root.name != manifest.id:
+        errors.append(
+            f"directory name {root.name!r} must match manifest id {manifest.id!r}"
+        )
 
     persona: dict[str, Any] = {}
     if manifest.persona:
         persona_path = root / manifest.persona
         if persona_path.is_file():
-            loaded = _read_yaml(persona_path) or {}
-            if isinstance(loaded, dict):
-                persona = loaded
+            loaded, read_err = _try_read_yaml(persona_path, label=manifest.persona)
+            if read_err:
+                errors.append(read_err)
+            elif isinstance(loaded, dict) or loaded is None:
+                persona = loaded or {}
             else:
                 errors.append(f"{manifest.persona}: expected mapping")
         else:
@@ -247,16 +295,25 @@ def try_load_scenario(path: Path | str) -> ScenarioLoadResult:
     entities_dir = root / "entities"
     if entities_dir.is_dir():
         for entity_file in sorted(entities_dir.glob("*.yaml")):
-            loaded = _read_yaml(entity_file) or {}
-            if isinstance(loaded, dict):
-                entities[entity_file.stem] = loaded
+            loaded, read_err = _try_read_yaml(
+                entity_file, label=f"entities/{entity_file.name}"
+            )
+            if read_err:
+                errors.append(read_err)
+            elif isinstance(loaded, dict) or loaded is None:
+                entities[entity_file.stem] = loaded or {}
             else:
                 errors.append(f"entities/{entity_file.name}: expected mapping")
 
     all_events: list[ScenarioEvent] = []
     timeline_dir = root / "timeline"
     for timeline_file in _collect_timeline_files(timeline_dir):
-        loaded = _read_yaml(timeline_file)
+        loaded, read_err = _try_read_yaml(
+            timeline_file, label=f"timeline/{timeline_file.name}"
+        )
+        if read_err:
+            errors.append(read_err)
+            continue
         if loaded is None:
             continue
         if isinstance(loaded, dict) and "events" in loaded:
@@ -264,7 +321,9 @@ def try_load_scenario(path: Path | str) -> ScenarioLoadResult:
         elif isinstance(loaded, list):
             raw_list = loaded
         else:
-            errors.append(f"timeline/{timeline_file.name}: expected list or {{events: [...]}}")
+            errors.append(
+                f"timeline/{timeline_file.name}: expected list or {{events: [...]}}"
+            )
             continue
         if not isinstance(raw_list, list):
             errors.append(f"timeline/{timeline_file.name}: events must be a list")
@@ -290,23 +349,31 @@ def try_load_scenario(path: Path | str) -> ScenarioLoadResult:
             all_events.extend(events)
             errors.extend(event_errors)
 
-    ids = [e.id for e in all_events]
-    if len(ids) != len(set(ids)):
-        dupes = sorted({i for i in ids if ids.count(i) > 1})
+    counts = Counter(e.id for e in all_events)
+    dupes = sorted(event_id for event_id, count in counts.items() if count > 1)
+    if dupes:
         errors.append(f"duplicate event ids: {dupes}")
 
     all_events.sort(key=lambda e: (e.at, e.id))
 
-    ground_truth = sorted(
-        str(p.relative_to(root))
-        for p in (root / "ground_truth").glob("*.yaml")
-        if p.is_file()
-    ) if (root / "ground_truth").is_dir() else []
-    attacks = sorted(
-        str(p.relative_to(root))
-        for p in (root / "attacks").glob("*.yaml")
-        if p.is_file()
-    ) if (root / "attacks").is_dir() else []
+    ground_truth = (
+        sorted(
+            str(p.relative_to(root))
+            for p in (root / "ground_truth").glob("*.yaml")
+            if p.is_file()
+        )
+        if (root / "ground_truth").is_dir()
+        else []
+    )
+    attacks = (
+        sorted(
+            str(p.relative_to(root))
+            for p in (root / "attacks").glob("*.yaml")
+            if p.is_file()
+        )
+        if (root / "attacks").is_dir()
+        else []
+    )
 
     if errors:
         return ScenarioLoadResult(errors=errors)
@@ -330,3 +397,18 @@ def discover_scenarios(base: Path | str) -> list[Path]:
     if not root.is_dir():
         return []
     return sorted(p.parent for p in root.rglob("scenario.yaml"))
+
+
+__all__ = [
+    "ScenarioEvent",
+    "ScenarioLoadResult",
+    "ScenarioManifest",
+    "ScenarioPackage",
+    "ScenarioValidationError",
+    "discover_scenarios",
+    "load_scenario",
+    "resolve_relative_instant",
+    "rng_for_package",
+    "scenario_rng",
+    "try_load_scenario",
+]

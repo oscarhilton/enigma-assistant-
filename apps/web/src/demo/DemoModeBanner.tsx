@@ -7,8 +7,8 @@ export type DemoModeBannerProps = {
 };
 
 /**
- * Stub banner for D1. Full demo chrome (timeline controls, etc.) is D10.
- * Enable via prop or `import.meta.env.VITE_ENIGMA_MODE === "demo"`.
+ * Persistent Demo Mode label. Force `active` on `/demo/*` chrome; otherwise
+ * enable via prop or `import.meta.env.VITE_ENIGMA_MODE === "demo"`.
  */
 export function DemoModeBanner({
   active,

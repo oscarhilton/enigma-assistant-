@@ -494,6 +494,7 @@ name = "personal-enigma-evaluation"
 version = "0.1.0"
 source = { editable = "packages/evaluation" }
 dependencies = [
+    { name = "personal-enigma-attention" },
     { name = "personal-enigma-domain" },
     { name = "personal-enigma-fixtures" },
     { name = "personal-enigma-privacy" },
@@ -506,6 +507,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "personal-enigma-attention", editable = "packages/attention" },
     { name = "personal-enigma-domain", editable = "packages/domain" },
     { name = "personal-enigma-fixtures", editable = "packages/fixtures" },
     { name = "personal-enigma-privacy", editable = "packages/privacy" },
@@ -604,6 +606,7 @@ version = "0.1.0"
 source = { editable = "packages/simulation" }
 dependencies = [
     { name = "personal-enigma-domain" },
+    { name = "personal-enigma-ingestion" },
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
@@ -611,6 +614,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "personal-enigma-domain", editable = "packages/domain" },
+    { name = "personal-enigma-ingestion", editable = "packages/ingestion" },
     { name = "pydantic", specifier = ">=2.10.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
 ]

@@ -11,6 +11,7 @@ from personal_enigma.simulation.scenario import (
     load_scenario,
     try_load_scenario,
 )
+from personal_enigma.simulation.scenario_rng import scenario_rng
 
 REPO = Path(__file__).resolve().parents[3]
 FEATURE = REPO / "scenarios" / "feature"
@@ -36,17 +37,88 @@ def test_feature_scenarios_load(name: str) -> None:
         assert "commitment" not in event.payload
 
 
-def test_alex_scaffold_loads() -> None:
-    pkg = load_scenario(ALEX)
-    assert pkg.manifest.id == "alex-v1"
-    assert pkg.manifest.status == "scaffold"
-    assert pkg.persona
+def test_alex_scaffold_loads_deterministically() -> None:
+    first = load_scenario(ALEX)
+    second = load_scenario(ALEX)
+    assert first.manifest.id == "alex-v1"
+    assert first.manifest.status == "scaffold"
+    assert first.persona
+    assert first.effective_seed == "alex-v1"
+    assert [e.model_dump(mode="json") for e in first.events] == [
+        e.model_dump(mode="json") for e in second.events
+    ]
+    assert first.persona == second.persona
+    assert first.rng().random() == second.rng().random()
+
+
+def test_scenario_rng_is_seeded() -> None:
+    a = scenario_rng("alex-v1")
+    b = scenario_rng("alex-v1")
+    seq_a = [a.random() for _ in range(8)]
+    seq_b = [b.random() for _ in range(8)]
+    assert seq_a == seq_b
+    assert scenario_rng("alex-v1").getstate() == scenario_rng("alex-v1").getstate()
+    assert scenario_rng("alex-v1").getstate() != scenario_rng("other").getstate()
+
+
+def test_rejects_empty_seed(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="non-empty"):
+        scenario_rng("")
+    with pytest.raises(ValueError, match="non-empty"):
+        scenario_rng(b"")
+    root = tmp_path / "empty-seed"
+    root.mkdir()
+    (root / "scenario.yaml").write_text(
+        "id: empty-seed\nversion: '0'\nseed: '   '\nevents: []\n",
+        encoding="utf-8",
+    )
+    result = try_load_scenario(root)
+    assert not result.ok
+    assert any("seed" in err.lower() for err in result.errors)
 
 
 def test_relative_offsets_resolve() -> None:
     pkg = load_scenario(FEATURE / "commitment-basic")
     nudge = next(e for e in pkg.events if e.id == "cb-mail-nudge")
     assert nudge.at.isoformat().startswith("2026-03-04")
+
+
+def test_rejects_relative_without_start_at(tmp_path: Path) -> None:
+    root = tmp_path / "no-start"
+    root.mkdir()
+    (root / "scenario.yaml").write_text(
+        "id: no-start\nversion: '0'\nevents:\n"
+        "  - id: e1\n    at: '+1d'\n"
+        "    type: email.receive\n    source: mail\n    payload: {}\n",
+        encoding="utf-8",
+    )
+    result = try_load_scenario(root)
+    assert not result.ok
+    assert any("requires manifest start_at" in err for err in result.errors)
+
+
+def test_rejects_directory_id_mismatch(tmp_path: Path) -> None:
+    root = tmp_path / "folder-name"
+    root.mkdir()
+    (root / "scenario.yaml").write_text(
+        "id: other-id\nversion: '0'\n",
+        encoding="utf-8",
+    )
+    result = try_load_scenario(root)
+    assert not result.ok
+    assert any("must match manifest id" in err for err in result.errors)
+
+
+def test_rejects_invalid_timeline_yaml(tmp_path: Path) -> None:
+    root = tmp_path / "bad-yaml"
+    root.mkdir()
+    (root / "scenario.yaml").write_text("id: bad-yaml\nversion: '0'\n", encoding="utf-8")
+    timeline = root / "timeline"
+    timeline.mkdir()
+    (timeline / "broken.yaml").write_text(":\n  - bad\n", encoding="utf-8")
+    result = try_load_scenario(root)
+    assert not result.ok
+    assert any("timeline/broken.yaml" in err for err in result.errors)
 
 
 def test_rejects_world_model_payload() -> None:
