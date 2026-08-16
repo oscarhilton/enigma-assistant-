@@ -197,7 +197,11 @@ enum ContactsSnapshotCursor {
         let material = people
             .map { person in
                 let emails = person.emailAddresses.sorted().joined(separator: ",")
-                return "\(person.providerIds["apple_contacts"] ?? person.id)|\(person.displayName ?? "")|\(emails)"
+                let phones = person.phoneNumbers.sorted().joined(separator: ",")
+                let aliases = person.aliases.sorted().joined(separator: ",")
+                let orgs = person.organisations.sorted().joined(separator: ",")
+                let provider = person.providerIds["apple_contacts"] ?? person.id
+                return "\(provider)|\(person.displayName ?? "")|\(emails)|\(phones)|\(aliases)|\(orgs)"
             }
             .sorted()
             .joined(separator: "\n")
