@@ -9,6 +9,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from threading import Lock
 from typing import Any, Literal
 
@@ -21,7 +22,13 @@ from personal_enigma.simulation import (
     EnvironmentMode,
     SimulationClock,
     environment_mode_from_env,
+    storage_root_for,
 )
+from personal_enigma.simulation.checkpoints import (
+    bootstrap_demo_storage,
+    reset_demo_storage,
+)
+from personal_enigma.simulation.engine import assert_demo_storage_root
 
 # Fixed epoch so UI smoke tests are deterministic without D5 event engine.
 _DEMO_EPOCH = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
@@ -266,15 +273,44 @@ class DemoSession:
     env: DemoEnvironment = field(init=False)
 
     def __post_init__(self) -> None:
-        self.reset()
+        # Session start reseeds in-memory state only — do not wipe on-disk demo
+        # storage until an explicit reset control is invoked.
+        self._reseed_session()
 
-    def reset(self) -> None:
+    def _reseed_session(self) -> None:
         clock = SimulationClock(initial=_DEMO_EPOCH)
         self.env = DemoEnvironment(scenario=self.scenario, clock=clock)
         self.speed = 1.0
         self.attention_items = deepcopy(_STUB_ATTENTION_BASE)
         self.suppressed_count = _DEFAULT_SUPPRESSED
         self.action_log = []
+
+    def wipe_and_bootstrap_storage(self) -> Path:
+        """Wipe the active scenario Demo root and write a fresh checkpoint.
+
+        Refuses Private / Shadow roots (ADR-005). Never follows symlinks out of
+        the demo tree (``reset_demo_storage`` unlinks symlinks instead).
+        """
+        root = storage_root_for(EnvironmentMode.DEMO, scenario=self.scenario)
+        _assert_demo_reset_root(root, scenario_id=self.scenario)
+        reset_demo_storage(root)
+        return bootstrap_demo_storage(
+            root,
+            scenario=self.scenario,
+            now=_DEMO_EPOCH,
+        )
+
+    def reset(self) -> dict[str, Any]:
+        """Full demo reset: wipe Demo storage for this scenario, then reseed."""
+        storage_path = self.wipe_and_bootstrap_storage()
+        self._reseed_session()
+        payload = self.status_payload()
+        payload["ok"] = True
+        payload["reset"] = True
+        payload["storage_wiped"] = True
+        payload["storage_bootstrapped"] = True
+        payload["engine_state"] = str(storage_path)
+        return payload
 
     @property
     def clock(self) -> SimulationClock:
@@ -386,6 +422,29 @@ def _require_demo() -> None:
         )
 
 
+def _assert_demo_reset_root(root: Path, *, scenario_id: str) -> None:
+    """Refuse Private/Shadow roots; require a per-scenario Demo directory."""
+    resolved = root.expanduser().resolve()
+    try:
+        assert_demo_storage_root(resolved, scenario_id=scenario_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    for mode, label in (
+        (EnvironmentMode.PRIVATE, "Private"),
+        (EnvironmentMode.SHADOW, "Shadow"),
+    ):
+        foreign = storage_root_for(mode).expanduser().resolve()
+        if resolved == foreign or foreign in resolved.parents:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Refusing to reset {label} storage root "
+                    f"(ADR-005); got {resolved}"
+                ),
+            )
+
+
 def _session_for(application: FastAPI) -> DemoSession:
     session = getattr(application.state, "demo_session", None)
     if not isinstance(session, DemoSession):
@@ -475,13 +534,19 @@ def install_demo_routes(application: FastAPI) -> None:
                 session.clock.resume()
             return session.status_payload()
 
-    @application.post("/demo/timeline/reset")
-    def demo_timeline_reset() -> dict[str, Any]:
+    @application.post("/demo/reset")
+    def demo_reset() -> dict[str, Any]:
+        """Wipe Demo storage for the active scenario and reseed a fresh run."""
         _require_demo()
         with _lock_for(application):
-            session = _session_for(application)
-            session.reset()
-            return session.status_payload()
+            return _session_for(application).reset()
+
+    @application.post("/demo/timeline/reset")
+    def demo_timeline_reset() -> dict[str, Any]:
+        """Alias of ``POST /demo/reset`` (clock + Demo storage wipe + bootstrap)."""
+        _require_demo()
+        with _lock_for(application):
+            return _session_for(application).reset()
 
     @application.get("/demo/attention")
     def demo_attention() -> dict[str, Any]:

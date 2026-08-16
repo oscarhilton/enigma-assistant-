@@ -165,6 +165,11 @@ nav a.active {
   margin: 1rem 0;
 }
 
+.demo-page button.demo-reset {
+  border-color: #8a4b3a;
+  color: #5c2f24;
+}
+
 .muted {
   color: var(--muted);
   font-size: 0.95rem;

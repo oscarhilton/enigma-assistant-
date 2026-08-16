@@ -86,3 +86,23 @@ def reset_demo_storage(root: Path) -> None:
             else:
                 child.unlink(missing_ok=True)
     ensure_demo_layout(root)
+
+
+def bootstrap_demo_storage(
+    root: Path,
+    *,
+    scenario: str,
+    now: datetime,
+) -> Path:
+    """Ensure empty demo layout and write a fresh engine checkpoint."""
+    ensure_demo_layout(root)
+    return write_engine_state(
+        root,
+        {
+            "scenario": scenario,
+            "now": now.isoformat(),
+            "emitted_ids": [],
+            "pending_ids": [],
+            "bootstrapped": True,
+        },
+    )

@@ -31,6 +31,12 @@ export type DemoStatus = {
   suppressed_count?: number | null;
   /** Alias for noise-layer suppression when D08d streams contribute. */
   noise_suppressed_count?: number | null;
+  /** Present on successful ``POST /demo/reset`` responses. */
+  ok?: boolean;
+  reset?: boolean;
+  storage_wiped?: boolean;
+  storage_bootstrapped?: boolean;
+  engine_state?: string;
 };
 
 /** Attention card fields — priority ≠ confidence; rank ≠ confidence. */
