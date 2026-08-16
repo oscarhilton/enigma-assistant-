@@ -1,0 +1,36 @@
+id: background-identity
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-07T08:00:00Z"
+description: >
+  Background cast identities are rewritten to background-person-* /
+  company-*.example namespaces disjoint from the canonical roster. A
+  display-name collision with Maya Chen must not collapse person_id or email.
+events:
+  - id: bi-contact-self
+    at: "2026-04-07T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+  - id: bi-contact-maya
+    at: "2026-04-07T08:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: maya
+      display_name: Maya Chen
+      email: maya.chen@northwind.example
+  - id: bi-mail-note
+    at: "2026-04-07T09:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-identity-note
+      subject: "Roster stays northwind.example"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Canonical people only; background cast comes from the corpus sanitiser.

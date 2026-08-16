@@ -1,0 +1,11 @@
+# Canonical roster for background-identity (Maya is the collision fixture).
+
+contacts:
+  alex:
+    display_name: Alex Morgan
+    email: alex.morgan@northwind.example
+    role: self
+  maya:
+    display_name: Maya Chen
+    email: maya.chen@northwind.example
+    role: manager

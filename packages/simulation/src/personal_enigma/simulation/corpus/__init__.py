@@ -19,9 +19,11 @@ from personal_enigma.simulation.corpus.background import (
     BackgroundSignalTruth,
     DocumentedProfileTargets,
     build_background_stream,
+    canonical_contact_display_names,
     canonical_contact_emails,
     load_background_config,
     load_scenario_background,
+    materialise_background_cast,
 )
 from personal_enigma.simulation.corpus.cache import (
     CorpusCache,
@@ -129,6 +131,7 @@ __all__ = [
     "build_background_stream",
     "build_demo_safe_corpus",
     "build_noise_stream",
+    "canonical_contact_display_names",
     "canonical_contact_emails",
     "collect_conversations",
     "default_cache_root",
@@ -141,6 +144,7 @@ __all__ = [
     "load_scenario_background",
     "load_scenario_noise",
     "looks_like_machine_noise",
+    "materialise_background_cast",
     "merge_stream_events",
     "place_conversation_on_timeline",
     "place_conversations_on_timeline",
