@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #27) |
 | Branch | `ticket/D05-event-engine` |
 | Domain | `demo-simulation` |
 

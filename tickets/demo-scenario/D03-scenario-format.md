@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` (PR #30) |
+| Status | `done` (merged #30) |
 | Branch | `ticket/D03-scenario-format` |
 | Domain | `demo-scenario` |
 | Baseline | `v0.1.0-mvp` |

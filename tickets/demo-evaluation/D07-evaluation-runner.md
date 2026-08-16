@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` |
+| Status | `done` (merged #32) |
 | Branch | `ticket/D07-evaluation-runner` |
 | Domain | `demo-evaluation` |
 

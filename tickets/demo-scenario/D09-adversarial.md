@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #33) |
 | Branch | `ticket/D09-adversarial` |
 | Domain | `demo-scenario` |
 

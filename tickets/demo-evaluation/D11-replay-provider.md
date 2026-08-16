@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #38) |
 | Branch | `ticket/D11-replay-provider` |
 | Domain | `demo-evaluation` |
 | Baseline | `v0.1.0-mvp` |

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #35) |
 | Branch | `ticket/D08-canonical-alex` |
 | Domain | `demo-scenario` |
 

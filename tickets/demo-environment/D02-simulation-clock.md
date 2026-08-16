@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` (PR pending) |
+| Status | `done` (merged #23) |
 | Branch | `ticket/D02-simulation-clock` |
 | Domain | `demo-environment` |
 | Baseline | `v0.1.0-mvp` |
