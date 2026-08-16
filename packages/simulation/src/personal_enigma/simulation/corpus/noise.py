@@ -68,6 +68,38 @@ _BRANDS: dict[NoiseCategory, tuple[str, ...]] = {
     "spam_like": ("PrizeVault", "LuckyClick", "OfferRiver"),
 }
 
+_BRAND_TOKENS_LOWER: tuple[str, ...] = tuple(
+    brand.lower() for brands in _BRANDS.values() for brand in brands
+)
+_MACHINE_LOCAL_PARTS: frozenset[str] = frozenset(
+    {
+        "noreply",
+        "no-reply",
+        "news",
+        "newsletter",
+        "receipts",
+        "hello",
+        "accounts",
+        "shipments",
+        "calendar",
+        "wins",
+        "marketing",
+        "promo",
+        "notifications",
+    }
+)
+_SUBJECT_NOISE_TOKENS: tuple[str, ...] = (
+    "receipt",
+    "out for delivery",
+    "% off",
+    "security notice",
+    "build #",
+    "claim your",
+    "unsubscribe",
+    "weekly #",
+    "confirmed:",
+)
+
 _CATEGORY_WEIGHTS: dict[str, float] = {
     "newsletter": 0.18,
     "receipt": 0.12,
@@ -123,6 +155,27 @@ class NoiseSpec(BaseModel):
     classification: NoiseClassification = Field(default_factory=NoiseClassification)
     # Optional category mix override (must sum ≈ 1.0 when set).
     category_weights: dict[str, float] | None = None
+
+    @model_validator(mode="after")
+    def _validate_category_weights(self) -> NoiseSpec:
+        weights = self.category_weights
+        if weights is None:
+            return self
+        if not weights:
+            raise ValueError(f"noise {self.id!r}: category_weights must be non-empty")
+        unknown = sorted(set(weights) - set(NOISE_CATEGORIES))
+        if unknown:
+            raise ValueError(
+                f"noise {self.id!r}: unknown category_weights keys {unknown}"
+            )
+        if any(float(v) < 0 for v in weights.values()):
+            raise ValueError(f"noise {self.id!r}: category_weights must be >= 0")
+        total = sum(float(v) for v in weights.values())
+        if abs(total - 1.0) > 0.05:
+            raise ValueError(
+                f"noise {self.id!r}: category_weights must sum ≈ 1.0 (got {total})"
+            )
+        return self
 
 
 class NoiseConfig(BaseModel):
@@ -385,13 +438,7 @@ def build_noise_stream(
         )
 
     resolved = str(profile or cfg.profile)
-    try:
-        specs = cfg.specs_for_profile(resolved)
-    except KeyError:
-        return NoiseBuildResult(
-            stream=GeneratedNoiseStream(events=[]),
-            profile=resolved,
-        )
+    specs = cfg.specs_for_profile(resolved)
 
     to_email = _self_email(package)
     all_events: list[ScenarioEvent] = []
@@ -445,42 +492,12 @@ def looks_like_machine_noise(
     blob = f"{subject_l}\n{body.lower()}\n{from_name.lower()}"
 
     local = sender_l.split("@", 1)[0] if "@" in sender_l else sender_l
-    if local in {
-        "noreply",
-        "no-reply",
-        "news",
-        "newsletter",
-        "receipts",
-        "hello",
-        "accounts",
-        "shipments",
-        "calendar",
-        "wins",
-        "marketing",
-        "promo",
-        "notifications",
-    }:
+    if local in _MACHINE_LOCAL_PARTS:
         return True
 
-    brand_tokens = tuple(
-        brand.lower() for brands in _BRANDS.values() for brand in brands
-    )
-    if any(token in blob for token in brand_tokens):
+    if any(token in blob for token in _BRAND_TOKENS_LOWER):
         return True
-    if any(
-        token in subject_l
-        for token in (
-            "receipt",
-            "out for delivery",
-            "% off",
-            "security notice",
-            "build #",
-            "claim your",
-            "unsubscribe",
-            "weekly #",
-            "confirmed:",
-        )
-    ):
+    if any(token in subject_l for token in _SUBJECT_NOISE_TOKENS):
         return True
     return False
 
