@@ -407,12 +407,14 @@ version = "0.1.0"
 source = { editable = "packages/transformation" }
 dependencies = [
     { name = "personal-enigma-domain" },
+    { name = "personal-enigma-identity" },
     { name = "personal-enigma-privacy" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "personal-enigma-domain", editable = "packages/domain" },
+    { name = "personal-enigma-identity", editable = "packages/identity" },
     { name = "personal-enigma-privacy", editable = "packages/privacy" },
 ]
 

@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
   "personal-enigma-domain",
   "personal-enigma-privacy",
+  "personal-enigma-identity",
 ]
 
 [build-system]
@@ -18,3 +19,4 @@ packages = ["src/personal_enigma"]
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
 personal-enigma-privacy = { workspace = true }
+personal-enigma-identity = { workspace = true }
