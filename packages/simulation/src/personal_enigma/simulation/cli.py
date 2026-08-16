@@ -157,6 +157,14 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def _parse_cli_datetime(value: str) -> datetime:
+    """Parse ISO datetime; naive values are treated as UTC, aware values converted."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def cmd_build(args: argparse.Namespace) -> int:
     registry = default_registry()
     manifest = registry.get(args.corpus_id)
@@ -164,8 +172,8 @@ def cmd_build(args: argparse.Namespace) -> int:
         assert_public_demo_allowed(manifest)
 
     conversations = asyncio.run(_collect(args.corpus_id))
-    window_start = datetime.fromisoformat(args.window_start).replace(tzinfo=UTC)
-    window_end = datetime.fromisoformat(args.window_end).replace(tzinfo=UTC)
+    window_start = _parse_cli_datetime(args.window_start)
+    window_end = _parse_cli_datetime(args.window_end)
     derived = DerivedCorpusCache(
         root=Path(args.derived_root) if args.derived_root else None
     )

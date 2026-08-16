@@ -65,7 +65,9 @@ def place_conversation_on_timeline(
     if start < window_start:
         start = window_start + timedelta(minutes=rng.randrange(0, 60))
     if start > window_end:
-        start = window_end - timedelta(minutes=max(1, len(conversation.messages)))
+        # Keep start inside the window; reserve one second per follow-up if needed.
+        reserve = max(0, len(conversation.messages) - 1)
+        start = max(window_start, window_end - timedelta(seconds=reserve))
 
     events: list[ScenarioEvent] = []
     cursor: datetime | None = None
