@@ -40,9 +40,13 @@ class CorpusBackgroundStream:
 
 @dataclass
 class GeneratedNoiseStream:
-    """Locally generated noise templates (D08d scaffold)."""
+    """Locally generated machine-noise templates (D08d).
+
+    Distinct from ``CorpusBackgroundStream`` (human conversational density).
+    """
 
     events: Sequence[ScenarioEvent] = field(default_factory=list)
+    # Evaluator-only hint; never copied onto PrivateMessage / ChangeBatch items.
     signal_class: str = "noise"
 
     def scenario_events(self) -> list[ScenarioEvent]:

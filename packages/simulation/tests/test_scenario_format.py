@@ -23,6 +23,7 @@ FEATURE_SCENARIOS = (
     "calendar-conflict",
     "cross-source-merge",
     "quiet-day",
+    "background-no-alert",
 )
 
 

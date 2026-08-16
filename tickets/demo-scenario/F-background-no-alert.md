@@ -1,10 +1,11 @@
-# Feature scenario stub — background-no-alert
+# Feature scenario — background-no-alert
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Domain | `demo-scenario` |
 | Related | D08d, D07 |
+| Path | `scenarios/feature/background-no-alert/` |
 
 ## Intent
 
@@ -12,5 +13,5 @@ A simulated day with substantial email traffic but nothing requiring attention �
 
 ## Acceptance
 
-- [ ] Eval expects empty attention surface
-- [ ] Suppression metrics still recorded
+- [x] Eval expects empty attention surface
+- [x] Suppression metrics still recorded (false-alert rate = 0 under silence)

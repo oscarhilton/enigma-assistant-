@@ -1,0 +1,22 @@
+# Quiet-day hard gate (D08d): 183 machine-sludge emails, zero obligations.
+#
+# Evaluator metadata only. Noise merges into SyntheticMailSource chronologically.
+
+profile: quiet_day
+
+notes: >
+  183 emails arrive; 0 genuine obligations. Attention must stay empty —
+  inventing something to say because there is lots to read is a product failure.
+
+profiles:
+  quiet_day:
+    noise:
+      - id: no-alert-sludge
+        seed: background-no-alert-noise-v1
+        message_count: 183
+        date_range:
+          start: 2026-03-28T08:00:00Z
+          end: 2026-03-28T20:00:00Z
+        classification:
+          signal_class: noise
+          expected_attention: false
