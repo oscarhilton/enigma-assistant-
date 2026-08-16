@@ -5,6 +5,7 @@ description = "Demo Mode environment, clock, and synthetic source scaffolds"
 requires-python = ">=3.12"
 dependencies = [
   "personal-enigma-domain",
+  "personal-enigma-ingestion",
   "pydantic>=2.10.0",
   "pyyaml>=6.0.0",
 ]
@@ -18,3 +19,4 @@ packages = ["src/personal_enigma"]
 
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
+personal-enigma-ingestion = { workspace = true }

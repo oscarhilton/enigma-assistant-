@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/D07-evaluation-runner` |
 | Domain | `demo-evaluation` |
 
@@ -32,15 +32,20 @@
 
 ## Acceptance criteria
 
-- [ ] Metrics modules: attention, privacy, memory, retrieval, cost
-- [ ] Single command produces a complete scenario report
-- [ ] Critical recall / precision / duplicates / stale alerts / privacy / cost covered at least as stubs with real attention+privacy wired
+- [x] Metrics modules: attention, privacy, memory, retrieval, cost
+- [x] Single command produces a complete scenario report
+- [x] Critical recall / precision / duplicates / stale alerts / privacy / cost covered at least as stubs with real attention+privacy wired
 
 ## Test plan
 
-- Smoke run on tiny scenario fixture
-- Report JSON/Markdown schema snapshot test
+- [x] Smoke run on tiny scenario fixture
+- [x] Report JSON/Markdown schema snapshot test
 
 ## Privacy constraints
 
 - Reports must not embed Private Mode data; Demo root only
+
+## Notes
+
+- CLI entrypoint: `enigma-eval` (`uv run enigma-eval`) → `reports/<run_id>/`
+- Soft-merged D06 ground-truth models/loader/fixtures so the runner can score missed obligations before D06 lands on main

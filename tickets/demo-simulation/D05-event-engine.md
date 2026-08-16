@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/D05-event-engine` |
 | Domain | `demo-simulation` |
 
@@ -30,9 +30,9 @@
 
 ## Acceptance criteria
 
-- [ ] Timeline load + event emission for `at <= simulated now`
-- [ ] Advance one event, advance day, batch run, reset
-- [ ] One month of Alex (or fixture subset) replays identically twice
+- [x] Timeline load + event emission for `at <= simulated now`
+- [x] Advance one event, advance day, batch run, reset
+- [x] One month of Alex (or fixture subset) replays identically twice
 
 ## Test plan
 

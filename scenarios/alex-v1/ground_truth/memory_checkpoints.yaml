@@ -1,0 +1,8 @@
+# Schema example for D6 — memory checkpoint (spec §39).
+checkpoint:
+  at: "2026-03-31T00:00:00Z"
+  expected_memories:
+    - maya_is_manager
+    - atlas_is_active_project
+    - alex_normally_replies_to_maya_quickly
+  min_confidence: 0.6

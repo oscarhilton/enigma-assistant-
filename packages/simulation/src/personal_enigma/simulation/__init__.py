@@ -5,6 +5,7 @@ under ``sources/`` for D4. See ``docs/architecture/demo-mode.md``.
 """
 
 from personal_enigma.simulation.clock import Clock, SimulationClock, SystemClock
+from personal_enigma.simulation.engine import SimulationEngine
 from personal_enigma.simulation.environment import (
     DEMO_BANNER_TEXT,
     PRIVATE_CREDENTIAL_KEYS,
@@ -18,7 +19,7 @@ from personal_enigma.simulation.environment import (
     environment_mode_from_env,
     storage_root_for,
 )
-from personal_enigma.simulation.events import SimulationEvent
+from personal_enigma.simulation.events import EmittedEvent, SimulationEvent
 from personal_enigma.simulation.scenario import (
     ScenarioPackage,
     ScenarioValidationError,
@@ -33,6 +34,7 @@ __all__ = [
     "PRIVATE_CREDENTIAL_KEYS",
     "Clock",
     "DemoEnvironment",
+    "EmittedEvent",
     "EnvironmentMode",
     "PrivateEnvironment",
     "RealSourceAccessError",
@@ -40,6 +42,7 @@ __all__ = [
     "ScenarioValidationError",
     "SecretNamespace",
     "SimulationClock",
+    "SimulationEngine",
     "SimulationEvent",
     "SystemClock",
     "assert_source_allowed_for_mode",
