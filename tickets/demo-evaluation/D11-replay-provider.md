@@ -36,7 +36,7 @@
 ## Acceptance criteria
 
 - [x] Record sanitised provider request/response pairs from Demo runs (TransformedContext only)
-- [x] Replay provider serves recordings by request hash / scenario step
+- [x] Replay provider serves recordings by request hash (primary) or scenario step (`complete_step` / optional `scenario_step`)
 - [x] Eval runner can run fully offline with replay
 - [x] Mismatch behaviour is explicit (fail vs passthrough policy documented)
 

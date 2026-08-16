@@ -210,7 +210,7 @@ class RecordingPaygTransport:
 
 
 class ReplayPaygTransport:
-    """Serve recordings by request hash. Never opens a network socket."""
+    """Serve recordings by request hash or scenario step. Never opens a network socket."""
 
     def __init__(
         self,
@@ -236,6 +236,10 @@ class ReplayPaygTransport:
         self._inner = inner
         self.force_offline = force_offline
         self.calls: list[str] = []
+        self._by_hash = self.store.by_hash()
+        self._by_step = {
+            r.scenario_step: r for r in self.store.recordings if r.scenario_step
+        }
 
     def complete(
         self,
@@ -243,19 +247,33 @@ class ReplayPaygTransport:
         model: str,
         prompt: str,
         context: TransformedContext,
+        scenario_step: str | None = None,
     ) -> ReasoningResult:
         digest = request_hash(model=model, prompt=prompt, context=context)
         self.calls.append(digest)
-        hit = self.store.by_hash().get(digest)
+        hit = self._by_hash.get(digest)
+        if hit is None and scenario_step is not None:
+            hit = self._by_step.get(scenario_step)
         if hit is not None:
             return hit.to_result()
 
         if self.force_offline or self.mismatch is ReplayMismatchPolicy.FAIL or self._inner is None:
+            detail = f"request_hash={digest[:12]}…"
+            if scenario_step is not None:
+                detail = f"{detail}, scenario_step={scenario_step!r}"
             raise ReplayMismatchError(
-                f"no recording for request_hash={digest[:12]}… "
+                f"no recording for {detail} "
                 f"(policy={self.mismatch.value}, force_offline={self.force_offline})"
             )
         return self._inner.complete(model=model, prompt=prompt, context=context)
+
+    def complete_step(self, scenario_step: str) -> ReasoningResult:
+        """Serve a recording keyed only by ``scenario_step`` (eval harness helper)."""
+        hit = self._by_step.get(scenario_step)
+        if hit is None:
+            raise ReplayMismatchError(f"no recording for scenario_step={scenario_step!r}")
+        self.calls.append(hit.request_hash)
+        return hit.to_result()
 
 
 def _context_dict(context: TransformedContext | Mapping[str, Any]) -> dict[str, Any]:

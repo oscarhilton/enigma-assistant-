@@ -140,7 +140,7 @@ def test_recording_rejects_private_markers() -> None:
         assert_recording_safe(dirty)
 
 
-def test_checked_in_fixture_and_offline_eval_report() -> None:
+def test_checked_in_fixture_and_offline_eval_report(tmp_path: Path) -> None:
     path = FIXTURES / "quiet-day.json"
     assert path.is_file()
     store = load_recording_store(path)
@@ -153,12 +153,14 @@ def test_checked_in_fixture_and_offline_eval_report() -> None:
     ctx = TransformedContext.model_validate(rec.context)
     result = client.reason(ctx, prompt=rec.prompt, model=rec.model)
     assert result.text == rec.response_text
+    assert rec.scenario_step is not None
+    assert replay.complete_step(rec.scenario_step).text == rec.response_text
 
     # Eval runner stays fully offline (no provider network) while producing a report.
-    report_a = EvaluationRunner(reports_root="/tmp/enigma-replay-a").run(
+    report_a = EvaluationRunner(reports_root=tmp_path / "enigma-replay-a").run(
         "quiet-day", write=False
     )
-    report_b = EvaluationRunner(reports_root="/tmp/enigma-replay-b").run(
+    report_b = EvaluationRunner(reports_root=tmp_path / "enigma-replay-b").run(
         "quiet-day", write=False
     )
     assert report_a.status == report_b.status
