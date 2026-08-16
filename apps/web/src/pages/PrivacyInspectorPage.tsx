@@ -12,7 +12,7 @@ type InspectionResult = {
 
 const demoPayload = {
   summary: "Review the proposal before Friday's meeting",
-  entities: ["PERSON_A1"],
+  entities: ["PERSON_A1B2C3"],
   may_transmit_remotely: true,
   source_type: "reminder",
   remote_enabled: true,

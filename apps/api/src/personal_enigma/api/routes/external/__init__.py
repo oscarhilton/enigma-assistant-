@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hmac
 import os
+import re
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, status
@@ -13,6 +15,11 @@ from personal_enigma.privacy import (
     PrivacyInvariantError,
     RemoteInferenceConfig,
     assert_remote_payload_safe,
+)
+
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+_PHONE_RE = re.compile(
+    r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}(?!\w)"
 )
 
 
@@ -55,12 +62,38 @@ _DEMO_ATTENTION: list[SanitisedAttentionItem] = [
 
 
 def _require_local_auth(authorization: str | None) -> None:
-    expected = os.environ.get("ENIGMA_API_TOKEN", "local-dev-token")
-    if authorization != f"Bearer {expected}":
+    expected = f"Bearer {os.environ.get('ENIGMA_API_TOKEN', 'local-dev-token')}"
+    provided = authorization or ""
+    if not hmac.compare_digest(provided, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing local bearer token",
         )
+
+
+def _assert_item_sanitised(item: SanitisedAttentionItem) -> None:
+    blob = f"{item.title}\n{item.body}"
+    if _EMAIL_RE.search(blob) or _PHONE_RE.search(blob):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="External attention item contains unsanitised PII",
+        )
+    payload = {
+        "summary": f"{item.title}\n{item.body}",
+        "entities": [],
+        "metadata": {"source_type": "reminder"},
+        "may_transmit_remotely": False,
+    }
+    try:
+        assert_remote_payload_safe(
+            payload,
+            remote=RemoteInferenceConfig(enabled=False),
+        )
+    except PrivacyInvariantError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
 
 
 def install_external_routes(app: FastAPI) -> None:
@@ -76,24 +109,8 @@ def install_external_routes(app: FastAPI) -> None:
         authorization: str | None = Header(default=None),
     ) -> list[SanitisedAttentionItem]:
         _require_local_auth(authorization)
-        # Ensure list items are structurally safe as remote-shaped dicts.
         for item in _DEMO_ATTENTION:
-            payload = {
-                "summary": item.title,
-                "entities": [],
-                "metadata": {},
-                "may_transmit_remotely": False,
-            }
-            try:
-                assert_remote_payload_safe(
-                    payload,
-                    remote=RemoteInferenceConfig(enabled=False),
-                )
-            except PrivacyInvariantError as exc:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=str(exc),
-                ) from exc
+            _assert_item_sanitised(item)
         return list(_DEMO_ATTENTION)
 
     @app.get("/external/private-person/{person_id}")

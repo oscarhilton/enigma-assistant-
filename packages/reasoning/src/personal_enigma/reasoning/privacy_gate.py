@@ -10,6 +10,9 @@ from personal_enigma.transformation import TransformedContext
 
 # Raw attendee / contact emails must never appear in remote payloads.
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+_PHONE_RE = re.compile(
+    r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}(?!\w)"
+)
 
 # Domain private model type names that must not be smuggled through metadata.
 _FORBIDDEN_TYPE_MARKERS = (
@@ -41,6 +44,7 @@ def assert_remote_safe(payload: Any) -> TransformedContext:
 
     _reject_forbidden_markers(payload)
     _reject_raw_emails(payload)
+    _reject_raw_phones(payload)
     return payload
 
 
@@ -59,6 +63,16 @@ def _reject_raw_emails(context: TransformedContext) -> None:
     if match is not None:
         raise PrivacyGateError(
             "privacy gate refused raw email address in TransformedContext "
+            f"({match.group(0)!r})"
+        )
+
+
+def _reject_raw_phones(context: TransformedContext) -> None:
+    blob = _flatten_text(context)
+    match = _PHONE_RE.search(blob)
+    if match is not None:
+        raise PrivacyGateError(
+            "privacy gate refused raw phone number in TransformedContext "
             f"({match.group(0)!r})"
         )
 
