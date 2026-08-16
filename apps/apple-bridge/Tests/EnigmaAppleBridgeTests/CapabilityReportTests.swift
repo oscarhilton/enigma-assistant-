@@ -1,11 +1,18 @@
+import Contacts
 import EnigmaAppleBridgeCore
 import XCTest
+
+private struct DeniedContactsStore: ContactsStore {
+    func authorizationStatus() -> CNAuthorizationStatus { .denied }
+    func requestAccess() async throws -> Bool { false }
+    func fetchPeople() throws -> [RawContactPerson] { [] }
+}
 
 final class CapabilityReportTests: XCTestCase {
     func testScaffoldCapabilities() throws {
         let report = CapabilityReport.scaffold()
         XCTAssertTrue(report.calendar.available)
-        XCTAssertFalse(report.calendar.authorised)
+        // Live EventKit status varies by machine; scaffold still encodes notes quality.
         XCTAssertEqual(report.notes.quality, "best_effort")
 
         let json = try LocalTransport().describe(capabilities: report)
@@ -14,7 +21,10 @@ final class CapabilityReportTests: XCTestCase {
     }
 
     func testUnauthorisedSourcesStillEncodedIndependently() throws {
-        let hooks = PermissionHooks()
+        let hooks = PermissionHooks(
+            calendarIsAuthorised: { false },
+            contactsSource: ContactsSource(store: DeniedContactsStore())
+        )
         let report = hooks.capabilities()
         XCTAssertFalse(report.calendar.authorised)
         XCTAssertFalse(report.reminders.authorised)
@@ -43,8 +53,23 @@ final class BridgeAuthTests: XCTestCase {
 }
 
 final class BridgeHTTPServerTests: XCTestCase {
+    private func deniedServer(token: String = "test-token") -> BridgeHTTPServer {
+        let deniedCalendar = CalendarSource(isAuthorised: { false }, requestAccess: { false })
+        let deniedContacts = ContactsSource(store: DeniedContactsStore())
+        let hooks = PermissionHooks(
+            calendarIsAuthorised: { false },
+            contactsSource: deniedContacts
+        )
+        return BridgeHTTPServer(
+            token: token,
+            permissionHooks: hooks,
+            calendarSource: deniedCalendar,
+            contactsSource: deniedContacts
+        )
+    }
+
     func testCapabilitiesRequiresBearerToken() throws {
-        let server = BridgeHTTPServer(token: "test-token")
+        let server = deniedServer()
         let denied = try server.handleHTTP(method: "GET", path: "/capabilities", authorization: nil)
         XCTAssertEqual(denied.status, 401)
 
@@ -61,7 +86,7 @@ final class BridgeHTTPServerTests: XCTestCase {
     }
 
     func testHealthEndpoint() throws {
-        let server = BridgeHTTPServer(token: "test-token")
+        let server = deniedServer()
         let result = try server.handleHTTP(
             method: "GET",
             path: "/health",
@@ -73,32 +98,55 @@ final class BridgeHTTPServerTests: XCTestCase {
     }
 
     func testLoopbackServerRoundTrip() throws {
-        let port = freeLoopbackPort()
-        let token = "integration-token-\(port)"
-        let server = BridgeHTTPServer(endpoint: .loopback(port: port), token: token)
-        try server.start()
-        defer { server.stop() }
+        var lastError: Error?
+        for _ in 0 ..< 8 {
+            let port = freeLoopbackPort()
+            let token = "integration-token-\(port)"
+            let deniedContacts = ContactsSource(store: DeniedContactsStore())
+            let server = BridgeHTTPServer(
+                endpoint: .loopback(port: port),
+                token: token,
+                permissionHooks: PermissionHooks(
+                    calendarIsAuthorised: { false },
+                    contactsSource: deniedContacts
+                ),
+                calendarSource: CalendarSource(isAuthorised: { false }, requestAccess: { false }),
+                contactsSource: deniedContacts
+            )
+            do {
+                try server.start()
+            } catch let error as BridgeError {
+                if case .bindFailed = error {
+                    lastError = error
+                    continue
+                }
+                throw error
+            }
+            defer { server.stop() }
 
-        let url = URL(string: "http://127.0.0.1:\(port)/capabilities")!
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            let url = URL(string: "http://127.0.0.1:\(port)/capabilities")!
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        let expectation = expectation(description: "capabilities")
-        var statusCode = 0
-        var body = Data()
+            let expectation = expectation(description: "capabilities")
+            var statusCode = 0
+            var body = Data()
 
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            XCTAssertNil(error)
-            statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            body = data ?? Data()
-            expectation.fulfill()
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                XCTAssertNil(error)
+                statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                body = data ?? Data()
+                expectation.fulfill()
+            }
+            task.resume()
+            wait(for: [expectation], timeout: 5)
+
+            XCTAssertEqual(statusCode, 200)
+            let report = try JSONDecoder().decode(CapabilityReport.self, from: body)
+            XCTAssertTrue(report.contacts.available)
+            return
         }
-        task.resume()
-        wait(for: [expectation], timeout: 5)
-
-        XCTAssertEqual(statusCode, 200)
-        let report = try JSONDecoder().decode(CapabilityReport.self, from: body)
-        XCTAssertTrue(report.reminders.available)
+        XCTFail("Failed to bind loopback server after retries: \(String(describing: lastError))")
     }
 
     private func freeLoopbackPort() -> UInt16 {
@@ -109,10 +157,24 @@ final class BridgeHTTPServerTests: XCTestCase {
 
 final class PermissionHooksTests: XCTestCase {
     func testRequestAuthorisationStubDoesNotThrow() async {
-        let hooks = PermissionHooks()
+        let hooks = PermissionHooks(
+            calendarIsAuthorised: { false },
+            calendarRequestAccess: { false },
+            contactsSource: ContactsSource(store: DeniedContactsStore())
+        )
         let authorised = await hooks.requestAuthorisation(for: .calendar)
         XCTAssertFalse(authorised)
         let notes = await hooks.requestAuthorisation(for: .notes)
         XCTAssertFalse(notes)
+    }
+
+    func testCalendarAuthorisedWhenInjected() {
+        let hooks = PermissionHooks(
+            calendarIsAuthorised: { true },
+            contactsSource: ContactsSource(store: DeniedContactsStore())
+        )
+        XCTAssertTrue(hooks.isAuthorised(.calendar))
+        XCTAssertFalse(hooks.isAuthorised(.contacts))
+        XCTAssertTrue(hooks.capabilities().calendar.authorised)
     }
 }

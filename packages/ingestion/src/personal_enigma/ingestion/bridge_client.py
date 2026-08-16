@@ -40,6 +40,7 @@ class AppleBridgeClient:
         self.unix_socket = unix_socket
         self.timeout = timeout
         self._transport = transport
+        # Injected transports are for tests; UDS never uses TCP host routing.
         if transport is None and unix_socket is None:
             _assert_local_base_url(self.base_url)
 
@@ -57,6 +58,7 @@ class AppleBridgeClient:
             )
         if self.unix_socket:
             transport = httpx.AsyncHTTPTransport(uds=self.unix_socket)
+            # Host is ignored for UDS; keep a placeholder base URL.
             return httpx.AsyncClient(
                 base_url="http://localhost",
                 transport=transport,

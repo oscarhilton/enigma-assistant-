@@ -1,0 +1,17 @@
+{
+  "kind": "calendar#events",
+  "summary": "Personal",
+  "items": [
+    {
+      "id": "evt_followup",
+      "status": "confirmed",
+      "summary": "Follow-up",
+      "organizer": {"email": "alex@example.com", "displayName": "Alex"},
+      "start": {"dateTime": "2026-08-18T16:00:00Z"},
+      "end": {"dateTime": "2026-08-18T16:30:00Z"},
+      "updated": "2026-08-17T09:00:00.000Z",
+      "transparency": "opaque"
+    }
+  ],
+  "nextSyncToken": "sync-primary-2"
+}

@@ -4,11 +4,13 @@ import Network
 /// Local-only HTTP server for the Apple Bridge.
 ///
 /// Binds to `127.0.0.1` or a Unix domain socket, requires bearer auth, and exposes
-/// `GET /health` + `GET /capabilities`. Never calls LLM providers.
+/// `GET /health`, `GET /capabilities`, `GET /calendar/*`, and `GET /contacts/changes`.
+/// Never calls LLM providers.
 public final class BridgeHTTPServer: @unchecked Sendable {
     public let endpoint: BridgeEndpoint
     private let auth: BridgeAuth
     private let permissionHooks: PermissionHooks
+    private let calendarSource: CalendarSource
     private let contactsSource: ContactsSource
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.personal-enigma.bridge-http")
@@ -16,13 +18,15 @@ public final class BridgeHTTPServer: @unchecked Sendable {
     public init(
         endpoint: BridgeEndpoint = .defaultLoopback,
         token: String,
-        permissionHooks: PermissionHooks = PermissionHooks(),
+        permissionHooks: PermissionHooks? = nil,
+        calendarSource: CalendarSource = CalendarSource(),
         contactsSource: ContactsSource = ContactsSource()
     ) {
         self.endpoint = endpoint
         self.auth = BridgeAuth(expectedToken: token)
-        self.permissionHooks = permissionHooks
+        self.calendarSource = calendarSource
         self.contactsSource = contactsSource
+        self.permissionHooks = permissionHooks ?? PermissionHooks(contactsSource: contactsSource)
     }
 
     public var isRunning: Bool { listener != nil }
@@ -137,6 +141,23 @@ public final class BridgeHTTPServer: @unchecked Sendable {
             let report = permissionHooks.capabilities()
             let body = try BridgeJSON.encode(report)
             return (200, "application/json", body)
+        case ("GET", "/calendar/changes"):
+            let cursor = query["cursor"]
+            let selected = Self.parseCalendarIDs(query["calendar_ids"] ?? query["calendars"])
+            let response = calendarSource.getChanges(cursor: cursor, selectedCalendarIDs: selected)
+            let body = try BridgeJSON.encode(response)
+            return (200, "application/json", body)
+        case ("GET", "/calendar/calendars"):
+            struct CalendarsPayload: Encodable {
+                var authorised: Bool
+                var calendars: [CalendarInfoDTO]
+            }
+            let typed = CalendarsPayload(
+                authorised: calendarSource.isReady(),
+                calendars: calendarSource.listCalendars()
+            )
+            let body = try BridgeJSON.encode(typed)
+            return (200, "application/json", body)
         case ("GET", "/contacts/changes"):
             let batch = try contactsSource.changes(since: query["cursor"])
             let body = try BridgeJSON.encode(batch)
@@ -210,8 +231,9 @@ public final class BridgeHTTPServer: @unchecked Sendable {
 
         let method = String(parts[0])
         let rawTarget = String(parts[1])
-        let path = String(rawTarget.split(separator: "?").first ?? Substring(rawTarget))
-        let query = Self.parseQuery(from: rawTarget)
+        let pathAndQuery = rawTarget.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+        let path = String(pathAndQuery.first ?? Substring(rawTarget))
+        let query = Self.parseQuery(pathAndQuery.count > 1 ? String(pathAndQuery[1]) : nil)
 
         var authorization: String?
         for line in lines.dropFirst() {
@@ -241,24 +263,6 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         })
     }
 
-    static func parseQuery(from target: String) -> [String: String] {
-        guard let queryIndex = target.firstIndex(of: "?") else { return [:] }
-        let query = target[target.index(after: queryIndex)...]
-        var result: [String: String] = [:]
-        for pair in query.split(separator: "&") where !pair.isEmpty {
-            let parts = pair.split(separator: "=", maxSplits: 1)
-            let key = String(parts[0]).removingPercentEncoding ?? String(parts[0])
-            let value: String
-            if parts.count == 2 {
-                value = String(parts[1]).removingPercentEncoding ?? String(parts[1])
-            } else {
-                value = ""
-            }
-            result[key] = value
-        }
-        return result
-    }
-
     private func httpResponse(status: Int, contentType: String, body: Data) -> Data {
         let reason: String
         switch status {
@@ -279,5 +283,33 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         var response = Data(header.utf8)
         response.append(body)
         return response
+    }
+
+    static func parseQuery(_ raw: String?) -> [String: String] {
+        guard let raw, !raw.isEmpty else { return [:] }
+        var result: [String: String] = [:]
+        for pair in raw.split(separator: "&") {
+            let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard let keyPart = parts.first else { continue }
+            let key = String(keyPart).removingPercentEncoding ?? String(keyPart)
+            let value: String
+            if parts.count > 1 {
+                let rawValue = String(parts[1])
+                value = rawValue.removingPercentEncoding ?? rawValue
+            } else {
+                value = ""
+            }
+            result[key] = value
+        }
+        return result
+    }
+
+    static func parseCalendarIDs(_ raw: String?) -> Set<String> {
+        guard let raw, !raw.isEmpty else { return [] }
+        return Set(
+            raw.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
     }
 }

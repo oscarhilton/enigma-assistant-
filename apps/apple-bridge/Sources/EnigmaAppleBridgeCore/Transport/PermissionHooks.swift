@@ -10,18 +10,46 @@ public enum BridgeSourceID: String, Codable, Sendable, CaseIterable {
 }
 
 public struct PermissionHooks: Sendable {
-    public init() {}
+    private let calendarIsAuthorised: @Sendable () -> Bool
+    private let calendarRequestAccess: @Sendable () async -> Bool
+    private let contactsSource: ContactsSource
 
-    /// Stub permission prompt. Always returns `false` until a source ticket lands.
+    public init(
+        calendarIsAuthorised: @escaping @Sendable () -> Bool = {
+            EventKitCalendarAccess().authorizationStatus() == .authorised
+        },
+        calendarRequestAccess: @escaping @Sendable () async -> Bool = {
+            await EventKitCalendarAccess().requestReadAccess()
+        },
+        contactsSource: ContactsSource = ContactsSource()
+    ) {
+        self.calendarIsAuthorised = calendarIsAuthorised
+        self.calendarRequestAccess = calendarRequestAccess
+        self.contactsSource = contactsSource
+    }
+
+    /// Permission prompt. Calendar/Contacts use system APIs; other sources remain stubs.
     public func requestAuthorisation(for source: BridgeSourceID) async -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .calendar:
+            return await calendarRequestAccess()
+        case .contacts:
+            return await contactsSource.requestAccess()
+        case .reminders, .notes:
+            return false
+        }
     }
 
     /// Current authorisation snapshot without prompting.
     public func isAuthorised(_ source: BridgeSourceID) -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .calendar:
+            return calendarIsAuthorised()
+        case .contacts:
+            return contactsSource.isAuthorised()
+        case .reminders, .notes:
+            return false
+        }
     }
 
     /// Build a capability report that continues even when individual sources are denied.

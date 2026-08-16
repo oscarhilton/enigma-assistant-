@@ -1,0 +1,19 @@
+{
+  "id": "msg_beta",
+  "threadId": "thread_1",
+  "labelIds": ["INBOX"],
+  "snippet": "Thanks — I'll bring the deck.",
+  "internalDate": "1723818000000",
+  "payload": {
+    "mimeType": "text/plain",
+    "headers": [
+      {"name": "From", "value": "user@example.test"},
+      {"name": "To", "value": "Jordan Lee <jordan@corp.example>"},
+      {"name": "Subject", "value": "Re: Review proposal follow-up"},
+      {"name": "Date", "value": "Fri, 16 Aug 2024 13:00:00 +0000"}
+    ],
+    "body": {
+      "data": "VGhhbmtzIOKAlCBJJ2xsIGJyaW5nIHRoZSBkZWNrLg"
+    }
+  }
+}

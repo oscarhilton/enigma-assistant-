@@ -1,0 +1,18 @@
+{
+  "kind": "calendar#events",
+  "summary": "Work",
+  "items": [
+    {
+      "id": "evt_work_only",
+      "status": "confirmed",
+      "htmlLink": "https://www.google.com/calendar/event?eid=work",
+      "summary": "Work planning",
+      "organizer": {"email": "boss@example.com", "displayName": "Boss"},
+      "start": {"dateTime": "2026-08-17T10:00:00Z"},
+      "end": {"dateTime": "2026-08-17T11:00:00Z"},
+      "updated": "2026-08-16T08:00:00.000Z",
+      "transparency": "opaque"
+    }
+  ],
+  "nextSyncToken": "sync-work-1"
+}
