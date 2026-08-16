@@ -25,7 +25,7 @@ from personal_enigma.transformation.stub_resolver import StubHmacResolver
 
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _PHONE_RE = re.compile(
-    r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}(?!\w)"
+    r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}(?!\w)"
 )
 
 
@@ -36,10 +36,18 @@ class DefaultEnigmaTransformer:
         self,
         resolver: EntityResolver | None = None,
         *,
-        hmac_key: bytes | str = b"enigma-stub-hmac-key",
+        hmac_key: bytes | str | None = None,
         allow_remote: bool = False,
     ) -> None:
-        self._resolver: EntityResolver = resolver or StubHmacResolver(hmac_key)
+        if resolver is not None:
+            self._resolver: EntityResolver = resolver
+        elif hmac_key is not None:
+            self._resolver = StubHmacResolver(hmac_key)
+        else:
+            raise ValueError(
+                "DefaultEnigmaTransformer requires an explicit hmac_key or resolver; "
+                "refusing a shared default key that would correlate pseudonyms across users"
+            )
         self._allow_remote = allow_remote
 
     def transform(self, private_record: dict[str, Any] | BaseModel) -> TransformedContext:

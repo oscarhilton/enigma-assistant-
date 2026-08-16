@@ -6,11 +6,15 @@ import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import pytest
+
 from personal_enigma.domain import (
     PrivateCalendarEvent,
+    PrivateMessage,
     PrivateNote,
     PrivatePerson,
     PrivatePersonRef,
+    PrivateReminder,
 )
 from personal_enigma.fixtures import sample_calendar_event
 from personal_enigma.identity import EntityResolver
@@ -165,3 +169,61 @@ def test_allow_remote_still_blocks_high_privacy_sources() -> None:
 
     event = sample_calendar_event()
     assert transformer.transform(event).may_transmit_remotely is True
+
+
+def test_requires_explicit_hmac_key_or_resolver() -> None:
+    with pytest.raises(ValueError, match="explicit hmac_key or resolver"):
+        DefaultEnigmaTransformer()
+    with pytest.raises(ValueError, match="non-empty"):
+        StubHmacResolver(b"")
+
+
+def test_reminder_transform_redacts_pii_and_blocks_remote_by_default() -> None:
+    transformer = DefaultEnigmaTransformer(hmac_key=FIXED_HMAC_KEY)
+    reminder = PrivateReminder(
+        id="rem_1",
+        provider="apple_reminders",
+        provider_id="REM-1",
+        title="Call jordan@corp.example at +1-555-019-8877",
+        notes="CC morgan@corp.example",
+        due_at=datetime(2026, 8, 21, 17, 0, tzinfo=UTC),
+    )
+    ctx = transformer.transform(reminder)
+    blob = _serialised(ctx)
+
+    assert "jordan@corp.example" not in blob
+    assert "morgan@corp.example" not in blob
+    assert "+1-555-019-8877" not in blob
+    assert "555-019-8877" not in blob
+    assert ctx.may_transmit_remotely is False
+    assert "Reminder:" in ctx.summary
+    assert all(e.startswith("PERSON_") for e in ctx.entities)
+
+
+def test_message_prefers_snippet_over_body_and_redacts_pii() -> None:
+    transformer = DefaultEnigmaTransformer(hmac_key=FIXED_HMAC_KEY, allow_remote=True)
+    long_body = (
+        "Opening line with jordan@corp.example.\n\n"
+        + ("Secret wholesale body content that must not dominate the summary. " * 30)
+    )
+    message = PrivateMessage(
+        id="msg_1",
+        provider="gmail",
+        provider_message_id="gmail-1",
+        subject="Follow up with morgan@corp.example",
+        snippet="Snippet mentioning +1-555-019-8877 only",
+        body_text=long_body,
+        from_person=PrivatePersonRef(email="jordan@corp.example"),
+        to=[PrivatePersonRef(email="morgan@corp.example")],
+    )
+    ctx = transformer.transform(message)
+    blob = _serialised(ctx)
+
+    assert "jordan@corp.example" not in blob
+    assert "morgan@corp.example" not in blob
+    assert "+1-555-019-8877" not in blob
+    assert "Secret wholesale body content" not in ctx.summary
+    assert "Snippet mentioning" in ctx.summary
+    assert ctx.metadata["wholesale_body_included"] is False
+    assert ctx.may_transmit_remotely is True
+    assert all(e.startswith("PERSON_") for e in ctx.entities)
