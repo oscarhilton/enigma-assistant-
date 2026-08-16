@@ -152,6 +152,7 @@ def test_feature_scenarios_load() -> None:
         "background-basic",
         "background-volume-vs-importance",
         "background-no-alert",
+        "background-canonical-isolation",
     ):
         pkg = load_scenario(FEATURE / name)
         assert pkg.manifest.id == name

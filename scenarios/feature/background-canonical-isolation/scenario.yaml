@@ -1,0 +1,44 @@
+id: background-canonical-isolation
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-08T08:00:00Z"
+description: >
+  Evaluator ground truth (signal_class / expected_attention) lives only under
+  ground_truth/ and never appears on SyntheticMailSource dumps under background merge.
+events:
+  - id: bci-contact-self
+    at: "2026-04-08T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+  - id: bci-contact-maya
+    at: "2026-04-08T08:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: maya
+      display_name: Maya Chen
+      email: maya.chen@northwind.example
+  - id: bci-mail-critical
+    at: "2026-04-08T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-isolation-critical
+      subject: "Board pack needs your sign-off"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Canonical obligation evidence — labels stay in ground_truth only.
+  - id: bci-rem-board
+    at: "2026-04-08T10:05:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-board-signoff
+      title: Sign board pack
+      due_at: "2026-04-09T17:00:00Z"
+      is_completed: false
