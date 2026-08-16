@@ -21,6 +21,12 @@ from personal_enigma.evaluation.ground_truth import (
     load_ground_truth,
 )
 from personal_enigma.evaluation.observations import EvaluationObservations
+from personal_enigma.evaluation.replay import (
+    ReplayMismatchPolicy,
+    ReplayPaygTransport,
+    default_replay_fixture_path,
+    load_recording_store,
+)
 from personal_enigma.evaluation.runner import EvaluationReport, EvaluationRunner
 
 __all__ = [
@@ -36,7 +42,11 @@ __all__ = [
     "MemoryCheckpoint",
     "MissedObligation",
     "ObligationTruth",
+    "ReplayMismatchPolicy",
+    "ReplayPaygTransport",
+    "default_replay_fixture_path",
     "detect_missed_obligations",
     "load_ground_truth",
+    "load_recording_store",
     "run_adversarial_pack",
 ]

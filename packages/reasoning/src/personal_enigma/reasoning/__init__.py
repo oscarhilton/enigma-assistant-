@@ -15,6 +15,12 @@ from personal_enigma.reasoning.protocol import (
     PaygTransport,
     ReasoningResult,
 )
+from personal_enigma.reasoning.replay_transport import (
+    RecordingPaygTransport,
+    ReplayMismatchError,
+    ReplayMismatchPolicy,
+    ReplayPaygTransport,
+)
 from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
 
 __all__ = [
@@ -30,6 +36,10 @@ __all__ = [
     "ReasoningDisabledError",
     "ReasoningMode",
     "ReasoningResult",
+    "RecordingPaygTransport",
+    "ReplayMismatchError",
+    "ReplayMismatchPolicy",
+    "ReplayPaygTransport",
     "UsageLogger",
     "UsageRecord",
     "build_reasoning_client",
