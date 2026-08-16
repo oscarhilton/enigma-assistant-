@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `ticket/eval-noise-metrics` |
 | Domain | `demo-evaluation` |
 
@@ -29,14 +29,14 @@
 - [x] Storyline recall under noise (A/B) wireable via `--spine-metrics` / `spine_metrics`
 - [x] Remote reasoning rate stub + cost per simulated month stub in report JSON
 - [x] Mini-fixture tests
-- [ ] Immutable `docs/reports/phase-2.5-exit-report.md` after F-* gates land
+- [x] Immutable `docs/reports/phase-2.5-exit-report.md` after F-* gates land
 - [x] D13 row on milestone map
 - [ ] Annotated tag command for `v0.2.0-demo` prepared; tag only if report is PASS
 
 ## Test plan
 
 - [x] `uv run pytest packages/evaluation/tests/test_phase25_exit.py packages/evaluation/tests/test_runner.py`
-- [ ] Regenerated exit report on tip of `main` after F-* merges
+- [x] Regenerated exit report on tip of `main` after F-* merges
 
 ## Privacy constraints
 

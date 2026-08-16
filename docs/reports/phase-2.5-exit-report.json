@@ -1,0 +1,209 @@
+{
+  "corpus_fingerprint": {
+    "corpus_id": "finepersonas-mini",
+    "corpus_ids": [
+      "finepersonas-mini"
+    ],
+    "corpus_revision": "fixture",
+    "digest": "bf89eb02c631669e",
+    "n_messages": 5000,
+    "profile": "canonical",
+    "revision": "fixture",
+    "sanitiser_version": "2",
+    "seed": "alex-v1-canonical"
+  },
+  "f_gates_landed": {
+    "correctness": true,
+    "import_boundary": true,
+    "quality": true
+  },
+  "gates": [
+    {
+      "name": "Critical recall",
+      "threshold": "\u2265 0.95",
+      "value": "1.000",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Recall delta",
+      "threshold": "\u2264 0.01 (1 pp)",
+      "value": "0.000",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Background false alert",
+      "threshold": "\u2264 1.0 / 1k",
+      "value": "0.000 / 1k",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Quiet-day attention",
+      "threshold": "must be empty (0 obligations)",
+      "value": "empty",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Known privacy leaks",
+      "threshold": "= 0",
+      "value": "0",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Canonical Recall@K",
+      "threshold": "measured (stub obs; no cliff)",
+      "value": "0.400",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Retrieval Precision@K",
+      "threshold": "measured (stub obs)",
+      "value": "0.667",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Remote calls/1k",
+      "threshold": "known stub (prefer local triage)",
+      "value": "0.000",
+      "verdict": "PASS"
+    },
+    {
+      "name": "Cost/month",
+      "threshold": "known stub",
+      "value": "$0.0400",
+      "verdict": "PASS"
+    },
+    {
+      "name": "5k curve behaviour",
+      "threshold": "no cliff / cost_blowup on CI ladder shape",
+      "value": "linear_latency_flat_recall",
+      "verdict": "PASS"
+    }
+  ],
+  "generated_at": "2026-08-16T17:11:17.418511+00:00",
+  "git_commit": "7230129",
+  "metrics": {
+    "attention": {
+      "critical_recall": 1.0,
+      "duplicate_alerts": 0,
+      "duplicate_rate": 0.0,
+      "early_noise_rate": 0.0,
+      "expected_critical": 1,
+      "late_alert_rate": 0.0,
+      "missed_count": 0,
+      "precision": 1.0,
+      "stale_alert_rate": 0.0,
+      "stale_alerts": 0,
+      "surfaced_critical": 1,
+      "total_alerts": 1,
+      "useful_alerts": 1
+    },
+    "cost": {
+      "annual_usd": 0.48666666666666664,
+      "by_category": {
+        "attention_reasoning": 0.04
+      },
+      "cost_per_simulated_month": 0.04,
+      "daily_usd": 0.0013333333333333333,
+      "input_tokens": 120,
+      "monthly_usd": 0.04,
+      "output_tokens": 40,
+      "total_usd": 0.04,
+      "weekly_usd": 0.009333333333333332
+    },
+    "curve_note": "Roughly linear latency with flat Recall@K \u2014 predictable under volume; Phase 2.5 can still pass even if 5k is slower than ideal. CI smoke uses expand-to on finepersonas-mini (never FinePersonas 115k).",
+    "curve_shape": "linear_latency_flat_recall",
+    "remote_reasoning_rate_per_1k": 0.0,
+    "retrieval": {
+      "canonical_evidence_recall_at_k": 1.0,
+      "canonical_recall_at_k": 0.4,
+      "mean_recall_at_k": 0.4,
+      "precision_at_k": 0.6666666666666666,
+      "queries": 1,
+      "recall_at_k": 0.4
+    },
+    "scale": {
+      "attention_compression_ratio": 21.0,
+      "background_correctly_ignored": 5,
+      "background_count": 5,
+      "background_false_alerts": 0,
+      "background_false_alerts_per_1k": 0.0,
+      "background_suppression_rate": 1.0,
+      "cost_per_1k_messages": 1.9047619047619047,
+      "estimated_cost_usd": 0.04,
+      "false_alerts_per_1k": 0.0,
+      "index_size_bytes": null,
+      "ingest_time_ms": null,
+      "items_surfaced": 1,
+      "message_count": 21,
+      "noise_count": 16,
+      "noise_false_alerts": 0,
+      "noise_false_alerts_per_1k": 0.0,
+      "noise_suppression_rate": 1.0,
+      "precision": 1.0,
+      "recall_at_k": 0.4,
+      "remote_calls": 0,
+      "remote_calls_per_1k": 0.0,
+      "remote_calls_per_1k_messages": 0.0,
+      "remote_reasoning_rate_per_1k": 0.0,
+      "retrieval_latency_ms": null,
+      "signals_considered": 21
+    },
+    "storyline_ab": {
+      "critical_displacement": 0,
+      "drop": 0.0,
+      "max_drop": 0.01,
+      "noise_drop": null,
+      "passed": true,
+      "spine_critical_recall": 1.0,
+      "treatment": "background",
+      "treatment_label": "background",
+      "with_background_critical_recall": 1.0,
+      "with_noise_critical_recall": null
+    },
+    "storyline_recall_under_noise": {
+      "critical_displacement": 0,
+      "drop": 0.0,
+      "max_drop": 0.01,
+      "noise_drop": null,
+      "passed": true,
+      "spine_critical_recall": 1.0,
+      "treatment": "background",
+      "treatment_label": "background",
+      "with_background_critical_recall": 1.0,
+      "with_noise_critical_recall": null
+    },
+    "suppression": {
+      "attention_compression_ratio": 21.0,
+      "background_correctly_ignored": 5,
+      "background_count": 5,
+      "background_false_alerts": 0,
+      "background_false_alerts_per_1000": 0.0,
+      "background_only_false_alerts_per_1000": 0.0,
+      "background_suppression_rate": 1.0,
+      "false_alert_ids": [],
+      "false_alerts_per_1000": 0.0,
+      "items_surfaced": 1,
+      "max_per_1000": 1.0,
+      "message_count": 21,
+      "noise_correctly_ignored": 16,
+      "noise_count": 16,
+      "noise_false_alerts": 0,
+      "noise_false_alerts_per_1000": 0.0,
+      "noise_suppression_rate": 1.0,
+      "passed": true,
+      "signals_considered": 21
+    }
+  },
+  "notes": [
+    "Canonical ~5k profile is documented; CI ladder uses finepersonas-mini expand-to.",
+    "Remote calls / cost are stub measurements (provider=stub) for Demo Mode closeout.",
+    "Storyline A/B uses identical critical surfaces (critical_displacement=0)."
+  ],
+  "overall": "PASS",
+  "profile": "canonical",
+  "prompt_versions": {
+    "attention_assessment": "v0"
+  },
+  "provider": "stub",
+  "scenario": "alex-v1"
+}

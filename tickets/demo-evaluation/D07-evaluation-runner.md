@@ -53,6 +53,9 @@
 - [x] Report JSON/Markdown schema snapshot test
 - [x] Mini-fixture A/B report includes suppression + compression fields
 
+
+- [x] Phase 2.5 exit artefact (`docs/reports/phase-2.5-exit-report.md`)
+
 ## Privacy constraints
 
 - Reports must not embed Private Mode data; Demo root only
