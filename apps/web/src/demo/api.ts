@@ -131,11 +131,15 @@ export async function postDemoAttentionAction(
   fetchImpl: typeof fetch = fetch,
 ): Promise<DemoAttentionActionResult> {
   try {
-    return await readJson<DemoAttentionActionResult>(
+    const body = await readJson<DemoAttentionActionResult>(
       await fetchImpl(`${API_BASE}/demo/attention/${itemId}/${action}`, {
         method: "POST",
       }),
     );
+    return {
+      ...body,
+      items: sortByAttentionRank(body.items),
+    };
   } catch {
     const remaining = FIXTURE_ATTENTION.filter((item) => item.id !== itemId);
     return {

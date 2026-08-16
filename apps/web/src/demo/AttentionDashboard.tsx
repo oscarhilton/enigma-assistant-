@@ -28,29 +28,27 @@ export function AttentionDashboard({
   const [payload, setPayload] = useState<DemoAttentionPayload | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const next = await fetchDemoAttention(fetchImpl);
-    setPayload({
-      ...next,
-      items: sortByRank(next.items),
-    });
-  }, [fetchImpl]);
+  const load = useCallback(
+    async (isCancelled?: () => boolean) => {
+      const next = await fetchDemoAttention(fetchImpl);
+      if (isCancelled?.()) {
+        return;
+      }
+      setPayload({
+        ...next,
+        items: sortByRank(next.items),
+      });
+    },
+    [fetchImpl],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const next = await fetchDemoAttention(fetchImpl);
-      if (!cancelled) {
-        setPayload({
-          ...next,
-          items: sortByRank(next.items),
-        });
-      }
-    })();
+    void load(() => cancelled);
     return () => {
       cancelled = true;
     };
-  }, [fetchImpl]);
+  }, [load]);
 
   async function onAction(itemId: string, action: "done" | "snooze") {
     setBusyId(itemId);
