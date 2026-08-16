@@ -10,18 +10,46 @@ public enum BridgeSourceID: String, Codable, Sendable, CaseIterable {
 }
 
 public struct PermissionHooks: Sendable {
-    public init() {}
+    private let calendarIsAuthorised: @Sendable () -> Bool
+    private let calendarRequestAccess: @Sendable () async -> Bool
+    private let remindersSource: RemindersSource
 
-    /// Stub permission prompt. Always returns `false` until a source ticket lands.
+    public init(
+        calendarIsAuthorised: @escaping @Sendable () -> Bool = {
+            EventKitCalendarAccess().authorizationStatus() == .authorised
+        },
+        calendarRequestAccess: @escaping @Sendable () async -> Bool = {
+            await EventKitCalendarAccess().requestReadAccess()
+        },
+        remindersSource: RemindersSource = RemindersSource()
+    ) {
+        self.calendarIsAuthorised = calendarIsAuthorised
+        self.calendarRequestAccess = calendarRequestAccess
+        self.remindersSource = remindersSource
+    }
+
+    /// Permission prompt. Calendar/Reminders use EventKit; other sources remain stubs.
     public func requestAuthorisation(for source: BridgeSourceID) async -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .calendar:
+            return await calendarRequestAccess()
+        case .reminders:
+            return await remindersSource.requestAuthorisation()
+        case .contacts, .notes:
+            return false
+        }
     }
 
     /// Current authorisation snapshot without prompting.
     public func isAuthorised(_ source: BridgeSourceID) -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .calendar:
+            return calendarIsAuthorised()
+        case .reminders:
+            return remindersSource.isAuthorised()
+        case .contacts, .notes:
+            return false
+        }
     }
 
     /// Build a capability report that continues even when individual sources are denied.

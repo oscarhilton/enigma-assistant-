@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M00a-persistence` |
 | Domain | `platform` |
 
@@ -34,10 +34,10 @@
 
 ## Acceptance criteria
 
-- [ ] Local private database (sqlite acceptable for MVP)
-- [ ] Tables/collections for sync cursors, ingested canonical records, obligations
-- [ ] Migrations documented and tested
-- [ ] No network exposure of DB
+- [x] Local private database (sqlite acceptable for MVP)
+- [x] Tables/collections for sync cursors, ingested canonical records, obligations
+- [x] Migrations documented and tested
+- [x] No network exposure of DB
 
 ## Test plan
 

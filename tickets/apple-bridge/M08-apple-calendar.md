@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M08-apple-calendar` |
 | Domain | `apple-bridge` |
 
@@ -36,11 +36,11 @@
 
 ## Acceptance criteria
 
-- [ ] Request **read-only** EventKit calendar access
-- [ ] Ingest selected calendars only
-- [ ] Map required fields including calendar name, URL, availability, organiser, attendees, recurrence, last modified
-- [ ] Emit `PrivateCalendarEvent` with `provider="apple_calendar"`
-- [ ] `GET /calendar/changes` with cursor support
+- [x] Request **read-only** EventKit calendar access
+- [x] Ingest selected calendars only
+- [x] Map required fields including calendar name, URL, availability, organiser, attendees, recurrence, last modified
+- [x] Emit `PrivateCalendarEvent` with `provider="apple_calendar"`
+- [x] `GET /calendar/changes` with cursor support
 
 ## Test plan
 
