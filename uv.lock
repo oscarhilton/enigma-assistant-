@@ -10,12 +10,14 @@ members = [
     "personal-enigma-dedupe",
     "personal-enigma-domain",
     "personal-enigma-embeddings",
+    "personal-enigma-evaluation",
     "personal-enigma-fixtures",
     "personal-enigma-identity",
     "personal-enigma-ingestion",
     "personal-enigma-obligations",
     "personal-enigma-privacy",
     "personal-enigma-reasoning",
+    "personal-enigma-simulation",
     "personal-enigma-transformation",
     "personal-enigma-worker",
 ]
@@ -371,12 +373,14 @@ dependencies = [
     { name = "personal-enigma-dedupe" },
     { name = "personal-enigma-domain" },
     { name = "personal-enigma-embeddings" },
+    { name = "personal-enigma-evaluation" },
     { name = "personal-enigma-fixtures" },
     { name = "personal-enigma-identity" },
     { name = "personal-enigma-ingestion" },
     { name = "personal-enigma-obligations" },
     { name = "personal-enigma-privacy" },
     { name = "personal-enigma-reasoning" },
+    { name = "personal-enigma-simulation" },
     { name = "personal-enigma-transformation" },
     { name = "personal-enigma-worker" },
 ]
@@ -396,12 +400,14 @@ requires-dist = [
     { name = "personal-enigma-dedupe", editable = "packages/dedupe" },
     { name = "personal-enigma-domain", editable = "packages/domain" },
     { name = "personal-enigma-embeddings", editable = "packages/embeddings" },
+    { name = "personal-enigma-evaluation", editable = "packages/evaluation" },
     { name = "personal-enigma-fixtures", editable = "packages/fixtures" },
     { name = "personal-enigma-identity", editable = "packages/identity" },
     { name = "personal-enigma-ingestion", editable = "packages/ingestion" },
     { name = "personal-enigma-obligations", editable = "packages/obligations" },
     { name = "personal-enigma-privacy", editable = "packages/privacy" },
     { name = "personal-enigma-reasoning", editable = "packages/reasoning" },
+    { name = "personal-enigma-simulation", editable = "packages/simulation" },
     { name = "personal-enigma-transformation", editable = "packages/transformation" },
     { name = "personal-enigma-worker", editable = "apps/worker" },
 ]
@@ -426,6 +432,7 @@ dependencies = [
     { name = "personal-enigma-ingestion" },
     { name = "personal-enigma-privacy" },
     { name = "personal-enigma-reasoning" },
+    { name = "personal-enigma-simulation" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -439,6 +446,7 @@ requires-dist = [
     { name = "personal-enigma-ingestion", editable = "packages/ingestion" },
     { name = "personal-enigma-privacy", editable = "packages/privacy" },
     { name = "personal-enigma-reasoning", editable = "packages/reasoning" },
+    { name = "personal-enigma-simulation", editable = "packages/simulation" },
     { name = "sqlalchemy", specifier = ">=2.0.36" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
 ]
@@ -480,6 +488,17 @@ requires-dist = [{ name = "pydantic", specifier = ">=2.10.0" }]
 name = "personal-enigma-embeddings"
 version = "0.1.0"
 source = { editable = "packages/embeddings" }
+
+[[package]]
+name = "personal-enigma-evaluation"
+version = "0.1.0"
+source = { editable = "packages/evaluation" }
+dependencies = [
+    { name = "personal-enigma-domain" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "personal-enigma-domain", editable = "packages/domain" }]
 
 [[package]]
 name = "personal-enigma-fixtures"
@@ -560,6 +579,21 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "personal-enigma-transformation", editable = "packages/transformation" },
+    { name = "pydantic", specifier = ">=2.10.0" },
+]
+
+[[package]]
+name = "personal-enigma-simulation"
+version = "0.1.0"
+source = { editable = "packages/simulation" }
+dependencies = [
+    { name = "personal-enigma-domain" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "personal-enigma-domain", editable = "packages/domain" },
     { name = "pydantic", specifier = ">=2.10.0" },
 ]
 

@@ -66,5 +66,9 @@ Apple Bridge is trusted local software. It does not call an LLM and does not exp
 | `packages/attention` | Attention engine |
 | `packages/embeddings` | Local vector search |
 | `packages/fixtures` | Synthetic private-world data |
+| `packages/simulation` | Demo Mode environment, clock, synthetic sources |
+| `packages/evaluation` | Demo Mode evaluation runner / metrics |
+| `scenarios/` | Immutable Demo scenario packages (e.g. `alex-v1`) |
 
-See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.
+See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.  
+Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).

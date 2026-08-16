@@ -16,6 +16,8 @@ dependencies = [
   "personal-enigma-identity",
   "personal-enigma-dedupe",
   "personal-enigma-obligations",
+  "personal-enigma-simulation",
+  "personal-enigma-evaluation",
   "personal-enigma-api",
   "personal-enigma-worker",
 ]
@@ -33,6 +35,8 @@ members = [
   "packages/identity",
   "packages/dedupe",
   "packages/obligations",
+  "packages/simulation",
+  "packages/evaluation",
   "apps/api",
   "apps/worker",
 ]
@@ -49,6 +53,8 @@ personal-enigma-fixtures = { workspace = true }
 personal-enigma-identity = { workspace = true }
 personal-enigma-dedupe = { workspace = true }
 personal-enigma-obligations = { workspace = true }
+personal-enigma-simulation = { workspace = true }
+personal-enigma-evaluation = { workspace = true }
 personal-enigma-api = { workspace = true }
 personal-enigma-worker = { workspace = true }
 
@@ -73,6 +79,8 @@ testpaths = [
   "packages/identity/tests",
   "packages/dedupe/tests",
   "packages/obligations/tests",
+  "packages/simulation/tests",
+  "packages/evaluation/tests",
   "apps/api/tests",
   "apps/worker/tests",
 ]
@@ -93,6 +101,8 @@ src = [
   "packages/identity/src",
   "packages/dedupe/src",
   "packages/obligations/src",
+  "packages/simulation/src",
+  "packages/evaluation/src",
   "apps/api/src",
   "apps/worker/src",
 ]
@@ -113,6 +123,8 @@ include = [
   "packages/identity/src",
   "packages/dedupe/src",
   "packages/obligations/src",
+  "packages/simulation/src",
+  "packages/evaluation/src",
   "apps/api/src",
   "apps/worker/src",
 ]

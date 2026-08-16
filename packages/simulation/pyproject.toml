@@ -1,0 +1,19 @@
+[project]
+name = "personal-enigma-simulation"
+version = "0.1.0"
+description = "Demo Mode environment, clock, and synthetic source scaffolds"
+requires-python = ">=3.12"
+dependencies = [
+  "personal-enigma-domain",
+  "pydantic>=2.10.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/personal_enigma"]
+
+[tool.uv.sources]
+personal-enigma-domain = { workspace = true }
