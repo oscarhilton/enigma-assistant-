@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M02-synthetic-fixture-pipeline` |
 | Domain | `fixtures` |
 
@@ -31,10 +31,10 @@
 
 ## Acceptance criteria
 
-- [ ] Fixture builders for calendar events, reminders, contacts, notes, and messages
-- [ ] Scenario packs that encode cross-source obligation cases (reminder + email + calendar)
-- [ ] Fixtures are deterministic and documented
-- [ ] Pipeline can load scenarios into in-memory stores used by tests
+- [x] Fixture builders for calendar events, reminders, contacts, notes, and messages
+- [x] Scenario packs that encode cross-source obligation cases (reminder + email + calendar)
+- [x] Fixtures are deterministic and documented
+- [x] Pipeline can load scenarios into in-memory stores used by tests
 
 ## Test plan
 
