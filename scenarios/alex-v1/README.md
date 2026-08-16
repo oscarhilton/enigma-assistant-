@@ -15,7 +15,8 @@ Canonical Demo Mode scenario package for **Alex Morgan** (fictional).
 Once released as a benchmark, treat the package as **immutable**.
 
 - Do **not** edit released timeline / ground-truth semantics in place.
-- Ship changes as `alex-v1.1` / bump `version` in `scenario.yaml`.
+- Ship changes by bumping `version` in `scenario.yaml` while keeping package id / directory `alex-v1`.
+- Only introduce a new directory (new manifest `id`) if the corpus is intentionally forked into a separate package.
 
 ## Layout
 
