@@ -133,7 +133,8 @@ def test_domain_packages_have_no_naked_wall_clock() -> None:
                 if not isinstance(node, ast.Call):
                     continue
                 func = node.func
-                if isinstance(func, ast.Attribute) and func.attr in {"now", "utcnow", "today", "time"}:
+                attrs = {"now", "utcnow", "today", "time"}
+                if isinstance(func, ast.Attribute) and func.attr in attrs:
                     if isinstance(func.value, ast.Name) and func.value.id in {
                         "datetime",
                         "date",

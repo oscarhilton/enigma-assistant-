@@ -38,7 +38,10 @@ class SimulationClock:
     """
 
     def __init__(self, initial: datetime | None = None) -> None:
-        self._current = _ensure_aware(initial) if initial is not None else datetime(2026, 1, 1, tzinfo=UTC)
+        if initial is not None:
+            self._current = _ensure_aware(initial)
+        else:
+            self._current = datetime(2026, 1, 1, tzinfo=UTC)
         self._paused = False
         self._initial = self._current
 
