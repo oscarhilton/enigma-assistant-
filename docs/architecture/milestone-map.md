@@ -124,7 +124,7 @@ adversarial  UI     replay
 
 ## Phase 3 — Shadow Mode — bootstrap (S01–S06) + eval rubric (SE*)
 
-Architecture: [shadow-mode.md](./shadow-mode.md) · [shadow-evaluation.md](./shadow-evaluation.md) · storage [ADR-008](../adr/008-shadow-storage-roots.md).  
+Architecture: [shadow-mode.md](./shadow-mode.md) · [shadow-evaluation.md](./shadow-evaluation.md) · [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) · [open-loop-commitments.md](./open-loop-commitments.md) · storage [ADR-008](../adr/008-shadow-storage-roots.md) · silence [ADR-009](../adr/009-silence-as-prediction.md).  
 Branches: `ticket/Sxx-slug` (mode) or `ticket/SExx-slug` (eval artefacts). Demo Mode is **frozen** for polish — do not add F-* / Demo chrome here.  
 **Do not edit `EnvironmentMode` from SE* tickets** — S01 owns env/banner/scaffold.
 
@@ -139,6 +139,14 @@ Branches: `ticket/Sxx-slug` (mode) or `ticket/SExx-slug` (eval artefacts). Demo 
 | SE01 | User actions vs attention log | `todo` | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) |
 | SE02 | Suppressed notifications audit | `todo` | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) |
 | SE03 | Weekly Shadow review artefact | `todo` | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) |
+| SE04 | Suppression decision log + frozen snapshots | `todo` | [SE04](../../tickets/shadow/SE04-suppression-decision-log.md) |
+| SE05 | Behavioural mismatch detector stubs | `todo` | [SE05](../../tickets/shadow/SE05-behavioural-mismatch-stubs.md) |
+| SE06 | Stratified sample queue | `todo` | [SE06](../../tickets/shadow/SE06-stratified-sample-queue.md) |
+| SE07 | Miss-report intake | `todo` | [SE07](../../tickets/shadow/SE07-miss-report-intake.md) |
+| SE08 | Suppression Accuracy + Silent Miss Rate | `todo` | [SE08](../../tickets/shadow/SE08-silence-metrics.md) |
+| SE09 | Shadow accuracy screen (private) | `todo` | [SE09](../../tickets/shadow/SE09-shadow-accuracy-screen.md) |
+| SE10 | Counterfactual A/B harness | `blocked` | [SE10](../../tickets/shadow/SE10-counterfactual-ab-harness.md) |
+| SE11 | Open-loop due resolution | `todo` | [SE11](../../tickets/shadow/SE11-open-loop-due-resolution.md) |
 
 ### Phase 3 waves
 
@@ -156,14 +164,16 @@ S03 Notification suppression ──── soft ──► SE02 suppress audit
     │
     ▼
 S04 Shadow attention log ──────── soft ──► SE01 action↔attention
-    │
+    │                                    └─ soft ──► SE04 frozen SUPPRESS snapshots
     ▼
 S05 Comparison stubs ──────────── soft ──► SE01–SE03 rubric artefacts
     │
     ▼
 S06 Exit criteria (before Private notifications)
          ▲
-         └── SE03 weekly review feeds honesty inputs
+         ├── SE03 weekly review feeds honesty inputs
+         └── SE04–SE08 silence metrics (Suppression Accuracy · Silent Miss Rate)
+              SE09 accuracy screen · SE10 A/B (later) · SE11 open-loop dues
 ```
 
 **Hard rules**
@@ -171,5 +181,7 @@ S06 Exit criteria (before Private notifications)
 - Shadow never shares Demo or Private storage roots / HMAC keys ([ADR-008](../adr/008-shadow-storage-roots.md)).
 - No Demo→Shadow migration path exists.
 - The seven questions are evaluation goals ([shadow-mode-questions.md](./shadow-mode-questions.md)); detailed observables live in [shadow-evaluation.md](./shadow-evaluation.md).
-- SE* tickets soft-depend on S01–S05; they must not re-implement env/banner/storage.
+- Every silence is a logged prediction ([ADR-009](../adr/009-silence-as-prediction.md)); empty UI ≠ exit evidence ([shadow-silence-evaluation.md](./shadow-silence-evaluation.md)).
+- SE* tickets soft-depend on S01–S06 / earlier SE*; they must not re-implement env/banner/storage.
+- Do not edit Demo attention freeze / D15 card UX from silence tickets; do not start Gmail OAuth from this track.
 

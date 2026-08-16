@@ -54,7 +54,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
 | demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md), [D15](./demo-ui/D15-attention-card-ux.md), [D16](./demo-ui/D16-demo-reset.md) operational reset) — **frozen** for new polish beyond claimed tickets |
-| shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval artefacts ([SE01](./shadow/SE01-action-vs-attention.md)–[SE03](./shadow/SE03-weekly-shadow-review.md)); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md). SE* must not edit `EnvironmentMode`. |
+| shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval (SE01–SE03) + silence track (SE04–SE10) + open-loop dues (SE11); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) · [shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) · [ADR-009](../docs/adr/009-silence-as-prediction.md). SE* must not edit `EnvironmentMode`. |
 
 ## Ingestion file ownership (do not cross)
 
@@ -81,6 +81,8 @@ Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/de
 Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; do not invent a top-level D13 for corpus).  
 Shadow Mode: [docs/architecture/shadow-mode.md](../docs/architecture/shadow-mode.md) (S01–S06 after `v0.2.0-demo`).  
 Shadow evaluation rubric: [docs/architecture/shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) (seven post-Alex questions · SE01–SE03).  
+Shadow silence evaluation: [docs/architecture/shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) (SUPPRESS as prediction · SE04–SE10 · [ADR-009](../docs/adr/009-silence-as-prediction.md)).  
+Open-loop commitments: [docs/architecture/open-loop-commitments.md](../docs/architecture/open-loop-commitments.md) (SE11).  
 Attention surface (Phase 2.5 wind-tunnel / F-* naming): [docs/architecture/attention-surface.md](../docs/architecture/attention-surface.md).  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).

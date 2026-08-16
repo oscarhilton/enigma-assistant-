@@ -1,9 +1,10 @@
 # Shadow Mode (Phase 3)
 
-**Status:** Bootstrap after Phase 2.5 PASS (`v0.2.0-demo`) — implementation starts at S01  
-**Tickets:** [tickets/shadow/](../../tickets/shadow/) (S01–S06)  
-**Storage ADR:** [ADR-008](../adr/008-shadow-storage-roots.md)  
-**Open questions (evaluation goals):** [shadow-mode-questions.md](./shadow-mode-questions.md)
+**Status:** Bootstrap after Phase 2.5 PASS (`v0.2.0-demo`) — S01 `done`; S02–S06 + SE* continue  
+**Tickets:** [tickets/shadow/](../../tickets/shadow/) (S01–S06 · SE01–SE11)  
+**Storage ADR:** [ADR-008](../adr/008-shadow-storage-roots.md) · silence [ADR-009](../adr/009-silence-as-prediction.md)  
+**Open questions (evaluation goals):** [shadow-mode-questions.md](./shadow-mode-questions.md)  
+**Silence evaluation:** [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) · open loops [open-loop-commitments.md](./open-loop-commitments.md)
 
 Demo Mode proved Enigma on a coherent fictional life with known ground truth. Shadow Mode asks whether a **real** life behaves like that synthetic world — quietly, without acting on the user’s attention surface.
 
@@ -93,7 +94,8 @@ API and web stubs ship with S01; fuller chrome lands with later Shadow tickets.
 
 Shadow exists to confront the seven questions in [shadow-mode-questions.md](./shadow-mode-questions.md). Those questions are **evaluation goals** for Phase 3 — metrics, journals, and comparison stubs (S05) — not a checklist of features to ship in S01–S04.
 
-Detailed observables, stub schemas, and weekly review layout: [shadow-evaluation.md](./shadow-evaluation.md) (SE01–SE03).
+Detailed observables, stub schemas, and weekly review layout: [shadow-evaluation.md](./shadow-evaluation.md) (SE01–SE03).  
+Proving **silence** is correct (SUPPRESS as prediction, frozen snapshots, audits, Silent Miss Rate): [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) (SE04–SE10) · [ADR-009](../adr/009-silence-as-prediction.md).
 
 1. Act-on recognition  
 2. Nearly-forgot  
@@ -102,6 +104,8 @@ Detailed observables, stub schemas, and weekly review layout: [shadow-evaluation
 5. Memory improvement  
 6. Timing  
 7. Misses synthetic never taught  
+
+Empty attention UI is **not** evidence for these goals. Every silence is a logged prediction.
 
 Comparison stubs may reference Demo eval artefacts for *shape* of metrics only. They must not import Demo scenario DBs or HMAC material into Shadow storage.
 
@@ -117,8 +121,9 @@ Shadow bootstrap is allowed because Phase 2.5 exit is PASS (`docs/reports/phase-
 | `apps/api` | `/shadow/*` banner / status stubs |
 | `apps/web` | SHADOW MODE banner stub |
 | `packages/attention` | Shadow attention log wiring (S04) |
-| `packages/evaluation` | Comparison stubs vs Demo-shaped metrics (S05); Shadow eval artefacts (SE01–SE03) |
-| `tickets/shadow/` | S01–S06 work units + SE01–SE03 eval instrumentation |
+| `packages/evaluation` | Comparison stubs (S05); SE01–SE03 rubric; SE04–SE10 silence evaluation |
+| `packages/obligations` | Open-loop due resolution (SE11) — durable facts ≠ attention cards |
+| `tickets/shadow/` | S01–S06 + SE01–SE11 |
 
 ## Ticket order
 
@@ -129,4 +134,6 @@ S01 env flag + scaffold + refuse migration
   → S04 shadow attention log
   → S05 comparison stubs (seven questions as goals)
   → S06 exit criteria / promote-from-shadow gate
+       ▲
+       └── SE01–SE03 rubric · SE04–SE10 silence · SE11 open-loop dues
 ```

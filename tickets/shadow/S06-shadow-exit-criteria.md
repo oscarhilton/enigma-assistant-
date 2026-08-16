@@ -23,6 +23,8 @@
 ## Soft depends (~)
 
 - S03–S05 for a meaningful exit artefact
+- SE03 weekly review
+- SE04–SE08 silence evaluation (Suppression Accuracy · Silent Miss Rate) — empty UI alone is insufficient ([ADR-009](../../docs/adr/009-silence-as-prediction.md))
 
 ## Unlocks / enhances
 
