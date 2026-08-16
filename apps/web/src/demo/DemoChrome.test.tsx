@@ -34,9 +34,18 @@ describe("Demo chrome stubs", () => {
     expect(screen.getByText(DEMO_BANNER_TEXT)).toBeInTheDocument();
   });
 
-  it("AttentionDashboard uses private UI names and split priority/confidence", async () => {
+  it("AttentionDashboard shows compact product cards without evidence dumps", async () => {
     const fetchImpl = vi.fn(async () =>
-      Response.json(FIXTURE_ATTENTION_PAYLOAD),
+      Response.json({
+        ...FIXTURE_ATTENTION_PAYLOAD,
+        items: [
+          {
+            ...FIXTURE_ATTENTION[0]!,
+            body: "Reminder: Review proposal; Email: Re: Proposal; Calendar: Proposal review",
+          },
+          FIXTURE_ATTENTION[1]!,
+        ],
+      }),
     ) as unknown as typeof fetch;
 
     render(
@@ -48,19 +57,33 @@ describe("Demo chrome stubs", () => {
     await waitFor(() => {
       expect(screen.getByText(/Review Atlas proposal/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole("heading", { name: /^attention$/i })).toBeInTheDocument();
-    expect(screen.getByText(/What actually matters right now\./i)).toBeInTheDocument();
+    expect(screen.getByTestId("attention-headline")).toHaveTextContent(
+      /2 things matter now/i,
+    );
     expect(screen.getByText(/Fictional scenario · Alex Morgan/i)).toBeInTheDocument();
     expect(screen.getByText(/Follow up with Maya/i)).toBeInTheDocument();
+    expect(screen.getByTestId("attention-badges-att-atlas-review")).toHaveTextContent(
+      /HIGH PRIORITY · DUE SOON/i,
+    );
+    expect(screen.getByText(/Deadline approaching\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Thread waiting on you\./i)).toBeInTheDocument();
+    expect(screen.queryByText(/Reminder:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Email:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Calendar:/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/PERSON_A/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/score\s+0\./i)).not.toBeInTheDocument();
-    expect(screen.getByText("4/5")).toBeInTheDocument();
-    expect(screen.getByText("0.91")).toBeInTheDocument();
-    expect(screen.getByText(/49 signals considered · 2 surfaced · 47 suppressed/i)).toBeInTheDocument();
+    expect(screen.queryByText("4/5")).not.toBeInTheDocument();
+    expect(screen.queryByText("0.91")).not.toBeInTheDocument();
+    expect(screen.getByTestId("attention-can-wait")).toHaveTextContent(
+      /Show 47 that can wait/i,
+    );
     expect(screen.getAllByRole("link", { name: /why\?/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^done$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^snooze$/i }).length).toBeGreaterThan(0);
     expect(screen.queryByText(/scenario truth/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("attention-can-wait"));
+    expect(screen.getByText(/holding 47 lower-priority signals/i)).toBeInTheDocument();
   });
 
   it("AttentionDashboard Done removes an item via stub action", async () => {
