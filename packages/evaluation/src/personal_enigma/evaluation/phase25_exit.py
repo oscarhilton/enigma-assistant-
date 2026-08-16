@@ -263,9 +263,14 @@ def collect_phase25_exit_evidence(
         + int(privacy_m.reidentification_flags)
     )
     remote_per_1k = float(scale_m.remote_calls_per_1k_messages)
-    cost_month = float(cost_m.as_dict().get("cost_per_simulated_month", cost_m.monthly_usd))
+    cost_month = float(cost_m.monthly_usd)
     ret = retrieval_m.as_dict()
-    precision_at_k = float(ret.get("precision_at_k", ret.get("recall_at_k", 0.0)) or 0.0)
+    raw_precision = ret.get("precision_at_k", ret.get("recall_at_k", 0.0))
+    precision_at_k = (
+        float(raw_precision)
+        if isinstance(raw_precision, (int, float))
+        else 0.0
+    )
     # Prefer explicit precision if present; else approximate from hits.
     if "precision_at_k" not in ret:
         obs0 = spine_obs.retrieval[0]
