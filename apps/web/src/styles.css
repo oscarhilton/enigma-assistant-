@@ -52,6 +52,24 @@ body {
   font-size: 1rem;
 }
 
+.shadow-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--accent);
+  background: rgba(47, 93, 80, 0.08);
+  color: var(--ink);
+  font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.shadow-banner strong {
+  font-size: 1rem;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
