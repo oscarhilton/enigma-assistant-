@@ -31,15 +31,24 @@ export function TimelineControls({
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
+
+    async function refresh() {
       const next = await fetchDemoStatus(fetchImpl);
       if (!cancelled) {
         setStatus(next);
         onStatusChange?.(next);
       }
-    })();
+    }
+
+    void refresh();
+    // Keep simulated time fresh while speed > 0 maps wall-clock onto the clock.
+    const id = window.setInterval(() => {
+      void refresh();
+    }, 1000);
+
     return () => {
       cancelled = true;
+      window.clearInterval(id);
     };
   }, [fetchImpl, onStatusChange]);
 
@@ -102,6 +111,11 @@ export function TimelineControls({
           </button>
         ))}
       </div>
+      <p className="muted" data-testid="playback-hint">
+        {status?.paused || status?.speed === 0
+          ? "Paused — choose 1× or higher to let simulated time run."
+          : "Simulated time advances automatically at the selected speed (or use Next event / Next day)."}
+      </p>
     </section>
   );
 }
