@@ -7,6 +7,7 @@ note bodies or full contact records.
 from __future__ import annotations
 
 from copy import deepcopy
+from threading import Lock
 
 from fastapi import APIRouter, FastAPI
 from pydantic import BaseModel, Field
@@ -93,31 +94,44 @@ def _default_permissions() -> list[ApplePermissionPlaceholder]:
 
 
 class SettingsStore:
-    """In-memory settings store (swap for sqlite/M00a later)."""
+    """In-memory settings store (swap for sqlite/M00a later).
+
+    Process-local only: use a single API worker until M00a private DB persistence.
+    A lock serialises concurrent threadpool access within one process.
+    """
 
     def __init__(self) -> None:
+        self._lock = Lock()
         self.reset()
 
     def reset(self) -> None:
-        self.calendars = _default_calendars()
-        self.apple_permissions = _default_permissions()
+        with self._lock:
+            self.calendars = _default_calendars()
+            self.apple_permissions = _default_permissions()
 
     def scheduled_for_sync(self) -> list[str]:
         """Calendar ids that are enabled and therefore eligible for sync jobs."""
-        return [cal.id for cal in self.calendars if cal.enabled]
+        with self._lock:
+            return [cal.id for cal in self.calendars if cal.enabled]
 
     def snapshot(self) -> SettingsResponse:
-        return SettingsResponse(
-            calendars=deepcopy(self.calendars),
-            apple_permissions=deepcopy(self.apple_permissions),
-            scheduled_for_sync=self.scheduled_for_sync(),
-        )
+        with self._lock:
+            return SettingsResponse(
+                calendars=deepcopy(self.calendars),
+                apple_permissions=deepcopy(self.apple_permissions),
+                scheduled_for_sync=[cal.id for cal in self.calendars if cal.enabled],
+            )
 
     def set_enabled_calendars(self, enabled_ids: list[str]) -> SettingsResponse:
         enabled = set(enabled_ids)
-        for cal in self.calendars:
-            cal.enabled = cal.id in enabled
-        return self.snapshot()
+        with self._lock:
+            for cal in self.calendars:
+                cal.enabled = cal.id in enabled
+            return SettingsResponse(
+                calendars=deepcopy(self.calendars),
+                apple_permissions=deepcopy(self.apple_permissions),
+                scheduled_for_sync=[cal.id for cal in self.calendars if cal.enabled],
+            )
 
 
 _store = SettingsStore()
@@ -137,12 +151,12 @@ def calendars_scheduled_for_sync() -> list[str]:
     return _store.scheduled_for_sync()
 
 
-@router.get("/settings", response_model=SettingsResponse)
+@router.get("/api/settings", response_model=SettingsResponse)
 def get_settings() -> SettingsResponse:
     return _store.snapshot()
 
 
-@router.put("/settings/calendars", response_model=SettingsResponse)
+@router.put("/api/settings/calendars", response_model=SettingsResponse)
 def update_calendar_selection(body: CalendarSelectionUpdate) -> SettingsResponse:
     return _store.set_enabled_calendars(body.enabled_ids)
 

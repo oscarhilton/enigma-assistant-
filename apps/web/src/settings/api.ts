@@ -1,7 +1,10 @@
 import type { SettingsState } from "./types";
 import { FIXTURE_SETTINGS } from "./fixtures";
 
-const SETTINGS_URL = "/settings";
+/** Prefer VITE_API_BASE (e.g. http://127.0.0.1:8000); fall back to same-origin /api. */
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "";
+const SETTINGS_URL = `${API_BASE}/api/settings`;
+const CALENDARS_URL = `${API_BASE}/api/settings/calendars`;
 
 export async function fetchSettings(
   fetchImpl: typeof fetch = fetch,
@@ -21,7 +24,7 @@ export async function persistCalendarSelection(
   enabledIds: string[],
   fetchImpl: typeof fetch = fetch,
 ): Promise<SettingsState> {
-  const response = await fetchImpl("/settings/calendars", {
+  const response = await fetchImpl(CALENDARS_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ enabled_ids: enabledIds }),
