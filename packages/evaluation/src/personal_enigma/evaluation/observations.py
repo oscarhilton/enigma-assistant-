@@ -104,12 +104,14 @@ class EvaluationObservations(BaseModel):
     message_count: int | None = None
     background_count: int | None = None
     noise_count: int | None = None
-    background_false_alerts: int = 0
-    noise_false_alerts: int = 0
+    background_false_alerts: int | None = None
+    noise_false_alerts: int | None = None
     remote_calls: int = 0
     index_size_bytes: int | None = None
     ingest_time_ms: float | None = None
     retrieval_latency_ms: float | None = None
+    # Optional A-arm (spine-only) metrics for storyline recall under noise (§41).
+    spine_metrics: dict[str, Any] | None = None
 
     @field_validator("evaluated_at", mode="before")
     @classmethod

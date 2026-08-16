@@ -60,6 +60,8 @@ class ScaleMetrics:
             "cost_per_1k_messages": self.cost_per_1k_messages,
             "remote_calls_per_1k": self.remote_calls_per_1k,
             "remote_calls_per_1k_messages": self.remote_calls_per_1k_messages,
+            # Corpus plan §47 — remote reasoning rate stub.
+            "remote_reasoning_rate_per_1k": self.remote_calls_per_1k_messages,
             "index_size_bytes": self.index_size_bytes,
             "ingest_time_ms": self.ingest_time_ms,
             "retrieval_latency_ms": self.retrieval_latency_ms,

@@ -1,0 +1,23 @@
+# Evaluator-only signal classes for noise-metrics mini fixture.
+signals:
+  - evidence_id: canonical-1
+    signal_class: canonical
+    expected_attention: true
+  - evidence_id: bg-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: bg-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: bg-3
+    signal_class: background
+    expected_attention: false
+  - evidence_id: bg-4
+    signal_class: background
+    expected_attention: false
+  - evidence_id: noise-1
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: noise-2
+    signal_class: noise
+    expected_attention: false

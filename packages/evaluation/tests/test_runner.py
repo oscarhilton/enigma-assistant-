@@ -94,8 +94,12 @@ def test_report_json_markdown_schema_snapshot(tmp_path: Path) -> None:
         "retrieval",
         "cost",
         "scale",
+        "suppression",
     }
     assert "attention_compression_ratio" in metrics["scale"]
+    assert "background_suppression_rate" in metrics["suppression"]
+    assert "cost_per_simulated_month" in metrics["cost"]
+    assert "remote_reasoning_rate_per_1k" in metrics["scale"]
     for key in (
         "critical_recall",
         "precision",
@@ -107,6 +111,7 @@ def test_report_json_markdown_schema_snapshot(tmp_path: Path) -> None:
     assert failures["missed_obligations"][0]["obligation_id"] == "obligation_atlas_review"
     assert md.startswith("# Evaluation report `schema-snap-001`")
     assert "Critical recall" in md
+    assert "Cost per simulated month" in md
 
 
 def test_privacy_probe_detects_email_leak(tmp_path: Path) -> None:

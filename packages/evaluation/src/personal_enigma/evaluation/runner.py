@@ -8,11 +8,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from personal_enigma.evaluation.ab_eval import storyline_recall_under_noise
 from personal_enigma.evaluation.ground_truth import (
     GroundTruthCorpus,
     load_ground_truth,
 )
-from personal_enigma.evaluation.metrics import attention, cost, memory, privacy, retrieval, scale
+from personal_enigma.evaluation.metrics import (
+    attention,
+    cost,
+    memory,
+    privacy,
+    retrieval,
+    scale,
+    suppression,
+)
 from personal_enigma.evaluation.observations import EvaluationObservations
 from personal_enigma.evaluation.report import render_summary_markdown, write_report
 
@@ -31,7 +40,7 @@ class EvaluationReport:
 
 
 class EvaluationRunner:
-    """Aggregate attention / privacy / memory / retrieval / cost metrics."""
+    """Aggregate attention / privacy / memory / retrieval / cost / noise metrics."""
 
     def __init__(
         self,
@@ -78,25 +87,40 @@ class EvaluationRunner:
         retrieval_m = retrieval.compute_retrieval_metrics(obs.retrieval)
         cost_m = cost.compute_cost_metrics(obs.cost_events, scenario_days=self.scenario_days)
 
-        message_count = obs.message_count
-        if message_count is None:
-            message_count = max(
-                0,
-                (obs.background_count or 0) + (obs.noise_count or 0),
-            )
+        suppression_m = suppression.compute_noise_suppression_metrics(
+            truth,
+            obs.alerts,
+            message_count=obs.message_count,
+            background_count=obs.background_count,
+            noise_count=obs.noise_count,
+        )
+        bg_false = (
+            obs.background_false_alerts
+            if obs.background_false_alerts is not None
+            else suppression_m.background_false_alerts
+        )
+        noise_false = (
+            obs.noise_false_alerts
+            if obs.noise_false_alerts is not None
+            else suppression_m.noise_false_alerts
+        )
         scale_m = scale.compute_scale_metrics(
-            message_count=message_count,
+            message_count=suppression_m.message_count,
+            signals_considered=suppression_m.signals_considered,
             items_surfaced=len(obs.alerts),
-            background_count=obs.background_count or 0,
-            noise_count=obs.noise_count or 0,
-            background_false_alerts=obs.background_false_alerts,
-            noise_false_alerts=obs.noise_false_alerts,
+            background_count=suppression_m.background_count,
+            noise_count=suppression_m.noise_count,
+            background_false_alerts=bg_false,
+            noise_false_alerts=noise_false,
             remote_calls=obs.remote_calls,
             estimated_cost_usd=cost_m.total_usd,
             index_size_bytes=obs.index_size_bytes,
             ingest_time_ms=obs.ingest_time_ms,
             retrieval_latency_ms=obs.retrieval_latency_ms,
-            recall_at_k=float(retrieval_m.as_dict().get("recall_at_k", 1.0)),
+            recall_at_k=_as_float(
+                retrieval_m.as_dict().get("recall_at_k"),
+                default=1.0,
+            ),
             precision=attention_m.precision,
         )
 
@@ -107,7 +131,12 @@ class EvaluationRunner:
             "retrieval": retrieval_m.as_dict(),
             "cost": cost_m.as_dict(),
             "scale": scale_m.as_dict(),
+            "suppression": suppression_m.as_dict(),
         }
+
+        if obs.spine_metrics is not None:
+            ab = storyline_recall_under_noise(obs.spine_metrics, metrics)
+            metrics["storyline_recall_under_noise"] = ab.as_dict()
 
         failures: dict[str, Any] = {
             "missed_obligations": [
@@ -121,8 +150,14 @@ class EvaluationRunner:
             ],
             "privacy_failures": list(privacy_m.failures),
         }
+        if not suppression_m.passed:
+            failures["suppression_failures"] = [
+                "background_false_alerts_per_1000="
+                f"{suppression_m.background_false_alerts_per_1000:.3f} exceeds "
+                f"{suppression_m.max_per_1000:.3f}"
+            ]
 
-        status = _status(attention_m, privacy_m)
+        status = _status(attention_m, privacy_m, suppression_m)
         summary = {
             "run_id": run,
             "scenario": scenario,
@@ -163,6 +198,9 @@ class EvaluationRunner:
                 attention=metrics["attention"],
                 privacy=metrics["privacy"],
                 cost=metrics["cost"],
+                suppression=metrics["suppression"],
+                scale=metrics["scale"],
+                storyline=metrics.get("storyline_recall_under_noise"),
             )
             write_report(
                 report_dir,
@@ -189,7 +227,11 @@ class EvaluationRunner:
         )
 
 
-def _status(attention_m: attention.AttentionMetrics, privacy_m: privacy.PrivacyMetrics) -> str:
+def _status(
+    attention_m: attention.AttentionMetrics,
+    privacy_m: privacy.PrivacyMetrics,
+    suppression_m: suppression.NoiseSuppressionMetrics,
+) -> str:
     if (
         privacy_m.direct_identifier_leaks > 0
         or privacy_m.secret_like_leaks > 0
@@ -199,7 +241,24 @@ def _status(attention_m: attention.AttentionMetrics, privacy_m: privacy.PrivacyM
         return "privacy_fail"
     if attention_m.missed:
         return "attention_miss"
+    if not suppression_m.passed:
+        return "suppression_fail"
     return "pass"
+
+
+def _as_float(value: object, *, default: float) -> float:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return default
+    return default
 
 
 def _new_run_id(scenario: str) -> str:

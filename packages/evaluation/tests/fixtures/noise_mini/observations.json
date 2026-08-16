@@ -1,0 +1,29 @@
+{
+  "evaluated_at": "2026-03-20T11:00:00Z",
+  "alerts": [
+    {
+      "id": "alert-atlas",
+      "title": "Review Atlas proposal",
+      "obligation_ids": ["obligation_atlas_review"],
+      "evidence_ids": ["canonical-1"],
+      "surfaced_at": "2026-03-20T10:00:00Z"
+    }
+  ],
+  "cost_events": [
+    {
+      "category": "attention_reasoning",
+      "model": "stub",
+      "input_tokens": 50,
+      "output_tokens": 10,
+      "estimated_usd": 0.03
+    }
+  ],
+  "remote_calls": 0,
+  "spine_metrics": {
+    "attention": {
+      "critical_recall": 1.0
+    }
+  },
+  "provider": "stub",
+  "model": "stub"
+}

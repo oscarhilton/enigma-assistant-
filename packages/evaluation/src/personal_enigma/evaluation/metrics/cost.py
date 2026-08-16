@@ -28,6 +28,8 @@ class CostMetrics:
             "daily_usd": self.daily_usd,
             "weekly_usd": self.weekly_usd,
             "monthly_usd": self.monthly_usd,
+            # Corpus plan §48 — stub monthly cost of a simulated user.
+            "cost_per_simulated_month": self.monthly_usd,
             "annual_usd": self.annual_usd,
         }
 

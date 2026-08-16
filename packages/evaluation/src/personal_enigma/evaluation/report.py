@@ -74,6 +74,9 @@ def render_summary_markdown(
     attention: dict[str, Any],
     privacy: dict[str, Any],
     cost: dict[str, Any],
+    suppression: dict[str, Any] | None = None,
+    scale: dict[str, Any] | None = None,
+    storyline: dict[str, Any] | None = None,
 ) -> str:
     lines = [
         f"# Evaluation report `{run_id}`",
@@ -93,9 +96,49 @@ def render_summary_markdown(
         "",
         "## Cost (stub)",
         f"- Total USD: {cost.get('total_usd', 0):.4f}",
-        f"- Monthly equivalent: {cost.get('monthly_usd', 0):.4f}",
+        (
+            "- Cost per simulated month: "
+            f"{cost.get('cost_per_simulated_month', cost.get('monthly_usd', 0)):.4f}"
+        ),
         "",
     ]
+    if suppression:
+        bg_rate = suppression.get("background_suppression_rate", 0)
+        fa_rate = suppression.get("background_false_alerts_per_1000", 0)
+        compression = suppression.get("attention_compression_ratio", 0)
+        lines.extend(
+            [
+                "## Noise suppression",
+                f"- Background suppression rate: {bg_rate:.3f}",
+                f"- Background false alerts / 1k: {fa_rate:.3f}",
+                f"- Attention compression ratio: {compression:.1f} : 1",
+                "",
+            ]
+        )
+    if scale:
+        remote_rate = scale.get(
+            "remote_reasoning_rate_per_1k",
+            scale.get("remote_calls_per_1k", 0),
+        )
+        lines.extend(
+            [
+                "## Scale stubs",
+                f"- Remote reasoning rate / 1k: {remote_rate:.3f}",
+                f"- Cost per 1k messages: {scale.get('cost_per_1k_messages', 0):.4f}",
+                "",
+            ]
+        )
+    if storyline:
+        lines.extend(
+            [
+                "## Storyline recall under noise (A/B)",
+                f"- Spine critical recall: {storyline.get('spine_critical_recall', 0):.3f}",
+                f"- With background: {storyline.get('with_background_critical_recall', 0):.3f}",
+                f"- Drop: {storyline.get('drop', 0):.3f} (max {storyline.get('max_drop', 0):.3f})",
+                f"- Passed: {storyline.get('passed', False)}",
+                "",
+            ]
+        )
     return "\n".join(lines)
 
 

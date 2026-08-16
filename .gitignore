@@ -51,8 +51,8 @@ coverage/
 htmlcov/
 .coverage
 *.lcov
-reports/
-reports/
+# enigma-eval run output at repo root (keep docs/reports/ immutable artefacts)
+/reports/
 
 # Local data
 data/

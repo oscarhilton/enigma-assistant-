@@ -73,3 +73,45 @@ def test_compare_to_baseline_enforces_false_alert_ceiling() -> None:
     )
     assert not bad.passed
     assert any("background_false_alerts_per_1000" in v for v in bad.violations)
+
+
+def test_compute_noise_suppression_metrics_from_truth() -> None:
+    from personal_enigma.evaluation.metrics.suppression import (
+        compute_noise_suppression_metrics,
+    )
+
+    truth = GroundTruthCorpus(
+        signals=[
+            SignalTruth(
+                evidence_id="bg-1",
+                signal_class=ScenarioSignalClass.BACKGROUND,
+                expected_attention=False,
+            ),
+            SignalTruth(
+                evidence_id="bg-2",
+                signal_class=ScenarioSignalClass.BACKGROUND,
+                expected_attention=False,
+            ),
+            SignalTruth(
+                evidence_id="noise-1",
+                signal_class=ScenarioSignalClass.NOISE,
+                expected_attention=False,
+            ),
+        ]
+    )
+    metrics = compute_noise_suppression_metrics(truth, [])
+    assert metrics.background_count == 2
+    assert metrics.noise_count == 1
+    assert metrics.background_suppression_rate == 1.0
+    assert metrics.background_false_alerts_per_1000 == 0.0
+    assert metrics.attention_compression_ratio == 3.0
+    assert metrics.passed
+
+    polluted = compute_noise_suppression_metrics(
+        truth,
+        [SurfacedAlert(id="a1", evidence_ids=["bg-1"])],
+    )
+    assert polluted.background_false_alerts == 1
+    assert polluted.background_suppression_rate == 0.5
+    assert not polluted.passed or polluted.background_false_alerts_per_1000 > 0
+
