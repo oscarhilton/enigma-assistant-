@@ -1,0 +1,12 @@
+{
+  "schema": "shadow.suppression_decision/v0",
+  "decision": "SUPPRESS",
+  "decided_at": "2026-08-16T09:00:00Z",
+  "candidate": "cand_pending_reply_42",
+  "available_evidence": ["msg_ref_a", "cal_ref_b"],
+  "retrieval_snapshot": ["chunk_ref_1", "chunk_ref_2"],
+  "priority": 2,
+  "confidence": 0.67,
+  "threshold": 3,
+  "reason_codes": ["PENDING_REPLY", "LOW_URGENCY"]
+}

@@ -26,6 +26,8 @@
 - S03 (structural notification suppression) — SE02 measures/audits; S03 enforces silence
 - S05 (comparison stubs)
 - SE01 (candidate ids / ranks for join)
+- SE04 (decision-oriented SUPPRESS snapshots — complementary; SE02 is delivery-oriented)
+
 ## Unlocks / enhances
 
 - Rubric question 3 (importance overestimate) with a clean “would have bothered you” denominator
@@ -36,13 +38,15 @@
 - Designing Private Mode notification UX
 - Push/email/SMS product infrastructure
 - Changing what attention selects — only recording what delivery would have done
+- Owning frozen decision snapshots for all candidates (that is [SE04](./SE04-suppression-decision-log.md) / [shadow-silence-evaluation.md](../../docs/architecture/shadow-silence-evaluation.md))
 
 ## Acceptance criteria
 
 - [ ] `SuppressedNotificationAudit` schema (id, timestamp, candidate_id, channel, suppression_reason, rank/score, subject_ref)
 - [ ] Writer path callable when would-notify is true under Shadow policy (stub OK if S02 not merged)
 - [ ] Tests: audit rows written; notifier invoke count == 0 with hostile/exploding notifier stub
-- [ ] Docs link from [shadow-evaluation.md](../../docs/architecture/shadow-evaluation.md)
+- [ ] Docs link from [shadow-evaluation.md](../../docs/architecture/shadow-evaluation.md) and cross-link silence track
+- [ ] Cross-link [shadow-silence-evaluation.md](../../docs/architecture/shadow-silence-evaluation.md) / SE04 (would-notify audit complements full SUPPRESS decision log; does not replace it)
 
 ## Test plan
 

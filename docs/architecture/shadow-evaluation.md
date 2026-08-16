@@ -1,10 +1,11 @@
 # Shadow evaluation rubric
 
-**Status:** Design + tickets (SE01–SE03) — no full UI; no `EnvironmentMode` / banner changes (S01 `done` #65)  
+**Status:** Design + tickets (SE01–SE03 rubric · SE04–SE10 silence) — no full product UI; no `EnvironmentMode` / banner changes (S01 `done` #65)  
 **Questions list:** [shadow-mode-questions.md](./shadow-mode-questions.md)  
+**Silence evaluation (primary):** [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) · [ADR-009](../adr/009-silence-as-prediction.md)  
 **Mode scaffold:** [shadow-mode.md](./shadow-mode.md) · S01–S06 under `tickets/shadow/`  
-**Tickets:** [SE01](../../tickets/shadow/SE01-action-vs-attention.md) · [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) · [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md)  
-**Minimal stubs:** [shadow-eval-stubs/](./shadow-eval-stubs/) (`UserAction`, `ShadowAttentionCandidate`, `SuppressedNotificationAudit`, weekly review JSON + Markdown)
+**Tickets:** [SE01](../../tickets/shadow/SE01-action-vs-attention.md) · [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) · [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) · [SE04](../../tickets/shadow/SE04-suppression-decision-log.md)–[SE10](../../tickets/shadow/SE10-counterfactual-ab-harness.md)  
+**Minimal stubs:** [shadow-eval-stubs/](./shadow-eval-stubs/) (`UserAction`, `ShadowAttentionCandidate`, `SuppressedNotificationAudit`, `suppression_decision`, weekly review JSON + Markdown)
 
 ## Why Demo cannot answer these
 
@@ -112,10 +113,12 @@ Not a hard gate yet — record intent so later ADRs can harden numbers:
 
 - Act-on hit rate trending up (or stable-high) across ≥ N weeks
 - Overestimate / would-notify waste rate below an agreed ceiling
+- **Suppression Accuracy** known on audited suppressions; **Silent Miss Rate** extremely low ([shadow-silence-evaluation.md](./shadow-silence-evaluation.md))
 - Near-miss catch rate non-zero on real deadlines the user nearly missed
 - Timing errors not systematically “too late”
 - At least one documented **novel miss** class fed back into Demo/corpus or attention policy (or explicitly deferred)
 - Relationship sample error rate known (even if high — honesty > silence)
+- Empty attention UI alone is **not** an exit criterion ([ADR-009](../adr/009-silence-as-prediction.md))
 
 ## Coordination with S01–S06 scaffold
 
@@ -127,9 +130,34 @@ Not a hard gate yet — record intent so later ADRs can harden numbers:
 | Attention log persistence | S04 (soft for SE01) |
 | Comparison stub interfaces (seven goals) | S05 (soft for SE01–SE03) |
 | Exit / promote-from-Shadow gate | S06 (soft for SE03) |
-| Rubric observables, action join, suppress audit, weekly review | **This track (SE01–SE03)** |
+| Rubric observables, action join, suppress audit, weekly review | **SE01–SE03** |
+| SUPPRESS snapshots, stratified audits, miss reports, silence metrics, accuracy screen, A/B harness | **SE04–SE10** — [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) |
+| Open-loop due phrase + axes | **SE11** — [open-loop-commitments.md](./open-loop-commitments.md) |
 
 Prefer **soft (~)** dependencies. SE* must not edit `packages/simulation/.../environment.py`, Shadow banner UI, or ADR-008 storage policy.
+
+## Silence evaluation (SUPPRESS as prediction)
+
+Empty screen cannot prove correctness. Every silence is a logged prediction ([ADR-009](../adr/009-silence-as-prediction.md)). Primary design: [shadow-silence-evaluation.md](./shadow-silence-evaluation.md).
+
+| Channel | Role | Ticket |
+| --- | --- | --- |
+| Frozen decision snapshots | Replay original evidence — no hindsight | SE04 |
+| Behavioural traces | Signals → review candidates (≠ auto FN) | SE05 |
+| Stratified sampling | ~3–5/day human audits | SE06 |
+| Reported misses | Gold-standard FN + failure stage | SE07 |
+| Headline metrics | Suppression Accuracy · Silent Miss Rate | SE08 |
+| Accuracy screen | Private UX (not Demo chrome) | SE09 |
+| Counterfactual A/B | Surface-all vs Enigma policy (**later**) | SE10 |
+
+### Scoring vocabulary (silence)
+
+| Metric | Definition (v0) |
+| --- | --- |
+| `suppression_accuracy` | `correctly_suppressed / suppressed_items_audited` (human: **Suppression Accuracy**) |
+| `silent_miss_rate` | `important_missed / important_discovered_during_evaluation` (want extremely low) |
+
+Day-freeze retrospective (morning “47 can wait” → evening classes) is a supported Accuracy denominator pattern — details in the silence doc.
 
 ## Privacy
 

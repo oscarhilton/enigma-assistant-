@@ -12,7 +12,7 @@
 - May edit: `packages/attention/**` for Shadow log writer / schema
 - May edit: `apps/api/**`, `apps/worker/**` to persist attention under Shadow root
 - May edit: tests under those packages
-- May amend: `docs/architecture/shadow-mode.md` log path notes
+- May amend: `docs/architecture/shadow-mode.md` log path notes; soft cross-link [shadow-silence-evaluation.md](../../docs/architecture/shadow-silence-evaluation.md) / SE04 for full SUPPRESS snapshots
 - Must not edit: Demo evaluation runner, scenario corpora, notification delivery adapters beyond calling the log, Gmail OAuth
 
 ## Hard depends
@@ -24,16 +24,19 @@
 ## Soft depends (~)
 
 - M06 attention engine behaviour
+- SE04 (extends suppress decisions with frozen snapshots — soft; S04 may land surface/candidate rows first)
 
 ## Unlocks / enhances
 
 - Evidence base for S05 comparison stubs and the seven evaluation goals
+- Candidate ids for [SE04](./SE04-suppression-decision-log.md) silence snapshots
 
 ## Non-goals
 
 - Answering the seven questions (evaluation goals only — S05)
 - Surfacing Shadow attention as user notifications
 - Demo attention card polish
+- Full frozen SUPPRESS snapshot schema (SE04)
 
 ## Acceptance criteria
 
@@ -41,6 +44,7 @@
 - [ ] Records include enough fields for later scoring (item id, score, rationale stub, timestamps)
 - [ ] Log writes do not trigger notification delivery
 - [ ] Demo and Private attention stores remain untouched
+- [ ] Docs note relationship to silence evaluation ([shadow-silence-evaluation.md](../../docs/architecture/shadow-silence-evaluation.md))
 
 ## Test plan
 
