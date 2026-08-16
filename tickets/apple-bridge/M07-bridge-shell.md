@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M07-bridge-shell` |
 | Domain | `apple-bridge` |
 
@@ -36,12 +36,12 @@
 
 ## Acceptance criteria
 
-- [ ] Local server on Unix socket or `127.0.0.1` only
-- [ ] Bearer token auth (Keychain-backed secret generation documented; Core generates token)
-- [ ] `GET /capabilities` returns capability JSON
-- [ ] Permission request hooks stubbed per source
-- [ ] Continues if individual sources unauthorised
-- [ ] No LLM provider calls from bridge
+- [x] Local server on Unix socket or `127.0.0.1` only
+- [x] Bearer token auth (Keychain-backed secret generation documented; Core generates token)
+- [x] `GET /capabilities` returns capability JSON
+- [x] Permission request hooks stubbed per source
+- [x] Continues if individual sources unauthorised
+- [x] No LLM provider calls from bridge
 
 ## Test plan
 

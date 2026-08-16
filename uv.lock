@@ -360,12 +360,14 @@ name = "personal-enigma-ingestion"
 version = "0.1.0"
 source = { editable = "packages/ingestion" }
 dependencies = [
+    { name = "httpx" },
     { name = "personal-enigma-domain" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.0" },
     { name = "personal-enigma-domain", editable = "packages/domain" },
     { name = "pydantic", specifier = ">=2.10.0" },
 ]
