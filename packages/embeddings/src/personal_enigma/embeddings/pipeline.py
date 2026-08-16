@@ -10,7 +10,7 @@ from personal_enigma.embeddings.protocol import EmbeddingModel, VectorIndex
 
 @dataclass(frozen=True)
 class RetrievedPassage:
-    """Top passage returned to callers (text is suitable for transformation)."""
+    """Top passage returned to callers (local retrieval only; not remote-safe by itself)."""
 
     id: str
     text: str
@@ -19,7 +19,7 @@ class RetrievedPassage:
     metadata: dict[str, str] = field(default_factory=dict)
 
     def for_transformation(self) -> str:
-        """Return passage text for the Enigma transformer / remote context path."""
+        """Return passage text for local Enigma transformation input.\n\n        Callers must still run the privacy/transform gate before any remote send;\n        this text may contain raw Notes/email content.\n        """
         return self.text
 
 

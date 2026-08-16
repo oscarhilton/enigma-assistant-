@@ -124,8 +124,16 @@ def test_embed_path_makes_no_network_calls(monkeypatch: pytest.MonkeyPatch) -> N
     def _block_connect(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("network connect attempted during local embed path")
 
-    monkeypatch.setattr(socket.socket, "connect", _block_connect)
-    monkeypatch.setattr(socket.socket, "connect_ex", _block_connect)
+    class _NoNetworkSocket(socket.socket):
+        def connect(self, *args: object, **kwargs: object) -> None:
+            _block_connect(*args, **kwargs)
+
+        def connect_ex(self, *args: object, **kwargs: object) -> int:
+            _block_connect(*args, **kwargs)
+            return 0
+
+    monkeypatch.setattr(socket, "socket", _NoNetworkSocket)
+    monkeypatch.setattr(socket, "create_connection", _block_connect)
 
     model = FakeEmbeddingModel()
     index = InMemoryVectorIndex()

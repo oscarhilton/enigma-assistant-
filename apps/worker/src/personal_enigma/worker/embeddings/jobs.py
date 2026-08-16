@@ -30,6 +30,13 @@ def build_default_pipeline() -> RetrievalPipeline:
     return RetrievalPipeline(model=FakeEmbeddingModel(), index=InMemoryVectorIndex())
 
 
+def _require_id(record: dict[str, Any], *, kind: str) -> str:
+    value = record.get("id")
+    if value is None or str(value).strip() == "":
+        raise ValueError(f"{kind} record missing required id")
+    return str(value)
+
+
 def _passages_from_records(
     *,
     emails: list[dict[str, Any]],
@@ -41,7 +48,7 @@ def _passages_from_records(
     for email in emails:
         passages.extend(
             passages_from_email(
-                message_id=str(email["id"]),
+                message_id=_require_id(email, kind="email"),
                 subject=email.get("subject"),
                 body_text=email.get("body_text"),
                 snippet=email.get("snippet"),
@@ -50,7 +57,7 @@ def _passages_from_records(
     for note in notes:
         passages.extend(
             passages_from_note(
-                note_id=str(note["id"]),
+                note_id=_require_id(note, kind="note"),
                 title=str(note.get("title") or ""),
                 body_text=str(note.get("body_text") or ""),
             )
@@ -58,7 +65,7 @@ def _passages_from_records(
     for reminder in reminders:
         passages.extend(
             passages_from_reminder(
-                reminder_id=str(reminder["id"]),
+                reminder_id=_require_id(reminder, kind="reminder"),
                 title=str(reminder.get("title") or ""),
                 notes=reminder.get("notes"),
             )
@@ -66,7 +73,7 @@ def _passages_from_records(
     for event in calendar_events:
         passages.extend(
             passages_from_calendar(
-                event_id=str(event["id"]),
+                event_id=_require_id(event, kind="calendar_event"),
                 title=str(event.get("title") or ""),
                 description=event.get("description"),
             )
