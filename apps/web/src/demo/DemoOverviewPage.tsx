@@ -24,7 +24,7 @@ export function DemoOverviewPage() {
           <Link to="/demo/memory">Memory browser</Link>
         </li>
         <li>
-          <Link to="/demo/why/att-review-atlas">Why view</Link>
+          <Link to="/demo/why/att-atlas-review">Why view</Link>
         </li>
         <li>
           <Link to="/demo/privacy">Privacy inspector hook</Link>

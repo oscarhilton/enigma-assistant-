@@ -62,7 +62,7 @@ describe("Demo chrome stubs", () => {
 
     render(
       <MemoryRouter>
-        <WhyView itemId="att-review-atlas" fetchImpl={fetchImpl} />
+        <WhyView itemId="att-atlas-review" fetchImpl={fetchImpl} />
       </MemoryRouter>,
     );
 

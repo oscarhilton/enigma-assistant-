@@ -21,7 +21,7 @@ export const FIXTURE_DEMO_STATUS = FIXTURE_STATUS;
 
 export const FIXTURE_ATTENTION: DemoAttentionItem[] = [
   {
-    id: "att-review-atlas",
+    id: "att-atlas-review",
     title: "Review Atlas proposal before Friday",
     body: "Open loop from PERSON_A with a calendar deadline this week.",
     kind: "commitment",
@@ -69,7 +69,7 @@ export const FIXTURE_MEMORY: DemoMemoryItem[] = [
 ];
 
 export const FIXTURE_WHY: DemoWhyPayload = {
-  item_id: "att-review-atlas",
+  item_id: "att-atlas-review",
   headline: "WHY ENIGMA THINKS THIS MATTERS",
   evidence: [
     "Email: PERSON_A requested review.",
@@ -82,7 +82,7 @@ export const FIXTURE_WHY: DemoWhyPayload = {
 };
 
 export const FIXTURE_WHY_BY_ID: Record<string, DemoWhyPayload> = {
-  "att-review-atlas": FIXTURE_WHY,
+  "att-atlas-review": FIXTURE_WHY,
   "att-dentist": {
     item_id: "att-dentist",
     headline: "WHY ENIGMA THINKS THIS MATTERS",
