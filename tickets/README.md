@@ -44,6 +44,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | privacy | [privacy/](./privacy/) | `packages/privacy`, `apps/web` inspector |
 | reasoning | [reasoning/](./reasoning/) | `packages/reasoning` |
 | attention | [attention/](./attention/) | `packages/attention` |
+| next-action | [next-action/](./next-action/) | NextAction scorer / Something-else / preference ([N01](./next-action/N01-scorer-stub.md)–[N03](./next-action/N03-preference-learning.md)); schemas [M20](./domain-model/M20-next-action-schemas.md) · [next-action.md](../docs/architecture/next-action.md) |
 | apple-bridge | [apple-bridge/](./apple-bridge/) | `apps/apple-bridge` + pinned ingestion sources |
 | google | [google/](./google/) | pinned gmail / google_calendar sources |
 | retrieval | [retrieval/](./retrieval/) | `packages/embeddings` |
@@ -53,7 +54,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-scenario | [demo-scenario/](./demo-scenario/) | `scenarios/**` |
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
-| demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md), [D15](./demo-ui/D15-attention-card-ux.md), [D16](./demo-ui/D16-demo-reset.md), [D17](./demo-ui/D17-attention-copy-groups.md) copy/empty/can-wait freeze) — **frozen** for new polish beyond claimed tickets |
+| demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md), [D15](./demo-ui/D15-attention-card-ux.md), [D16](./demo-ui/D16-demo-reset.md), [D17](./demo-ui/D17-attention-copy-groups.md) copy/empty/can-wait freeze, [D18](./demo-ui/D18-demo-next-action.md) Next Action chrome) — **frozen** for new polish beyond claimed tickets |
 | shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval (SE01–SE03) + silence track (SE04–SE10) + open-loop dues (SE11); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) · [shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) · [ADR-009](../docs/adr/009-silence-as-prediction.md). SE* must not edit `EnvironmentMode`. |
 
 ## Ingestion file ownership (do not cross)
@@ -84,6 +85,7 @@ Shadow evaluation rubric: [docs/architecture/shadow-evaluation.md](../docs/archi
 Shadow silence evaluation: [docs/architecture/shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) (SUPPRESS as prediction · SE04–SE10 · [ADR-009](../docs/adr/009-silence-as-prediction.md)).  
 Open-loop commitments: [docs/architecture/open-loop-commitments.md](../docs/architecture/open-loop-commitments.md) (SE11).  
 Attention surface (Phase 2.5 wind-tunnel / F-* naming): [docs/architecture/attention-surface.md](../docs/architecture/attention-surface.md).  
+Next Action (NEEDS YOU / WORTH DOING / CAN WAIT): [docs/architecture/next-action.md](../docs/architecture/next-action.md) · [ADR-010](../docs/adr/010-next-action-not-attention.md) · [M20](./domain-model/M20-next-action-schemas.md) · [N01](./next-action/N01-scorer-stub.md)–[N03](./next-action/N03-preference-learning.md).  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
 

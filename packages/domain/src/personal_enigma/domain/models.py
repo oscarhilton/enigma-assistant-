@@ -8,6 +8,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from personal_enigma.domain.enums import (
+    ActionCategory,
+    ActionContext,
+    Effort,
+    Urgency,
+)
+
 
 class RecurrenceInfo(BaseModel):
     """Recurrence metadata for calendar events."""
@@ -136,3 +143,23 @@ class Obligation(BaseModel):
     due_at: datetime | None = None
     evidence: list[ObligationEvidence] = Field(default_factory=list)
     confidence: float = 0.0
+
+
+class NextAction(BaseModel):
+    """Optional useful next step — not an Attention interrupt.
+
+    Product contract: may be suggested when Attention is empty; never implies
+    urgency unless ``urgency`` is set. See docs/architecture/next-action.md.
+    """
+
+    title: str
+    reason: str
+    category: ActionCategory
+    estimated_minutes: int | None = None
+    effort: Effort = Effort.MEDIUM
+    context: list[ActionContext] = Field(default_factory=list)
+    source_ids: list[str] = Field(default_factory=list)
+    urgency: Urgency = Urgency.NONE
+    value: float = 0.0
+    confidence: float = 0.0
+    optional: bool = True

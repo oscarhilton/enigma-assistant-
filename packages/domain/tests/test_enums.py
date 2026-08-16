@@ -2,12 +2,17 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from personal_enigma.domain import (
+    ActionCategory,
+    ActionContext,
     CalendarEvidence,
+    Effort,
+    NextAction,
     Obligation,
     PrivateCalendarEvent,
     PrivateMessage,
     ReminderEvidence,
     SourceType,
+    Urgency,
 )
 
 
@@ -71,3 +76,31 @@ def test_person_id_is_uuid() -> None:
 
     person = PrivatePerson(id=uuid4(), display_name="Test")
     assert person.display_name == "Test"
+
+
+def test_action_category_values() -> None:
+    assert ActionCategory.MOVEMENT == "movement"
+    assert ActionCategory.NOTHING == "nothing"
+    assert ActionCategory.REST == "rest"
+    assert Effort.LOW == "low"
+    assert Urgency.NONE == "none"
+    assert ActionContext.HIGH_LOAD == "high_load"
+
+
+def test_next_action_roundtrip_defaults_optional() -> None:
+    action = NextAction(
+        title="Go for a short walk",
+        reason="Clear hour before next commitment; load is high.",
+        category=ActionCategory.MOVEMENT,
+        estimated_minutes=15,
+        effort=Effort.LOW,
+        context=[ActionContext.SHORT_WINDOW, ActionContext.HIGH_LOAD],
+        source_ids=["cal:next-meeting"],
+        value=0.7,
+        confidence=0.6,
+    )
+    restored = NextAction.model_validate(action.model_dump())
+    assert restored.optional is True
+    assert restored.urgency == Urgency.NONE
+    assert restored.category == ActionCategory.MOVEMENT
+    assert restored.context == [ActionContext.SHORT_WINDOW, ActionContext.HIGH_LOAD]
