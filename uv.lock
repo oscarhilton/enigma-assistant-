@@ -403,6 +403,7 @@ source = { editable = "apps/worker" }
 dependencies = [
     { name = "personal-enigma-attention" },
     { name = "personal-enigma-domain" },
+    { name = "personal-enigma-embeddings" },
     { name = "personal-enigma-fixtures" },
     { name = "personal-enigma-ingestion" },
 ]
@@ -411,6 +412,7 @@ dependencies = [
 requires-dist = [
     { name = "personal-enigma-attention", editable = "packages/attention" },
     { name = "personal-enigma-domain", editable = "packages/domain" },
+    { name = "personal-enigma-embeddings", editable = "packages/embeddings" },
     { name = "personal-enigma-fixtures", editable = "packages/fixtures" },
     { name = "personal-enigma-ingestion", editable = "packages/ingestion" },
 ]
