@@ -18,7 +18,7 @@ function sortByRank(items: DemoAttentionItem[]): DemoAttentionItem[] {
 }
 
 /**
- * Private UI attention surface — real synthetic names (Maya, Atlas).
+ * Private UI attention surface — alex-v1 synthetic names from the live API.
  * Reason codes and PERSON_* live in Why / privacy views, not here.
  */
 export function AttentionDashboard({

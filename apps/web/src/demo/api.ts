@@ -9,11 +9,8 @@ import type {
   DemoWhyPayload,
 } from "./types";
 import {
-  FIXTURE_ATTENTION,
-  FIXTURE_ATTENTION_PAYLOAD,
   FIXTURE_DEMO_STATUS,
   FIXTURE_MEMORY,
-  FIXTURE_WHY_BY_ID,
 } from "./fixtures";
 
 export type {
@@ -121,7 +118,13 @@ export async function fetchDemoAttention(
       items: sortByAttentionRank(body.items),
     };
   } catch {
-    return structuredClone(FIXTURE_ATTENTION_PAYLOAD);
+    // Offline: empty shell — do not resurrect Atlas attention stubs (D14).
+    return {
+      items: [],
+      surfaced_count: 0,
+      suppressed_count: 0,
+      simulated_time: FIXTURE_DEMO_STATUS.simulated_time,
+    };
   }
 }
 
@@ -141,14 +144,13 @@ export async function postDemoAttentionAction(
       items: sortByAttentionRank(body.items),
     };
   } catch {
-    const remaining = FIXTURE_ATTENTION.filter((item) => item.id !== itemId);
     return {
-      ok: true,
+      ok: false,
       item_id: itemId,
       action,
-      items: sortByAttentionRank(remaining),
-      surfaced_count: remaining.length,
-      suppressed_count: FIXTURE_ATTENTION_PAYLOAD.suppressed_count,
+      items: [],
+      surfaced_count: 0,
+      suppressed_count: 0,
     };
   }
 }
@@ -173,6 +175,7 @@ export async function fetchDemoWhy(
   try {
     return await readJson<DemoWhyPayload>(await fetchImpl(`${API_BASE}/demo/why/${itemId}`));
   } catch {
-    return structuredClone(FIXTURE_WHY_BY_ID[itemId] ?? null);
+    // No offline Why fiction — live API is the source of truth (D14).
+    return null;
   }
 }

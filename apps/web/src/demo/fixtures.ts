@@ -20,7 +20,7 @@ export const FIXTURE_STATUS: DemoStatus = {
 
 export const FIXTURE_DEMO_STATUS = FIXTURE_STATUS;
 
-/** Private UI names on the dashboard (Maya, Atlas) — not PERSON_*. */
+/** Legacy mock payloads for component tests — not used as live API fallback (D14). */
 export const FIXTURE_ATTENTION: DemoAttentionItem[] = [
   {
     id: "att-atlas-review",
