@@ -1,5 +1,12 @@
+import Contacts
 import EnigmaAppleBridgeCore
 import XCTest
+
+private struct DeniedContactsStore: ContactsStore {
+    func authorizationStatus() -> CNAuthorizationStatus { .denied }
+    func requestAccess() async throws -> Bool { false }
+    func fetchPeople() throws -> [RawContactPerson] { [] }
+}
 
 final class NoteMapperTests: XCTestCase {
     private let modified = Date(timeIntervalSince1970: 1_787_100_000)
@@ -256,7 +263,20 @@ final class NotesHTTPRouteTests: XCTestCase {
             optInProvider: { true },
             authorisedProvider: { true }
         )
-        let server = BridgeHTTPServer(token: "test-token", notesSource: source)
+        let deniedContacts = ContactsSource(store: DeniedContactsStore())
+        let hooks = PermissionHooks(
+            calendarIsAuthorised: { false },
+            calendarRequestAccess: { false },
+            remindersSource: RemindersSource(authorisedProvider: { false }),
+            contactsSource: deniedContacts,
+            notesSource: source
+        )
+        let server = BridgeHTTPServer(
+            token: "test-token",
+            permissionHooks: hooks,
+            contactsSource: deniedContacts,
+            notesSource: source
+        )
         let result = try server.handleHTTP(
             method: "GET",
             path: "/capabilities",
