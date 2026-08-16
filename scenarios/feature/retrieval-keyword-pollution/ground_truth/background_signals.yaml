@@ -1,0 +1,70 @@
+signals:
+  - evidence_id: mail-atlas-review
+    signal_class: canonical
+    expected_attention: true
+  - evidence_id: rem-atlas-review
+    signal_class: canonical
+    expected_attention: true
+  - evidence_id: cal-atlas-standup
+    signal_class: canonical
+    expected_attention: true
+  - evidence_id: mail-review-pollute-01
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-02
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-03
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-04
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-05
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-06
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-07
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-08
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-09
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-10
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-11
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-12
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-13
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-14
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-15
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-16
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-17
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-18
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-19
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-review-pollute-20
+    signal_class: background
+    expected_attention: false
