@@ -1,0 +1,21 @@
+{
+  "name": "personal-enigma",
+  "private": true,
+  "packageManager": "pnpm@10.3.0",
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "dev": "turbo run dev --parallel",
+    "test:python": "uv run pytest",
+    "lint:python": "uv run ruff check .",
+    "typecheck:python": "uv run basedpyright"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

@@ -1,0 +1,29 @@
+[project]
+name = "personal-enigma-api"
+version = "0.1.0"
+description = "Enigma Core FastAPI application"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.34.0",
+  "personal-enigma-domain",
+  "personal-enigma-ingestion",
+  "personal-enigma-privacy",
+  "personal-enigma-attention",
+]
+
+[project.scripts]
+enigma-api = "personal_enigma.api.main:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/personal_enigma"]
+
+[tool.uv.sources]
+personal-enigma-domain = { workspace = true }
+personal-enigma-ingestion = { workspace = true }
+personal-enigma-privacy = { workspace = true }
+personal-enigma-attention = { workspace = true }

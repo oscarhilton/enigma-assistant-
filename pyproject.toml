@@ -1,0 +1,98 @@
+[project]
+name = "personal-enigma"
+version = "0.1.0"
+description = "Private personal context assistant — Enigma Core"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "personal-enigma-domain",
+  "personal-enigma-ingestion",
+  "personal-enigma-privacy",
+  "personal-enigma-transformation",
+  "personal-enigma-attention",
+  "personal-enigma-embeddings",
+  "personal-enigma-fixtures",
+  "personal-enigma-api",
+  "personal-enigma-worker",
+]
+
+[tool.uv.workspace]
+members = [
+  "packages/domain",
+  "packages/ingestion",
+  "packages/privacy",
+  "packages/transformation",
+  "packages/attention",
+  "packages/embeddings",
+  "packages/fixtures",
+  "apps/api",
+  "apps/worker",
+]
+
+[tool.uv.sources]
+personal-enigma-domain = { workspace = true }
+personal-enigma-ingestion = { workspace = true }
+personal-enigma-privacy = { workspace = true }
+personal-enigma-transformation = { workspace = true }
+personal-enigma-attention = { workspace = true }
+personal-enigma-embeddings = { workspace = true }
+personal-enigma-fixtures = { workspace = true }
+personal-enigma-api = { workspace = true }
+personal-enigma-worker = { workspace = true }
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.0",
+  "ruff>=0.11.0",
+  "basedpyright>=1.28.0",
+  "httpx>=0.28.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "packages/domain/tests",
+  "packages/ingestion/tests",
+  "packages/privacy/tests",
+  "packages/transformation/tests",
+  "packages/attention/tests",
+  "packages/embeddings/tests",
+  "packages/fixtures/tests",
+  "apps/api/tests",
+  "apps/worker/tests",
+]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = [
+  "packages/domain/src",
+  "packages/ingestion/src",
+  "packages/privacy/src",
+  "packages/transformation/src",
+  "packages/attention/src",
+  "packages/embeddings/src",
+  "packages/fixtures/src",
+  "apps/api/src",
+  "apps/worker/src",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.basedpyright]
+include = [
+  "packages/domain/src",
+  "packages/ingestion/src",
+  "packages/privacy/src",
+  "packages/transformation/src",
+  "packages/attention/src",
+  "packages/embeddings/src",
+  "packages/fixtures/src",
+  "apps/api/src",
+  "apps/worker/src",
+]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+reportMissingImports = true
+reportUnusedImport = true

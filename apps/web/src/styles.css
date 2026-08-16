@@ -1,0 +1,80 @@
+:root {
+  color-scheme: light;
+  --ink: #1a1f1c;
+  --paper: #f3f0e8;
+  --accent: #2f5d50;
+  --muted: #5c675f;
+  --line: #d5d0c4;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", serif;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(47, 93, 80, 0.12), transparent 42%),
+    radial-gradient(circle at 88% 0%, rgba(26, 31, 28, 0.08), transparent 36%),
+    var(--paper);
+  color: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.shell {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.brand {
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+}
+
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+nav a.active {
+  color: var(--accent);
+}
+
+.page h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  line-height: 1.1;
+  margin: 0 0 0.75rem;
+}
+
+.page p {
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  max-width: 36rem;
+}
+
+.permission-list {
+  margin-top: 1.5rem;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  line-height: 1.7;
+}

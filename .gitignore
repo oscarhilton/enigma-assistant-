@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.basedpyright/
+dist/
+build/
+*.egg
+
+# UV
+uv.lock.bak
+
+# Turbo
+.turbo/
+
+# Build outputs
+apps/web/dist/
+*.tsbuildinfo
+
+# Swift
+.swiftpm/
+apps/apple-bridge/.build/
+DerivedData/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# Coverage / reports
+coverage/
+htmlcov/
+.coverage
+*.lcov
+
+# Local data
+data/
+*.db
+*.sqlite
+*.sock
