@@ -114,6 +114,36 @@ public struct ScriptedNotesAppleEventsClient: NotesAppleEventsClient {
         return snapshots
     }
 
+    /// Best-effort parse of AppleScript `(date) as string` stamps. Empty → nil.
+    public static func parseAppleScriptDate(_ raw: String) -> Date? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso.date(from: trimmed) {
+            return date
+        }
+        iso.formatOptions = [.withInternetDateTime]
+        if let date = iso.date(from: trimmed) {
+            return date
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.timeZone = .current
+        for dateStyle in [DateFormatter.Style.full, .long, .medium] {
+            for timeStyle in [DateFormatter.Style.full, .long, .medium, .short] {
+                formatter.dateStyle = dateStyle
+                formatter.timeStyle = timeStyle
+                if let date = formatter.date(from: trimmed) {
+                    return date
+                }
+            }
+        }
+        return nil
+    }
+
     private static func runOsascript(_ source: String) throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
