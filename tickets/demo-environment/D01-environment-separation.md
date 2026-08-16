@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` (merged #22) |
 | Branch | `ticket/D01-environment-separation` |
 | Domain | `demo-environment` |
 | Baseline | `v0.1.0-mvp` (`6253f96`) |

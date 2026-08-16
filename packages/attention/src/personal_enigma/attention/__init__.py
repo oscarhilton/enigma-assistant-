@@ -14,6 +14,7 @@ from personal_enigma.attention.engine import (
     effective_score,
 )
 from personal_enigma.attention.kinds import AttentionKind
+from personal_enigma.attention.overdue import overdue_reminders
 from personal_enigma.attention.protocol import AttentionEngine, AttentionItem
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "items_from_messages",
     "items_from_obligations",
     "items_from_reminders",
+    "overdue_reminders",
 ]

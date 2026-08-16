@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -19,6 +19,10 @@ from personal_enigma.domain import (
     PrivateNote,
     PrivateReminder,
 )
+
+
+class _ClockLike(Protocol):
+    def now(self) -> datetime: ...
 
 
 class CommitmentKind(StrEnum):
@@ -169,6 +173,10 @@ class CommitmentTracker:
                 commitment.updated_at = now
                 stale.append(commitment)
         return stale
+
+    def refresh_staleness_with_clock(self, clock: _ClockLike) -> list[Commitment]:
+        """Refresh staleness using an injected clock (ADR-006)."""
+        return self.refresh_staleness(now=clock.now())
 
     def open_and_stale(self) -> list[Commitment]:
         return [
