@@ -1,12 +1,17 @@
-"""Pinned synthetic DataSource stubs — owned by D4 (do not implement here)."""
+"""Pinned synthetic DataSource adapters — owned by D4."""
 
 from __future__ import annotations
 
-# Import paths reserved for D4:
-#   personal_enigma.simulation.sources.mail
-#   personal_enigma.simulation.sources.calendar
-#   personal_enigma.simulation.sources.reminders
-#   personal_enigma.simulation.sources.notes
-#   personal_enigma.simulation.sources.contacts
+from personal_enigma.simulation.sources.calendar import SyntheticCalendarSource
+from personal_enigma.simulation.sources.contacts import SyntheticContactsSource
+from personal_enigma.simulation.sources.mail import SyntheticMailSource
+from personal_enigma.simulation.sources.notes import SyntheticNotesSource
+from personal_enigma.simulation.sources.reminders import SyntheticReminderSource
 
-__all__: list[str] = []
+__all__ = [
+    "SyntheticCalendarSource",
+    "SyntheticContactsSource",
+    "SyntheticMailSource",
+    "SyntheticNotesSource",
+    "SyntheticReminderSource",
+]
