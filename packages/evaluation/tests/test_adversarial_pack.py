@@ -18,6 +18,7 @@ from personal_enigma.evaluation.adversarial import (
 )
 from personal_enigma.evaluation.metrics import privacy as privacy_metrics
 from personal_enigma.simulation.scenario import load_scenario
+from personal_enigma.transformation import TransformedContext
 
 
 @pytest.mark.parametrize("pack_id", ADVERSARIAL_PACK_IDS)
@@ -69,6 +70,7 @@ def test_provider_failure_does_not_open_private_fallback() -> None:
     assert transport.calls, "failing transport should still receive gated TransformedContext"
     for call in transport.calls:
         ctx = call["context"]
+        assert isinstance(ctx, TransformedContext)
         blob = ctx.model_dump_json()
         for token in forbidden:
             assert token not in blob

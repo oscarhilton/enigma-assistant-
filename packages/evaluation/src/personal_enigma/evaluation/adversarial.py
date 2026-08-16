@@ -10,7 +10,7 @@ from typing import Any
 from uuid import UUID, uuid5
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from personal_enigma.domain import PrivateNote, PrivatePerson
 from personal_enigma.evaluation.metrics.privacy import count_forbidden_token_leaks
@@ -41,7 +41,10 @@ def _repo_root() -> Path:
     for parent in here.parents:
         if (parent / "scenarios" / "feature").is_dir():
             return parent
-    return here.parents[5]
+    raise FileNotFoundError(
+        "Could not locate repo root containing scenarios/feature "
+        f"(started from {here})"
+    )
 
 
 REPO_ROOT = _repo_root()
@@ -66,7 +69,7 @@ class AttackManifest(BaseModel):
     id: str
     kind: str
     feature_pack: str
-    forbidden_tokens: list[str] = []
+    forbidden_tokens: list[str] = Field(default_factory=list)
     description: str = ""
 
 
