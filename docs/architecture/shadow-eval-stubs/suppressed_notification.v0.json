@@ -1,0 +1,9 @@
+{
+  "schema": "shadow.suppressed_notification/v0",
+  "audit_id": "sn_stub_001",
+  "suppressed_at": "2026-08-16T11:50:01Z",
+  "candidate_id": "ac_stub_001",
+  "channel": "tray",
+  "policy": "shadow_mode_suppress_all",
+  "preview": { "title_redacted": true }
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "shadow.attention_candidate/v0",
+  "candidate_id": "ac_stub_001",
+  "generated_at": "2026-08-16T11:50:00Z",
+  "rank": 1,
+  "would_notify": true,
+  "subject_ref": { "type": "thread", "id": "obl_stub_thread_1" },
+  "reason_codes": ["deadline_proximity"],
+  "delivery": "suppressed"
+}

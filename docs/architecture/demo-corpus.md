@@ -173,3 +173,5 @@ Stop expanding Demo Mode when:
 | Cost / month (demo profile) | known |
 
 Then the open question is no longer “does the simulator work?” but **Shadow Mode**: does a real human life’s distribution behave like the synthetic one?
+
+Evaluation rubric for those real-world questions: [shadow-evaluation.md](./shadow-evaluation.md).

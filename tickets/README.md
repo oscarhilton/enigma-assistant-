@@ -24,7 +24,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (MVP) or `ticket/Dxx-slug` (Phase 2 Demo Mode) — see each ticket’s Branch field.
+3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), or `ticket/SExx-slug` / `ticket/Sxx-slug` (Phase 3 Shadow) — see each ticket’s Branch field.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
@@ -52,6 +52,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
 | demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md)) |
+| shadow | [shadow/](./shadow/) | Shadow eval artefacts ([SE01](./shadow/SE01-action-vs-attention.md)–[SE03](./shadow/SE03-weekly-shadow-review.md)); mode/env scaffold is S01 (soft dep — do not edit `EnvironmentMode` from SE*) |
 
 ## Ingestion file ownership (do not cross)
 

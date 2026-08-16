@@ -72,4 +72,5 @@ Apple Bridge is trusted local software. It does not call an LLM and does not exp
 
 See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.  
 Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).  
-Background email corpus: [demo-corpus.md](./demo-corpus.md).
+Background email corpus: [demo-corpus.md](./demo-corpus.md).  
+Shadow evaluation (post-Alex questions): [shadow-evaluation.md](./shadow-evaluation.md).

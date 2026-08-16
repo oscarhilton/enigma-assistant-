@@ -116,3 +116,18 @@ adversarial  UI     replay
 - **D08c** is the first scientific gate (A/B spine vs background + artefacts). **D08d** = machine noise / quiet-day. **D08e** = scale curves to ~5k.
 - Hold F-* tickets until D08c is green; then claim in the order documented in [tickets/README.md](../../tickets/README.md).
 - **Phase 2.5 exit** (then Shadow Mode): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).
+
+---
+
+## Phase 3 — Shadow Mode (eval design first)
+
+Architecture: [shadow-mode-questions.md](./shadow-mode-questions.md) · [shadow-evaluation.md](./shadow-evaluation.md).  
+Branches: `ticket/SExx-slug` (eval) or `ticket/Sxx-slug` (mode scaffold — S01 owns `EnvironmentMode`).
+
+| # | Milestone | Status | Ticket |
+| --- | --- | --- | --- |
+| SE01 | User action vs attention log | `todo` | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) |
+| SE02 | Suppressed notifications audit | `todo` | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) |
+| SE03 | Weekly shadow review artefact | `todo` | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) |
+
+Eval tickets soft-depend on S01 mode/storage and S02/S03 logging when those land. Prefer soft deps; do not block rubric design on env enum PRs.
