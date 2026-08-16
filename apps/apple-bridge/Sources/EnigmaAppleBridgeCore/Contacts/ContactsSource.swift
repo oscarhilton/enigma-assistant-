@@ -61,16 +61,7 @@ public struct ContactsSource: Sendable {
 }
 
 // MARK: - DTOs (PrivatePerson wire shape)
-
-public struct SyncCursorDTO: Codable, Equatable, Sendable {
-    public var value: String
-    public var source: String?
-
-    public init(value: String, source: String? = "apple_contacts") {
-        self.value = value
-        self.source = source
-    }
-}
+// SyncCursorDTO is shared with Calendar (CalendarDTOs.swift).
 
 public struct ContactsChangeBatch: Codable, Equatable, Sendable {
     public var items: [ContactPersonDTO]

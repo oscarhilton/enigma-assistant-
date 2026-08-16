@@ -23,6 +23,7 @@ final class CapabilityReportTests: XCTestCase {
     func testUnauthorisedSourcesStillEncodedIndependently() throws {
         let hooks = PermissionHooks(
             calendarIsAuthorised: { false },
+            remindersSource: RemindersSource(authorisedProvider: { false }),
             contactsSource: ContactsSource(store: DeniedContactsStore())
         )
         let report = hooks.capabilities()
@@ -55,15 +56,18 @@ final class BridgeAuthTests: XCTestCase {
 final class BridgeHTTPServerTests: XCTestCase {
     private func deniedServer(token: String = "test-token") -> BridgeHTTPServer {
         let deniedCalendar = CalendarSource(isAuthorised: { false }, requestAccess: { false })
+        let deniedReminders = RemindersSource(authorisedProvider: { false })
         let deniedContacts = ContactsSource(store: DeniedContactsStore())
         let hooks = PermissionHooks(
             calendarIsAuthorised: { false },
+            remindersSource: deniedReminders,
             contactsSource: deniedContacts
         )
         return BridgeHTTPServer(
             token: token,
             permissionHooks: hooks,
             calendarSource: deniedCalendar,
+            remindersSource: deniedReminders,
             contactsSource: deniedContacts
         )
     }
@@ -102,15 +106,18 @@ final class BridgeHTTPServerTests: XCTestCase {
         for _ in 0 ..< 8 {
             let port = freeLoopbackPort()
             let token = "integration-token-\(port)"
+            let deniedReminders = RemindersSource(authorisedProvider: { false })
             let deniedContacts = ContactsSource(store: DeniedContactsStore())
             let server = BridgeHTTPServer(
                 endpoint: .loopback(port: port),
                 token: token,
                 permissionHooks: PermissionHooks(
                     calendarIsAuthorised: { false },
+                    remindersSource: deniedReminders,
                     contactsSource: deniedContacts
                 ),
                 calendarSource: CalendarSource(isAuthorised: { false }, requestAccess: { false }),
+                remindersSource: deniedReminders,
                 contactsSource: deniedContacts
             )
             do {
@@ -160,6 +167,7 @@ final class PermissionHooksTests: XCTestCase {
         let hooks = PermissionHooks(
             calendarIsAuthorised: { false },
             calendarRequestAccess: { false },
+            remindersSource: RemindersSource(authorisedProvider: { false }),
             contactsSource: ContactsSource(store: DeniedContactsStore())
         )
         let authorised = await hooks.requestAuthorisation(for: .calendar)
@@ -171,9 +179,11 @@ final class PermissionHooksTests: XCTestCase {
     func testCalendarAuthorisedWhenInjected() {
         let hooks = PermissionHooks(
             calendarIsAuthorised: { true },
+            remindersSource: RemindersSource(authorisedProvider: { false }),
             contactsSource: ContactsSource(store: DeniedContactsStore())
         )
         XCTAssertTrue(hooks.isAuthorised(.calendar))
+        XCTAssertFalse(hooks.isAuthorised(.reminders))
         XCTAssertFalse(hooks.isAuthorised(.contacts))
         XCTAssertTrue(hooks.capabilities().calendar.authorised)
     }
