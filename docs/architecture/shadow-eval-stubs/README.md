@@ -7,8 +7,8 @@ Field names match the architecture instrumentation sections. Not runtime fixture
 | --- | --- |
 | `user_action.v0.json` | `UserAction` |
 | `attention_candidate.v0.json` | `ShadowAttentionCandidate` |
-| `suppressed_notification.v0.json` | `SuppressedNotificationAudit` |
-| `suppression_decision.v0.json` | Frozen SUPPRESS / decision snapshot (SE04) |
+| `suppressed_notification.v0.json` | `SuppressedNotificationAudit` (SE02 would-notify) |
+| `suppression_decision.v0.json` | Frozen `SUPPRESS` decision snapshot (SE04) |
 | `weekly_review.v0.json` | Weekly review JSON artefact (`reviews/YYYY-Www.json`) |
 | `weekly_review.stub.md` | Human companion Markdown twin (SE03) |
 

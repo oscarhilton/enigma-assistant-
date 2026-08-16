@@ -122,7 +122,7 @@ adversarial  UI     replay
 
 ---
 
-## Phase 3 — Shadow Mode — bootstrap (S01–S06) + eval rubric (SE*)
+## Phase 3 — Shadow Mode — bootstrap (S01–S06) + eval rubric (SE*) + silence (SE04–SE11)
 
 Architecture: [shadow-mode.md](./shadow-mode.md) · [shadow-evaluation.md](./shadow-evaluation.md) · [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) · [open-loop-commitments.md](./open-loop-commitments.md) · storage [ADR-008](../adr/008-shadow-storage-roots.md) · silence [ADR-009](../adr/009-silence-as-prediction.md).  
 Branches: `ticket/Sxx-slug` (mode) or `ticket/SExx-slug` (eval artefacts). Demo Mode is **frozen** for polish — do not add F-* / Demo chrome here.  
