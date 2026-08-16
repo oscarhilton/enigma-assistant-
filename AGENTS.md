@@ -35,6 +35,11 @@ Operating manual for humans and coding agents working in this monorepo.
 
 Behavioural changes without tests are not done.
 
+
+## Merging PRs
+
+- **Merge gate:** CI green + agent self code-review before merge; do not block on Copilot when credits unavailable.
+
 ## Privacy
 
 - Never send `PrivatePerson`, wholesale Notes, or raw attendee emails to a hosted model.

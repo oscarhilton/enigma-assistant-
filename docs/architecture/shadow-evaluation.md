@@ -19,7 +19,7 @@ Precision vs labels               Precision vs what the user did
 Notifications N/A                 Would-notify log (suppressed)
 ```
 
-**Hard separation:** Shadow evaluation artefacts never mix Demo scenario DBs, HMAC keys, or Alex labels into scores for a real person ([ADR-005](../adr/005-demo-private-storage-roots.md)). Soft-dep on S01 storage / mode work; this doc does **not** introduce `EnvironmentMode.SHADOW`.
+**Hard separation:** Shadow evaluation artefacts never mix Demo scenario DBs, HMAC keys, or Alex labels into scores for a real person ([ADR-005](../adr/005-demo-private-storage-roots.md)). S01 already owns `EnvironmentMode.SHADOW` / storage / banner (`done` #65); this eval track must not re-edit those.
 
 ## Rubric (seven questions → observables)
 

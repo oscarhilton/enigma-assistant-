@@ -8,6 +8,7 @@ Field names match the architecture instrumentation section. Not runtime fixtures
 | `user_action.v0.json` | `UserAction` |
 | `attention_candidate.v0.json` | `ShadowAttentionCandidate` |
 | `suppressed_notification.v0.json` | `SuppressedNotificationAudit` |
-| `weekly_review.stub.md` | Human companion to `reviews/YYYY-Www.json` (SE03) |
+| `weekly_review.v0.json` | Weekly review JSON artefact (`reviews/YYYY-Www.json`) |
+| `weekly_review.stub.md` | Human companion Markdown twin (SE03) |
 
 Privacy: transformed `subject_ref` only — no raw emails, Notes bodies, or `PrivatePerson` fields.
