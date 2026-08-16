@@ -24,11 +24,12 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (see each ticket’s Branch field).
+3. Open branch: `ticket/Mxx-slug` (MVP) or `ticket/Dxx-slug` (Phase 2 Demo Mode) — see each ticket’s Branch field.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
 7. When merging, set Status to `done` and reference the PR.
+8. **Demo Mode never shares Private storage roots or HMAC / PERSON_\* keys** ([ADR-005](../docs/adr/005-demo-private-storage-roots.md)). Do not point `ENIGMA_DATABASE_URL` for Demo at the Private DB.
 
 ## Domains
 
@@ -44,8 +45,13 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | apple-bridge | [apple-bridge/](./apple-bridge/) | `apps/apple-bridge` + pinned ingestion sources |
 | google | [google/](./google/) | pinned gmail / google_calendar sources |
 | retrieval | [retrieval/](./retrieval/) | `packages/embeddings` |
-| obligations | [obligations/](./obligations/) | `packages/attention` / future obligations |
+| obligations | [obligations/](./obligations/) | `packages/obligations` |
 | api-surface | [api-surface/](./api-surface/) | `apps/api` external routes |
+| demo-environment | [demo-environment/](./demo-environment/) | `packages/simulation` env + clock |
+| demo-scenario | [demo-scenario/](./demo-scenario/) | `scenarios/**` |
+| demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
+| demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
+| demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome |
 
 ## Ingestion file ownership (do not cross)
 
@@ -59,9 +65,16 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | M12 | `.../sources/google_calendar.py` + `packages/dedupe/**` |
 | M13 | `.../sources/apple_notes.py` |
 
-Shared protocol types (`protocol.py`) are owned by M01-era scaffold; later tickets may only *import* them unless a dedicated ticket claims a protocol change.
+## Synthetic source file ownership (Phase 2 — do not cross)
 
-Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milestone-map.md).
+| Ticket | Owned path |
+| --- | --- |
+| D4 | `packages/simulation/src/personal_enigma/simulation/sources/{mail,calendar,reminders,notes,contacts}.py` |
+
+Shared protocol types (`packages/ingestion/.../protocol.py`) are owned by M01-era scaffold; later tickets may only *import* them unless a dedicated ticket claims a protocol change.
+
+Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milestone-map.md).  
+Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).
 
 ## Ticket template fields
 

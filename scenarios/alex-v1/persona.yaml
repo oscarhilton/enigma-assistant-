@@ -1,0 +1,33 @@
+# Fictional persona — ground truth for authors, not for Enigma unless evidenced.
+
+persona:
+  id: alex-v1
+  name: Alex Morgan
+  age: 34
+  location: London
+  profession: Senior product designer
+  timezone: Europe/London
+
+  traits:
+    email_response_pattern: morning
+    admin_avoidance: moderate
+    phone_call_avoidance: high
+    calendar_reliance: high
+
+  routines:
+    work_hours:
+      monday_friday:
+        start: "09:00"
+        end: "18:00"
+    lunch:
+      approximately: "13:00"
+
+  relationships:
+    manager:
+      contact: maya
+    partner:
+      contact: elena
+    colleague:
+      contact: sam
+    friend:
+      contact: tom

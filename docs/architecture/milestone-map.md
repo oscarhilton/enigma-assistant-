@@ -1,5 +1,7 @@
 # Milestone → ticket map
 
+## Phase 1 — MVP (merged)
+
 Revised MVP order. Each milestone is a ticket under `tickets/<domain>/`.
 
 Platform tickets (M00*) were added after the ticket-system review to own persistence and settings so agents do not dump those concerns into unrelated PRs.
@@ -28,7 +30,7 @@ Platform tickets (M00*) were added after the ticket-system review to own persist
 | 18 | External sanitised API | [tickets/api-surface/M18-external-sanitised-api.md](../../tickets/api-surface/M18-external-sanitised-api.md) |
 | 19 | ChatGPT integration | [tickets/api-surface/M19-chatgpt-integration.md](../../tickets/api-surface/M19-chatgpt-integration.md) |
 
-## Suggested waves
+### MVP suggested waves
 
 0. M01 (domain exclusive)
 1. M02 ∥ M07 ∥ M00b
@@ -38,4 +40,34 @@ Platform tickets (M00*) were added after the ticket-system review to own persist
 5. M14 → M15 → M16
 6. M18 → M19
 
-Apple-first ordering means Enigma can become useful on a Mac before every cloud connector lands.
+## Phase 2 — Demo Mode
+
+Architecture: [demo-mode.md](./demo-mode.md). Branches: `ticket/Dxx-slug`.
+
+| # | Milestone | Ticket |
+| --- | --- | --- |
+| D1 | Environment separation | [tickets/demo-environment/D01-environment-separation.md](../../tickets/demo-environment/D01-environment-separation.md) |
+| D2 | Simulation clock | [tickets/demo-environment/D02-simulation-clock.md](../../tickets/demo-environment/D02-simulation-clock.md) |
+| D3 | Scenario format | [tickets/demo-scenario/D03-scenario-format.md](../../tickets/demo-scenario/D03-scenario-format.md) |
+| D4 | Synthetic adapters | [tickets/demo-simulation/D04-synthetic-adapters.md](../../tickets/demo-simulation/D04-synthetic-adapters.md) |
+| D5 | Event simulation engine | [tickets/demo-simulation/D05-event-engine.md](../../tickets/demo-simulation/D05-event-engine.md) |
+| D6 | Ground truth | [tickets/demo-evaluation/D06-ground-truth.md](../../tickets/demo-evaluation/D06-ground-truth.md) |
+| D7 | Evaluation runner | [tickets/demo-evaluation/D07-evaluation-runner.md](../../tickets/demo-evaluation/D07-evaluation-runner.md) |
+| D8 | Canonical Alex scenario | [tickets/demo-scenario/D08-canonical-alex.md](../../tickets/demo-scenario/D08-canonical-alex.md) |
+| D9 | Adversarial scenario pack | [tickets/demo-scenario/D09-adversarial.md](../../tickets/demo-scenario/D09-adversarial.md) |
+| D10 | Demo UI | [tickets/demo-ui/D10-demo-ui.md](../../tickets/demo-ui/D10-demo-ui.md) |
+| D11 | Replay provider | [tickets/demo-evaluation/D11-replay-provider.md](../../tickets/demo-evaluation/D11-replay-provider.md) |
+| D12 | Product demo scenario | [tickets/demo-scenario/D12-product-demo-scenario.md](../../tickets/demo-scenario/D12-product-demo-scenario.md) |
+
+### Phase 2 suggested waves
+
+0. D1 (environment exclusive) — foundation PR may also drop scaffolds + ticket docs
+1. D2 ∥ D3 (clock + scenario schema)
+2. D4 pinned synthetic sources ∥ D6 ground-truth schema
+3. D5 engine (after D2+D3; soft on D4)
+4. D8 corpus (after D3; soft on D4/D5)
+5. D7 eval runner (after D6; soft on D5)
+6. D9 adversarial ∥ D11 replay provider
+7. D10 demo UI ∥ D12 product walkthrough
+
+**Hard rule:** Demo never shares Private storage roots or HMAC keys ([ADR-005](../adr/005-demo-private-storage-roots.md)).

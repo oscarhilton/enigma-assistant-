@@ -1,0 +1,10 @@
+# Alex Morgan v1 — canonical Demo Mode scenario (skeleton)
+
+id: alex-v1
+version: "0.1.0-scaffold"
+status: scaffold
+persona: persona.yaml
+timezone: Europe/London
+description: >
+  Minimal skeleton for Phase 2 bootstrap. Full three-month corpus is ticket D8.
+  Do not mutate released benchmark semantics in place — bump version instead.
