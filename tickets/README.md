@@ -83,7 +83,7 @@ MVP baseline tag: `v0.1.0-mvp` (`6253f96`).
 | Ticket | Status | Notes |
 | --- | --- | --- |
 | [D08a](./demo-scenario/D08a-canonical-spine.md) | `done` | Spine landed with `scenarios/alex-v1/` |
-| [D08b](./demo-scenario/D08b-corpus-pipeline.md) | scaffolding | Manifest/adapter/sanitiser/CLI stubs |
+| [D08b](./demo-scenario/D08b-corpus-pipeline.md) | `done` | FinePersonas adapter, sanitiser, derived cache, 100-conv replay |
 | [D08c](./demo-scenario/D08c-background-integration.md) | `todo` | Merge canonical + background |
 | [D08d](./demo-scenario/D08d-noise-layer.md) | `todo` | Generated noise |
 | [D08e](./demo-scenario/D08e-canonical-scale.md) | `todo` | Canonical/stress scale |

@@ -55,7 +55,7 @@ Do **not** invent a top-level D13 for background corpus. Extend D03–D12 accept
 | D07 | Evaluation runner + metrics (+ suppression / compression) | `done` | [D07](../../tickets/demo-evaluation/D07-evaluation-runner.md) |
 | D08 | Alex v1 canonical synthetic life | `done` | [D08](../../tickets/demo-scenario/D08-canonical-alex.md) |
 | D08a | Canonical Alex story spine | `done` | [D08a](../../tickets/demo-scenario/D08a-canonical-spine.md) |
-| D08b | Background corpus pipeline | scaffolding | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) |
+| D08b | Background corpus pipeline | `done` | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) |
 | D08c | Background integration (canonical + corpus) | `todo` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
 | D08d | Noise layer | `todo` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
 | D08e | Canonical scale profile | `todo` | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) |

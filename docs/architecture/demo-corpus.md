@@ -1,6 +1,6 @@
 # Demo Mode — Background email corpus
 
-**Status:** Foundation scaffold (D08b); full integration is D08c–D08e  
+**Status:** D08b pipeline complete; full Alex+corpus merge is D08c–D08e  
 **Plan:** Enigma Demo Mode — Background Email Corpus Integration  
 **Governing rule:** Story creates meaning. Corpus creates noise. Enigma must discover the difference.  
 **ADR:** [007-demo-corpus-provenance.md](../adr/007-demo-corpus-provenance.md)
@@ -87,8 +87,28 @@ Dataset-specific behaviour stays in adapters under
 | `canonical` | ~5k | ~1.5k | Phase 2 benchmark |
 | `stress` | 25k–100k+ | as needed | performance / cost |
 
-Pin Hugging Face revisions in corpus manifests. Cache raw datasets under
-`~/.cache/enigma/datasets/<id>/<revision>/` — never under `scenarios/`.
+Pin Hugging Face revisions in corpus manifests. Raw downloads live under
+`~/.cache/enigma/datasets/<id>/<revision>/` (override with `ENIGMA_CORPUS_CACHE`).
+Derived demo-safe indexes live under
+`~/.cache/enigma/datasets-derived/<id>/<revision>/sanitiser-<ver>/seed-<seed>/<profile>/`
+(override with `ENIGMA_CORPUS_DERIVED`). Scenario packages reference corpus ids and
+seeds; they do not vendor bulk third-party mail.
+
+### CLI
+
+```bash
+enigma corpus list
+enigma corpus verify finepersonas-mini --public-demo
+enigma corpus fetch finepersonas-mini --from-path packages/simulation/tests/fixtures/corpus/finepersonas-mini
+enigma corpus sanitise finepersonas-mini
+enigma corpus sample finepersonas-mini --count 2 --seed test
+enigma corpus build finepersonas-mini --count 100 --expand-to 100 --public-demo
+# Optional local HF fetch (never in PR CI):
+enigma corpus fetch finepersonas-email --force-network --revision <pinned> --max-conversations 1000
+```
+
+PR CI uses checked-in `finepersonas-mini` plus deterministic `--expand-to` so
+100-conversation replay acceptance does not download ~115k rows.
 
 ## Metrics (D07 extensions)
 
