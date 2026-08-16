@@ -1,0 +1,319 @@
+id: retrieval-keyword-pollution
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-09T08:00:00Z"
+description: >
+  Many background messages share the keyword "review"; retrieval must still
+  prefer Atlas/canonical evidence for the Atlas review obligation.
+events:
+  - id: rkp-contact-self
+    at: "2026-04-09T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+  - id: rkp-contact-maya
+    at: "2026-04-09T08:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: maya
+      display_name: Maya Chen
+      email: maya.chen@northwind.example
+  - id: rkp-mail-atlas
+    at: "2026-04-09T09:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-atlas-review
+      thread_id: thread-atlas-review
+      subject: "Review Atlas proposal before Friday"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review the Atlas proposal pack before Friday standup.
+      body_text: >
+        Alex — leadership needs your review of the Atlas proposal before
+        Friday standup. Focus on timeline risk and vendor lock-in.
+  - id: rkp-rem-atlas
+    at: "2026-04-09T09:05:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-atlas-review
+      title: Review Atlas proposal
+      due_at: "2026-04-11T16:00:00Z"
+      notes: Atlas proposal pack — Friday standup
+      is_completed: false
+  - id: rkp-cal-atlas
+    at: "2026-04-09T09:10:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-atlas-standup
+      title: Atlas proposal standup
+      start_at: "2026-04-11T15:00:00Z"
+      end_at: "2026-04-11T15:30:00Z"
+      notes: Walk through Atlas proposal review outcomes.
+  - id: rkp-bg-01
+    at: "2026-04-09T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-01
+      subject: "Please review: budget spreadsheet"
+      from: clutter1@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review the budget spreadsheet when you have a moment.
+      body_text: >
+        Please review the budget spreadsheet when you have a moment. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-02
+    at: "2026-04-09T10:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-02
+      subject: "Please review: office seating chart"
+      from: clutter2@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Can you review the seating chart draft sometime next week?
+      body_text: >
+        Can you review the seating chart draft sometime next week? This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-03
+    at: "2026-04-09T10:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-03
+      subject: "Please review: parking policy"
+      from: clutter3@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Kindly review the parking policy update at your leisure.
+      body_text: >
+        Kindly review the parking policy update at your leisure. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-04
+    at: "2026-04-09T10:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-04
+      subject: "Please review: snack survey"
+      from: clutter4@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review the snack survey results when bored.
+      body_text: >
+        Please review the snack survey results when bored. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-05
+    at: "2026-04-09T10:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-05
+      subject: "Please review: font catalogue"
+      from: clutter5@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Would you review the font catalogue for branding?
+      body_text: >
+        Would you review the font catalogue for branding? This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-06
+    at: "2026-04-09T10:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-06
+      subject: "Please review: cafeteria menu"
+      from: clutter6@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review next week's cafeteria menu options.
+      body_text: >
+        Please review next week's cafeteria menu options. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-07
+    at: "2026-04-09T10:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-07
+      subject: "Please review: desk plant rota"
+      from: clutter7@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Can someone review the desk plant watering rota?
+      body_text: >
+        Can someone review the desk plant watering rota? This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-08
+    at: "2026-04-09T10:35:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-08
+      subject: "Please review: badge photo tips"
+      from: clutter8@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review these badge photo tips when free.
+      body_text: >
+        Please review these badge photo tips when free. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-09
+    at: "2026-04-09T10:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-09
+      subject: "Please review: wifi FAQ"
+      from: clutter9@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review the wifi FAQ before the all-hands.
+      body_text: >
+        Please review the wifi FAQ before the all-hands. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-10
+    at: "2026-04-09T10:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-10
+      subject: "Please review: sticker designs"
+      from: clutter10@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Review the sticker designs if you feel like it.
+      body_text: >
+        Review the sticker designs if you feel like it. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-11
+    at: "2026-04-09T11:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-11
+      subject: "Please review: newsletter draft"
+      from: clutter11@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review the internal newsletter draft.
+      body_text: >
+        Please review the internal newsletter draft. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-12
+    at: "2026-04-09T11:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-12
+      subject: "Please review: holiday calendar"
+      from: clutter12@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Could you review the holiday calendar colours?
+      body_text: >
+        Could you review the holiday calendar colours? This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-13
+    at: "2026-04-09T11:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-13
+      subject: "Please review: meeting room names"
+      from: clutter13@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review proposed meeting room names.
+      body_text: >
+        Please review proposed meeting room names. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-14
+    at: "2026-04-09T11:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-14
+      subject: "Please review: coffee machine guide"
+      from: clutter14@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Review the coffee machine cleaning guide.
+      body_text: >
+        Review the coffee machine cleaning guide. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-15
+    at: "2026-04-09T11:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-15
+      subject: "Please review: bike shed paint"
+      from: clutter15@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review bike shed paint swatches.
+      body_text: >
+        Please review bike shed paint swatches. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-16
+    at: "2026-04-09T11:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-16
+      subject: "Please review: slack emoji pack"
+      from: clutter16@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Review the proposed slack emoji pack.
+      body_text: >
+        Review the proposed slack emoji pack. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-17
+    at: "2026-04-09T11:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-17
+      subject: "Please review: printer toner FAQ"
+      from: clutter17@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review the printer toner FAQ.
+      body_text: >
+        Please review the printer toner FAQ. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-18
+    at: "2026-04-09T11:35:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-18
+      subject: "Please review: lobby playlist"
+      from: clutter18@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Review the lobby playlist suggestions.
+      body_text: >
+        Review the lobby playlist suggestions. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-19
+    at: "2026-04-09T11:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-19
+      subject: "Please review: mug inventory"
+      from: clutter19@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please review the mug inventory spreadsheet.
+      body_text: >
+        Please review the mug inventory spreadsheet. This is background clutter sharing the keyword review
+        without any Atlas project context.
+  - id: rkp-bg-20
+    at: "2026-04-09T11:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-review-pollute-20
+      subject: "Please review: umbrella stand"
+      from: clutter20@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Review umbrella stand placement options.
+      body_text: >
+        Review umbrella stand placement options. This is background clutter sharing the keyword review
+        without any Atlas project context.

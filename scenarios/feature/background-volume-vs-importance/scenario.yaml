@@ -4,8 +4,8 @@ status: feature
 timezone: Europe/London
 start_at: "2026-04-06T08:00:00Z"
 description: >
-  High-volume irrelevant thread versus a small critical canonical obligation.
-  Attention must prefer the obligation, not message frequency (D08e).
+  High-volume irrelevant thread (30 messages) versus a small critical
+  canonical obligation. Attention must prefer the obligation, not frequency.
 events:
   - id: bv-contact-self
     at: "2026-04-06T08:00:00Z"
@@ -29,10 +29,14 @@ events:
     source: mail
     payload:
       id: mail-critical-visa
+      thread_id: thread-visa-letter
       subject: "Visa letter needed by Friday"
       from: jordan.lee@northwind.example
       to: [alex.morgan@northwind.example]
       snippet: HR needs your signed letter before Friday noon.
+      body_text: >
+        Alex — please sign the visa support letter and return it before
+        Friday noon so HR can file with immigration.
   - id: bv-rem-visa
     at: "2026-04-06T09:05:00Z"
     type: reminder.upsert
@@ -42,104 +46,434 @@ events:
       title: Sign visa letter for Jordan
       due_at: "2026-04-10T12:00:00Z"
       is_completed: false
-  # High-volume fluff thread (frequency must not beat the visa obligation).
+  - id: bv-mail-critical-ack
+    at: "2026-04-06T09:10:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-visa-ack
+      thread_id: thread-visa-letter
+      subject: "Re: Visa letter needed by Friday"
+      from: alex.morgan@northwind.example
+      to: [jordan.lee@northwind.example]
+      snippet: Got it — signing today.
   - id: bv-vol-01
-    at: "2026-04-06T10:01:00Z"
+    at: "2026-04-06T10:00:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-01, subject: "Emoji of the day #1", from: social@northwind.example, snippet: 🙂}
+    payload:
+      id: mail-vol-01
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #1"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 1 — no action needed.
+      body_text: >
+        Just sharing emoji #1 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-02
-    at: "2026-04-06T10:02:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-02, subject: "Emoji of the day #2", from: social@northwind.example, snippet: 🎉}
-  - id: bv-vol-03
-    at: "2026-04-06T10:03:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-03, subject: "Emoji of the day #3", from: social@northwind.example, snippet: 🚀}
-  - id: bv-vol-04
     at: "2026-04-06T10:04:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-04, subject: "Emoji of the day #4", from: social@northwind.example, snippet: ☕}
-  - id: bv-vol-05
-    at: "2026-04-06T10:05:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-05, subject: "Emoji of the day #5", from: social@northwind.example, snippet: 📌}
-  - id: bv-vol-06
-    at: "2026-04-06T10:06:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-06, subject: "Emoji of the day #6", from: social@northwind.example, snippet: 🌟}
-  - id: bv-vol-07
-    at: "2026-04-06T10:07:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-07, subject: "Emoji of the day #7", from: social@northwind.example, snippet: 🎯}
-  - id: bv-vol-08
+    payload:
+      id: mail-vol-02
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #2"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 2 — no action needed.
+      body_text: >
+        Just sharing emoji #2 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-03
     at: "2026-04-06T10:08:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-08, subject: "Emoji of the day #8", from: social@northwind.example, snippet: 📎}
+    payload:
+      id: mail-vol-03
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #3"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 3 — no action needed.
+      body_text: >
+        Just sharing emoji #3 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-04
+    at: "2026-04-06T10:12:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-04
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #4"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 4 — no action needed.
+      body_text: >
+        Just sharing emoji #4 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-05
+    at: "2026-04-06T10:16:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-05
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #5"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 5 — no action needed.
+      body_text: >
+        Just sharing emoji #5 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-06
+    at: "2026-04-06T10:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-06
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #6"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 6 — no action needed.
+      body_text: >
+        Just sharing emoji #6 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-07
+    at: "2026-04-06T10:24:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-07
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #7"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 7 — no action needed.
+      body_text: >
+        Just sharing emoji #7 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-08
+    at: "2026-04-06T10:28:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-08
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #8"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 8 — no action needed.
+      body_text: >
+        Just sharing emoji #8 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-09
-    at: "2026-04-06T10:09:00Z"
+    at: "2026-04-06T10:32:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-09, subject: "Emoji of the day #9", from: social@northwind.example, snippet: 🧩}
+    payload:
+      id: mail-vol-09
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #9"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 9 — no action needed.
+      body_text: >
+        Just sharing emoji #9 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-10
-    at: "2026-04-06T10:10:00Z"
+    at: "2026-04-06T10:36:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-10, subject: "Emoji of the day #10", from: social@northwind.example, snippet: 🌈}
+    payload:
+      id: mail-vol-10
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #10"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 10 — no action needed.
+      body_text: >
+        Just sharing emoji #10 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-11
-    at: "2026-04-06T11:01:00Z"
+    at: "2026-04-06T10:40:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-11, subject: "Emoji of the day #11", from: social@northwind.example, snippet: 🪴}
+    payload:
+      id: mail-vol-11
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #11"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 11 — no action needed.
+      body_text: >
+        Just sharing emoji #11 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-12
-    at: "2026-04-06T11:02:00Z"
+    at: "2026-04-06T10:44:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-12, subject: "Emoji of the day #12", from: social@northwind.example, snippet: 🎧}
+    payload:
+      id: mail-vol-12
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #12"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 12 — no action needed.
+      body_text: >
+        Just sharing emoji #12 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-13
-    at: "2026-04-06T11:03:00Z"
+    at: "2026-04-06T10:48:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-13, subject: "Emoji of the day #13", from: social@northwind.example, snippet: 📚}
+    payload:
+      id: mail-vol-13
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #13"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 13 — no action needed.
+      body_text: >
+        Just sharing emoji #13 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-14
+    at: "2026-04-06T10:52:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-14
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #14"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 14 — no action needed.
+      body_text: >
+        Just sharing emoji #14 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-15
+    at: "2026-04-06T10:56:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-15
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #15"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 15 — no action needed.
+      body_text: >
+        Just sharing emoji #15 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-16
+    at: "2026-04-06T11:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-16
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #16"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 16 — no action needed.
+      body_text: >
+        Just sharing emoji #16 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-17
     at: "2026-04-06T11:04:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-14, subject: "Emoji of the day #14", from: social@northwind.example, snippet: 🚲}
-  - id: bv-vol-15
-    at: "2026-04-06T11:05:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-15, subject: "Emoji of the day #15", from: social@northwind.example, snippet: 🍪}
-  - id: bv-vol-16
-    at: "2026-04-06T11:06:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-16, subject: "Emoji of the day #16", from: social@northwind.example, snippet: 🌤️}
-  - id: bv-vol-17
-    at: "2026-04-06T11:07:00Z"
-    type: email.receive
-    source: mail
-    payload: {id: mail-vol-17, subject: "Emoji of the day #17", from: social@northwind.example, snippet: 🧊}
+    payload:
+      id: mail-vol-17
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #17"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 17 — no action needed.
+      body_text: >
+        Just sharing emoji #17 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-18
     at: "2026-04-06T11:08:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-18, subject: "Emoji of the day #18", from: social@northwind.example, snippet: 🧲}
+    payload:
+      id: mail-vol-18
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #18"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 18 — no action needed.
+      body_text: >
+        Just sharing emoji #18 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-19
-    at: "2026-04-06T11:09:00Z"
+    at: "2026-04-06T11:12:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-19, subject: "Emoji of the day #19", from: social@northwind.example, snippet: 🧵}
+    payload:
+      id: mail-vol-19
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #19"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 19 — no action needed.
+      body_text: >
+        Just sharing emoji #19 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
   - id: bv-vol-20
-    at: "2026-04-06T11:10:00Z"
+    at: "2026-04-06T11:16:00Z"
     type: email.receive
     source: mail
-    payload: {id: mail-vol-20, subject: "Emoji of the day #20", from: social@northwind.example, snippet: 🪞}
+    payload:
+      id: mail-vol-20
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #20"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 20 — no action needed.
+      body_text: >
+        Just sharing emoji #20 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-21
+    at: "2026-04-06T11:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-21
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #21"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 21 — no action needed.
+      body_text: >
+        Just sharing emoji #21 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-22
+    at: "2026-04-06T11:24:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-22
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #22"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 22 — no action needed.
+      body_text: >
+        Just sharing emoji #22 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-23
+    at: "2026-04-06T11:28:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-23
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #23"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 23 — no action needed.
+      body_text: >
+        Just sharing emoji #23 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-24
+    at: "2026-04-06T11:32:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-24
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #24"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 24 — no action needed.
+      body_text: >
+        Just sharing emoji #24 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-25
+    at: "2026-04-06T11:36:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-25
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #25"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 25 — no action needed.
+      body_text: >
+        Just sharing emoji #25 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-26
+    at: "2026-04-06T11:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-26
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #26"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 26 — no action needed.
+      body_text: >
+        Just sharing emoji #26 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-27
+    at: "2026-04-06T11:44:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-27
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #27"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 27 — no action needed.
+      body_text: >
+        Just sharing emoji #27 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-28
+    at: "2026-04-06T11:48:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-28
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #28"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 28 — no action needed.
+      body_text: >
+        Just sharing emoji #28 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-29
+    at: "2026-04-06T11:52:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-29
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #29"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 29 — no action needed.
+      body_text: >
+        Just sharing emoji #29 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
+  - id: bv-vol-30
+    at: "2026-04-06T11:56:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-vol-30
+      thread_id: thread-emoji-day
+      subject: "Emoji of the day #30"
+      from: social@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Fluff thread message 30 — no action needed.
+      body_text: >
+        Just sharing emoji #30 with the office channel. Absolutely nothing
+        to do here; high volume must not look important.
