@@ -8,16 +8,23 @@
 
 ## Package boundary (hard)
 
-- May edit: `packages/privacy/**`, `apps/web` inspector UI, `apps/api` read-only inspection endpoints
-- Must not weaken M04 invariants to “make the UI easier”
+- May edit: `packages/privacy/**`
+- May edit: `apps/web/src/pages/PrivacyInspector*` and `apps/web/src/privacy/**` (create)
+- May edit: `apps/api/src/personal_enigma/api/routes/privacy_inspector.py` (create)
+- Must not edit: M04 invariant definitions to weaken them
+- Must not edit: reasoning provider (M05) or ChatGPT UX (M19)
 
-## Depends on
+## Hard depends
 
 - M04, M03
 
-## Unlocks
+## Soft depends (~)
 
-- User trust / transparency for M18–M19
+- M00b
+
+## Unlocks / enhances
+
+- Hard-unlocks trust UX for M19
 
 ## Non-goals
 

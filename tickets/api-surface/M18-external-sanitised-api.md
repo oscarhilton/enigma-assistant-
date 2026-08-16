@@ -8,17 +8,22 @@
 
 ## Package boundary (hard)
 
-- May edit: `apps/api` external routes
-- Must reuse privacy gate from M04
-- Must not expose private DB tables raw
+- May edit: `apps/api/src/personal_enigma/api/routes/external/**` (create)
+- May edit: OpenAPI schemas under that tree
+- Must reuse privacy gate from `packages/privacy`
+- Must not edit: `api/reasoning/**` (M05), `api/bridge/**` (M07), `api/google/**` (M11/M12), inspector routes (M17)
 
-## Depends on
+## Hard depends
 
 - M04, M05, M06
 
-## Unlocks
+## Soft depends (~)
 
-- M19
+- M00a
+
+## Unlocks / enhances
+
+- Hard-unlocks M19
 
 ## Non-goals
 

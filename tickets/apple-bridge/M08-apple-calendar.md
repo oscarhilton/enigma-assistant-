@@ -8,28 +8,37 @@
 
 ## Package boundary (hard)
 
-- May edit: `apps/apple-bridge/Sources/**/Calendar/**`, Transport routes for calendar
-- May edit: `packages/ingestion` Apple calendar source adapter mapping to `PrivateCalendarEvent`
-- May edit: `apps/web` settings for calendar selection UI minimally
+- May edit: `apps/apple-bridge/Sources/EnigmaAppleBridgeCore/Calendar/**`
+- May edit: Transport routes **only** for `/calendar/*` under `.../Transport/**`
+- May edit: `packages/ingestion/src/personal_enigma/ingestion/sources/apple_calendar.py`
+- May edit: `apps/web/src/settings/calendars/**` (create) for Apple calendar selection UI only
+- Must not edit: other `sources/*.py`, `packages/dedupe/**` (M12), Reminders/Contacts/Notes modules
 
-## Depends on
+## Hard depends
 
 - M01, M07
 
-## Unlocks
+## Soft depends (~)
 
-- M12 dedupe interplay, M15
+- M00b (settings shell)
+- M02 (mapping fixtures)
+
+## Unlocks / enhances
+
+- Enables M12 dual-source dedupe tests
+- Supplies calendar evidence for M15
 
 ## Non-goals
 
 - Write/edit calendar events
 - Google Calendar (M12)
+- Implementing `packages/dedupe` (M12 owns it; M08 emits canonical events only)
 
 ## Acceptance criteria
 
 - [ ] Request **read-only** EventKit calendar access
 - [ ] Ingest selected calendars only
-- [ ] Map required fields: id, calendar id/name, title, start/end, all-day, location, notes, URL, organiser, attendees, availability, recurrence, last modified
+- [ ] Map required fields including calendar name, URL, availability, organiser, attendees, recurrence, last modified
 - [ ] Emit `PrivateCalendarEvent` with `provider="apple_calendar"`
 - [ ] `GET /calendar/changes` with cursor support
 

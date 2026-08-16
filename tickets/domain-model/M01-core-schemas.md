@@ -2,41 +2,48 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M01-core-schemas` |
 | Domain | `domain-model` |
 
 ## Package boundary (hard)
 
-- May edit: `packages/domain/**`
-- May edit tests: `packages/domain/tests/**`
+- May edit: `packages/domain/**` only
 - Must not edit: other packages/apps (except doc links)
 
-## Depends on
+## Hard depends
 
-- None (scaffold already has stub models)
+- None (scaffold stubs exist)
 
-## Unlocks
+## Soft depends (~)
 
-- M02, M03, M04, and all ingestion tickets
+- None
+
+## Unlocks / enhances
+
+- Hard-unlocks M02, M03, M04, M00a, and all ingestion tickets that consume domain types
 
 ## Non-goals
 
-- Persistence / database migrations
+- Persistence / database migrations (M00a)
 - Provider adapters
 - Transformation or attention logic
+- Entity resolver implementation (M10 / `packages/identity`)
 
 ## Acceptance criteria
 
-- [ ] `SourceType` and `Provider` enums match architecture docs
-- [ ] `PrivateCalendarEvent`, `PrivateReminder`, `PrivatePerson`, `PrivatePersonRef`, `PrivateNote`, `RecurrenceInfo`, `Obligation` are complete per Apple addendum fields
-- [ ] Models validate with Pydantic v2; serialization round-trips in tests
-- [ ] Provider-specific fields stay on edge models only
+- [x] `SourceType` and `Provider` enums match architecture docs
+- [x] `PrivateCalendarEvent` includes calendar name, URL, availability, and all Apple-addendum fields
+- [x] `PrivateReminder`, `PrivatePerson`, `PrivatePersonRef`, `PrivateNote`, `RecurrenceInfo` complete per addendum
+- [x] `PrivateMessage` exists for Gmail / future mail providers
+- [x] Typed obligation evidence: `ReminderEvidence`, `EmailEvidence`, `CalendarEvidence`, `NoteEvidence`
+- [x] Models validate with Pydantic v2; serialization round-trips in tests
+- [x] Provider-specific fields stay on edge models only
 
 ## Test plan
 
 - Unit tests for required fields, literals, and datetime handling
-- Round-trip `model_dump` / `model_validate` for each model
+- Round-trip `model_dump` / `model_validate` for each model including evidence discriminators
 
 ## Privacy constraints
 

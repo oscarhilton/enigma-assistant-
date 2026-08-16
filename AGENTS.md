@@ -17,9 +17,11 @@ Operating manual for humans and coding agents working in this monorepo.
 ## Parallelism
 
 - Prefer **one ticket per agent / branch**.
-- Stay inside the ticket’s **package boundary**.
-- Safe parallel examples: `apple-bridge/M08` ∥ `google/M11` ∥ `privacy/M04` (after M01).
-- Unsafe: two agents editing `packages/domain` or the same Swift module.
+- Stay inside the ticket’s **package boundary** (exact file globs in each ticket).
+- Respect **hard** vs **soft (~)** dependencies — soft deps must not block start ([tickets/README.md](tickets/README.md)).
+- Ingestion ownership is pinned: one `sources/*.py` file per source ticket; M10 owns `packages/identity`, not `packages/domain`.
+- Safe parallel examples: `apple-bridge/M08` ∥ `M09` ∥ `M10` after M07; `google/M11` ∥ Apple sources after M04.
+- Unsafe: two agents editing `packages/domain`, the same `sources/*.py`, or the same Swift module.
 
 ## Testing
 
@@ -43,7 +45,9 @@ Behavioural changes without tests are not done.
 | Concern | Home |
 | --- | --- |
 | Canonical models | `packages/domain` |
-| `DataSource` protocol | `packages/ingestion` |
+| `DataSource` protocol + adapters | `packages/ingestion` (+ pinned `sources/*.py`) |
+| Entity resolution / PERSON_* | `packages/identity` |
+| Calendar dedupe | `packages/dedupe` |
 | Privacy levels / invariants | `packages/privacy` |
 | Transformer | `packages/transformation` |
 | Attention | `packages/attention` |

@@ -8,21 +8,28 @@
 
 ## Package boundary (hard)
 
-- May create/edit: `packages/reasoning/**` (new package if needed) and wire into `apps/api` / `apps/worker` **only for provider client**
-- Must not edit: apple-bridge, google adapters
+- May create/edit: `packages/reasoning/**`
+- May edit: `apps/api/src/personal_enigma/api/reasoning/**` and `apps/worker/src/personal_enigma/worker/reasoning/**` (create as needed) for client wiring only
+- Must not edit: apple-bridge, google/ingestion sources, `apps/api` external sanitised routes (M18)
 
-## Depends on
+## Hard depends
 
 - M03, M04
 
-## Unlocks
+## Soft depends (~)
 
-- M06 (optional remote ranking), M18, M19
+- None
+
+## Unlocks / enhances
+
+- Hard-unlocks M18/M19 remote paths
+- Soft-enhances M06 if remote ranking is used later
 
 ## Non-goals
 
 - Running giant local LLMs
-- Sending private corpora for embedding (use M14 local embeddings)
+- Sending private corpora for embedding (M14)
+- ChatGPT product UX (M19)
 
 ## Acceptance criteria
 

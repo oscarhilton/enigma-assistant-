@@ -12,6 +12,8 @@ dependencies = [
   "personal-enigma-attention",
   "personal-enigma-embeddings",
   "personal-enigma-fixtures",
+  "personal-enigma-identity",
+  "personal-enigma-dedupe",
   "personal-enigma-api",
   "personal-enigma-worker",
 ]
@@ -25,6 +27,8 @@ members = [
   "packages/attention",
   "packages/embeddings",
   "packages/fixtures",
+  "packages/identity",
+  "packages/dedupe",
   "apps/api",
   "apps/worker",
 ]
@@ -37,6 +41,8 @@ personal-enigma-transformation = { workspace = true }
 personal-enigma-attention = { workspace = true }
 personal-enigma-embeddings = { workspace = true }
 personal-enigma-fixtures = { workspace = true }
+personal-enigma-identity = { workspace = true }
+personal-enigma-dedupe = { workspace = true }
 personal-enigma-api = { workspace = true }
 personal-enigma-worker = { workspace = true }
 
@@ -57,6 +63,8 @@ testpaths = [
   "packages/attention/tests",
   "packages/embeddings/tests",
   "packages/fixtures/tests",
+  "packages/identity/tests",
+  "packages/dedupe/tests",
   "apps/api/tests",
   "apps/worker/tests",
 ]
@@ -73,6 +81,8 @@ src = [
   "packages/attention/src",
   "packages/embeddings/src",
   "packages/fixtures/src",
+  "packages/identity/src",
+  "packages/dedupe/src",
   "apps/api/src",
   "apps/worker/src",
 ]
@@ -89,6 +99,8 @@ include = [
   "packages/attention/src",
   "packages/embeddings/src",
   "packages/fixtures/src",
+  "packages/identity/src",
+  "packages/dedupe/src",
   "apps/api/src",
   "apps/worker/src",
 ]

@@ -8,28 +8,37 @@
 
 ## Package boundary (hard)
 
-- May edit: `apps/apple-bridge/**`
-- May add thin client in `packages/ingestion` / `apps/api` for bridge HTTP/socket **client only**
-- Must not implement EventKit/Contacts/Notes adapters beyond stubs (M08+)
+- May edit: `apps/apple-bridge/Sources/EnigmaAppleBridge/**`
+- May edit: `apps/apple-bridge/Sources/EnigmaAppleBridgeCore/Transport/**`
+- May edit: `packages/ingestion/src/personal_enigma/ingestion/bridge_client.py`
+- May edit: `apps/api/src/personal_enigma/api/bridge/**` (create as needed) for token install + client config only
+- Must not edit: Calendar/Reminders/Contacts/Notes source adapters beyond existing stubs
+- Must not edit: `packages/ingestion/src/personal_enigma/ingestion/sources/**`
 
-## Depends on
+## Hard depends
 
-- Scaffold; ADR-002
+- Scaffold (ADR-002)
 
-## Unlocks
+## Soft depends (~)
 
-- M08–M10, M13
+- M00a (persist token metadata)
+- M00b (settings capability display)
+
+## Unlocks / enhances
+
+- Hard-unlocks M08–M10, M13
 
 ## Non-goals
 
 - Real calendar/reminder/contact/note reads
 - Internet-facing bind
+- EventKit permission flows beyond stubs (source tickets)
 
 ## Acceptance criteria
 
 - [ ] Local server on Unix socket or `127.0.0.1` only
 - [ ] Bearer token auth (Keychain-backed secret generation documented; Core generates token)
-- [ ] `GET /capabilities` returns scaffold capability JSON
+- [ ] `GET /capabilities` returns capability JSON
 - [ ] Permission request hooks stubbed per source
 - [ ] Continues if individual sources unauthorised
 - [ ] No LLM provider calls from bridge

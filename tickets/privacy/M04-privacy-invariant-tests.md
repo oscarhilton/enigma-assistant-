@@ -9,16 +9,20 @@
 ## Package boundary (hard)
 
 - May edit: `packages/privacy/**`
-- May add cross-package tests that only *assert* invariants (prefer privacy package)
-- May read: transformation, domain, fixtures
+- May add invariant tests under `packages/privacy/tests/**` that import other packages read-only
+- Must not edit: transformation implementation beyond necessary hooks already exported
 
-## Depends on
+## Hard depends
 
 - M01, M03
 
-## Unlocks
+## Soft depends (~)
 
-- M05, M17, confidence for all remote-facing work
+- M02
+
+## Unlocks / enhances
+
+- Hard-unlocks M05, M11, M17 confidence for remote-facing work
 
 ## Non-goals
 

@@ -8,14 +8,21 @@
 
 ## Package boundary (hard)
 
-- May edit: reasoning provider adapter + api routes + minimal web UX
-- Must not bypass privacy inspector / invariants
+- May edit: `packages/reasoning/src/**/openai*` or equivalent adapter under `packages/reasoning`
+- May edit: `apps/api/src/personal_enigma/api/routes/external/chat/**` (create)
+- May edit: `apps/web/src/pages/Chat*` / `apps/web/src/chat/**` (create) for minimal UX
+- Must not bypass privacy inspector / M04 invariants
+- Must not edit: apple-bridge, ingestion sources
 
-## Depends on
+## Hard depends
 
 - M05, M17, M18
 
-## Unlocks
+## Soft depends (~)
+
+- None
+
+## Unlocks / enhances
 
 - End-user remote reasoning UX
 

@@ -8,16 +8,23 @@
 
 ## Package boundary (hard)
 
-- May edit: obligations / attention packages
-- May persist via api/worker storage layer if introduced here
+- May edit: `packages/obligations/**` and/or `packages/attention/**` commitment modules
+- May edit: persistence hooks only under paths introduced by M00a
+- Must not edit: Gmail adapter (M11), Apple Bridge sources
 
-## Depends on
+## Hard depends
 
-- M15, M11 (email commitments)
+- M15
 
-## Unlocks
+## Soft depends (~)
 
-- Richer attention over time
+- M11 (email commitments — **Apple reminder/calendar commitments must work without Gmail**)
+- M13 / M14 (deferred Notes tasks)
+- M00a
+
+## Unlocks / enhances
+
+- Richer temporal attention
 
 ## Non-goals
 
@@ -26,14 +33,15 @@
 
 ## Acceptance criteria
 
-- [ ] Track inferred commitments (“I’ll send that tomorrow”) vs explicit reminders
+- [ ] Track inferred commitments vs explicit reminders
 - [ ] Update state when evidence appears (follow-up email, completed reminder, elapsed due date)
 - [ ] Surface stale commitments in attention engine
-- [ ] Notes deferred-task pattern supported when M13/M14 present (prerequisite completed)
+- [ ] Notes deferred-task pattern supported when M13/M14 present
+- [ ] MVP path works with Apple-only evidence (no Gmail required)
 
 ## Test plan
 
-- Temporal fixture timelines
+- Temporal fixture timelines (Apple-only and Apple+Gmail)
 - State machine unit tests
 
 ## Privacy constraints

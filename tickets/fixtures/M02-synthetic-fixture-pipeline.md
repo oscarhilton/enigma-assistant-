@@ -8,26 +8,30 @@
 
 ## Package boundary (hard)
 
-- May edit: `packages/fixtures/**`
+- May edit: `packages/fixtures/**` only
 - May read: `packages/domain/**`
 - Must not edit: adapters, API, bridge
 
-## Depends on
+## Hard depends
 
 - M01
 
-## Unlocks
+## Soft depends (~)
 
-- M03, M04, M06, M15 (deterministic tests without live Apple/Google)
+- None
+
+## Unlocks / enhances
+
+- Hard-unlocks deterministic tests for M03, M04, M06, M15 without live Apple/Google
 
 ## Non-goals
 
 - Live API calls
-- Production database seeding scripts beyond fixtures
+- Production database seeding beyond fixtures
 
 ## Acceptance criteria
 
-- [ ] Fixture builders for calendar events, reminders, contacts, notes, and email-like messages
+- [ ] Fixture builders for calendar events, reminders, contacts, notes, and messages
 - [ ] Scenario packs that encode cross-source obligation cases (reminder + email + calendar)
 - [ ] Fixtures are deterministic and documented
 - [ ] Pipeline can load scenarios into in-memory stores used by tests

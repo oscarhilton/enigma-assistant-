@@ -8,17 +8,22 @@
 
 ## Package boundary (hard)
 
-- May create: `packages/google` or `packages/ingestion/src/.../gmail*`
-- May edit: `apps/api` / `apps/worker` OAuth + sync jobs
-- Must not edit: `apps/apple-bridge`
+- May edit: `packages/ingestion/src/personal_enigma/ingestion/sources/gmail.py`
+- May edit: `apps/api/src/personal_enigma/api/google/gmail/**` and `apps/worker/src/personal_enigma/worker/google/gmail/**` (create) for OAuth + sync only
+- Must not edit: `apps/apple-bridge/**`, other `sources/*.py`, `packages/domain/**`
 
-## Depends on
+## Hard depends
 
-- M01, M03, M04; M10 recommended for identity
+- M01, M03, M04
 
-## Unlocks
+## Soft depends (~)
 
-- M15 (email evidence), M16
+- M10 (Contacts-backed identity)
+- M00a (persist sync state)
+
+## Unlocks / enhances
+
+- Soft-enhances M15/M16 with email evidence (**Apple-only merge can proceed without Gmail**)
 
 ## Non-goals
 
@@ -27,9 +32,8 @@
 
 ## Acceptance criteria
 
-- [ ] Read-only Gmail API ingestion
-- [ ] Canonical private message model shared with future mail providers
-- [ ] `DataSource.get_changes` implementation
+- [ ] Read-only Gmail API ingestion → `PrivateMessage`
+- [ ] `DataSource.get_changes` implementation in `gmail.py`
 - [ ] Entity resolution against Contacts when available
 - [ ] Works with remote LLM disabled (ingest + local transform only)
 
