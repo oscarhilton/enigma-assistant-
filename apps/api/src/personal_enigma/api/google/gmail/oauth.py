@@ -6,6 +6,7 @@ Scaffold only — no live Google OAuth until credentials are configured.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from urllib.parse import urlencode
 
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -36,12 +37,17 @@ def gmail_oauth_start(config: GmailOAuthConfig, *, state: str) -> GmailOAuthStar
     if not config.client_id:
         raise ValueError("Gmail OAuth client_id is not configured")
     scope = " ".join(config.scopes)
-    # Query construction is deferred to a real OAuth client in a later pass.
-    authorize_url = (
-        f"{OAUTH_AUTHORIZE_URL}?client_id={config.client_id}"
-        f"&redirect_uri={config.redirect_uri}"
-        f"&response_type=code&scope={scope}&state={state}&access_type=offline"
+    query = urlencode(
+        {
+            "client_id": config.client_id,
+            "redirect_uri": config.redirect_uri,
+            "response_type": "code",
+            "scope": scope,
+            "state": state,
+            "access_type": "offline",
+        }
     )
+    authorize_url = f"{OAUTH_AUTHORIZE_URL}?{query}"
     return GmailOAuthStart(authorize_url=authorize_url, state=state, scope=scope)
 
 

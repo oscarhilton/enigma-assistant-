@@ -77,7 +77,14 @@ def _parse_address(raw: str) -> PrivatePersonRef:
 def _parse_address_list(raw: str | None) -> list[PrivatePersonRef]:
     if not raw:
         return []
-    return [_parse_address(part) for part in raw.split(",") if part.strip()]
+    refs: list[PrivatePersonRef] = []
+    for name, addr in email.utils.getaddresses([raw]):
+        email_addr = addr.strip() or None
+        display = name.strip() or None
+        if not email_addr and not display:
+            continue
+        refs.append(PrivatePersonRef(display_name=display, email=email_addr))
+    return refs
 
 
 def _extract_plain_text(payload: Mapping[str, Any] | None) -> str | None:
@@ -251,25 +258,34 @@ class GmailSource:
         return ids, str(next_page) if next_page else None
 
     async def _history_message_ids(self, start_history_id: str) -> tuple[list[str], str]:
-        params = {
-            "startHistoryId": start_history_id,
-            "historyTypes": "messageAdded",
-            "maxResults": str(self.page_size),
-        }
-        payload = await self._get_json("/users/me/history", params=params)
-        if not isinstance(payload, dict):
-            raise GmailError("Gmail history payload was not an object")
         ids: list[str] = []
-        for entry in payload.get("history") or []:
-            if not isinstance(entry, dict):
-                continue
-            for added in entry.get("messagesAdded") or []:
-                if not isinstance(added, dict):
+        history_id = start_history_id
+        page_token: str | None = None
+        while True:
+            params: dict[str, str] = {
+                "startHistoryId": start_history_id,
+                "historyTypes": "messageAdded",
+                "maxResults": str(self.page_size),
+            }
+            if page_token:
+                params["pageToken"] = page_token
+            payload = await self._get_json("/users/me/history", params=params)
+            if not isinstance(payload, dict):
+                raise GmailError("Gmail history payload was not an object")
+            for entry in payload.get("history") or []:
+                if not isinstance(entry, dict):
                     continue
-                message = added.get("message") or {}
-                if isinstance(message, dict) and message.get("id"):
-                    ids.append(str(message["id"]))
-        history_id = str(payload.get("historyId") or start_history_id)
+                for added in entry.get("messagesAdded") or []:
+                    if not isinstance(added, dict):
+                        continue
+                    message = added.get("message") or {}
+                    if isinstance(message, dict) and message.get("id"):
+                        ids.append(str(message["id"]))
+            history_id = str(payload.get("historyId") or history_id)
+            next_page = payload.get("nextPageToken")
+            if not next_page:
+                break
+            page_token = str(next_page)
         return ids, history_id
 
     async def _profile_history_id(self) -> str:
@@ -286,7 +302,13 @@ class GmailSource:
         _ = self.remote_llm_enabled  # documented independence from remote inference
 
         if cursor is None or not cursor.value:
-            message_ids, _next_page = await self._list_message_ids()
+            message_ids: list[str] = []
+            page_token: str | None = None
+            while True:
+                page_ids, page_token = await self._list_message_ids(page_token=page_token)
+                message_ids.extend(page_ids)
+                if not page_token:
+                    break
             history_id = await self._profile_history_id()
         else:
             message_ids, history_id = await self._history_message_ids(cursor.value)

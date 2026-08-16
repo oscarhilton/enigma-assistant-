@@ -1,23 +1,41 @@
 {
   "id": "msg_alpha",
   "threadId": "thread_1",
-  "labelIds": ["INBOX", "UNREAD"],
+  "labelIds": [
+    "INBOX",
+    "UNREAD"
+  ],
   "snippet": "Please call +1-555-019-8877 about the review.",
   "internalDate": "1723814400000",
   "payload": {
     "mimeType": "multipart/alternative",
     "headers": [
-      {"name": "From", "value": "Jordan Lee <jordan@corp.example>"},
-      {"name": "To", "value": "User <user@example.test>"},
-      {"name": "Cc", "value": "Morgan <morgan@corp.example>"},
-      {"name": "Subject", "value": "Review proposal follow-up"},
-      {"name": "Date", "value": "Fri, 16 Aug 2024 12:00:00 +0000"}
+      {
+        "name": "From",
+        "value": "Jordan Lee <jordan@corp.example>"
+      },
+      {
+        "name": "To",
+        "value": "User <user@example.test>"
+      },
+      {
+        "name": "Cc",
+        "value": "Morgan <morgan@corp.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Review proposal follow-up"
+      },
+      {
+        "name": "Date",
+        "value": "Fri, 16 Aug 2024 12:00:00 +0000"
+      }
     ],
     "parts": [
       {
         "mimeType": "text/plain",
         "body": {
-          "data": "UGxlYXNlIGNhbGwgKzEtNTU1LTAxOS04ODc3IGFib3V0IHRoZSByZXZpZXcuCkFQSSBrZXkgc2tfbGl2ZV9leGFtcGxlIG11c3Qgc3RheSBsb2NhbC4"
+          "data": "UGxlYXNlIGNhbGwgKzEtNTU1LTAxOS04ODc3IGFib3V0IHRoZSByZXZpZXcuCkFQSSBrZXkgU0VDUkVUX0VYQU1QTEVfRE9fTk9UX1NISVAgbXVzdCBzdGF5IGxvY2FsLg"
         }
       },
       {

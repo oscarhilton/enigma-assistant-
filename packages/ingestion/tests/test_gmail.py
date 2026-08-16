@@ -92,7 +92,7 @@ def test_initial_sync_maps_to_private_messages() -> None:
         assert alpha.to[0].email == "user@example.test"
         assert alpha.cc[0].email == "morgan@corp.example"
         assert alpha.body_text is not None
-        assert "sk_live_example" in alpha.body_text
+        assert "SECRET_EXAMPLE_DO_NOT_SHIP" in alpha.body_text
         assert "+1-555-019-8877" in alpha.body_text
 
     asyncio.run(_run())
@@ -132,13 +132,20 @@ def test_works_with_remote_llm_disabled() -> None:
         alpha = PrivateMessage.model_validate(
             next(i for i in batch.items if i["provider_message_id"] == "msg_alpha")
         )
-        assert alpha.body_text and "sk_live_example" in alpha.body_text
+        assert alpha.body_text and "SECRET_EXAMPLE_DO_NOT_SHIP" in alpha.body_text
 
     asyncio.run(_run())
 
 
 def test_privacy_invariant_email_body_not_shipped_wholesale() -> None:
-    """Medium default; local body (with secrets) stays out of remote-facing views."""
+    """Ingestion keeps body local; remote-facing context must use snippet only.
+
+    ``DefaultEnigmaTransformer`` lands in M03. Until that merges onto this branch,
+    assert the Gmail→remote contract via ``TransformedContext`` (snippet summary,
+    ``wholesale_body_included=False``) rather than a hand-built dict.
+    """
+
+    from personal_enigma.transformation import TransformedContext
 
     async def _run() -> None:
         assert default_level_for_source(SourceType.EMAIL) == PrivacyLevel.MEDIUM
@@ -148,17 +155,23 @@ def test_privacy_invariant_email_body_not_shipped_wholesale() -> None:
             next(i for i in batch.items if i["provider_message_id"] == "msg_alpha")
         )
         assert message.body_text
-        assert "sk_live_example" in message.body_text
-        # Local transform stub: remote-facing payload uses snippet, never body.
-        remote_view = {
-            "summary": message.snippet,
-            "subject": message.subject,
-            "entities": ["PERSON_JORDAN"],
-        }
-        blob = json.dumps(remote_view)
+        assert "SECRET_EXAMPLE_DO_NOT_SHIP" in message.body_text
+        remote_view = TransformedContext(
+            summary=message.snippet or "",
+            entities=["PERSON_JORDAN"],
+            metadata={
+                "source_type": SourceType.EMAIL.value,
+                "record_id": message.id,
+                "provider": "gmail",
+                "wholesale_body_included": False,
+            },
+            may_transmit_remotely=True,
+        )
+        blob = json.dumps(remote_view.model_dump(mode="json"))
         assert message.body_text not in blob
-        assert "sk_live_example" not in blob
-        assert "sk_live_example" not in (message.snippet or "")
+        assert "SECRET_EXAMPLE_DO_NOT_SHIP" not in blob
+        assert "SECRET_EXAMPLE_DO_NOT_SHIP" not in (message.snippet or "")
+        assert remote_view.metadata["wholesale_body_included"] is False
 
     asyncio.run(_run())
 

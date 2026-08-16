@@ -26,6 +26,7 @@ def _load(name: str) -> object:
 
 
 def _handler(request: httpx.Request) -> httpx.Response:
+    assert request.headers.get("Authorization") == "Bearer test-token"
     path = request.url.path
     if path.endswith("/users/me/profile"):
         return httpx.Response(200, json=_load("profile.json"))
