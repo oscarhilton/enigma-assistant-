@@ -3,7 +3,7 @@
  *
  * Three representation layers (do not collapse them in the UI):
  *
- * PRIVATE UI — what the fictional user sees locally (Maya, Atlas, Friday 15:00).
+ * PRIVATE UI — what the fictional user sees locally (Maya, Friday deadlines).
  *   The Attention dashboard uses this layer.
  *
  * MODEL VIEW — what a hosted model may see (PERSON_A, PROJECT_B, DATE_T_PLUS_2).

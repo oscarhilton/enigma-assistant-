@@ -11,8 +11,6 @@ import type {
   DemoWhyPayload,
 } from "./types";
 import {
-  FIXTURE_ATTENTION,
-  FIXTURE_ATTENTION_PAYLOAD,
   FIXTURE_DEMO_STATUS,
   FIXTURE_MEMORY,
   FIXTURE_SUPPRESSED,
@@ -41,7 +39,13 @@ export {
   FIXTURE_WHY_BY_ID,
 } from "./fixtures";
 
-const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "";
+/**
+ * Demo `/demo/*` calls stay same-origin so Vite’s `/demo` proxy applies.
+ * Absolute `VITE_API_BASE` (e.g. http://127.0.0.1:8000) is cross-origin and
+ * fails in the browser without CORS — the catch paths then silently fall
+ * back to fixtures, so the timeline looks stuck / attention stays empty.
+ */
+const API_BASE = "";
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -128,7 +132,13 @@ export async function fetchDemoAttention(
       items: sortByAttentionRank(body.items),
     };
   } catch {
-    return structuredClone(FIXTURE_ATTENTION_PAYLOAD);
+    // Offline: empty shell — do not resurrect Atlas attention stubs (D14).
+    return {
+      items: [],
+      surfaced_count: 0,
+      suppressed_count: 0,
+      simulated_time: FIXTURE_DEMO_STATUS.simulated_time,
+    };
   }
 }
 
@@ -148,16 +158,14 @@ export async function postDemoAttentionAction(
       items: sortByAttentionRank(body.items),
     };
   } catch {
-    const remaining = FIXTURE_ATTENTION.filter((item) => item.id !== itemId);
-    const suppressed = FIXTURE_ATTENTION_PAYLOAD.suppressed_count ?? 0;
+    // Live API is required for attention actions (D14); no fixture mutation path.
     return {
-      ok: true,
+      ok: false,
       item_id: itemId,
       action,
-      items: sortByAttentionRank(remaining),
-      signals_considered: remaining.length + suppressed,
-      surfaced_count: remaining.length,
-      suppressed_count: suppressed,
+      items: [],
+      surfaced_count: 0,
+      suppressed_count: 0,
     };
   }
 }
@@ -202,6 +210,7 @@ export async function fetchDemoWhy(
   try {
     return await readJson<DemoWhyPayload>(await fetchImpl(`${API_BASE}/demo/why/${itemId}`));
   } catch {
-    return structuredClone(FIXTURE_WHY_BY_ID[itemId] ?? null);
+    // No offline Why fiction — live API is the source of truth (D14).
+    return null;
   }
 }

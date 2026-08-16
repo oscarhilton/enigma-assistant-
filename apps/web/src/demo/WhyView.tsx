@@ -19,7 +19,7 @@ function formatReasonCodes(codes: string[]): string {
  */
 export function WhyView({ itemId: itemIdProp, fetchImpl = fetch }: WhyViewProps) {
   const params = useParams();
-  const itemId = itemIdProp ?? params.itemId ?? "att-atlas-review";
+  const itemId = itemIdProp ?? params.itemId ?? "";
   const [payload, setPayload] = useState<DemoWhyPayload | null | undefined>(undefined);
 
   useEffect(() => {

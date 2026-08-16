@@ -1,12 +1,11 @@
-"""Demo Mode environment, timeline, and UI support routes (D1 + D10 + D13).
+"""Demo Mode environment, timeline, and live attention routes (D1 + D10 + D13 + D14).
 
-Attention stubs use PRIVATE UI names on the dashboard (Maya, Atlas). Why stubs
-may use MODEL VIEW pseudonyms (PERSON_A) so demos can contrast local vs remote.
+Attention is derived from alex-v1 synthetic sources through the obligations /
+heuristic attention path. Memory browser stubs remain until a later ticket.
 """
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from threading import Lock
@@ -15,51 +14,24 @@ from typing import Any, Literal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from personal_enigma.api.routes.demo_attention import (
+    background_profile_from_env,
+    build_session_background,
+    load_demo_scenario,
+    refresh_attention_payloads,
+)
 from personal_enigma.simulation import (
     DEMO_BANNER_TEXT,
     DemoEnvironment,
     EnvironmentMode,
+    ScenarioPackage,
     SimulationClock,
     environment_mode_from_env,
 )
+from personal_enigma.simulation.corpus.background import BackgroundBuildResult
 
-# Fixed epoch so UI smoke tests are deterministic without D5 event engine.
-_DEMO_EPOCH = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
-
-# Baseline catalog — private UI names; priority ≠ confidence; rank ≠ confidence.
-_STUB_ATTENTION_BASE: list[dict[str, Any]] = [
-    {
-        "id": "att-atlas-review",
-        "title": "Review Atlas proposal before Friday",
-        "when": "Before Friday",
-        "why_now_glance": "Deadline approaching",
-        "body": (
-            "You said you'd review this before Friday, and it still appears unfinished."
-        ),
-        "kind": "commitment",
-        "priority": 4,
-        "confidence": 0.91,
-        # Rank blends urgency/importance/actionability/timing; confidence is a
-        # factor, not a substitute for priority (a high-confidence newsletter
-        # must not outrank a medium-confidence manager commitment).
-        "attention_rank": 0.86,
-        "evidence_ids": ["ev-mail-1", "ev-cal-1"],
-    },
-    {
-        "id": "att-maya-scheduling",
-        "title": "Follow up with Maya on scheduling",
-        "when": None,
-        "why_now_glance": "Thread waiting on you",
-        "body": "This scheduling thread still appears to be waiting on you.",
-        "kind": "follow_up",
-        "priority": 3,
-        "confidence": 0.72,
-        "attention_rank": 0.61,
-        "evidence_ids": ["ev-mail-2"],
-    },
-]
-
-_DEFAULT_SUPPRESSED = 47
+# Fallback only if a scenario package has no start_at.
+_DEMO_EPOCH = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 
 # Developer-only suppression inspector filters (engine reasons — not ScenarioSignalClass).
 _SUPPRESSION_FILTERS: tuple[str, ...] = (
@@ -190,65 +162,6 @@ _STUB_MEMORY: list[dict[str, Any]] = [
     },
 ]
 
-_STUB_WHY: dict[str, dict[str, Any]] = {
-    "att-atlas-review": {
-        "item_id": "att-atlas-review",
-        "title": "Review Atlas proposal before Friday",
-        "headline": "WHY ENIGMA THINKS THIS MATTERS",
-        "evidence": [
-            "Email: PERSON_A requested review.",
-            "Email: USER said they would review before Friday.",
-            "Calendar: Review meeting Friday at 15:00.",
-        ],
-        "inference": [
-            "USER made a commitment to PERSON_A.",
-            "No evidence of completion has been observed.",
-            "The commitment appears due before the Friday review.",
-        ],
-        "decision": [
-            "The commitment remains unresolved.",
-            "Its deadline falls within the configured attention window.",
-            "Surface as a high-priority item.",
-        ],
-        "why_now": [
-            "The deadline is approaching.",
-            "There is still enough time to act before the review.",
-        ],
-        "priority": 4,
-        "confidence": 0.91,
-        "reason_codes": ["USER_COMMITMENT", "DEADLINE_APPROACHING"],
-    },
-    "att-maya-scheduling": {
-        "item_id": "att-maya-scheduling",
-        "title": "Follow up with Maya on scheduling",
-        "headline": "WHY ENIGMA THINKS THIS MATTERS",
-        "evidence": [
-            "Email: PERSON_A proposed times that remain unanswered.",
-            "Calendar: No matching hold on USER's schedule.",
-        ],
-        "inference": [
-            "A scheduling follow-up with PERSON_A remains open.",
-            "No evidence USER closed the thread.",
-        ],
-        "decision": [
-            "The follow-up is unresolved.",
-            "It falls inside the configured attention window.",
-            "Surface as a medium-priority item.",
-        ],
-        "why_now": [
-            "The thread is still waiting on USER.",
-            "Surface now while the window to respond is open.",
-        ],
-        "priority": 3,
-        "confidence": 0.72,
-        "reason_codes": [
-            "CROSS_SOURCE_MATCH",
-            "FOLLOW_UP_REQUIRED",
-            "UNRESOLVED_THREAD",
-        ],
-    },
-}
-
 
 class SpeedBody(BaseModel):
     speed: float = Field(ge=0.0, le=1000.0)
@@ -256,25 +169,80 @@ class SpeedBody(BaseModel):
 
 @dataclass
 class DemoSession:
-    """In-process Demo clock session for UI timeline controls (pre-D5 engine)."""
+    """In-process Demo clock + live attention session for UI timeline controls.
+
+    Attention is recomputed from the scenario package filtered by simulated
+    ``until`` (D02 clock). SimulationEngine checkpoint I/O is intentionally
+    skipped here so interactive Demo UI stays lightweight; eval/CLI still
+    owns full engine replay.
+    """
 
     scenario: str = "alex-v1"
-    speed: float = 1.0
+    speed: float = 0.0
     attention_items: list[dict[str, Any]] = field(default_factory=list)
-    suppressed_count: int = _DEFAULT_SUPPRESSED
+    why_by_id: dict[str, dict[str, Any]] = field(default_factory=dict)
+    suppressed_count: int = 0
     action_log: list[dict[str, Any]] = field(default_factory=list)
+    dismissed_ids: set[str] = field(default_factory=set)
+    package: ScenarioPackage | None = None
+    background: BackgroundBuildResult | None = None
+    background_profile: str = field(default_factory=background_profile_from_env)
     env: DemoEnvironment = field(init=False)
 
     def __post_init__(self) -> None:
-        self.reset()
+        self._bootstrap_empty()
 
-    def reset(self) -> None:
+    def _bootstrap_empty(self) -> None:
+        """Lightweight session shell — scenario pipeline loads on first demo use."""
         clock = SimulationClock(initial=_DEMO_EPOCH)
         self.env = DemoEnvironment(scenario=self.scenario, clock=clock)
-        self.speed = 1.0
-        self.attention_items = deepcopy(_STUB_ATTENTION_BASE)
-        self.suppressed_count = _DEFAULT_SUPPRESSED
+        self.package = None
+        self.background = None
+        self.speed = 0.0
+        self.clock.pause()
+        self.attention_items = []
+        self.why_by_id = {}
+        self.suppressed_count = 0
         self.action_log = []
+        self.dismissed_ids = set()
+
+    def ensure_pipeline(self) -> None:
+        if self.package is None:
+            self.reset()
+
+    def reset(self) -> None:
+        self.package = load_demo_scenario(self.scenario)
+        initial = self.package.manifest.start_at or _DEMO_EPOCH
+        clock = SimulationClock(initial=initial)
+        clock.set_time(initial)
+        clock.pause()
+        self.env = DemoEnvironment(scenario=self.scenario, clock=clock)
+        self.background_profile = background_profile_from_env()
+        self.background = build_session_background(
+            self.package,
+            profile=self.background_profile,
+        )
+        # Start paused so operators use Next event/day or explicitly pick 1×–100×.
+        self.speed = 0.0
+        self.dismissed_ids = set()
+        self.action_log = []
+        self._refresh_attention()
+
+    def _refresh_attention(self) -> None:
+        if self.package is None:
+            self.attention_items = []
+            self.why_by_id = {}
+            self.suppressed_count = 0
+            return
+        rows, why_by_id, suppressed = refresh_attention_payloads(
+            self.package,
+            until=self.clock.now(),
+            background=self.background,
+            dismissed_ids=self.dismissed_ids,
+        )
+        self.attention_items = rows
+        self.why_by_id = why_by_id
+        self.suppressed_count = suppressed
 
     @property
     def clock(self) -> SimulationClock:
@@ -283,9 +251,28 @@ class DemoSession:
             raise TypeError("Demo session requires SimulationClock")
         return clock
 
+    def advance_step(self) -> None:
+        """Advance one simulated hour.
+
+        Uses ``set_time`` so manual Next-event / auto-play ticks still move
+        the clock while speed is Pause (``clock.pause`` only freezes
+        ``advance`` / ``advance_to``, not absolute jumps).
+        """
+        self.ensure_pipeline()
+        self.clock.set_time(self.clock.now() + timedelta(hours=1))
+        self._refresh_attention()
+
+    def advance_day(self) -> None:
+        """Advance one simulated day (works even while auto-play is paused)."""
+        self.ensure_pipeline()
+        self.clock.set_time(self.clock.now() + timedelta(days=1))
+        self._refresh_attention()
+
     def status_payload(self) -> dict[str, Any]:
         mode = environment_mode_from_env()
         active = mode is EnvironmentMode.DEMO
+        if active:
+            self.ensure_pipeline()
         # D10 compression stats: signals considered vs surfaced / suppressed.
         surfaced = len(self.attention_items) if active else None
         suppressed = self.suppressed_count if active else None
@@ -308,9 +295,12 @@ class DemoSession:
             "surfaced_count": surfaced,
             "suppressed_count": suppressed,
             "noise_suppressed_count": suppressed,
+            "background_profile": self.background_profile if active else None,
+            "live_attention": True if active else False,
         }
 
     def attention_payload(self) -> dict[str, Any]:
+        self.ensure_pipeline()
         items = sorted(
             self.attention_items,
             key=lambda row: float(row["attention_rank"]),
@@ -323,10 +313,12 @@ class DemoSession:
             "signals_considered": surfaced + self.suppressed_count,
             "surfaced_count": surfaced,
             "suppressed_count": self.suppressed_count,
+            "live": True,
         }
 
     def suppressed_payload(self, reason: str | None = None) -> dict[str, Any]:
         """Developer-only inspector — never expose ScenarioSignalClass labels."""
+        self.ensure_pipeline()
         items = list(_STUB_SUPPRESSED)
         if reason is not None:
             if reason not in _SUPPRESSION_FILTERS:
@@ -348,15 +340,25 @@ class DemoSession:
             "simulated_time": self.clock.now().isoformat(),
         }
 
+    def why_payload(self, item_id: str) -> dict[str, Any]:
+        self.ensure_pipeline()
+        payload = self.why_by_id.get(item_id)
+        if payload is None:
+            raise HTTPException(status_code=404, detail=f"Unknown attention item {item_id}")
+        return payload
+
     def apply_attention_action(
         self,
         item_id: str,
         action: Literal["done", "snooze"],
     ) -> dict[str, Any]:
+        self.ensure_pipeline()
         remaining = [row for row in self.attention_items if row["id"] != item_id]
         if len(remaining) == len(self.attention_items):
             raise HTTPException(status_code=404, detail=f"Unknown attention item {item_id}")
+        self.dismissed_ids.add(item_id)
         self.attention_items = remaining
+        self.why_by_id.pop(item_id, None)
         self.action_log.append(
             {
                 "item_id": item_id,
@@ -403,7 +405,7 @@ def _lock_for(application: FastAPI) -> Any:
 
 
 def install_demo_routes(application: FastAPI) -> None:
-    """Register ``/demo/*`` banner, status, timeline, and UI stub routes.
+    """Register ``/demo/*`` banner, status, timeline, and live attention routes.
 
     Timeline clock state lives on ``application.state`` (per app / process) and
     mutations are serialised with a lock so overlapping advances stay atomic
@@ -451,8 +453,7 @@ def install_demo_routes(application: FastAPI) -> None:
         _require_demo()
         with _lock_for(application):
             session = _session_for(application)
-            # Without D5 event queue, step advances one simulated hour.
-            session.clock.advance(timedelta(hours=1))
+            session.advance_step()
             return session.status_payload()
 
     @application.post("/demo/timeline/day")
@@ -460,7 +461,7 @@ def install_demo_routes(application: FastAPI) -> None:
         _require_demo()
         with _lock_for(application):
             session = _session_for(application)
-            session.clock.advance_days(1)
+            session.advance_day()
             return session.status_payload()
 
     @application.post("/demo/timeline/speed")
@@ -520,7 +521,5 @@ def install_demo_routes(application: FastAPI) -> None:
     @application.get("/demo/why/{item_id}")
     def demo_why(item_id: str) -> dict[str, Any]:
         _require_demo()
-        payload = _STUB_WHY.get(item_id)
-        if payload is None:
-            raise HTTPException(status_code=404, detail=f"Unknown attention item {item_id}")
-        return payload
+        with _lock_for(application):
+            return _session_for(application).why_payload(item_id)

@@ -29,7 +29,7 @@ export function DemoOverviewPage() {
           <Link to="/demo/memory">Memory browser</Link>
         </li>
         <li>
-          <Link to="/demo/why/att-atlas-review">Why view</Link>
+          <Link to="/demo/attention">Why view (open from an attention item)</Link>
         </li>
         <li>
           <Link to="/demo/privacy">Privacy inspector hook</Link>

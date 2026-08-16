@@ -63,6 +63,8 @@ Do **not** invent a top-level D13 for background corpus. Extend D03–D12 accept
 | D10 | Demo UI + explainability | `done` | [D10](../../tickets/demo-ui/D10-demo-ui.md) |
 | D11 | Provider recording + deterministic replay | `done` | [D11](../../tickets/demo-evaluation/D11-replay-provider.md) |
 | D12 | Curated product demo / Phase 2 exit gate | `done` | [D12](../../tickets/demo-scenario/D12-product-demo-scenario.md) |
+| D13 | Demo Why + Attention UX polish | `done` | [D13](../../tickets/demo-ui/D13-demo-why-attention-ux.md) |
+| D14 | Live Demo attention (alex-v1 pipeline) | `in_progress` | [D14](../../tickets/demo-ui/D14-live-demo-attention.md) |
 
 ### Phase 2 waves
 
