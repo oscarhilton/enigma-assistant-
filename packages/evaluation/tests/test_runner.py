@@ -115,11 +115,12 @@ def test_privacy_probe_detects_email_leak(tmp_path: Path) -> None:
         privacy_probes=[
             PrivacyProbe(
                 id="leaky",
+                source_type="email",
                 payload={
                     "summary": "Contact maya@example.com about Atlas",
                     "entities": ["PERSON_A1B2C3"],
                     "may_transmit_remotely": True,
-                    "metadata": {},
+                    "metadata": {"source_type": "email"},
                 },
                 people=[
                     {

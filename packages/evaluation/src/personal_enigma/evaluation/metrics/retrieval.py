@@ -42,8 +42,7 @@ def compute_retrieval_metrics(
             continue
         top = obs.hits[: obs.k]
         hit_count = sum(1 for h in top if h in relevant)
-        denom = min(obs.k, len(relevant))
-        scores.append(hit_count / denom if denom else 1.0)
+        scores.append(recall_at_k(hits=hit_count, k=obs.k) if obs.k else 0.0)
 
     mean = sum(scores) / len(scores)
     return RetrievalMetrics(

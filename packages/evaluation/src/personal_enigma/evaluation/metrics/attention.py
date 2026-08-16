@@ -135,18 +135,29 @@ def compute_attention_metrics(
     stale = sum(1 for a in alerts if a.resolved_underlying)
     useful = sum(1 for a in alerts if _is_useful(a, expected_set))
 
-    # Early noise: surfaced before window earliest (when a window exists)
+    # Early / late: count at most once per alert
     early = 0
     late = 0
     for alert in alerts:
-        for oid in alert.obligation_ids or ([alert.id] if alert.id in expected_set else []):
+        if alert.surfaced_at is None:
+            continue
+        oids = alert.obligation_ids or (
+            [alert.id] if alert.id in expected_set else []
+        )
+        was_early = False
+        was_late = False
+        for oid in oids:
             window = truth.window_for(oid)
-            if window is None or alert.surfaced_at is None:
+            if window is None:
                 continue
             if alert.surfaced_at < window.earliest:
-                early += 1
+                was_early = True
             elif alert.surfaced_at > window.latest:
-                late += 1
+                was_late = True
+        if was_early:
+            early += 1
+        if was_late:
+            late += 1
 
     return AttentionMetrics(
         critical_recall=critical_recall(
@@ -157,7 +168,7 @@ def compute_attention_metrics(
         duplicate_rate=duplicate_rate(duplicates=duplicates, total=total),
         stale_alert_rate=stale_alert_rate(stale=stale, total=total),
         early_noise_rate=(early / total) if total else 0.0,
-        late_alert_rate=(late / len(expected_ids)) if expected_ids else 0.0,
+        late_alert_rate=(late / total) if total else 0.0,
         expected_critical=len(expected_ids),
         surfaced_critical=surfaced_critical,
         useful_alerts=useful,

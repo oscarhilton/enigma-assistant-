@@ -74,9 +74,14 @@ def evaluate_privacy_probes(probes: list[PrivacyProbe]) -> PrivacyMetrics:
             continue
         people = [_person_from_dict(p) for p in probe.people]
         level = _privacy_level(probe.privacy_level)
+        payload = dict(probe.payload)
+        metadata = dict(payload.get("metadata") or {})
+        if probe.source_type and "source_type" not in metadata:
+            metadata["source_type"] = probe.source_type
+        payload["metadata"] = metadata
         try:
             assert_remote_payload_safe(
-                probe.payload,
+                payload,
                 people=people,
                 remote=remote,
             )

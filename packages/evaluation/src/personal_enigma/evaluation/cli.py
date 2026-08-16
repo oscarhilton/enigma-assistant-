@@ -118,11 +118,12 @@ def demo_observations_for_smoke() -> EvaluationObservations:
         privacy_probes=[
             PrivacyProbe(
                 id="probe-safe",
+                source_type="email",
                 payload={
                     "summary": "Review proposal",
                     "entities": ["PERSON_A1B2C3"],
                     "may_transmit_remotely": True,
-                    "metadata": {},
+                    "metadata": {"source_type": "email"},
                 },
             )
         ],

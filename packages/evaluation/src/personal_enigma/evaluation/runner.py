@@ -166,7 +166,12 @@ class EvaluationRunner:
 
 
 def _status(attention_m: attention.AttentionMetrics, privacy_m: privacy.PrivacyMetrics) -> str:
-    if privacy_m.direct_identifier_leaks > 0:
+    if (
+        privacy_m.direct_identifier_leaks > 0
+        or privacy_m.secret_like_leaks > 0
+        or privacy_m.reidentification_flags > 0
+        or privacy_m.failures
+    ):
         return "privacy_fail"
     if attention_m.missed:
         return "attention_miss"
