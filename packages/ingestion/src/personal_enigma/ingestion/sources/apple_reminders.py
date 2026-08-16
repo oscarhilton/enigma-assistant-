@@ -41,8 +41,12 @@ class AppleReminderSource:
             # Permission denied: Core keeps running with an empty batch.
             return ChangeBatch(items=[], next_cursor=None, exhausted=True)
 
+        raw_items = payload.get("items")
+        if not isinstance(raw_items, list):
+            raw_items = []
+
         items: list[dict[str, Any]] = []
-        for raw in payload.get("items") or []:
+        for raw in raw_items:
             if not isinstance(raw, Mapping):
                 continue
             try:

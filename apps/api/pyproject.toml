@@ -6,10 +6,13 @@ requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.34.0",
+  "sqlalchemy>=2.0.36",
+  "alembic>=1.14.0",
   "personal-enigma-domain",
   "personal-enigma-ingestion",
   "personal-enigma-privacy",
   "personal-enigma-attention",
+  "personal-enigma-reasoning",
 ]
 
 [project.scripts]
@@ -22,8 +25,16 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/personal_enigma"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/personal_enigma/api/db/alembic.ini" = "personal_enigma/api/db/alembic.ini"
+"src/personal_enigma/api/db/README.md" = "personal_enigma/api/db/README.md"
+"src/personal_enigma/api/db/migrations/script.py.mako" = "personal_enigma/api/db/migrations/script.py.mako"
+"src/personal_enigma/api/db/migrations/env.py" = "personal_enigma/api/db/migrations/env.py"
+"src/personal_enigma/api/db/migrations/versions/001_initial_private.py" = "personal_enigma/api/db/migrations/versions/001_initial_private.py"
+
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
 personal-enigma-ingestion = { workspace = true }
 personal-enigma-privacy = { workspace = true }
 personal-enigma-attention = { workspace = true }
+personal-enigma-reasoning = { workspace = true }

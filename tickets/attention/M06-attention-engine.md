@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M06-attention-engine` |
 | Domain | `attention` |
 
@@ -34,10 +34,10 @@
 
 ## Acceptance criteria
 
-- [ ] Distinguishes `INFERRED_OBLIGATION`, `EXPLICIT_REMINDER`, `INFERRED_COMMITMENT`, `CALENDAR_OBLIGATION`
-- [ ] Explicit reminders outrank weak email inferences when competing
-- [ ] Produces ranked `AttentionItem` list from fixture scenarios
-- [ ] Works with remote LLM disabled (local heuristics acceptable for v0)
+- [x] Distinguishes `INFERRED_OBLIGATION`, `EXPLICIT_REMINDER`, `INFERRED_COMMITMENT`, `CALENDAR_OBLIGATION`
+- [x] Explicit reminders outrank weak email inferences when competing
+- [x] Produces ranked `AttentionItem` list from fixture scenarios
+- [x] Works with remote LLM disabled (local heuristics acceptable for v0)
 
 ## Test plan
 
