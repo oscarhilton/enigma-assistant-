@@ -32,8 +32,6 @@ def test_cancel_blocks_send() -> None:
     )
     assert result.cancelled is True
     assert result.can_send is False
-<<<<<<< HEAD
-=======
 
 
 def test_note_blocked_even_when_client_claims_remote_safe() -> None:
@@ -50,4 +48,3 @@ def test_note_blocked_even_when_client_claims_remote_safe() -> None:
     )
     assert result.can_send is False
     assert result.privacy_level.value == "high"
->>>>>>> origin/main
