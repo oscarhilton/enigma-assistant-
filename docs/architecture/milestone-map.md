@@ -119,6 +119,19 @@ adversarial  UI     replay
 - Hold F-* tickets until D08c is green; then claim in the order documented in [tickets/README.md](../../tickets/README.md).
 - **Phase 2.5 exit** (PASS at `v0.2.0-demo`): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).
 - **Attention surface wind-tunnel** (alex-v1 dump → ~2 cards not 11): [attention-surface.md](./attention-surface.md).
+- **Next Action** (always useful, never fake-urgent): [next-action.md](./next-action.md) · [ADR-010](../adr/010-next-action-not-attention.md).
+
+---
+
+## Phase 2.5+ — Next Action track (domain + ranking; Demo chrome separate)
+
+| # | Milestone | Status | Ticket |
+| --- | --- | --- | --- |
+| M20 | NextAction domain schemas | `done` | [M20](../../tickets/domain-model/M20-next-action-schemas.md) |
+| N01 | Scorer stub | `todo` | [N01](../../tickets/next-action/N01-scorer-stub.md) |
+| N02 | Something-else cycling | `todo` | [N02](../../tickets/next-action/N02-something-else-cycling.md) |
+| N03 | Preference learning from rejects | `todo` | [N03](../../tickets/next-action/N03-preference-learning.md) |
+| D18 | Demo Next Action chrome | `done` | [D18](../../tickets/demo-ui/D18-demo-next-action.md) |
 
 ---
 

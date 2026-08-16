@@ -58,6 +58,7 @@ Behavioural changes without tests are not done.
 | Privacy levels / invariants | `packages/privacy` |
 | Transformer | `packages/transformation` |
 | Attention | `packages/attention` |
+| NextAction schemas | `packages/domain` ([next-action.md](docs/architecture/next-action.md), ADR-010) |
 | Local embeddings | `packages/embeddings` |
 | Fixtures | `packages/fixtures` |
 | Demo simulation / clock / env | `packages/simulation` |

@@ -95,7 +95,8 @@ API and web stubs ship with S01; fuller chrome lands with later Shadow tickets.
 Shadow exists to confront the seven questions in [shadow-mode-questions.md](./shadow-mode-questions.md). Those questions are **evaluation goals** for Phase 3 — metrics, journals, and comparison stubs (S05) — not a checklist of features to ship in S01–S04.
 
 Detailed observables, stub schemas, and weekly review layout: [shadow-evaluation.md](./shadow-evaluation.md) (SE01–SE03).  
-Proving **silence** is correct (SUPPRESS as prediction, frozen snapshots, audits, Silent Miss Rate): [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) (SE04–SE10) · [ADR-009](../adr/009-silence-as-prediction.md).
+Proving **silence** is correct (SUPPRESS as prediction, frozen snapshots, audits, Silent Miss Rate): [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) (SE04–SE10) · [ADR-009](../adr/009-silence-as-prediction.md).  
+Optional Next Action may later be logged as an observation of what would have been suggested — it does not prove Attention silence was correct ([next-action.md](./next-action.md)).
 
 1. Act-on recognition  
 2. Nearly-forgot  

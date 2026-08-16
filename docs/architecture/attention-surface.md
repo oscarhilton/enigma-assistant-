@@ -1,7 +1,7 @@
 # Attention surface — Phase 2.5 wind-tunnel finding
 
 **Status:** Design note from a live Demo Attention dump (alex-v1 / D14). Not an implementation ticket.  
-**Related:** [M06](../../tickets/attention/M06-attention-engine.md) · [D08c–e](./demo-corpus.md) · [shadow-mode-questions.md](./shadow-mode-questions.md)
+**Related:** [M06](../../tickets/attention/M06-attention-engine.md) · [D08c–e](./demo-corpus.md) · [next-action.md](./next-action.md) · [shadow-mode-questions.md](./shadow-mode-questions.md)
 
 ## Successful failure
 
@@ -125,6 +125,7 @@ WORLD MODEL
 - Card face: title + compact badges + one natural reason sentence + Why?/Done/Snooze
 - **Done / Snooze / I’ll do that are Demo / Assisted only** — Shadow must not show intervening actions
 - Reliability of *which* two cards surface is the next hard problem, not more card chrome
+- Canonical NextAction model + scoring track: [next-action.md](./next-action.md) · [ADR-010](../adr/010-next-action-not-attention.md) · Demo chrome [D18](../../tickets/demo-ui/D18-demo-next-action.md)
 
 ### 6. Card UX vs Why
 

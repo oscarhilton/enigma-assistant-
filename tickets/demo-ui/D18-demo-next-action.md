@@ -9,7 +9,7 @@
 ## Package boundary (hard)
 
 - May edit: `apps/web/src/demo/**`, demo styles in `apps/web/src/styles.css`, brief note in `docs/architecture/attention-surface.md`, this ticket + `tickets/README.md` demo-ui index line
-- Must not edit: `packages/attention/**`; Shadow evaluation docs; demo clock/timeline engine
+- Must not edit: `packages/attention/**` ranking; Shadow silence evaluation docs; domain NextAction schema ownership (M20); demo clock/timeline engine
 
 ## Hard depends
 
@@ -18,6 +18,8 @@
 ## Soft depends (~)
 
 - D10a
+- M20 (canonical types; Demo may stub TS shapes until API wired)
+- [next-action.md](../../docs/architecture/next-action.md)
 
 ## Acceptance criteria
 
