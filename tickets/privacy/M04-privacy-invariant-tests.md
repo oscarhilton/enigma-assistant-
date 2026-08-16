@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M04-privacy-invariant-tests` |
 | Domain | `privacy` |
 
@@ -31,10 +31,10 @@
 
 ## Acceptance criteria
 
-- [ ] Invariant suite fails CI if raw `PrivatePerson` fields appear in remote payloads
-- [ ] Notes default HIGH; wholesale note body cannot be marked remote-safe without explicit policy exception
-- [ ] Documented allowlist for what remote payloads may contain
-- [ ] Apple integrations remain testable with remote inference disabled
+- [x] Invariant suite fails CI if raw `PrivatePerson` fields appear in remote payloads
+- [x] Notes default HIGH; wholesale note body cannot be marked remote-safe without explicit policy exception
+- [x] Documented allowlist for what remote payloads may contain
+- [x] Apple integrations remain testable with remote inference disabled
 
 ## Test plan
 
