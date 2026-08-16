@@ -16,6 +16,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from personal_enigma.simulation.corpus.expand import expand_conversations
 from personal_enigma.simulation.corpus.models import CorpusConversation
 from personal_enigma.simulation.corpus.registry import CorpusRegistry, default_registry
 from personal_enigma.simulation.corpus.safety import assert_public_demo_allowed
@@ -172,21 +173,41 @@ def _self_email(package: ScenarioPackage) -> str | None:
     return None
 
 
-def _select_for_budget(
+def _pool_for_budget(
     conversations: Sequence[CorpusConversation],
     *,
     seed: str,
     conversation_count: int | None,
     message_count: int | None,
 ) -> list[CorpusConversation]:
+    """Select (and if needed expand) conversations to meet declared budgets.
+
+    When only ``message_count`` is set (feature scenarios ~50), expand the mini
+    fixture deterministically so CI stays offline. When ``conversation_count`` is
+    set (alex-v1 demo), preserve the historical select-then-cap behaviour so
+    seeded ground-truth evidence ids stay stable.
+    """
+    pool = list(conversations)
+    if not pool:
+        return []
+
     if conversation_count is not None:
-        selected = select_conversations(
-            conversations, seed=seed, count=conversation_count
-        )
+        if len(pool) < conversation_count:
+            pool = expand_conversations(
+                pool, target_count=conversation_count, seed=f"{seed}:expand"
+            )
+        selected = select_conversations(pool, seed=seed, count=conversation_count)
     else:
-        selected = select_conversations(
-            conversations, seed=seed, count=len(conversations)
-        )
+        if message_count is not None:
+            available = sum(len(c.messages) for c in pool)
+            if available < message_count:
+                avg = max(1, available // len(pool))
+                need = (message_count + avg - 1) // avg
+                pool = expand_conversations(
+                    pool, target_count=need, seed=f"{seed}:expand"
+                )
+        selected = select_conversations(pool, seed=seed, count=len(pool))
+
     if message_count is None:
         return selected
     out: list[CorpusConversation] = []
@@ -238,7 +259,7 @@ def build_background_stream(
         manifest = reg.get(spec.corpus)
         assert_public_demo_allowed(manifest)
         conversations = asyncio.run(_load_conversations(spec.corpus, reg))
-        selected = _select_for_budget(
+        selected = _pool_for_budget(
             conversations,
             seed=spec.seed,
             conversation_count=spec.conversation_count,

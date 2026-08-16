@@ -24,6 +24,7 @@ FEATURE_SCENARIOS = (
     "cross-source-merge",
     "quiet-day",
     "background-no-alert",
+    "background-basic",
 )
 
 

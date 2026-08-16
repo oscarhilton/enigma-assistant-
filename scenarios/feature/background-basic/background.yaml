@@ -1,0 +1,24 @@
+# Feature scenario background density (F-background-basic).
+#
+# Simulation / evaluator metadata only — never sent to Enigma as labels.
+# ~50 ordinary corpus messages surround the single canonical mail.
+
+profile: feature
+
+notes: >
+  Canonical obligation mail is surrounded by ~50 irrelevant background
+  messages. Story creates meaning; corpus creates noise.
+
+profiles:
+  feature:
+    email:
+      - id: ordinary-correspondence
+        corpus: finepersonas-mini
+        seed: background-basic-email-v1
+        message_count: 50
+        date_range:
+          start: 2026-03-10T08:00:00Z
+          end: 2026-03-20T20:00:00Z
+        classification:
+          signal_class: background
+          expected_attention: false

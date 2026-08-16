@@ -1,0 +1,155 @@
+# Evaluator-only background signal classifications (F-background-basic).
+# Generated from seed background-basic-email-v1 + finepersonas-mini (expanded).
+# Enigma / SyntheticMailSource payloads must never include these fields.
+
+signals:
+  - evidence_id: mini-conv-001-x0003-93207d6db9-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0003-93207d6db9-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0004-94db4f2e02-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0004-94db4f2e02-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0004-94db4f2e02-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0001-05489b80a7-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0001-05489b80a7-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0004-37f0e286fd-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0004-37f0e286fd-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0007-408763234c-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0005-60ff75fb23-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0006-e38edbd559-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0007-0ba64e4671-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0007-0ba64e4671-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0007-0ba64e4671-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0002-d42f69f935-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0002-d42f69f935-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0006-25bb87ab67-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0006-25bb87ab67-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0003-d3b15eeb19-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0003-d3b15eeb19-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0003-d3b15eeb19-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0002-d4fa6ab854-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0001-d06eb35a60-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0001-d06eb35a60-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0001-d06eb35a60-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0000-6a0f5c2284-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0000-6a0f5c2284-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0005-038848a107-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0005-038848a107-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0005-038848a107-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0007-54df3beab7-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0007-54df3beab7-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0003-1a762e8ee9-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0004-22eb31391e-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0005-e89a093789-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0005-e89a093789-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0002-d147480402-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0002-d147480402-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0002-d147480402-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0000-26fc881a91-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0000-26fc881a91-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0000-26fc881a91-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0008-45204e385a-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-x0008-45204e385a-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0000-be742bcc59-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0006-560d0f8f49-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0006-560d0f8f49-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-x0006-560d0f8f49-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-002-x0001-03e45f64a9-0
+    signal_class: background
+    expected_attention: false
