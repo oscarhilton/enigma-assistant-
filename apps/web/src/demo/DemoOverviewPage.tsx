@@ -1,12 +1,6 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { SimulationStatus } from "./SimulationStatus";
-import { TimelineControls } from "./TimelineControls";
-import type { DemoStatus } from "./types";
 
 export function DemoOverviewPage() {
-  const [status, setStatus] = useState<DemoStatus | null>(null);
-
   return (
     <section className="page demo-page">
       <h1>Demo Mode</h1>
@@ -19,8 +13,11 @@ export function DemoOverviewPage() {
         Operator path: <code>scenarios/product-demo</code> · see{" "}
         <code>docs/demo/walkthrough.md</code>
       </p>
-      <TimelineControls onStatusChange={setStatus} />
-      <SimulationStatus status={status} />
+      <p className="muted">
+        Timeline controls sit above: Next event / Next day step manually; speed 1×–100×
+        auto-plays (Pause stops). Open Attention while the clock runs to watch the list
+        update.
+      </p>
       <ul className="demo-overview-links">
         <li>
           <Link to="/demo/attention">Attention dashboard</Link>

@@ -31,7 +31,13 @@ export {
   FIXTURE_WHY_BY_ID,
 } from "./fixtures";
 
-const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "";
+/**
+ * Demo `/demo/*` calls stay same-origin so Vite’s `/demo` proxy applies.
+ * Absolute `VITE_API_BASE` (e.g. http://127.0.0.1:8000) is cross-origin and
+ * fails in the browser without CORS — the catch paths then silently fall
+ * back to fixtures, so the timeline looks stuck / attention stays empty.
+ */
+const API_BASE = "";
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {

@@ -91,6 +91,38 @@ describe("Demo chrome stubs", () => {
     expect(screen.getByText(/Follow up with Maya/i)).toBeInTheDocument();
   });
 
+  it("AttentionDashboard refetches when simulatedTime changes", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json(FIXTURE_ATTENTION_PAYLOAD),
+    ) as unknown as typeof fetch;
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <AttentionDashboard
+          fetchImpl={fetchImpl}
+          simulatedTime="2026-01-05T08:00:00+00:00"
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <MemoryRouter>
+        <AttentionDashboard
+          fetchImpl={fetchImpl}
+          simulatedTime="2026-01-06T08:00:00+00:00"
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it("MemoryBrowser lists memories without ground-truth overlay", async () => {
     const fetchImpl = vi.fn(async () =>
       Response.json({ items: FIXTURE_MEMORY }),

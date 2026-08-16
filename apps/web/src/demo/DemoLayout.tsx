@@ -4,6 +4,10 @@ import type { DemoStatus } from "./api";
 import { SimulationStatus } from "./SimulationStatus";
 import { TimelineControls } from "./TimelineControls";
 
+export type DemoOutletContext = {
+  status: DemoStatus | null;
+};
+
 /**
  * Demo chrome shell: nav + timeline controls + simulation status around nested routes.
  * Persistent DEMO MODE banner is owned by App (forced active on `/demo/*`).
@@ -28,7 +32,7 @@ export function DemoLayout() {
         <TimelineControls onStatusChange={onStatusChange} />
         <SimulationStatus status={status} />
       </div>
-      <Outlet />
+      <Outlet context={{ status } satisfies DemoOutletContext} />
     </div>
   );
 }

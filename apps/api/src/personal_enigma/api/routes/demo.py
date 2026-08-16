@@ -79,7 +79,7 @@ class DemoSession:
     """
 
     scenario: str = "alex-v1"
-    speed: float = 1.0
+    speed: float = 0.0
     attention_items: list[dict[str, Any]] = field(default_factory=list)
     why_by_id: dict[str, dict[str, Any]] = field(default_factory=dict)
     suppressed_count: int = 0
@@ -99,7 +99,8 @@ class DemoSession:
         self.env = DemoEnvironment(scenario=self.scenario, clock=clock)
         self.package = None
         self.background = None
-        self.speed = 1.0
+        self.speed = 0.0
+        self.clock.pause()
         self.attention_items = []
         self.why_by_id = {}
         self.suppressed_count = 0
@@ -115,13 +116,15 @@ class DemoSession:
         initial = self.package.manifest.start_at or _DEMO_EPOCH
         clock = SimulationClock(initial=initial)
         clock.set_time(initial)
+        clock.pause()
         self.env = DemoEnvironment(scenario=self.scenario, clock=clock)
         self.background_profile = background_profile_from_env()
         self.background = build_session_background(
             self.package,
             profile=self.background_profile,
         )
-        self.speed = 1.0
+        # Start paused so operators use Next event/day or explicitly pick 1×–100×.
+        self.speed = 0.0
         self.dismissed_ids = set()
         self.action_log = []
         self._refresh_attention()
@@ -150,13 +153,20 @@ class DemoSession:
         return clock
 
     def advance_step(self) -> None:
+        """Advance one simulated hour.
+
+        Uses ``set_time`` so manual Next-event / auto-play ticks still move
+        the clock while speed is Pause (``clock.pause`` only freezes
+        ``advance`` / ``advance_to``, not absolute jumps).
+        """
         self.ensure_pipeline()
-        self.clock.advance(timedelta(hours=1))
+        self.clock.set_time(self.clock.now() + timedelta(hours=1))
         self._refresh_attention()
 
     def advance_day(self) -> None:
+        """Advance one simulated day (works even while auto-play is paused)."""
         self.ensure_pipeline()
-        self.clock.advance_days(1)
+        self.clock.set_time(self.clock.now() + timedelta(days=1))
         self._refresh_attention()
 
     def status_payload(self) -> dict[str, Any]:

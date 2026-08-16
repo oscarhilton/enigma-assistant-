@@ -12,8 +12,8 @@ export const FIXTURE_STATUS: DemoStatus = {
   banner: "DEMO MODE — FICTIONAL DATA ONLY",
   scenario: "alex-v1",
   simulated_time: "2026-01-01T09:00:00+00:00",
-  speed: 1,
-  paused: false,
+  speed: 0,
+  paused: true,
   storage_root: "/tmp/enigma-demo/alex-v1",
   ground_truth_visible: false,
 };

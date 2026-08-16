@@ -57,13 +57,22 @@ def test_timeline_day_advances_simulated_time(monkeypatch: pytest.MonkeyPatch) -
 def test_timeline_step_and_speed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
     client = TestClient(create_app())
+    status = client.get("/demo/status").json()
+    assert status["speed"] == 0.0
+    assert status["paused"] is True
     stepped = client.post("/demo/timeline/step").json()
     assert stepped["simulated_time"] is not None
+    assert stepped["simulated_time"] > status["simulated_time"]
+    # Manual step works while auto-play is paused.
+    assert stepped["paused"] is True
     sped = client.post("/demo/timeline/speed", json={"speed": 10}).json()
     assert sped["speed"] == 10.0
     assert sped["paused"] is False
     paused = client.post("/demo/timeline/speed", json={"speed": 0}).json()
     assert paused["paused"] is True
+    before = paused["simulated_time"]
+    after_pause_step = client.post("/demo/timeline/step").json()
+    assert after_pause_step["simulated_time"] > before
 
 
 def test_timeline_requires_demo_mode(monkeypatch: pytest.MonkeyPatch) -> None:
