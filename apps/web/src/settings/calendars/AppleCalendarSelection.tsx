@@ -7,12 +7,13 @@ export type AppleCalendarOption = {
 };
 
 type AppleCalendarSelectionProps = {
-  calendars?: AppleCalendarOption[];
+  calendars: AppleCalendarOption[];
   selectedIds?: string[];
   onChange?: (selectedIds: string[]) => void;
 };
 
-const FIXTURE_CALENDARS: AppleCalendarOption[] = [
+/** Test/story fixture data — pass explicitly; not a production default. */
+export const FIXTURE_CALENDARS: AppleCalendarOption[] = [
   { id: "cal-personal", title: "Personal", source: "iCloud" },
   { id: "cal-work", title: "Work", source: "Exchange" },
 ];
@@ -21,12 +22,12 @@ const FIXTURE_CALENDARS: AppleCalendarOption[] = [
  * Minimal Apple calendar selection UI (M08). Persistence / settings shell is M00b.
  */
 export function AppleCalendarSelection({
-  calendars = FIXTURE_CALENDARS,
+  calendars,
   selectedIds,
   onChange,
 }: AppleCalendarSelectionProps) {
   const [internalSelected, setInternalSelected] = useState<string[]>(
-    selectedIds ?? calendars.map((calendar) => calendar.id),
+    selectedIds ?? [],
   );
   const selected = selectedIds ?? internalSelected;
 
