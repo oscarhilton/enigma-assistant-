@@ -36,10 +36,17 @@
 - [x] Attention dashboard, memory browser, why view, privacy inspector hooks
 - [x] Simulation status + persistent `DEMO MODE — FICTIONAL DATA ONLY` banner
 
+### Amendment — compression / suppression (plan §85)
+
+- [ ] Dashboard stats: signals considered vs surfaced / suppressed
+- [ ] Developer-only suppression inspector (`/demo/suppressed`)
+- [ ] Why-not-surfaced view for false-positive debugging (developer mode)
+
 ## Test plan
 
 - Component tests for controls + banner
 - Smoke: advance day updates displayed simulated time
+- (amendment) Suppression counts never expose ground-truth `signal_class` labels in public chrome
 
 ## Privacy constraints
 

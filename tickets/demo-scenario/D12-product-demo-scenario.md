@@ -41,11 +41,19 @@
 - [x] Exit-gate checklist: environment separation holds, feature+Alex evals green, adversarial privacy pack green, remote optional
 - [x] Explicit statement of what Phase 2 proved and what remains out of scope (Mail, Messages, etc.)
 
+### Amendment — compression narrative (plan §85)
+
+- [ ] Demo sequence: thousands of inbox signals → 1–3 attention items → Why + Privacy
+- [ ] Explicit “signals processed / suppressed” beat using the interactive `demo` profile (not stress)
+- [ ] Public Demo never attributes meaning to FinePersonas; attribution stays in docs/About as required
+
 ## Test plan
 
 - Automated smoke of the product-demo scenario through engine + eval
 - Manual checklist attached to PR
+- (amendment) Walkthrough uses `demo` profile size, not 100k stress inbox
 
 ## Privacy constraints
 
 - Demo remains structurally unable to reach real sources (D01 invariant still tested)
+- Public Demo data provenance: `SYNTHETIC_CONFIRMED` only

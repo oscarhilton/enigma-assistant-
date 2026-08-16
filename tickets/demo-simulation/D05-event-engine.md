@@ -34,10 +34,16 @@
 - [x] Advance one event, advance day, batch run, reset
 - [x] One month of Alex (or fixture subset) replays identically twice
 
+### Amendment — corpus timelines (plan §85)
+
+- [ ] Deterministic merge of canonical + background (+ noise) timelines by timestamp
+- [ ] Scenario reset reproduces identical merged background traffic for a fixed seed/revision
+
 ## Test plan
 
 - Determinism: same seed + scenario → identical emitted event ids/timestamps
 - Reset clears demo storage under the demo root only
+- (amendment) Same corpus seed → identical merged event id sequence
 
 ## Privacy constraints
 

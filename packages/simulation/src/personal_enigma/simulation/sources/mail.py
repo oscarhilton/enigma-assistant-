@@ -1,4 +1,8 @@
-"""Synthetic mail DataSource — scenario events → PrivateMessage (D4)."""
+"""Synthetic mail DataSource — scenario events → PrivateMessage (D4).
+
+Supports multi-stream merge (canonical | corpus background | generated noise)
+without exposing evaluator ``signal_class`` on emitted messages.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +12,11 @@ from typing import Any
 
 from personal_enigma.domain import PrivateMessage, PrivatePersonRef
 from personal_enigma.ingestion.protocol import ChangeBatch, SyncCursor
+from personal_enigma.simulation.corpus.streams import (
+    MailStream,
+    merge_stream_events,
+    strip_evaluator_keys,
+)
 from personal_enigma.simulation.scenario import ScenarioEvent, ScenarioPackage
 from personal_enigma.simulation.sources import (
     _aware,
@@ -48,7 +57,7 @@ def _refs(value: Any) -> list[PrivatePersonRef]:
 
 
 def message_from_event(event: ScenarioEvent) -> PrivateMessage:
-    payload = event.payload
+    payload = strip_evaluator_keys(dict(event.payload))
     raw_id = str(payload.get("id") or event.id)
     return PrivateMessage(
         id=stable_id("mail", raw_id),
@@ -79,15 +88,25 @@ class SyntheticMailSource:
 
     def __init__(
         self,
-        events: ScenarioPackage | Sequence[ScenarioEvent],
+        events: ScenarioPackage | Sequence[ScenarioEvent] | None = None,
         *,
+        streams: Sequence[MailStream] | None = None,
         until: datetime | None = None,
     ) -> None:
-        self._events = events_for_source(
-            package_events(events),
-            source="mail",
-            until=until,
-        )
+        if streams is not None:
+            self._events = [
+                e
+                for e in merge_stream_events(streams)
+                if until is None or e.at <= until
+            ]
+        elif events is not None:
+            self._events = events_for_source(
+                package_events(events),
+                source="mail",
+                until=until,
+            )
+        else:
+            self._events = []
 
     async def get_changes(self, cursor: SyncCursor | None) -> ChangeBatch:
         items = [
@@ -95,4 +114,6 @@ class SyntheticMailSource:
             for event in self._events
             if event.type in {"email.receive", "email.send"}
         ]
+        # Defence in depth: strip any evaluator keys that slipped into dumps.
+        items = [strip_evaluator_keys(item) for item in items]
         return batch_from_items(items, source_name=self.source_name, start=cursor_index(cursor))

@@ -40,10 +40,17 @@
 - [x] Eval runner can run fully offline with replay
 - [x] Mismatch behaviour is explicit (fail vs passthrough policy documented)
 
+### Amendment — scale replay (plan §85)
+
+- [ ] Content-addressed replay fixtures suitable for canonical-scale corpus runs
+- [ ] Corpus fingerprint (dataset, revision, sanitiser, selection seed) recorded with replay sets
+- [ ] Avoid storing duplicate prompt payloads for large background runs
+
 ## Test plan
 
 - Record → replay → identical eval report for a feature scenario
 - Attempting replay with Private credentials present still does not hit network when replay mode forced
+- (amendment) Offline canonical profile smoke using replay (nightly; not PR CI bulk download)
 
 ## Privacy constraints
 

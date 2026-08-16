@@ -71,4 +71,5 @@ Apple Bridge is trusted local software. It does not call an LLM and does not exp
 | `scenarios/` | Immutable Demo scenario packages (e.g. `alex-v1`) |
 
 See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.  
-Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).
+Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).  
+Background email corpus: [demo-corpus.md](./demo-corpus.md).

@@ -50,12 +50,21 @@
 - [x] Events describe **source-layer** evidence (mail/calendar/reminder/note/contact) — not pre-baked `Obligation` objects
 - [x] Seeded RNG primitives (`scenario_rng` / `package.rng()`); alex-v1 loads deterministically
 
+### Amendment — background corpus (plan §85)
+
+- [ ] Scenario schema accepts optional `background.email[]` (corpus id, seed, message_count, date_range, classification)
+- [ ] Corpus manifest schema (pinned revision, licence, adapter, provenance, `profiles_allowed`)
+- [ ] Profile schema: `feature` | `demo` | `canonical` | `stress`
+- [ ] Background declarations are simulation metadata — invisible to Enigma
+
 ## Test plan
 
 - Load + validate each feature scenario
 - Invalid fixtures fail validation tests
 - alex-v1 double-load is byte-stable; seeded RNG repeats
+- (amendment) Reject public_demo profile referencing non-`SYNTHETIC_CONFIRMED` corpus
 
 ## Privacy constraints
 
 - Scenario content is fictional; still treat like sensitive fixtures in CI logs (no accidental Private paths)
+- Background manifests must not vendor bulk third-party corpora into `scenarios/`

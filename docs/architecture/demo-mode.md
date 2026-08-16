@@ -2,7 +2,8 @@
 
 **Status:** Tickets ready (post-`v0.1.0-mvp`) — implementation starts at D01  
 **Spec:** Enigma Phase 2 — Demo Mode Technical Specification v0.2  
-**Tickets:** [milestone-map.md](./milestone-map.md) (D01–D12)
+**Tickets:** [milestone-map.md](./milestone-map.md) (D01–D12; corpus via D08a–e)  
+**Background corpus:** [demo-corpus.md](./demo-corpus.md)
 
 ## Executive summary
 
@@ -103,4 +104,4 @@ before Enigma is entrusted with a real person's life.
 | `packages/simulation` | Environment, clock stubs, event stubs, synthetic source pins |
 | `packages/evaluation` | Eval runner + metric placeholders |
 | `scenarios/` | Immutable scenario packages (`alex-v1`, …) |
-| `tickets/demo-*` | Phase 2 work units D01–D12 |
+| `tickets/demo-*` | Phase 2 work units D01–D12 (+ D08a–e corpus subtasks) |

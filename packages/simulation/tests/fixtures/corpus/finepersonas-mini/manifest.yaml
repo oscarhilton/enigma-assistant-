@@ -1,0 +1,27 @@
+id: finepersonas-mini
+
+source:
+  type: local
+  dataset: enigma/finepersonas-mini
+  revision: mini-v1
+  path: .
+
+licence:
+  declared: original-synthetic-fixture
+  redistribution_reviewed: true
+
+format:
+  adapter: finepersonas
+
+content:
+  synthetic: true
+
+provenance: synthetic_confirmed
+
+profiles_allowed:
+  public_demo: true
+  developer: true
+  stress: true
+
+cache:
+  checksum: "fixture-not-from-huggingface"
