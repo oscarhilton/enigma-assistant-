@@ -1,7 +1,7 @@
 [project]
 name = "personal-enigma-evaluation"
 version = "0.1.0"
-description = "Demo Mode evaluation runner and metrics"
+description = "Demo Mode evaluation runner, ground truth, and metrics"
 requires-python = ">=3.12"
 dependencies = [
   "personal-enigma-domain",

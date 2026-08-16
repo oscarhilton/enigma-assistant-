@@ -177,6 +177,45 @@ importance: urgent
         load_ground_truth(truth_file)
 
 
+def test_commitment_kind_field_is_not_document_discriminator(tmp_path: Path) -> None:
+    """``kind: inferred`` is a CommitmentTruth field, not a document type."""
+    truth_dir = tmp_path / "ground_truth"
+    truth_dir.mkdir()
+    (truth_dir / "commitment.yaml").write_text(
+        """
+id: commitment_deck
+description: Send Q2 deck to Maya
+kind: inferred
+created_at: "2026-03-02T09:00:00Z"
+due_at: "2026-03-04T17:00:00Z"
+""",
+        encoding="utf-8",
+    )
+    corpus = load_ground_truth(truth_dir)
+    assert len(corpus.commitments) == 1
+    assert corpus.commitments[0].kind.value == "inferred"
+    assert corpus.obligations == []
+
+
+def test_invalid_obligation_status_fails(tmp_path: Path) -> None:
+    truth_file = tmp_path / "bad_status.yaml"
+    truth_file.write_text(
+        """
+kind: obligation
+id: obligation_typo
+description: typo status
+created_at: "2026-03-01T00:00:00Z"
+status_timeline:
+  - at: "2026-03-01T00:00:00Z"
+    status: opne
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(GroundTruthValidationError) as exc_info:
+        load_ground_truth(truth_file)
+    assert any("invalid status" in err for err in exc_info.value.errors)
+
+
 def test_spec_shaped_singular_wrappers(tmp_path: Path) -> None:
     truth_dir = tmp_path / "ground_truth"
     truth_dir.mkdir()

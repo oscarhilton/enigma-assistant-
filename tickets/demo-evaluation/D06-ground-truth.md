@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` (PR pending) |
 | Branch | `ticket/D06-ground-truth` |
 | Domain | `demo-evaluation` |
 
@@ -31,9 +31,9 @@
 
 ## Acceptance criteria
 
-- [ ] Obligation / commitment / attention-window / memory-checkpoint ground-truth models
-- [ ] Loader for `ground_truth/*.yaml`
-- [ ] Evaluation can identify a missed obligation automatically against truth
+- [x] Obligation / commitment / attention-window / memory-checkpoint ground-truth models
+- [x] Loader for `ground_truth/*.yaml`
+- [x] Evaluation can identify a missed obligation automatically against truth
 
 ## Test plan
 

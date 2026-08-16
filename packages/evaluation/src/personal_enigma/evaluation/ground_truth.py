@@ -106,6 +106,13 @@ class ObligationTruth(BaseModel):
             self.status_timeline = [
                 StatusPoint(at=self.created_at, status=ObligationStatus.OPEN.value)
             ]
+        allowed = {s.value for s in ObligationStatus}
+        for point in self.status_timeline:
+            if point.status not in allowed:
+                raise ValueError(
+                    f"obligation {self.id!r}: invalid status {point.status!r}; "
+                    f"expected one of {sorted(allowed)}"
+                )
         return self
 
     def status_at(self, when: datetime) -> str:
@@ -145,6 +152,13 @@ class CommitmentTruth(BaseModel):
                     status=CommitmentTruthStatus.OPEN.value,
                 )
             ]
+        allowed = {s.value for s in CommitmentTruthStatus}
+        for point in self.status_timeline:
+            if point.status not in allowed:
+                raise ValueError(
+                    f"commitment {self.id!r}: invalid status {point.status!r}; "
+                    f"expected one of {sorted(allowed)}"
+                )
         return self
 
     def status_at(self, when: datetime) -> str:
@@ -326,14 +340,13 @@ def _parse_and_merge(corpus: GroundTruthCorpus, data: dict[str, Any], *, path: s
     if isinstance(kind, str):
         kind_l = kind.strip().lower()
         section = _KIND_TO_SECTION.get(kind_l)
-        if section is None:
-            raise GroundTruthValidationError(
-                [f"{path}: unknown kind {kind!r}; expected one of {sorted(_KIND_TO_SECTION)}"]
-            )
-        body = {k: v for k, v in data.items() if k != "kind"}
-        _append_validated(corpus, path=path, **{section: body})
-        corpus.source_paths.append(path)
-        return
+        if section is not None:
+            # Document-type discriminator (kind: obligation|commitment|...).
+            # Commitment field values like kind: inferred fall through below.
+            body = {k: v for k, v in data.items() if k != "kind"}
+            _append_validated(corpus, path=path, **{section: body})
+            corpus.source_paths.append(path)
+            return
 
     section_keys = {
         "obligations",
