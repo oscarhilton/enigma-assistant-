@@ -1,0 +1,20 @@
+# F-background-identity — rewritten cast consistency (CI, no HF download).
+profile: feature
+
+notes: >
+  Mini fixture threads rewrite FinePersonas native names into stable
+  background-person-* / company-*.example identities.
+
+profiles:
+  feature:
+    email:
+      - id: identity-correspondence
+        corpus: finepersonas-mini
+        seed: f-background-identity-v1
+        conversation_count: 3
+        date_range:
+          start: 2026-04-07
+          end: 2026-04-11
+        classification:
+          signal_class: background
+          expected_attention: false
