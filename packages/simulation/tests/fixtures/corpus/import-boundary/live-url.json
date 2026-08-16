@@ -1,0 +1,13 @@
+{
+  "id": "gate-live-url",
+  "emails": [
+    {
+      "sender_name": "Sam Rivera",
+      "sender_email": "sam@northstar-design.io",
+      "recipient_names": ["Alex Morgan"],
+      "recipient_emails": ["alex@morgan.example"],
+      "subject": "Docs link",
+      "body_text": "See https://partner-docs.corp/project/status and http://intranet.acme-widgets.com/wiki/lease for details."
+    }
+  ]
+}

@@ -36,7 +36,7 @@
 ### Amendment — corpus safety (plan §85)
 
 - [ ] Optional SpamAssassin / TREC adapters for **developer** profiles only (`public_demo: false`)
-- [ ] Corpus sanitiser adversarial cases: live URLs, secret-like strings, unexpected real entities
+- [x] Corpus sanitiser adversarial cases: live URLs, secret-like strings, unexpected real entities (`ticket/f-import-boundary-gates`)
 - [ ] Do not mix hostile messages into ordinary background by default
 
 ## Test plan

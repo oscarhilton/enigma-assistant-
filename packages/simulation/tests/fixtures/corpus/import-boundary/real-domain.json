@@ -1,0 +1,13 @@
+{
+  "id": "gate-real-domain",
+  "emails": [
+    {
+      "sender_name": "Jordan Lee",
+      "sender_email": "jordan@acme-widgets.com",
+      "recipient_names": ["Alex Morgan"],
+      "recipient_emails": ["alex@morgan.example"],
+      "subject": "Sync + cc partner@northstar-design.io",
+      "body_text": "Hi Alex,\n\nPlease reply to jordan@acme-widgets.com or loop in ops@riverside-college.edu.\n\nJordan"
+    }
+  ]
+}
