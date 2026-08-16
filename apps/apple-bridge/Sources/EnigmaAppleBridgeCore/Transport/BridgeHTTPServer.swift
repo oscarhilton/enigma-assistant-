@@ -4,12 +4,14 @@ import Network
 /// Local-only HTTP server for the Apple Bridge.
 ///
 /// Binds to `127.0.0.1` or a Unix domain socket, requires bearer auth, and exposes
-/// `GET /health`, `GET /capabilities`, and `GET /notes/changes`.
-/// Never calls LLM providers.
+/// `GET /health`, `GET /capabilities`, `GET /calendar/*`, `GET /reminders/changes`,
+/// and `GET /notes/changes`. Never calls LLM providers.
 public final class BridgeHTTPServer: @unchecked Sendable {
     public let endpoint: BridgeEndpoint
     private let auth: BridgeAuth
     private let permissionHooks: PermissionHooks
+    private let calendarSource: CalendarSource
+    private let remindersSource: RemindersSource
     private let notesSource: NotesSource
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.personal-enigma.bridge-http")
@@ -18,12 +20,19 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         endpoint: BridgeEndpoint = .defaultLoopback,
         token: String,
         permissionHooks: PermissionHooks? = nil,
+        calendarSource: CalendarSource = CalendarSource(),
+        remindersSource: RemindersSource = RemindersSource(),
         notesSource: NotesSource = NotesSource()
     ) {
         self.endpoint = endpoint
         self.auth = BridgeAuth(expectedToken: token)
+        self.calendarSource = calendarSource
+        self.remindersSource = remindersSource
         self.notesSource = notesSource
-        self.permissionHooks = permissionHooks ?? PermissionHooks(notesSource: notesSource)
+        self.permissionHooks = permissionHooks ?? PermissionHooks(
+            remindersSource: remindersSource,
+            notesSource: notesSource
+        )
     }
 
     public var isRunning: Bool { listener != nil }
@@ -137,6 +146,28 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         case ("GET", "/capabilities"):
             let report = permissionHooks.capabilities()
             let body = try BridgeJSON.encode(report)
+            return (200, "application/json", body)
+        case ("GET", "/calendar/changes"):
+            let cursor = query["cursor"]
+            let selected = Self.parseCalendarIDs(query["calendar_ids"] ?? query["calendars"])
+            let response = calendarSource.getChanges(cursor: cursor, selectedCalendarIDs: selected)
+            let body = try BridgeJSON.encode(response)
+            return (200, "application/json", body)
+        case ("GET", "/calendar/calendars"):
+            struct CalendarsPayload: Encodable {
+                var authorised: Bool
+                var calendars: [CalendarInfoDTO]
+            }
+            let typed = CalendarsPayload(
+                authorised: calendarSource.isReady(),
+                calendars: calendarSource.listCalendars()
+            )
+            let body = try BridgeJSON.encode(typed)
+            return (200, "application/json", body)
+        case ("GET", "/reminders/changes"):
+            let cursor = query["cursor"]
+            let response = remindersSource.changes(cursor: cursor)
+            let body = try BridgeJSON.encode(response)
             return (200, "application/json", body)
         case ("GET", "/notes/changes"):
             let cursor = query["cursor"]
@@ -283,5 +314,14 @@ public final class BridgeHTTPServer: @unchecked Sendable {
             result[key] = value
         }
         return result
+    }
+
+    static func parseCalendarIDs(_ raw: String?) -> Set<String> {
+        guard let raw, !raw.isEmpty else { return [] }
+        return Set(
+            raw.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
     }
 }

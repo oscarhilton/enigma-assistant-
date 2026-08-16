@@ -10,18 +10,37 @@ public enum BridgeSourceID: String, Codable, Sendable, CaseIterable {
 }
 
 public struct PermissionHooks: Sendable {
+    private let calendarIsAuthorised: @Sendable () -> Bool
+    private let calendarRequestAccess: @Sendable () async -> Bool
+    private let remindersSource: RemindersSource
     private let notesSource: NotesSource
 
-    public init(notesSource: NotesSource = NotesSource()) {
+    public init(
+        calendarIsAuthorised: @escaping @Sendable () -> Bool = {
+            EventKitCalendarAccess().authorizationStatus() == .authorised
+        },
+        calendarRequestAccess: @escaping @Sendable () async -> Bool = {
+            await EventKitCalendarAccess().requestReadAccess()
+        },
+        remindersSource: RemindersSource = RemindersSource(),
+        notesSource: NotesSource = NotesSource()
+    ) {
+        self.calendarIsAuthorised = calendarIsAuthorised
+        self.calendarRequestAccess = calendarRequestAccess
+        self.remindersSource = remindersSource
         self.notesSource = notesSource
     }
 
-    /// Stub permission prompt for non-Notes sources. Notes uses explicit opt-in + automation.
+    /// Permission prompt. Calendar/Reminders use EventKit; Notes uses opt-in + automation.
     public func requestAuthorisation(for source: BridgeSourceID) async -> Bool {
         switch source {
+        case .calendar:
+            return await calendarRequestAccess()
+        case .reminders:
+            return await remindersSource.requestAuthorisation()
         case .notes:
             return await notesSource.requestAuthorisation()
-        case .calendar, .reminders, .contacts:
+        case .contacts:
             return false
         }
     }
@@ -29,9 +48,13 @@ public struct PermissionHooks: Sendable {
     /// Current authorisation snapshot without prompting.
     public func isAuthorised(_ source: BridgeSourceID) -> Bool {
         switch source {
+        case .calendar:
+            return calendarIsAuthorised()
+        case .reminders:
+            return remindersSource.isAuthorised()
         case .notes:
             return notesSource.isAuthorised()
-        case .calendar, .reminders, .contacts:
+        case .contacts:
             return false
         }
     }
