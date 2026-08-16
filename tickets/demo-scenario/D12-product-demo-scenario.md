@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/D12-product-demo-scenario` |
 | Domain | `demo-scenario` |
 | Baseline | `v0.1.0-mvp` |
@@ -36,10 +36,10 @@
 
 ## Acceptance criteria
 
-- [ ] Scripted demo path: day-one emptiness → weeks of evidence → attention that reflects open loops
-- [ ] Walkthrough doc: operator steps, expected screens, eval snapshot vs `v0.1.0-mvp` control
-- [ ] Exit-gate checklist: environment separation holds, feature+Alex evals green, adversarial privacy pack green, remote optional
-- [ ] Explicit statement of what Phase 2 proved and what remains out of scope (Mail, Messages, etc.)
+- [x] Scripted demo path: day-one emptiness → weeks of evidence → attention that reflects open loops
+- [x] Walkthrough doc: operator steps, expected screens, eval snapshot vs `v0.1.0-mvp` control
+- [x] Exit-gate checklist: environment separation holds, feature+Alex evals green, adversarial privacy pack green, remote optional
+- [x] Explicit statement of what Phase 2 proved and what remains out of scope (Mail, Messages, etc.)
 
 ## Test plan
 
