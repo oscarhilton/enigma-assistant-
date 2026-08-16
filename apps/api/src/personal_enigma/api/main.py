@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+<<<<<<< HEAD
 from personal_enigma.api.routes.external import install_external_routes
+=======
+>>>>>>> origin/main
 from personal_enigma.api.routes.privacy_inspector import install_privacy_inspector_routes
 from personal_enigma.api.routes.settings import install_settings_routes
 
@@ -22,7 +25,10 @@ def create_app() -> FastAPI:
 
     install_settings_routes(application)
     install_privacy_inspector_routes(application)
+<<<<<<< HEAD
     install_external_routes(application)
+=======
+>>>>>>> origin/main
     return application
 
 
