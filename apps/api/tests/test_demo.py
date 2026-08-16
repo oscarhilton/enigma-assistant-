@@ -84,6 +84,8 @@ def test_demo_suppressed_inspector(monkeypatch: pytest.MonkeyPatch) -> None:
     assert all(row["suppression_reason"] == "spam" for row in filtered["items"])
     bad = client.get("/demo/suppressed", params={"reason": "signal_class"})
     assert bad.status_code == 400
+    empty = client.get("/demo/suppressed", params={"reason": ""})
+    assert empty.status_code == 400
 
 
 def test_timeline_step_and_speed(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -124,8 +124,8 @@ export function SuppressionInspector({ fetchImpl = fetch }: SuppressionInspector
                       <dt>Why not</dt>
                       <dd>
                         <ul>
-                          {item.why_not.map((line) => (
-                            <li key={line}>{line}</li>
+                          {item.why_not.map((line, index) => (
+                            <li key={`${item.id}-why-${index}`}>{line}</li>
                           ))}
                         </ul>
                       </dd>

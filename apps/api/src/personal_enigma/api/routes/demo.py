@@ -328,7 +328,7 @@ class DemoSession:
     def suppressed_payload(self, reason: str | None = None) -> dict[str, Any]:
         """Developer-only inspector — never expose ScenarioSignalClass labels."""
         items = list(_STUB_SUPPRESSED)
-        if reason:
+        if reason is not None:
             if reason not in _SUPPRESSION_FILTERS:
                 raise HTTPException(
                     status_code=400,
