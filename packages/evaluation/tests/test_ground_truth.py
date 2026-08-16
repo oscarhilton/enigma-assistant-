@@ -15,7 +15,6 @@ from personal_enigma.evaluation.ground_truth import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ALEX_GROUND_TRUTH = REPO_ROOT / "scenarios" / "alex-v1" / "ground_truth"
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "ground_truth"
 
 
 def test_load_alex_schema_example() -> None:
@@ -30,8 +29,29 @@ def test_load_alex_schema_example() -> None:
     assert any(m.id == "checkpoint-2026-03-31" for m in corpus.memory_checkpoints)
 
 
-def test_missed_critical_obligation_is_detected() -> None:
-    corpus = load_ground_truth(FIXTURES / "missed_critical")
+def test_missed_critical_obligation_is_detected(tmp_path: Path) -> None:
+    truth_dir = tmp_path / "ground_truth"
+    truth_dir.mkdir()
+    (truth_dir / "truth.yaml").write_text(
+        """
+obligations:
+  - id: obligation_atlas_review
+    description: review Atlas proposal
+    created_at: "2026-03-17T11:14:00Z"
+    due_at: "2026-03-20T15:00:00Z"
+    importance: high
+    status_timeline:
+      - at: "2026-03-17T11:14:00Z"
+        status: open
+attention_windows:
+  - obligation: obligation_atlas_review
+    earliest: "2026-03-19T09:00:00Z"
+    ideal: "2026-03-20T09:30:00Z"
+    latest: "2026-03-20T12:00:00Z"
+""",
+        encoding="utf-8",
+    )
+    corpus = load_ground_truth(truth_dir)
     # Attention never surfaced the obligation after the window opened
     missed = detect_missed_obligations(
         corpus,
