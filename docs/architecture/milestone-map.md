@@ -78,30 +78,21 @@ D01 Environment separation          ← structural Demo/Private split
     ▼
 D02 Simulation clock
     │
-    ├──────────────┐
-    ▼              ▼
-D03 Scenario    D04 Synthetic sources
-format             │
-    │              │
-    └──────┬───────┘
-           ▼
-    D05 Simulation engine
-           │
-           ▼
-    D06 Ground truth
-           │
-           ▼
-    D07 Evaluation runner           ← laboratory complete
-           │
-           ▼
-    D08 Build Alex                  ← first serious continuity test
-           │
-    ┌──────┼──────────┐
-    ▼      ▼          ▼
-   D09    D10        D11
-adversarial  UI     replay
-    │      │          │
-    └──────┴────┬─────┘
+    ▼
+D03 Scenario format ──────────────┐
+    │                             │
+    ▼                             │
+D04 Synthetic adapters            │
+    │                             │
+    ▼                             │
+D05 Event engine                  │
+    │                             │
+    ├──────────────┬──────────────┤
+    ▼              ▼              ▼
+   D09            D10            D11
+adversarial        UI           replay
+    │              │              │
+    └──────┴───────┴──────────────┘
                 ▼
               D12 exit gate
 ```
@@ -120,6 +111,7 @@ adversarial  UI     replay
 - **Phase 2.5 exit** (PASS at `v0.2.0-demo`): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).
 - **Attention surface wind-tunnel** (alex-v1 dump → ~2 cards not 11): [attention-surface.md](./attention-surface.md).
 - **Next Action** (always useful, never fake-urgent): [next-action.md](./next-action.md) · [ADR-010](../adr/010-next-action-not-attention.md).
+- **Reasoning-LLM benchmark** (Judge first, before more Shadow): [reasoning-llm-benchmark.md](./reasoning-llm-benchmark.md) · [ADR-011](../adr/011-llm-structured-judgement.md) · tickets [F-llm-judge-harness](../../tickets/demo-evaluation/F-llm-judge-harness.md) (+ catalogue / replay / ablation / arms C–E).
 
 ---
 
@@ -197,4 +189,3 @@ S06 Exit criteria (before Private notifications)
 - Every silence is a logged prediction ([ADR-009](../adr/009-silence-as-prediction.md)); empty UI ≠ exit evidence ([shadow-silence-evaluation.md](./shadow-silence-evaluation.md)).
 - SE* tickets soft-depend on S01–S06 / earlier SE*; they must not re-implement env/banner/storage.
 - Do not edit Demo attention freeze / D15 card UX from silence tickets; do not start Gmail OAuth from this track.
-

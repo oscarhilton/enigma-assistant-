@@ -111,6 +111,18 @@ Do not invent speculative F-* work during D08c. Once the merge gate is green, cl
 2. Quality: `F-background-volume-vs-importance` → `F-retrieval-keyword-pollution`
 3. Import boundary: `F-corpus-real-domain-rewrite` → `F-corpus-live-url` → `F-corpus-secret-like-string` → `F-corpus-unexpected-real-entity`
 
+## Reasoning-LLM benchmark (post Phase 2.5 stub)
+
+Controlled arms before more Shadow work — [reasoning-llm-benchmark.md](../docs/architecture/reasoning-llm-benchmark.md):
+
+| Ticket | Status | Notes |
+| --- | --- | --- |
+| [F-llm-judge-harness](./demo-evaluation/F-llm-judge-harness.md) | `in_progress` | Arm B schema + authority + DRY_RUN/replay scaffold |
+| [F-judgement-scenario-catalogue](./demo-scenario/F-judgement-scenario-catalogue.md) | `todo` | Soft-dep sibling: MUST_SURFACE / MUST_SUPPRESS labels |
+| [F-llm-judge-record-replay](./demo-evaluation/F-llm-judge-record-replay.md) | `todo` | Live capture → CI fixtures |
+| [F-llm-judge-privacy-ablation](./demo-evaluation/F-llm-judge-privacy-ablation.md) | `todo` | Raw vs PERSON_* on fictional Alex only |
+| [F-llm-arms-c-e](./demo-evaluation/F-llm-arms-c-e.md) | `todo` | Discovery / Hybrid / Oracle later |
+
 ### Attention-surface F-* (from wind-tunnel dump)
 
 Named failures from the Demo Attention “successful failure” — see [attention-surface.md](../docs/architecture/attention-surface.md):

@@ -1,0 +1,121 @@
+{
+  "request": {
+    "checkpoint_id": "alex-wed-21-jan-noon",
+    "clock": "2026-01-21T12:00:00Z",
+    "scenario": "alex-v1",
+    "candidates": [
+      {
+        "candidate_id": "cand-brunch-parents",
+        "title": "Book Saturday brunch for Elena's parents",
+        "evidence_ids": ["rem-brunch-book", "mail-elena-brunch", "cal-brunch-parents"],
+        "due_at": "2026-01-24T11:00:00Z",
+        "local_rank": 1
+      },
+      {
+        "candidate_id": "cand-token-audit",
+        "title": "Draft colour + spacing token inventory",
+        "evidence_ids": ["mail-jordan-tokens", "rem-token-audit"],
+        "due_at": "2026-01-21T17:00:00Z",
+        "local_rank": 2
+      },
+      {
+        "candidate_id": "cand-dentist",
+        "title": "Dentist",
+        "evidence_ids": ["cal-dentist"],
+        "due_at": "2026-01-22T09:00:00Z",
+        "local_rank": 8
+      }
+    ],
+    "evidence": [
+      {
+        "evidence_id": "rem-brunch-book",
+        "summary": "Reminder: Book Saturday brunch for PERSON_ELENA parents",
+        "entities": ["PERSON_ELENA"],
+        "source_type": "reminder"
+      },
+      {
+        "evidence_id": "mail-elena-brunch",
+        "summary": "Mail from PERSON_ELENA: Can you handle brunch bookings?",
+        "entities": ["PERSON_ELENA"],
+        "source_type": "mail"
+      },
+      {
+        "evidence_id": "cal-brunch-parents",
+        "summary": "Calendar: Brunch with PERSON_ELENA parents",
+        "entities": ["PERSON_ELENA"],
+        "source_type": "calendar_event"
+      },
+      {
+        "evidence_id": "mail-jordan-tokens",
+        "summary": "Mail from PERSON_JORDAN: token inventory draft",
+        "entities": ["PERSON_JORDAN"],
+        "source_type": "mail"
+      },
+      {
+        "evidence_id": "rem-token-audit",
+        "summary": "Reminder: Draft colour + spacing token inventory",
+        "entities": ["PERSON_JORDAN"],
+        "source_type": "reminder"
+      },
+      {
+        "evidence_id": "cal-dentist",
+        "summary": "Calendar: Dentist",
+        "entities": [],
+        "source_type": "calendar_event"
+      }
+    ],
+    "context": {
+      "summary": "Checkpoint alex-wed-21-jan-noon | open loops: brunch parents, token audit | calendar noise: dentist",
+      "entities": ["PERSON_ELENA", "PERSON_JORDAN"],
+      "metadata": {
+        "source_type": "llm_judge_checkpoint",
+        "record_id": "alex-wed-21-jan-noon",
+        "provider": "synthetic"
+      },
+      "may_transmit_remotely": true
+    }
+  },
+  "response": {
+    "schema_version": "1",
+    "model": "fixture-judge",
+    "judgements": [
+      {
+        "candidate_id": "cand-brunch-parents",
+        "kind": "obligation",
+        "status": "open",
+        "importance": "critical",
+        "attention": "must_surface",
+        "timing": "soon",
+        "confidence": 0.92,
+        "reason_codes": ["multi_source", "deadline_72h", "explicit_reminder"],
+        "evidence_ids": ["rem-brunch-book", "mail-elena-brunch", "cal-brunch-parents"]
+      },
+      {
+        "candidate_id": "cand-token-audit",
+        "kind": "obligation",
+        "status": "open",
+        "importance": "high",
+        "attention": "must_surface",
+        "timing": "now",
+        "confidence": 0.88,
+        "reason_codes": ["multi_source", "deadline_today"],
+        "evidence_ids": ["mail-jordan-tokens", "rem-token-audit"]
+      },
+      {
+        "candidate_id": "cand-dentist",
+        "kind": "situational",
+        "status": "open",
+        "importance": "low",
+        "attention": "suppress",
+        "timing": "n/a",
+        "confidence": 0.81,
+        "reason_codes": ["calendar_existence_only"],
+        "evidence_ids": ["cal-dentist"]
+      }
+    ]
+  },
+  "notes": {
+    "truth_todo": "Replace local fixture IDs with catalogue labels from F-judgement-scenario-catalogue when sibling lands; do not edit obligations.yaml from this harness PR.",
+    "ideal_first_case": "parents/brunch"
+  }
+}
