@@ -43,7 +43,9 @@ apps/worker         Ingestion / attention jobs
 apps/web            Settings / privacy UI
 apps/apple-bridge   Swift macOS companion (local only)
 packages/domain     Canonical private models
-packages/ingestion  DataSource protocol
+packages/ingestion  DataSource protocol + per-source adapters
+packages/identity   PERSON_* entity resolution (M10)
+packages/dedupe     Calendar dedupe (M12)
 packages/privacy    Privacy levels / invariants
 packages/transformation
 packages/attention

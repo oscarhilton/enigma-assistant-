@@ -58,7 +58,9 @@ Apple Bridge is trusted local software. It does not call an LLM and does not exp
 | `apps/web` | Settings / privacy UI |
 | `apps/apple-bridge` | Swift macOS companion |
 | `packages/domain` | Canonical models |
-| `packages/ingestion` | `DataSource` protocol |
+| `packages/ingestion` | `DataSource` protocol + per-source adapters |
+| `packages/identity` | Local entity resolution / PERSON_* |
+| `packages/dedupe` | Cross-provider calendar dedupe |
 | `packages/privacy` | Privacy levels / invariants |
 | `packages/transformation` | Enigma transformer |
 | `packages/attention` | Attention engine |

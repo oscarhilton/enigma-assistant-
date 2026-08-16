@@ -8,33 +8,41 @@
 
 ## Package boundary (hard)
 
-- May edit: google calendar source under ingestion / new google package
-- May edit: dedupe helpers (prefer `packages/ingestion` or small `packages/dedupe`)
-- Coordinate with M08 for dual-ingest fixtures — do not rewrite Apple bridge
+- May edit: `packages/ingestion/src/personal_enigma/ingestion/sources/google_calendar.py`
+- May edit: `packages/dedupe/**`
+- May edit: `apps/api/src/personal_enigma/api/google/calendar/**` and `apps/worker/src/personal_enigma/worker/google/calendar/**` (create)
+- May edit: `apps/web/src/settings/calendars/google/**` (create) for Google calendar selection only
+- Must not edit: Apple bridge Calendar module, `sources/apple_*.py`
 
-## Depends on
+## Hard depends
 
-- M01, M08 recommended for dedupe tests
+- M01
 
-## Unlocks
+## Soft depends (~)
 
-- M15 calendar evidence without duplicates
+- M08 (dual-source dedupe fixtures — implement Google ingest first; add Apple∪Google tests when M08 exists)
+- M00b
+
+## Unlocks / enhances
+
+- Calendar evidence without duplicates for M15
 
 ## Non-goals
 
 - Write events
 - Blind import of all calendars without user selection
+- Rewriting Apple EventKit code
 
 ## Acceptance criteria
 
 - [ ] Read-only Google Calendar API → `PrivateCalendarEvent` (`provider="google_calendar"`)
 - [ ] User calendar selection
-- [ ] Deduplicate against Apple-ingested same events (one canonical event)
-- [ ] Downstream ignores provider for attention
+- [ ] `dedupe_calendar_events` collapses Google∪Apple duplicates to one canonical event
+- [ ] Downstream attention ignores provider
 
 ## Test plan
 
-- Dual-source fixture: same meeting via Google + Apple → one event
+- Dual-source fixture: same meeting via Google + Apple → one event (skip Apple side until M08)
 - Selection tests exclude unchecked calendars
 
 ## Privacy constraints

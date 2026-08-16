@@ -8,22 +8,29 @@
 
 ## Package boundary (hard)
 
-- May edit: `packages/attention/**`
+- May edit: `packages/attention/**` only
 - May read: domain, fixtures, transformation
-- Worker wiring allowed only for invoking the engine
+- Must not edit: obligation merge package logic reserved for M15 beyond exporting attention kinds
 
-## Depends on
+## Hard depends
 
-- M01, M02; M03 recommended
+- M01
 
-## Unlocks
+## Soft depends (~)
 
-- M15, M16
+- M02 (scenarios)
+- M03 (transformed inputs)
+- M09 (richer explicit-reminder signals later — **do not wait**)
+
+## Unlocks / enhances
+
+- Hard-unlocks M15 ranking inputs
 
 ## Non-goals
 
 - Full cross-source merge algorithm (M15)
 - UI polish
+- Remote LLM ranking (optional later via M05)
 
 ## Acceptance criteria
 

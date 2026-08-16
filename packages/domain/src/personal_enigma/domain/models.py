@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -29,12 +29,15 @@ class PrivateCalendarEvent(BaseModel):
     provider: Literal["apple_calendar", "google_calendar"]
     provider_event_id: str
     calendar_id: str | None = None
+    calendar_name: str | None = None
     title: str
     description: str | None = None
     location: str | None = None
+    url: str | None = None
     start_at: datetime
     end_at: datetime
     all_day: bool = False
+    availability: Literal["busy", "free", "tentative", "unavailable"] | None = None
     organiser: PrivatePersonRef | None = None
     attendees: list[PrivatePersonRef] = Field(default_factory=list)
     recurrence: RecurrenceInfo | None = None
@@ -78,10 +81,58 @@ class PrivateNote(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
+class PrivateMessage(BaseModel):
+    """Canonical private email/message — provider-agnostic after ingestion."""
+
+    id: str
+    provider: Literal["gmail"]
+    provider_message_id: str
+    thread_id: str | None = None
+    subject: str | None = None
+    snippet: str | None = None
+    body_text: str | None = None
+    from_person: PrivatePersonRef | None = None
+    to: list[PrivatePersonRef] = Field(default_factory=list)
+    cc: list[PrivatePersonRef] = Field(default_factory=list)
+    sent_at: datetime | None = None
+    received_at: datetime | None = None
+    labels: list[str] = Field(default_factory=list)
+
+
+class ReminderEvidence(BaseModel):
+    kind: Literal["reminder"] = "reminder"
+    reminder_id: str
+    title: str | None = None
+
+
+class EmailEvidence(BaseModel):
+    kind: Literal["email"] = "email"
+    message_id: str
+    subject: str | None = None
+
+
+class CalendarEvidence(BaseModel):
+    kind: Literal["calendar"] = "calendar"
+    event_id: str
+    title: str | None = None
+
+
+class NoteEvidence(BaseModel):
+    kind: Literal["note"] = "note"
+    note_id: str
+    title: str | None = None
+
+
+ObligationEvidence = Annotated[
+    ReminderEvidence | EmailEvidence | CalendarEvidence | NoteEvidence,
+    Field(discriminator="kind"),
+]
+
+
 class Obligation(BaseModel):
     """Cross-source obligation merged from reminders, email, and calendar evidence."""
 
     description: str
     due_at: datetime | None = None
-    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    evidence: list[ObligationEvidence] = Field(default_factory=list)
     confidence: float = 0.0

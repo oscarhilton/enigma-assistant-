@@ -9,16 +9,21 @@
 ## Package boundary (hard)
 
 - May edit: `packages/embeddings/**`
-- May wire worker indexing jobs
-- Must not call hosted embedding APIs for raw Notes corpora
+- May edit: `apps/worker/src/personal_enigma/worker/embeddings/**` (create) for indexing jobs
+- Must not edit: Apple Notes adapter (M13), hosted embedding API clients for raw private text
 
-## Depends on
+## Hard depends
 
-- M13 (primary); also useful for email/reminders/calendar descriptions
+- None beyond scaffold embeddings package
 
-## Unlocks
+## Soft depends (~)
 
-- Better M15 context; memory-style Notes use cases
+- M13 (Notes corpus — primary consumer)
+- M02 / M11 (email and other corpora can be indexed earlier)
+
+## Unlocks / enhances
+
+- Soft-enhances M15 context retrieval and Notes memory use cases
 
 ## Non-goals
 
@@ -31,11 +36,12 @@
 - [ ] Chunk → embed → local vector index pipeline
 - [ ] Retrieve top passages for a query; return text suitable for transformation
 - [ ] Index email/notes/reminders/calendar descriptions as configured
+- [ ] Works for non-Notes corpora even if M13 incomplete
 
 ## Test plan
 
 - Deterministic fake embedder for CI
-- Integration test: note corpus → retrieve relevant chunk for query
+- Integration test: corpus → retrieve relevant chunk
 - Guard test: no network calls in embed path
 
 ## Privacy constraints

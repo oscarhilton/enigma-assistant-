@@ -2,8 +2,12 @@
 
 Revised MVP order. Each milestone is a ticket under `tickets/<domain>/`.
 
+Platform tickets (M00*) were added after the ticket-system review to own persistence and settings so agents do not dump those concerns into unrelated PRs.
+
 | # | Milestone | Ticket |
 | --- | --- | --- |
+| 00a | Private persistence | [tickets/platform/M00a-persistence.md](../../tickets/platform/M00a-persistence.md) |
+| 00b | Settings / calendar selection | [tickets/platform/M00b-settings.md](../../tickets/platform/M00b-settings.md) |
 | 01 | Core schemas | [tickets/domain-model/M01-core-schemas.md](../../tickets/domain-model/M01-core-schemas.md) |
 | 02 | Synthetic fixture pipeline | [tickets/fixtures/M02-synthetic-fixture-pipeline.md](../../tickets/fixtures/M02-synthetic-fixture-pipeline.md) |
 | 03 | Enigma transformation | [tickets/transformation/M03-enigma-transformation.md](../../tickets/transformation/M03-enigma-transformation.md) |
@@ -23,5 +27,15 @@ Revised MVP order. Each milestone is a ticket under `tickets/<domain>/`.
 | 17 | Privacy inspector | [tickets/privacy/M17-privacy-inspector.md](../../tickets/privacy/M17-privacy-inspector.md) |
 | 18 | External sanitised API | [tickets/api-surface/M18-external-sanitised-api.md](../../tickets/api-surface/M18-external-sanitised-api.md) |
 | 19 | ChatGPT integration | [tickets/api-surface/M19-chatgpt-integration.md](../../tickets/api-surface/M19-chatgpt-integration.md) |
+
+## Suggested waves
+
+0. M01 (domain exclusive)
+1. M02 ∥ M07 ∥ M00b
+2. M03 → M04; M06; M00a after M01
+3. M08 ∥ M09 ∥ M10 (pinned ingestion files)
+4. M11 ∥ M12 ∥ M13; M05 ∥ M17
+5. M14 → M15 → M16
+6. M18 → M19
 
 Apple-first ordering means Enigma can become useful on a Mac before every cloud connector lands.

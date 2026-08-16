@@ -8,21 +8,29 @@
 
 ## Package boundary (hard)
 
-- May edit: `packages/transformation/**`
-- May read: `packages/domain/**`, `packages/privacy/**`, `packages/fixtures/**`
+- May edit: `packages/transformation/**` only
+- May read: `packages/domain/**`, `packages/privacy/**`, `packages/fixtures/**`, `packages/identity/**`
+- Must not edit: identity implementation (M10); may call `EntityResolver` protocol with a test double
 
-## Depends on
+## Hard depends
 
-- M01, M02 (recommended)
+- M01
 
-## Unlocks
+## Soft depends (~)
 
-- M04, M05, M06
+- M02 (fixture coverage)
+- M10 (richer Contacts-backed pseudonyms — **do not wait**; use stub HMAC resolver until M10)
+
+## Unlocks / enhances
+
+- Hard-unlocks M04, M05
+- Enables M06 local attention inputs
 
 ## Non-goals
 
 - Calling remote LLMs
 - Full obligation merging (M15)
+- Implementing `packages/identity` (M10)
 
 ## Acceptance criteria
 
