@@ -1,0 +1,21 @@
+{
+  "kind": "calendar#calendarList",
+  "items": [
+    {
+      "id": "primary",
+      "summary": "Personal",
+      "primary": true,
+      "accessRole": "owner"
+    },
+    {
+      "id": "work@example.com",
+      "summary": "Work",
+      "accessRole": "owner"
+    },
+    {
+      "id": "holidays",
+      "summary": "Holidays in United Kingdom",
+      "accessRole": "reader"
+    }
+  ]
+}

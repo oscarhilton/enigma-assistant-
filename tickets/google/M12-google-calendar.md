@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M12-google-calendar` |
 | Domain | `google` |
 
@@ -35,15 +35,16 @@
 
 ## Acceptance criteria
 
-- [ ] Read-only Google Calendar API → `PrivateCalendarEvent` (`provider="google_calendar"`)
-- [ ] User calendar selection
-- [ ] `dedupe_calendar_events` collapses Google∪Apple duplicates to one canonical event
-- [ ] Downstream attention ignores provider
+- [x] Read-only Google Calendar API → `PrivateCalendarEvent` (`provider="google_calendar"`)
+- [x] User calendar selection
+- [x] `dedupe_calendar_events` collapses Google∪Apple duplicates to one canonical event
+- [x] Downstream attention ignores provider
 
 ## Test plan
 
-- Dual-source fixture: same meeting via Google + Apple → one event (skip Apple side until M08)
-- Selection tests exclude unchecked calendars
+- [x] Dual-source fixture: same meeting via Google + Apple → one event (synthetic `PrivateCalendarEvent` pairs; Apple ingest not required)
+- [x] Selection tests exclude unchecked calendars
+- [x] Recorded HTTP fixtures for Google Calendar API
 
 ## Privacy constraints
 

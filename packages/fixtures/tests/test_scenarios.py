@@ -50,6 +50,13 @@ def test_get_scenario_registry() -> None:
     assert pack == review_proposal_scenario()
 
 
+def test_get_scenario_returns_fresh_copies() -> None:
+    a = get_scenario("review_proposal")
+    b = get_scenario("review_proposal")
+    a.metadata["mutated"] = "yes"
+    assert "mutated" not in b.metadata
+
+
 def test_in_memory_store_loads_review_proposal() -> None:
     store = InMemoryFixtureStore()
     pack = store.load_scenario_by_name("review_proposal")

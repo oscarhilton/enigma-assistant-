@@ -9,6 +9,7 @@ dependencies = [
   "personal-enigma-ingestion",
   "personal-enigma-privacy",
   "personal-enigma-transformation",
+  "personal-enigma-reasoning",
   "personal-enigma-attention",
   "personal-enigma-embeddings",
   "personal-enigma-fixtures",
@@ -25,6 +26,7 @@ members = [
   "packages/ingestion",
   "packages/privacy",
   "packages/transformation",
+  "packages/reasoning",
   "packages/attention",
   "packages/embeddings",
   "packages/fixtures",
@@ -40,6 +42,7 @@ personal-enigma-domain = { workspace = true }
 personal-enigma-ingestion = { workspace = true }
 personal-enigma-privacy = { workspace = true }
 personal-enigma-transformation = { workspace = true }
+personal-enigma-reasoning = { workspace = true }
 personal-enigma-attention = { workspace = true }
 personal-enigma-embeddings = { workspace = true }
 personal-enigma-fixtures = { workspace = true }
@@ -63,6 +66,7 @@ testpaths = [
   "packages/ingestion/tests",
   "packages/privacy/tests",
   "packages/transformation/tests",
+  "packages/reasoning/tests",
   "packages/attention/tests",
   "packages/embeddings/tests",
   "packages/fixtures/tests",
@@ -82,6 +86,7 @@ src = [
   "packages/ingestion/src",
   "packages/privacy/src",
   "packages/transformation/src",
+  "packages/reasoning/src",
   "packages/attention/src",
   "packages/embeddings/src",
   "packages/fixtures/src",
@@ -101,6 +106,7 @@ include = [
   "packages/ingestion/src",
   "packages/privacy/src",
   "packages/transformation/src",
+  "packages/reasoning/src",
   "packages/attention/src",
   "packages/embeddings/src",
   "packages/fixtures/src",
