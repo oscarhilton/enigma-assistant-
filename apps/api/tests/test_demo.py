@@ -284,7 +284,7 @@ def test_demo_reset_refuses_private_and_shadow_roots(
     assert (shadow_root / "keep.txt").read_text(encoding="utf-8") == "shadow"
 
     # Private nested *inside* the Demo wipe target must also refuse.
-    demo_parent = tmp_path / "demo-parent"
+    demo_parent = tmp_path / "enigma" / "demo"
     nested_private = demo_parent / "alex-v1" / "private"
     nested_private.mkdir(parents=True)
     (nested_private / "keep.txt").write_text("nested-private", encoding="utf-8")
