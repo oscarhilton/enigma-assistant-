@@ -73,32 +73,45 @@ final class BridgeHTTPServerTests: XCTestCase {
     }
 
     func testLoopbackServerRoundTrip() throws {
-        let port = freeLoopbackPort()
-        let token = "integration-token-\(port)"
-        let server = BridgeHTTPServer(endpoint: .loopback(port: port), token: token)
-        try server.start()
-        defer { server.stop() }
+        var lastError: Error?
+        for _ in 0 ..< 8 {
+            let port = freeLoopbackPort()
+            let token = "integration-token-\(port)"
+            let server = BridgeHTTPServer(endpoint: .loopback(port: port), token: token)
+            do {
+                try server.start()
+            } catch let error as BridgeError {
+                if case .bindFailed = error {
+                    lastError = error
+                    continue
+                }
+                throw error
+            }
+            defer { server.stop() }
 
-        let url = URL(string: "http://127.0.0.1:\(port)/capabilities")!
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            let url = URL(string: "http://127.0.0.1:\(port)/capabilities")!
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        let expectation = expectation(description: "capabilities")
-        var statusCode = 0
-        var body = Data()
+            let expectation = expectation(description: "capabilities")
+            var statusCode = 0
+            var body = Data()
 
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            XCTAssertNil(error)
-            statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            body = data ?? Data()
-            expectation.fulfill()
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                XCTAssertNil(error)
+                statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                body = data ?? Data()
+                expectation.fulfill()
+            }
+            task.resume()
+            wait(for: [expectation], timeout: 5)
+
+            XCTAssertEqual(statusCode, 200)
+            let report = try JSONDecoder().decode(CapabilityReport.self, from: body)
+            XCTAssertTrue(report.reminders.available)
+            return
         }
-        task.resume()
-        wait(for: [expectation], timeout: 5)
-
-        XCTAssertEqual(statusCode, 200)
-        let report = try JSONDecoder().decode(CapabilityReport.self, from: body)
-        XCTAssertTrue(report.reminders.available)
+        XCTFail("Failed to bind loopback server after retries: \(String(describing: lastError))")
     }
 
     private func freeLoopbackPort() -> UInt16 {
