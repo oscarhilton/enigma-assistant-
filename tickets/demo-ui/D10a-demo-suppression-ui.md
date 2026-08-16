@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #52) |
 | Branch | `ticket/demo-suppression-ui` |
 | Domain | `demo-ui` |
 | Parent | [D10](./D10-demo-ui.md) |
