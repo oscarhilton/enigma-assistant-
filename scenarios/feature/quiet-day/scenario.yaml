@@ -1,0 +1,50 @@
+id: quiet-day
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-28T08:00:00Z"
+description: Sparse day with routine calendar only — no open loops.
+events:
+  - id: qd-standup
+    at: "2026-03-28T08:30:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-standup
+      title: Team standup
+      start_at: "2026-03-28T09:00:00Z"
+      end_at: "2026-03-28T09:15:00Z"
+  - id: qd-lunch
+    at: "2026-03-28T08:31:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-lunch
+      title: Lunch
+      start_at: "2026-03-28T12:30:00Z"
+      end_at: "2026-03-28T13:15:00Z"
+  - id: qd-mail-newsletter
+    at: "2026-03-28T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-newsletter
+      subject: Design Weekly #412
+      from: news@designweekly.example
+      snippet: Five links worth a skim.
+  - id: qd-note-journal
+    at: "2026-03-28T18:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-journal
+      title: End of day
+      body_text: Quiet day. No open loops.
+  - id: qd-contact-self
+    at: "2026-03-28T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example

@@ -19,6 +19,13 @@ from personal_enigma.simulation.environment import (
     storage_root_for,
 )
 from personal_enigma.simulation.events import SimulationEvent
+from personal_enigma.simulation.scenario import (
+    ScenarioPackage,
+    ScenarioValidationError,
+    discover_scenarios,
+    load_scenario,
+    try_load_scenario,
+)
 
 __all__ = [
     "DEMO_BANNER_TEXT",
@@ -28,12 +35,17 @@ __all__ = [
     "EnvironmentMode",
     "PrivateEnvironment",
     "RealSourceAccessError",
+    "ScenarioPackage",
+    "ScenarioValidationError",
     "SecretNamespace",
     "SimulationClock",
     "SimulationEvent",
     "SystemClock",
     "assert_source_allowed_for_mode",
     "build_environment",
+    "discover_scenarios",
     "environment_mode_from_env",
+    "load_scenario",
     "storage_root_for",
+    "try_load_scenario",
 ]

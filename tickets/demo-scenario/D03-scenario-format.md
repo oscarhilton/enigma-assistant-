@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` (PR pending) |
 | Branch | `ticket/D03-scenario-format` |
 | Domain | `demo-scenario` |
 | Baseline | `v0.1.0-mvp` |
@@ -38,16 +38,16 @@
 
 ## Acceptance criteria
 
-- [ ] Documented on-disk scenario package layout (manifest, timeline/events, entities, optional attacks, ground_truth hooks)
-- [ ] Validator rejects malformed packages with actionable errors
-- [ ] Tiny feature scenarios land under `scenarios/feature/` (≈5–10 events each), e.g.:
+- [x] Documented on-disk scenario package layout (manifest, timeline/events, entities, optional attacks, ground_truth hooks)
+- [x] Validator rejects malformed packages with actionable errors
+- [x] Tiny feature scenarios land under `scenarios/feature/` (≈5–10 events each), e.g.:
   - `commitment-basic`
   - `commitment-resolved`
   - `calendar-conflict`
   - `cross-source-merge`
   - `quiet-day`
-- [ ] `scenarios/alex-v1/` may keep placeholder dirs only until D08
-- [ ] Events describe **source-layer** evidence (mail/calendar/reminder/note/contact) — not pre-baked `Obligation` objects
+- [x] `scenarios/alex-v1/` may keep placeholder dirs only until D08
+- [x] Events describe **source-layer** evidence (mail/calendar/reminder/note/contact) — not pre-baked `Obligation` objects
 
 ## Test plan
 
