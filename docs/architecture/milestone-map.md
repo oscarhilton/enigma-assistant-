@@ -36,25 +36,33 @@ Each milestone is a ticket under `tickets/<domain>/`. Do not reopen MVP architec
 
 ---
 
-## Phase 2 — Demo Mode — 0 / 12
+## Phase 2 — Demo Mode — complete (D01–D12); corpus extension via D08a–e
 
-Architecture: [demo-mode.md](./demo-mode.md). Branches: `ticket/Dxx-slug`.  
+Architecture: [demo-mode.md](./demo-mode.md) · [demo-corpus.md](./demo-corpus.md).  
+Branches: `ticket/Dxx-slug` (or `ticket/corpus-background-integration` for corpus foundation).  
 Control point for “did Enigma get better?”: compare evals to **`v0.1.0-mvp`**.
+
+Do **not** invent a top-level D13 for background corpus. Extend D03–D12 acceptance criteria and implement under D08 subtasks.
 
 | # | Milestone | Status | Ticket |
 | --- | --- | --- | --- |
-| D01 | Environment separation | READY | [D01](../../tickets/demo-environment/D01-environment-separation.md) |
-| D02 | Simulation clock | BLOCKED BY D01 | [D02](../../tickets/demo-environment/D02-simulation-clock.md) |
-| D03 | Scenario format + validation | BLOCKED BY D01 | [D03](../../tickets/demo-scenario/D03-scenario-format.md) |
-| D04 | Synthetic source adapters | BLOCKED BY D01 | [D04](../../tickets/demo-simulation/D04-synthetic-adapters.md) |
-| D05 | Simulation engine | BLOCKED BY D02+D03 | [D05](../../tickets/demo-simulation/D05-event-engine.md) |
-| D06 | Ground-truth model | BLOCKED BY D03 | [D06](../../tickets/demo-evaluation/D06-ground-truth.md) |
-| D07 | Evaluation runner + metrics | BLOCKED BY D06 | [D07](../../tickets/demo-evaluation/D07-evaluation-runner.md) |
-| D08 | Alex v1 canonical synthetic life | BLOCKED BY D01–D07 | [D08](../../tickets/demo-scenario/D08-canonical-alex.md) |
-| D09 | Adversarial / privacy scenario pack | BLOCKED BY D03+D06+D07 | [D09](../../tickets/demo-scenario/D09-adversarial.md) |
-| D10 | Demo UI + explainability | BLOCKED BY D01+D05+D07 | [D10](../../tickets/demo-ui/D10-demo-ui.md) |
-| D11 | Provider recording + deterministic replay | BLOCKED BY D05+D07 | [D11](../../tickets/demo-evaluation/D11-replay-provider.md) |
-| D12 | Curated product demo / Phase 2 exit gate | BLOCKED BY D07+D08+D10 | [D12](../../tickets/demo-scenario/D12-product-demo-scenario.md) |
+| D01 | Environment separation | `done` | [D01](../../tickets/demo-environment/D01-environment-separation.md) |
+| D02 | Simulation clock | `done` | [D02](../../tickets/demo-environment/D02-simulation-clock.md) |
+| D03 | Scenario format + validation (+ background/profile schema) | `done` | [D03](../../tickets/demo-scenario/D03-scenario-format.md) |
+| D04 | Synthetic source adapters (+ multi-stream mail) | `done` | [D04](../../tickets/demo-simulation/D04-synthetic-adapters.md) |
+| D05 | Simulation engine (+ deterministic timeline merge) | `done` | [D05](../../tickets/demo-simulation/D05-event-engine.md) |
+| D06 | Ground-truth model (+ `ScenarioSignalClass`) | `done` | [D06](../../tickets/demo-evaluation/D06-ground-truth.md) |
+| D07 | Evaluation runner + metrics (+ suppression / compression) | `done` | [D07](../../tickets/demo-evaluation/D07-evaluation-runner.md) |
+| D08 | Alex v1 canonical synthetic life | `done` | [D08](../../tickets/demo-scenario/D08-canonical-alex.md) |
+| D08a | Canonical Alex story spine | `done` | [D08a](../../tickets/demo-scenario/D08a-canonical-spine.md) |
+| D08b | Background corpus pipeline | scaffolding | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) |
+| D08c | Background integration (canonical + corpus) | `todo` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
+| D08d | Noise layer | `todo` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
+| D08e | Canonical scale profile | `todo` | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) |
+| D09 | Adversarial / privacy scenario pack | `done` | [D09](../../tickets/demo-scenario/D09-adversarial.md) |
+| D10 | Demo UI + explainability | `done` | [D10](../../tickets/demo-ui/D10-demo-ui.md) |
+| D11 | Provider recording + deterministic replay | `done` | [D11](../../tickets/demo-evaluation/D11-replay-provider.md) |
+| D12 | Curated product demo / Phase 2 exit gate | `done` | [D12](../../tickets/demo-scenario/D12-product-demo-scenario.md) |
 
 ### Phase 2 waves
 
@@ -102,3 +110,4 @@ adversarial  UI     replay
 - Synthetic adapters stop at the **source layer**; Enigma must discover obligations (D04 must not emit `SyntheticObligation`).
 - Keep `scenarios/alex-v1/` mostly empty until D08; use tiny `scenarios/feature/*` packs for D03–D07.
 - D08 consumes D01–D07 — it is not “invent a life and patch the platform.”
+- Background corpus: **Story creates meaning. Corpus creates noise.** Public Demo only `SYNTHETIC_CONFIRMED` ([ADR-007](../adr/007-demo-corpus-provenance.md)).

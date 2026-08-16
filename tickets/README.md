@@ -75,7 +75,20 @@ Shared protocol types (`packages/ingestion/.../protocol.py`) are owned by M01-er
 
 Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milestone-map.md).  
 Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).  
+Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; do not invent a top-level D13 for corpus).  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).
+
+## Phase 2 corpus extension (D08 subtasks)
+
+| Ticket | Status | Notes |
+| --- | --- | --- |
+| [D08a](./demo-scenario/D08a-canonical-spine.md) | `done` | Spine landed with `scenarios/alex-v1/` |
+| [D08b](./demo-scenario/D08b-corpus-pipeline.md) | scaffolding | Manifest/adapter/sanitiser/CLI stubs |
+| [D08c](./demo-scenario/D08c-background-integration.md) | `todo` | Merge canonical + background |
+| [D08d](./demo-scenario/D08d-noise-layer.md) | `todo` | Generated noise |
+| [D08e](./demo-scenario/D08e-canonical-scale.md) | `todo` | Canonical/stress scale |
+
+D03–D12 tickets carry **amendments** for background schema, multi-stream mail, `ScenarioSignalClass`, suppression metrics, UI stats, scale replay, and the compression demo sequence. Feature scenario stubs live under `tickets/demo-scenario/` and `tickets/demo-evaluation/`.
 
 ## Ticket template fields
 

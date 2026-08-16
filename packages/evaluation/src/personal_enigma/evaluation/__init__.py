@@ -17,6 +17,7 @@ from personal_enigma.evaluation.ground_truth import (
     MemoryCheckpoint,
     MissedObligation,
     ObligationTruth,
+    ScenarioSignalClass,
     detect_missed_obligations,
     load_ground_truth,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "ObligationTruth",
     "ReplayMismatchPolicy",
     "ReplayPaygTransport",
+    "ScenarioSignalClass",
     "default_replay_fixture_path",
     "detect_missed_obligations",
     "load_ground_truth",

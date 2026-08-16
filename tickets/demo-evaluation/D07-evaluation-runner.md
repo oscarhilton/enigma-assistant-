@@ -36,10 +36,21 @@
 - [x] Single command produces a complete scenario report
 - [x] Critical recall / precision / duplicates / stale alerts / privacy / cost covered at least as stubs with real attention+privacy wired
 
+### Amendment — noise / scale metrics (plan §85)
+
+- [ ] Background suppression rate
+- [ ] Background false alerts / 1k messages
+- [ ] Attention compression ratio
+- [ ] Storyline recall under noise (A/B)
+- [ ] Retrieval pollution / canonical evidence recall@K
+- [ ] Remote calls + cost per 1k inbound signals
+- [ ] Corpus fingerprint on reports
+
 ## Test plan
 
 - [x] Smoke run on tiny scenario fixture
 - [x] Report JSON/Markdown schema snapshot test
+- (amendment) Mini-fixture A/B report includes suppression + compression fields
 
 ## Privacy constraints
 

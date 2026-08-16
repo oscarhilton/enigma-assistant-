@@ -48,12 +48,20 @@
 - [x] Wired only through `DemoEnvironment` source registry (never registered on Private)
 - [x] Module paths are not under `personal_enigma.ingestion.sources`
 
+### Amendment — multi-stream mail (plan §85)
+
+- [x] `SyntheticMailSource` accepts streams: `CanonicalScenarioStream` | `CorpusBackgroundStream` | `GeneratedNoiseStream` (scaffold)
+- [ ] Full `CorpusBackgroundStream` population from sanitised corpus (D08c)
+- [x] Merged mailbox exposes ordinary mail fields only — never `signal_class` / importance labels from ground truth
+
 ## Test plan
 
 - Round-trip: scenario snippet → synthetic source `get_changes` → domain record shapes
 - Demo environment rejects if a synthetic adapter is swapped for a real class
 - No adapter test constructs `Obligation` / `AttentionItem` directly
+- Multi-stream merge hides evaluator metadata on emitted messages
 
 ## Privacy constraints
 
 - Synthetic sources must not read Private storage or real credentials
+- Corpus adapters must not emit Enigma obligation/attention types

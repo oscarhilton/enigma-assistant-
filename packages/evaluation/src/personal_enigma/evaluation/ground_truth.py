@@ -17,6 +17,19 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 
 CRITICAL_IMPORTANCE = frozenset({"critical", "high"})
 
+
+class ScenarioSignalClass(StrEnum):
+    """Evaluator-only classification of scenario evidence (D06 amendment / D08).
+
+    Never attached to ``SyntheticMailSource`` / Enigma ingest payloads.
+    """
+
+    CANONICAL = "canonical"
+    BACKGROUND = "background"
+    NOISE = "noise"
+    ADVERSARIAL = "adversarial"
+
+
 _KIND_TO_SECTION = {
     "obligation": "obligations",
     "commitment": "commitments",

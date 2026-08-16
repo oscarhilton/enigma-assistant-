@@ -33,11 +33,19 @@
 - [x] Packs for prompt injection, secrets, re-identification, malicious provider, provider failure
 - [x] Privacy invariants remain zero-leak under the pack
 
+### Amendment — corpus safety (plan §85)
+
+- [ ] Optional SpamAssassin / TREC adapters for **developer** profiles only (`public_demo: false`)
+- [ ] Corpus sanitiser adversarial cases: live URLs, secret-like strings, unexpected real entities
+- [ ] Do not mix hostile messages into ordinary background by default
+
 ## Test plan
 
 - Run adversarial pack through transform + privacy gate
 - Assert known direct identifiers / secrets never appear in remote payloads
+- (amendment) Public Demo profile rejects Enron/SpamAssassin manifests
 
 ## Privacy constraints
 
 - Attack fixtures may *contain* synthetic secrets; they must never leave the allowlist
+- Never push spam corpora through a live mail system

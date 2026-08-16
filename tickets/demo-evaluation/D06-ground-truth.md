@@ -35,10 +35,18 @@
 - [x] Loader for `ground_truth/*.yaml`
 - [x] Evaluation can identify a missed obligation automatically against truth
 
+### Amendment — signal classes (plan §85)
+
+- [x] `ScenarioSignalClass`: `canonical` | `background` | `noise` | `adversarial`
+- [ ] Per-event evaluator metadata (`signal_class`, `expected_attention`) for background/noise
+- [ ] First canonical benchmark: background → `expected_attention: false`
+- [x] Signal class never imported into Enigma reasoning / `SyntheticMailSource` payloads
+
 ## Test plan
 
 - Fixture where attention missed a known critical obligation → detector flags it
 - Invalid truth documents fail validation
+- Assert `signal_class` absent from mail source dumps
 
 ## Privacy constraints
 
