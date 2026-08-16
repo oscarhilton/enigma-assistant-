@@ -54,9 +54,13 @@ def test_alex_scaffold_loads_deterministically() -> None:
 def test_scenario_rng_is_seeded() -> None:
     a = scenario_rng("alex-v1")
     b = scenario_rng("alex-v1")
-    c = scenario_rng("other")
-    assert [a.random() for _ in range(5)] == [b.random() for _ in range(5)]
-    assert scenario_rng("alex-v1").random() != c.random()
+    seq_a = [a.random() for _ in range(8)]
+    seq_b = [b.random() for _ in range(8)]
+    assert seq_a == seq_b
+    other = scenario_rng("other")
+    seq_other = [other.random() for _ in range(8)]
+    assert seq_a != seq_other
+    assert scenario_rng("alex-v1").getstate() != scenario_rng("other").getstate()
 
 
 def test_relative_offsets_resolve() -> None:

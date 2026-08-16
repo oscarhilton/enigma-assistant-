@@ -28,11 +28,12 @@ def normalize_scenario_seed(seed: str | int | bytes) -> str | int | bytes:
     return text
 
 
-def scenario_rng(seed: str | int | bytes = "alex-v1") -> Random:
+def scenario_rng(seed: str | int | bytes) -> Random:
     """Build a deterministic ``Random`` from an explicit scenario seed.
 
     Matches the Phase 2 contract ``rng = Random(\"alex-v1\")`` while keeping a
-    single entry point for adapters and corpus generators.
+    single entry point for adapters and corpus generators. Callers must pass a
+    seed — there is no default, to avoid silently coupling unrelated scenarios.
     """
     return Random(normalize_scenario_seed(seed))
 

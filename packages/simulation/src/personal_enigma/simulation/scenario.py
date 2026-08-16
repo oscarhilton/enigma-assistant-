@@ -186,7 +186,7 @@ def _try_read_yaml(path: Path, *, label: str) -> tuple[Any | None, str | None]:
     """Read YAML, returning ``(data, error)`` instead of raising."""
     try:
         return _read_yaml(path), None
-    except (OSError, yaml.YAMLError) as exc:
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         return None, f"{label}: {exc}"
 
 
