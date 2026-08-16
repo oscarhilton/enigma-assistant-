@@ -38,6 +38,12 @@ from personal_enigma.evaluation.metrics.suppression import (
     quiet_day_attention_empty,
 )
 from personal_enigma.evaluation.observations import EvaluationObservations, SurfacedAlert
+from personal_enigma.evaluation.phase25_exit import (
+    Phase25ExitEvidence,
+    collect_phase25_exit_evidence,
+    render_phase25_exit_report,
+    write_phase25_exit_report,
+)
 from personal_enigma.evaluation.replay import (
     ReplayMismatchPolicy,
     ReplayPaygTransport,
@@ -74,6 +80,7 @@ __all__ = [
     "MissedObligation",
     "NoiseSuppressionMetrics",
     "ObligationTruth",
+    "Phase25ExitEvidence",
     "ReplayMismatchPolicy",
     "ReplayPaygTransport",
     "SCALE_LADDER",
@@ -84,6 +91,7 @@ __all__ = [
     "StorylineRecallAB",
     "SurfacedAlert",
     "background_false_alerts_per_1000",
+    "collect_phase25_exit_evidence",
     "compare_storyline_ab",
     "compute_noise_suppression_metrics",
     "corpus_fingerprint",
@@ -92,11 +100,13 @@ __all__ = [
     "load_ground_truth",
     "load_recording_store",
     "quiet_day_attention_empty",
+    "render_phase25_exit_report",
     "run_adversarial_pack",
     "run_scale_ladder",
     "storyline_ab_report",
     "storyline_recall_under_noise",
     "stub_measure_point",
+    "write_phase25_exit_report",
     "write_scale_curve",
     "write_scale_ladder_artefacts",
 ]

@@ -42,7 +42,7 @@ Architecture: [demo-mode.md](./demo-mode.md) · [demo-corpus.md](./demo-corpus.m
 Branches: `ticket/Dxx-slug` (or `ticket/corpus-background-integration` for corpus foundation).  
 Control point for “did Enigma get better?”: compare evals to **`v0.1.0-mvp`**.
 
-Do **not** invent a top-level D13 for background corpus. Extend D03–D12 acceptance criteria and implement under D08 subtasks.
+Do **not** invent a top-level milestone for background corpus. Extend D03–D12 acceptance criteria and implement under D08 subtasks. **D13** is Demo Why + Attention UX polish (merged #42), not corpus work.
 
 | # | Milestone | Status | Ticket |
 | --- | --- | --- | --- |
@@ -63,6 +63,7 @@ Do **not** invent a top-level D13 for background corpus. Extend D03–D12 accept
 | D10 | Demo UI + explainability | `done` | [D10](../../tickets/demo-ui/D10-demo-ui.md) |
 | D11 | Provider recording + deterministic replay | `done` | [D11](../../tickets/demo-evaluation/D11-replay-provider.md) |
 | D12 | Curated product demo / Phase 2 exit gate | `done` | [D12](../../tickets/demo-scenario/D12-product-demo-scenario.md) |
+| D13 | Demo Why + Attention UX polish | `done` | [D13](../../tickets/demo-ui/D13-demo-why-attention-ux.md) |
 
 ### Phase 2 waves
 
