@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from personal_enigma.reasoning.errors import ReasoningDisabledError
-from personal_enigma.reasoning.logging import InMemoryUsageLogger, UsageLogger, UsageRecord
+from personal_enigma.reasoning.logging import (
+    NullUsageLogger,
+    UsageLogger,
+    UsageRecord,
+)
 from personal_enigma.reasoning.modes import ReasoningMode
 from personal_enigma.reasoning.privacy_gate import assert_remote_safe
 from personal_enigma.reasoning.protocol import PaygTransport, ReasoningResult
-from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
+from personal_enigma.reasoning.transport import NullPaygTransport
 from personal_enigma.transformation import TransformedContext
 
 
@@ -24,12 +28,17 @@ class PaygReasoningService:
     ) -> None:
         self._mode = mode
         self._default_model = default_model
-        self._usage_logger: UsageLogger = usage_logger or InMemoryUsageLogger()
+        self._usage_logger: UsageLogger = usage_logger or NullUsageLogger()
         if mode in {ReasoningMode.DISABLED, ReasoningMode.DRY_RUN}:
             # Always install a null transport so accidental calls cannot hit the network.
             self._transport: PaygTransport = NullPaygTransport()
+        elif transport is None:
+            raise ValueError(
+                "ENABLED mode requires an explicit PaygTransport; "
+                "refusing a silent MockPaygTransport default that would mask misconfiguration"
+            )
         else:
-            self._transport = transport or MockPaygTransport()
+            self._transport = transport
 
     @property
     def mode(self) -> ReasoningMode:
@@ -90,7 +99,16 @@ def build_reasoning_client(
     default_model: str = "payg-default",
 ) -> PaygReasoningService:
     """Factory used by api/worker wiring. Defaults to disabled (no network)."""
-    resolved = ReasoningMode(mode) if not isinstance(mode, ReasoningMode) else mode
+    if isinstance(mode, ReasoningMode):
+        resolved = mode
+    else:
+        try:
+            resolved = ReasoningMode(mode)
+        except ValueError as exc:
+            allowed = ", ".join(repr(m.value) for m in ReasoningMode)
+            raise ValueError(
+                f"Invalid reasoning mode {mode!r}; allowed values: {allowed}"
+            ) from exc
     return PaygReasoningService(
         mode=resolved,
         transport=transport,
