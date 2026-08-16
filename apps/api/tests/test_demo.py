@@ -79,10 +79,41 @@ def test_attention_and_why_omit_ground_truth(monkeypatch: pytest.MonkeyPatch) ->
     attention = client.get("/demo/attention").json()
     assert attention["items"]
     assert "ground_truth" not in attention
+    assert attention["surfaced_count"] == len(attention["items"])
+    assert attention["suppressed_count"] == 47
+    first = attention["items"][0]
+    assert first["title"] == "Review Atlas proposal before Friday"
+    assert "Maya" in attention["items"][1]["title"]
+    assert "PERSON_A" not in first["title"]
+    assert "score" not in first
+    assert first["priority"] == 4
+    assert first["confidence"] == 0.91
+    assert first["attention_rank"] >= attention["items"][1]["attention_rank"]
     why = client.get("/demo/why/att-atlas-review").json()
     assert why["headline"] == "WHY ENIGMA THINKS THIS MATTERS"
+    assert why["priority"] == 4
+    assert why["confidence"] == 0.91
+    assert "why_now" in why
+    assert any("Surface as a high-priority" in line for line in why["decision"])
+    assert why["reason_codes"] == ["USER_COMMITMENT", "DEADLINE_APPROACHING"]
     assert "ground_truth" not in why
     assert "groundTruth" not in why
+
+
+def test_attention_done_and_snooze_actions(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    client = TestClient(create_app())
+    before = client.get("/demo/attention").json()
+    assert len(before["items"]) == 2
+    done = client.post("/demo/attention/att-atlas-review/done").json()
+    assert done["ok"] is True
+    assert done["action"] == "done"
+    assert len(done["items"]) == 1
+    assert done["items"][0]["id"] == "att-maya-scheduling"
+    snoozed = client.post("/demo/attention/att-maya-scheduling/snooze").json()
+    assert snoozed["action"] == "snooze"
+    assert snoozed["items"] == []
+    assert client.get("/demo/attention").json()["items"] == []
 
 
 def test_memory_browser_categories(monkeypatch: pytest.MonkeyPatch) -> None:

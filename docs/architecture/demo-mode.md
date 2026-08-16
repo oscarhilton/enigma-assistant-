@@ -81,7 +81,8 @@ DEMO MODE — FICTIONAL DATA ONLY
 Scenario: Alex Morgan v1
 ```
 
-API and web stubs ship with D01; full demo chrome is D10.
+API and web stubs ship with D01; full demo chrome is D10. Attention / Why
+representation layers: [representation-layers.md](../demo/representation-layers.md).
 
 ## Clock injection
 
