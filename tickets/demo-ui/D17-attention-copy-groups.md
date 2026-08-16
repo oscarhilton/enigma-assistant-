@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (PR #70) |
 | Branch | `ticket/demo-attention-copy-groups` |
 | Domain | `demo-ui` |
 
