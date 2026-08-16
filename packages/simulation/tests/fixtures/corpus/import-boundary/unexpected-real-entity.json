@@ -1,0 +1,13 @@
+{
+  "id": "gate-unexpected-real-entity",
+  "emails": [
+    {
+      "sender_name": "Gossip Desk",
+      "sender_email": "desk@celebrity-wire.biz",
+      "recipient_names": ["Alex Morgan"],
+      "recipient_emails": ["alex@morgan.example"],
+      "subject": "Industry chatter",
+      "body_text": "Barack Obama met Elon Musk to discuss Google, Microsoft, Amazon, and OpenAI partnerships. Taylor Swift and Jeff Bezos were also named."
+    }
+  ]
+}

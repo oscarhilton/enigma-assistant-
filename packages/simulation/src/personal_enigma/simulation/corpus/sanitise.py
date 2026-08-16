@@ -1,8 +1,9 @@
 """Corpus sanitiser — Demo-safe rewrite + reject pipeline (ADR-007).
 
-Pipeline: strip generation metadata → identity/domain rewrite → URL rewrite →
-secret scan → body name rewrite. Rejected conversations never enter derived
-indexes used for public Demo.
+Pipeline: strip generation metadata → secret scan → unexpected-entity scan →
+identity/domain rewrite → URL + in-body email rewrite → name rewrite →
+zero-tolerance post-scan. Rejected conversations never enter derived indexes
+used for public Demo.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from typing import Any
 
 from personal_enigma.simulation.corpus.models import CorpusConversation, CorpusMessage
 
-SANITISER_VERSION = "1"
+SANITISER_VERSION = "2"
 
 # Fields that must never reach SyntheticMailSource / Enigma.
 GENERATION_METADATA_KEYS = frozenset(
@@ -77,7 +78,43 @@ _PRESERVE_EMAILS = frozenset(
     }
 )
 
+# Conservative densylist for unexpected real-world entities (fixture + gate).
+# Prefer rejection over heroic generalisation when density is high.
+_REAL_ENTITY_DENYLIST = frozenset(
+    {
+        "barack obama",
+        "elon musk",
+        "taylor swift",
+        "jeff bezos",
+        "oprah winfrey",
+        "angela merkel",
+        "volodymyr zelenskyy",
+        "google",
+        "microsoft",
+        "amazon",
+        "facebook",
+        "instagram",
+        "netflix",
+        "tesla",
+        "spacex",
+        "openai",
+        "chatgpt",
+        "nvidia",
+        "walmart",
+        "jpmorgan",
+        "goldman sachs",
+    }
+)
+# "apple" is matched only as a company token (not fruit / names).
+_REAL_ENTITY_COMPANY_TOKENS = frozenset({"apple inc", "apple.com", "wwdc"})
+
+# Reject when this many distinct denylist hits appear in one conversation.
+_REAL_ENTITY_DENSITY_THRESHOLD = 3
+
 _URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+_EMAIL_ADDR_RE = re.compile(
+    r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"
+)
 _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("private_key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
     ("jwt", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")),
@@ -118,6 +155,10 @@ class SanitiseDiagnostics:
 class SanitiseResult:
     conversation: CorpusConversation | None
     diagnostics: SanitiseDiagnostics
+
+
+class ImportBoundaryError(ValueError):
+    """Zero-tolerance import-boundary gate failure (hard fail, not a soft metric)."""
 
 
 def strip_generation_metadata(raw: dict[str, Any]) -> dict[str, Any]:
@@ -194,6 +235,95 @@ def _scan_secrets(text: str) -> list[str]:
     return hits
 
 
+def _scan_unexpected_real_entities(text: str) -> list[str]:
+    """Return distinct denylist hits (word-boundary; conservative densylist)."""
+    lower = text.lower()
+    hits: list[str] = []
+    for name in sorted(_REAL_ENTITY_DENYLIST, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(name)}\b", lower):
+            hits.append(name)
+    for name in sorted(_REAL_ENTITY_COMPANY_TOKENS, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(name)}\b", lower):
+            hits.append(name)
+    # De-dupe while preserving order.
+    seen: set[str] = set()
+    unique: list[str] = []
+    for hit in hits:
+        if hit not in seen:
+            seen.add(hit)
+            unique.append(hit)
+    return unique
+
+
+def is_reserved_demo_domain(domain: str) -> bool:
+    """True for RFC 2606 / .example reserved hosts used by Demo Mode."""
+    host = domain.strip().lower().rstrip(".")
+    if not host:
+        return False
+    if host in {"example.com", "example.org", "example.net", "localhost"}:
+        return True
+    return host.endswith(".example") or host.endswith(".test") or host.endswith(".invalid")
+
+
+def _url_host(url: str) -> str:
+    after_scheme = url.split("://", 1)[-1]
+    host_port = after_scheme.split("/", 1)[0]
+    host = host_port.split("@")[-1]  # drop userinfo
+    host = host.split(":", 1)[0]  # drop port
+    return host.strip().lower().rstrip(".")
+
+
+def find_import_boundary_violations(text: str) -> list[str]:
+    """Zero-tolerance scan: real domains, live URLs, secrets, dense real entities."""
+    violations: list[str] = []
+    for match in _EMAIL_ADDR_RE.finditer(text):
+        addr = match.group(0)
+        domain = addr.rsplit("@", 1)[-1].lower()
+        if not is_reserved_demo_domain(domain):
+            violations.append(f"real_domain:{domain}")
+    for match in _URL_RE.finditer(text):
+        host = _url_host(match.group(0))
+        if host and not is_reserved_demo_domain(host):
+            violations.append(f"live_url:{host}")
+    for label in _scan_secrets(text):
+        violations.append(f"secret:{label}")
+    entity_hits = _scan_unexpected_real_entities(text)
+    if len(entity_hits) >= _REAL_ENTITY_DENSITY_THRESHOLD:
+        violations.append(
+            "unexpected_real_entity:" + ",".join(entity_hits[:8])
+        )
+    # De-dupe preserving order.
+    seen: set[str] = set()
+    unique: list[str] = []
+    for item in violations:
+        if item not in seen:
+            seen.add(item)
+            unique.append(item)
+    return unique
+
+
+def assert_import_boundary_clean(conversation: CorpusConversation) -> None:
+    """Hard gate: raise if any import-boundary violation remains in output."""
+    blobs: list[str] = []
+    for msg in conversation.messages:
+        blobs.extend(
+            [
+                msg.subject,
+                msg.body_text,
+                msg.sender_email,
+                msg.sender_name,
+                *msg.recipient_emails,
+                *msg.recipient_names,
+            ]
+        )
+    violations = find_import_boundary_violations("\n".join(blobs))
+    if violations:
+        raise ImportBoundaryError(
+            f"import boundary violated for {conversation.id!r}: "
+            + ", ".join(violations)
+        )
+
+
 def _rewrite_urls(text: str, *, company_index: int) -> str:
     portal = f"https://portal.company-{company_index:03d}.example"
 
@@ -209,6 +339,34 @@ def _rewrite_urls(text: str, *, company_index: int) -> str:
         return f"{portal}{path or '/resource'}"
 
     return _URL_RE.sub(_sub, text)
+
+
+def _rewrite_emails_in_text(
+    text: str,
+    *,
+    identities: dict[str, IdentityMapping],
+    rewrite_seed: str,
+    preserve_emails: frozenset[str],
+    self_email: str | None,
+) -> str:
+    """Rewrite every in-body address onto a reserved .example mapping."""
+
+    def _sub(match: re.Match[str]) -> str:
+        addr = match.group(0)
+        key = addr.strip().lower()
+        if key in identities:
+            return identities[key].email
+        mapping = _identity_for(
+            source_email=addr,
+            source_name=addr,
+            rewrite_seed=rewrite_seed,
+            preserve_emails=preserve_emails,
+            self_email=self_email,
+        )
+        identities[key] = mapping
+        return mapping.email
+
+    return _EMAIL_ADDR_RE.sub(_sub, text)
 
 
 def _rewrite_names_in_body(body: str, identities: dict[str, IdentityMapping]) -> str:
@@ -235,10 +393,11 @@ def sanitise_conversation(
     rewrite_domains: bool = True,
     rewrite_seed: str = "demo-safe-v1",
     reject_secrets: bool = True,
+    reject_real_entities: bool = True,
     preserve_emails: set[str] | frozenset[str] | None = None,
     self_email: str | None = None,
 ) -> CorpusConversation:
-    """Sanitise a conversation; raises ValueError if rejected for secrets.
+    """Sanitise a conversation; raises ValueError if rejected.
 
     Prefer :func:`sanitise_conversation_detailed` when rejection diagnostics matter.
     """
@@ -247,6 +406,7 @@ def sanitise_conversation(
         rewrite_domains=rewrite_domains,
         rewrite_seed=rewrite_seed,
         reject_secrets=reject_secrets,
+        reject_real_entities=reject_real_entities,
         preserve_emails=preserve_emails,
         self_email=self_email,
     )
@@ -262,6 +422,7 @@ def sanitise_conversation_detailed(
     rewrite_domains: bool = True,
     rewrite_seed: str = "demo-safe-v1",
     reject_secrets: bool = True,
+    reject_real_entities: bool = True,
     preserve_emails: set[str] | frozenset[str] | None = None,
     self_email: str | None = None,
 ) -> SanitiseResult:
@@ -297,15 +458,24 @@ def sanitise_conversation_detailed(
                     self_email=self_email,
                 )
 
-    if reject_secrets:
-        for msg in conversation.messages:
-            blob = "\n".join(
-                [msg.subject, msg.body_text, msg.sender_email, *msg.recipient_emails]
-            )
+    # Pre-rewrite rejection gates (secrets + dense real entities).
+    for msg in conversation.messages:
+        blob = "\n".join(
+            [msg.subject, msg.body_text, msg.sender_email, *msg.recipient_emails]
+        )
+        if reject_secrets:
             hits = _scan_secrets(blob)
             if hits:
                 diagnostics.rejected = True
                 diagnostics.reasons.extend(f"secret:{h}" for h in hits)
+                return SanitiseResult(conversation=None, diagnostics=diagnostics)
+        if reject_real_entities:
+            entities = _scan_unexpected_real_entities(blob)
+            if len(entities) >= _REAL_ENTITY_DENSITY_THRESHOLD:
+                diagnostics.rejected = True
+                diagnostics.reasons.append(
+                    "unexpected_real_entity:" + ",".join(entities[:8])
+                )
                 return SanitiseResult(conversation=None, diagnostics=diagnostics)
 
     messages: list[CorpusMessage] = []
@@ -326,11 +496,32 @@ def sanitise_conversation_detailed(
                 recipient_names.append(addr)
 
         company_index = _stable_int(sender.email) % 1_000
-        body = _rewrite_urls(msg.body_text, company_index=company_index)
-        subject = _rewrite_urls(msg.subject, company_index=company_index)
+        body = msg.body_text
+        subject = msg.subject
         if rewrite_domains:
+            body = _rewrite_urls(body, company_index=company_index)
+            subject = _rewrite_urls(subject, company_index=company_index)
+            body = _rewrite_emails_in_text(
+                body,
+                identities=diagnostics.identities,
+                rewrite_seed=rewrite_seed,
+                preserve_emails=preserve,
+                self_email=self_email,
+            )
+            subject = _rewrite_emails_in_text(
+                subject,
+                identities=diagnostics.identities,
+                rewrite_seed=rewrite_seed,
+                preserve_emails=preserve,
+                self_email=self_email,
+            )
             body = _rewrite_names_in_body(body, diagnostics.identities)
             subject = _rewrite_names_in_body(subject, diagnostics.identities)
+        else:
+            # Still rewrite URLs so live hosts never survive even when
+            # identity rewrite is disabled for a developer experiment.
+            body = _rewrite_urls(body, company_index=company_index)
+            subject = _rewrite_urls(subject, company_index=company_index)
 
         messages.append(
             msg.model_copy(
@@ -345,7 +536,15 @@ def sanitise_conversation_detailed(
             )
         )
 
-    return SanitiseResult(
-        conversation=CorpusConversation(id=conversation.id, messages=messages),
-        diagnostics=diagnostics,
-    )
+    cleaned = CorpusConversation(id=conversation.id, messages=messages)
+
+    # Zero-tolerance post-scan: if rewrite missed anything, reject (do not ship).
+    if rewrite_domains:
+        try:
+            assert_import_boundary_clean(cleaned)
+        except ImportBoundaryError as exc:
+            diagnostics.rejected = True
+            diagnostics.reasons.append(f"post_scan:{exc}")
+            return SanitiseResult(conversation=None, diagnostics=diagnostics)
+
+    return SanitiseResult(conversation=cleaned, diagnostics=diagnostics)
