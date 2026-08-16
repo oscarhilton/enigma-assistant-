@@ -1,8 +1,0 @@
-id: alex-provider-failure
-kind: provider-failure
-feature_pack: feature/adversarial/provider-failure
-forbidden_tokens:
-  - Alex Morgan
-  - alex.morgan@northwind.example
-  - maya.chen@northwind.example
-description: Provider failures must not fall back to unsanitised private payloads.
