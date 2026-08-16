@@ -134,13 +134,17 @@ def assert_notes_not_wholesale_remote_safe(
         return
 
     meta = data.get("metadata") or {}
-    source = meta.get("source_type") if isinstance(meta, Mapping) else None
     record_id = meta.get("record_id") if isinstance(meta, Mapping) else None
-    is_this_note = source == SourceType.NOTE.value or record_id == note.id
+    # Match by record_id (preferred). Fall back to wholesale body presence only when
+    # metadata does not identify a specific note — never treat every NOTE payload as
+    # matching every note in the corpus.
+    is_this_note = record_id == note.id
+    if not is_this_note and record_id is None and note.body_text.strip():
+        is_this_note = note.body_text in _serialised_blob(data)
     summary = data.get("summary")
     summary_text = summary if isinstance(summary, str) else ""
 
-    if not is_this_note and note.body_text.strip() and note.body_text not in _serialised_blob(data):
+    if not is_this_note:
         return
 
     if default_level_for_source(SourceType.NOTE) is not PrivacyLevel.HIGH:
@@ -184,8 +188,16 @@ def assert_high_privacy_not_remote(
     meta = data.get("metadata") or {}
     raw_source = source_type or (meta.get("source_type") if isinstance(meta, Mapping) else None)
     if raw_source is None:
-        return
-    source = SourceType(raw_source) if not isinstance(raw_source, SourceType) else raw_source
+        raise PrivacyInvariantError(
+            "may_transmit_remotely requires metadata.source_type "
+            "(or an explicit source_type argument)"
+        )
+    try:
+        source = SourceType(raw_source) if not isinstance(raw_source, SourceType) else raw_source
+    except ValueError as exc:
+        raise PrivacyInvariantError(
+            f"Invalid source_type for remote payload: {raw_source!r}"
+        ) from exc
     level = default_level_for_source(source)
     if level not in {PrivacyLevel.HIGH, PrivacyLevel.VERY_HIGH}:
         return
