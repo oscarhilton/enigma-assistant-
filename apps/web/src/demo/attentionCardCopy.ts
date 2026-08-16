@@ -55,9 +55,7 @@ export function timingLabel(item: DemoAttentionItem): string | null {
   ) {
     return "DUE SOON";
   }
-  if (item.when?.trim()) {
-    return item.when.trim().toUpperCase();
-  }
+  // Freeform `when` belongs in cardReason, not the compact badge row.
   return null;
 }
 
