@@ -74,6 +74,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Scenario duration in days for cost extrapolation",
     )
     parser.add_argument(
+        "--spine-metrics",
+        type=Path,
+        default=None,
+        help="JSON metrics from spine-only (A) run for storyline recall under noise",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Compute metrics without writing reports/",
@@ -84,6 +90,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     observations = _load_observations(args.observations)
+    if args.spine_metrics is not None:
+        spine = json.loads(args.spine_metrics.read_text(encoding="utf-8"))
+        observations = observations.model_copy(update={"spine_metrics": spine})
     runner = EvaluationRunner(
         reports_root=args.reports_dir,
         scenario_days=args.scenario_days,

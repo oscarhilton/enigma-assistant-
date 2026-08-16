@@ -45,12 +45,13 @@
 - [ ] Retrieval pollution / canonical evidence recall@K
 - [x] Remote calls + cost per 1k inbound signals
 - [x] Corpus fingerprint on reports
+- [x] Cost per simulated month stub + remote reasoning rate alias (F-eval-noise-metrics)
 
 ## Test plan
 
 - [x] Smoke run on tiny scenario fixture
 - [x] Report JSON/Markdown schema snapshot test
-- (amendment) Mini-fixture A/B report includes suppression + compression fields
+- [x] Mini-fixture A/B report includes suppression + compression fields
 
 ## Privacy constraints
 

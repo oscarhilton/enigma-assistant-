@@ -32,7 +32,9 @@ from personal_enigma.evaluation.ground_truth import (
 from personal_enigma.evaluation.metrics.suppression import (
     MAX_BACKGROUND_FALSE_ALERTS_PER_1000,
     BackgroundFalseAlertRate,
+    NoiseSuppressionMetrics,
     background_false_alerts_per_1000,
+    compute_noise_suppression_metrics,
     quiet_day_attention_empty,
 )
 from personal_enigma.evaluation.observations import EvaluationObservations, SurfacedAlert
@@ -70,6 +72,7 @@ __all__ = [
     "MAX_BACKGROUND_FALSE_ALERTS_PER_1000",
     "MemoryCheckpoint",
     "MissedObligation",
+    "NoiseSuppressionMetrics",
     "ObligationTruth",
     "ReplayMismatchPolicy",
     "ReplayPaygTransport",
@@ -82,6 +85,7 @@ __all__ = [
     "SurfacedAlert",
     "background_false_alerts_per_1000",
     "compare_storyline_ab",
+    "compute_noise_suppression_metrics",
     "corpus_fingerprint",
     "default_replay_fixture_path",
     "detect_missed_obligations",
