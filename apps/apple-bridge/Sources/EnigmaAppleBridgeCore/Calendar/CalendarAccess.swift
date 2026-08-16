@@ -41,11 +41,10 @@ public struct EventKitCalendarAccess: Sendable {
             return .authorised
         case .writeOnly:
             return .writeOnly
+        case .authorized:
+            // Pre-macOS 14 / older EventKit: `.authorized` means readable.
+            return .authorised
         @unknown default:
-            // Legacy `.authorized` aliases to full read on older SDKs.
-            if status.rawValue == EKAuthorizationStatus.fullAccess.rawValue {
-                return .authorised
-            }
             return .denied
         }
     }
