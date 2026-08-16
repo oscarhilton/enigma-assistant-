@@ -78,3 +78,40 @@ nav a.active {
   color: var(--muted);
   line-height: 1.7;
 }
+
+.settings-section {
+  margin-top: 2rem;
+}
+
+.settings-section h2 {
+  font-size: 1.35rem;
+  margin: 0 0 0.5rem;
+}
+
+.calendar-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.calendar-list li {
+  margin: 0.55rem 0;
+}
+
+.calendar-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+
+.calendar-provider,
+.permission-status {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.sync-summary {
+  margin-top: 1rem;
+  font-size: 1rem;
+}

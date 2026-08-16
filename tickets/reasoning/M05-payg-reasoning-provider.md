@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M05-payg-reasoning-provider` |
 | Domain | `reasoning` |
 
@@ -33,10 +33,10 @@
 
 ## Acceptance criteria
 
-- [ ] Pluggable PAYG client interface with dry-run / disabled mode
-- [ ] Only accepts `TransformedContext` (or equivalent sanitised payload)
-- [ ] Remote calls refused when privacy gate fails
-- [ ] Cost / token logging hooks (local)
+- [x] Pluggable PAYG client interface with dry-run / disabled mode
+- [x] Only accepts `TransformedContext` (or equivalent sanitised payload)
+- [x] Remote calls refused when privacy gate fails
+- [x] Cost / token logging hooks (local)
 
 ## Test plan
 

@@ -19,7 +19,11 @@ class RetrievedPassage:
     metadata: dict[str, str] = field(default_factory=dict)
 
     def for_transformation(self) -> str:
-        """Return passage text for local Enigma transformation input.\n\n        Callers must still run the privacy/transform gate before any remote send;\n        this text may contain raw Notes/email content.\n        """
+        """Return passage text for local Enigma transformation input.
+
+        Callers must still run the privacy/transform gate before any remote send;
+        this text may contain raw Notes/email content.
+        """
         return self.text
 
 
