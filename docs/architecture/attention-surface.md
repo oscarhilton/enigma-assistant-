@@ -109,16 +109,23 @@ Cap the default view: “what actually needs your attention” should not dump e
 
 ### Demo attention surface shape (frozen)
 
-The live Demo Attention surface copy/layout is **frozen** for polish:
+The live Demo Attention surface copy/layout is **frozen** for polish as three levels:
+
+```text
+WORLD MODEL
+  ├─ ATTENTION   — NEEDS YOU (may be empty)
+  ├─ NEXT ACTION — WORTH DOING (never empty; always optional)
+  └─ CAN WAIT    — secondary, grouped counts
+```
 
 - Headline: “Nothing needs you right now” / “N things need your attention”
-- Empty silence is an active decision (holding-signals sentence + secondary “Show N that can wait” + “Last evaluated …”) — no Refresh CTA, no celebration empty states
+- Empty silence is an active decision — no Refresh CTA, no celebration empty states; offer one optional Next Action (must include rest / do nothing among cycle options)
+- Walk / junk / rest are **never** HIGH PRIORITY Attention cards
 - Expanded can-wait is secondary category counts, not a mini Attention list
 - Card face: title + compact badges + one natural reason sentence + Why?/Done/Snooze
-- **Done / Snooze are Demo / Assisted only** — Shadow must not show intervening actions
+- **Done / Snooze / I’ll do that are Demo / Assisted only** — Shadow must not show intervening actions
 - Reliability of *which* two cards surface is the next hard problem, not more card chrome
-
-**Three levels (product freeze):** **NEEDS YOU** (Attention — may be empty) · **WORTH DOING** (optional `NextAction` — never empty in UX) · **CAN WAIT** (dormant). Walks / junk tidy-ups / rest are Next Action, never HIGH PRIORITY Attention. See [next-action.md](./next-action.md) · [ADR-010](../adr/010-next-action-not-attention.md) · Demo chrome [D18](../../tickets/demo-ui/D18-demo-next-action.md).
+- Canonical NextAction model + scoring track: [next-action.md](./next-action.md) · [ADR-010](../adr/010-next-action-not-attention.md) · Demo chrome [D18](../../tickets/demo-ui/D18-demo-next-action.md)
 
 ### 6. Card UX vs Why
 

@@ -10,11 +10,18 @@ import {
   mattersNowHeadline,
   resolveCanWaitGroups,
 } from "./attentionCardCopy";
+import {
+  cycleNextIndex,
+  nextActionLine,
+  nextSectionLabel,
+  resolveNextActionCandidates,
+} from "./nextActionCopy";
 import type {
   CanWaitCategoryId,
   CanWaitGroup,
   DemoAttentionItem,
   DemoAttentionPayload,
+  DemoNextAction,
   DemoSuppressedItem,
 } from "./types";
 
@@ -32,7 +39,7 @@ function sortByRank(items: DemoAttentionItem[]): DemoAttentionItem[] {
 
 /**
  * Private UI attention surface — real synthetic names (Maya, Atlas).
- * Reason codes, PERSON_*, and evidence dumps live in Why / privacy views.
+ * Three levels: NEEDS YOU (Attention) · WORTH DOING (Next) · CAN WAIT.
  * Shape is frozen for Demo (see docs/architecture/attention-surface.md).
  */
 export function AttentionDashboard({
@@ -51,6 +58,8 @@ export function AttentionDashboard({
   );
   const [evaluatedAtMs, setEvaluatedAtMs] = useState<number | null>(null);
   const [clockMs, setClockMs] = useState(() => nowMs ?? Date.now());
+  const [nextIndex, setNextIndex] = useState(0);
+  const [nextAccepted, setNextAccepted] = useState(false);
 
   const load = useCallback(
     async (isCancelled?: () => boolean) => {
@@ -62,6 +71,8 @@ export function AttentionDashboard({
         ...next,
         items: sortByRank(next.items),
       });
+      setNextIndex(0);
+      setNextAccepted(false);
       const fromApi = next.evaluated_at
         ? Date.parse(next.evaluated_at)
         : Number.NaN;
@@ -122,10 +133,13 @@ export function AttentionDashboard({
           surfaced_count: surfaced,
           suppressed_count: suppressed,
           can_wait_groups: prev?.can_wait_groups,
+          next_actions: prev?.next_actions,
           evaluated_at: prev?.evaluated_at,
           simulated_time: prev?.simulated_time,
         };
       });
+      setNextIndex(0);
+      setNextAccepted(false);
       setEvaluatedAtMs(Date.now());
     } finally {
       setBusyId(null);
@@ -136,6 +150,17 @@ export function AttentionDashboard({
   const surfaced = payload?.surfaced_count ?? items.length;
   const suppressed = payload?.suppressed_count;
   const headlineCount = payload ? surfaced : items.length;
+  const attentionEmpty = headlineCount <= 0;
+
+  const nextCandidates: DemoNextAction[] = useMemo(
+    () => resolveNextActionCandidates(items, payload?.next_actions),
+    [items, payload?.next_actions],
+  );
+
+  const activeNext =
+    nextCandidates.length > 0
+      ? nextCandidates[Math.min(nextIndex, nextCandidates.length - 1)]!
+      : null;
 
   const canWaitGroups: CanWaitGroup[] = useMemo(() => {
     if (suppressed == null || suppressed <= 0) {
@@ -206,11 +231,59 @@ export function AttentionDashboard({
         </ul>
       ) : null}
 
+      {activeNext ? (
+        <div
+          className="demo-next-action"
+          data-testid="attention-next-action"
+          data-optional="true"
+          data-category={activeNext.category}
+        >
+          <p className="demo-next-action-label" data-testid="attention-next-label">
+            {nextSectionLabel(attentionEmpty)}
+          </p>
+          <p className="demo-next-action-line" data-testid="attention-next-line">
+            {nextActionLine(activeNext)}
+          </p>
+          <p className="muted demo-next-action-reason">{activeNext.reason}</p>
+          <div className="demo-next-action-actions">
+            <button
+              type="button"
+              data-testid="attention-next-accept"
+              disabled={nextAccepted}
+              onClick={() => setNextAccepted(true)}
+            >
+              {attentionEmpty ? "I'll do that" : "Let's do it"}
+            </button>
+            <button
+              type="button"
+              className="demo-link-button"
+              data-testid="attention-next-something-else"
+              onClick={() => {
+                setNextAccepted(false);
+                setNextIndex((i) => cycleNextIndex(i, nextCandidates.length));
+              }}
+            >
+              Something else
+            </button>
+          </div>
+          {nextAccepted ? (
+            <p className="muted demo-next-action-ack" data-testid="attention-next-ack">
+              Noted — Demo only; Shadow will not intervene.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {suppressed != null && suppressed > 0 ? (
         <div className="demo-attention-can-wait" data-testid="attention-can-wait-block">
-          <p className="muted demo-attention-can-wait-note" data-testid="attention-holding-note">
-            {holdingSignalsNote(suppressed)}
-          </p>
+          {!attentionEmpty ? (
+            <p
+              className="muted demo-attention-can-wait-note"
+              data-testid="attention-holding-note"
+            >
+              {holdingSignalsNote(suppressed)}
+            </p>
+          ) : null}
           <button
             type="button"
             className="demo-link-button"
@@ -229,51 +302,61 @@ export function AttentionDashboard({
             {showCanWait ? "Hide what can wait" : canWaitLabel(suppressed)}
           </button>
           {showCanWait ? (
-            <ul
-              className="demo-attention-can-wait-groups"
-              data-testid="attention-can-wait-groups"
-            >
-              {canWaitGroups.map((group) => {
-                const open = expandedGroup === group.id;
-                const samples = suppressedItems.filter(
-                  (item) =>
-                    (item.can_wait_category ?? null) === group.id ||
-                    (!item.can_wait_category &&
-                      ((group.id === "informational" &&
-                        item.suppression_reason === "newsletter") ||
-                        (group.id === "automated_noise" &&
-                          (item.suppression_reason === "spam" ||
-                            item.suppression_reason === "background")))),
-                );
-                return (
-                  <li key={group.id}>
-                    <button
-                      type="button"
-                      className="demo-link-button demo-attention-can-wait-group-toggle"
-                      data-testid={`can-wait-group-${group.id}`}
-                      aria-expanded={open}
-                      onClick={() =>
-                        setExpandedGroup((cur) =>
-                          cur === group.id ? null : group.id,
-                        )
-                      }
-                    >
-                      {group.label}
-                      <span className="demo-attention-can-wait-count">
-                        · {group.count}
-                      </span>
-                    </button>
-                    {open && samples.length > 0 ? (
-                      <ul className="demo-attention-can-wait-group-detail muted">
-                        {samples.slice(0, 3).map((sample) => (
-                          <li key={sample.id}>{sample.message}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              {attentionEmpty ? (
+                <p
+                  className="muted demo-attention-can-wait-note"
+                  data-testid="attention-holding-note"
+                >
+                  {holdingSignalsNote(suppressed)}
+                </p>
+              ) : null}
+              <ul
+                className="demo-attention-can-wait-groups"
+                data-testid="attention-can-wait-groups"
+              >
+                {canWaitGroups.map((group) => {
+                  const open = expandedGroup === group.id;
+                  const samples = suppressedItems.filter(
+                    (item) =>
+                      (item.can_wait_category ?? null) === group.id ||
+                      (!item.can_wait_category &&
+                        ((group.id === "informational" &&
+                          item.suppression_reason === "newsletter") ||
+                          (group.id === "automated_noise" &&
+                            (item.suppression_reason === "spam" ||
+                              item.suppression_reason === "background")))),
+                  );
+                  return (
+                    <li key={group.id}>
+                      <button
+                        type="button"
+                        className="demo-link-button demo-attention-can-wait-group-toggle"
+                        data-testid={`can-wait-group-${group.id}`}
+                        aria-expanded={open}
+                        onClick={() =>
+                          setExpandedGroup((cur) =>
+                            cur === group.id ? null : group.id,
+                          )
+                        }
+                      >
+                        {group.label}
+                        <span className="demo-attention-can-wait-count">
+                          · {group.count}
+                        </span>
+                      </button>
+                      {open && samples.length > 0 ? (
+                        <ul className="demo-attention-can-wait-group-detail muted">
+                          {samples.slice(0, 3).map((sample) => (
+                            <li key={sample.id}>{sample.message}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           ) : null}
         </div>
       ) : null}

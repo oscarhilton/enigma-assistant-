@@ -55,13 +55,13 @@ describe("Demo chrome stubs", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Review Atlas proposal/i)).toBeInTheDocument();
+      expect(screen.getByText(/Review Atlas proposal before Friday/i)).toBeInTheDocument();
     });
     expect(screen.getByTestId("attention-headline")).toHaveTextContent(
       /2 things need your attention/i,
     );
     expect(screen.getByText(/Fictional scenario · Alex Morgan/i)).toBeInTheDocument();
-    expect(screen.getByText(/Follow up with Maya/i)).toBeInTheDocument();
+    expect(screen.getByText(/Follow up with Maya on scheduling/i)).toBeInTheDocument();
     expect(screen.getByTestId("attention-badges-att-atlas-review")).toHaveTextContent(
       /HIGH PRIORITY · DUE SOON/i,
     );
@@ -89,6 +89,17 @@ describe("Demo chrome stubs", () => {
       /Show 47 that can wait/i,
     );
     expect(screen.getByTestId("attention-last-evaluated")).toBeInTheDocument();
+    expect(screen.getByTestId("attention-next-action")).toHaveAttribute(
+      "data-optional",
+      "true",
+    );
+    expect(screen.getByTestId("attention-next-label")).toHaveTextContent(/^NEXT$/);
+    expect(screen.getByTestId("attention-next-line")).toHaveTextContent(
+      /Review the Atlas proposal · ~20 min/i,
+    );
+    expect(screen.queryByTestId("attention-next-action")).not.toHaveTextContent(
+      /HIGH PRIORITY/i,
+    );
     expect(screen.getAllByRole("link", { name: /why\?/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^done$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^snooze$/i }).length).toBeGreaterThan(0);
@@ -113,16 +124,20 @@ describe("Demo chrome stubs", () => {
     );
   });
 
-  it("AttentionDashboard empty silence keeps holding copy without Refresh", async () => {
-    const fetchImpl = vi.fn(async () =>
-      Response.json({
+  it("AttentionDashboard empty silence offers optional Next without Refresh", async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/demo/suppressed")) {
+        return Response.json(FIXTURE_SUPPRESSED);
+      }
+      return Response.json({
         ...FIXTURE_ATTENTION_PAYLOAD,
         items: [],
         surfaced_count: 0,
         suppressed_count: 47,
         evaluated_at: "2026-01-01T08:58:00+00:00",
-      }),
-    ) as unknown as typeof fetch;
+      });
+    }) as unknown as typeof fetch;
 
     render(
       <MemoryRouter>
@@ -139,12 +154,38 @@ describe("Demo chrome stubs", () => {
       );
     });
     expect(screen.getByText(/Fictional scenario · Alex Morgan/i)).toBeInTheDocument();
-    expect(screen.getByTestId("attention-holding-note")).toHaveTextContent(
-      /holding 47 lower-priority signals out of view/i,
+    expect(screen.getByTestId("attention-next-label")).toHaveTextContent(/YOU COULD/i);
+    expect(screen.getByTestId("attention-next-line")).toHaveTextContent(
+      /Go for a short walk · ~15 min/i,
     );
+    expect(screen.getByText(/clear hour before your next commitment/i)).toBeInTheDocument();
+    expect(screen.getByTestId("attention-next-action")).toHaveAttribute(
+      "data-category",
+      "movement",
+    );
+    expect(screen.queryByText(/HIGH PRIORITY/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /I'll do that/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("attention-next-something-else"));
+    expect(screen.getByTestId("attention-next-line")).not.toHaveTextContent(
+      /Go for a short walk/i,
+    );
+    // Cycle until rest appears (bounded).
+    for (let i = 0; i < 6; i += 1) {
+      if (screen.getByTestId("attention-next-action").getAttribute("data-category") === "rest") {
+        break;
+      }
+      fireEvent.click(screen.getByTestId("attention-next-something-else"));
+    }
+    expect(screen.getByTestId("attention-next-action")).toHaveAttribute(
+      "data-category",
+      "rest",
+    );
+
     expect(screen.getByTestId("attention-can-wait")).toHaveTextContent(
       /^Show 47 that can wait$/,
     );
+    expect(screen.queryByTestId("attention-holding-note")).not.toBeInTheDocument();
     expect(screen.getByTestId("attention-last-evaluated")).toHaveTextContent(
       /Last evaluated 2 minutes ago/i,
     );
@@ -155,6 +196,9 @@ describe("Demo chrome stubs", () => {
     fireEvent.click(screen.getByTestId("attention-can-wait"));
     expect(screen.getByTestId("attention-can-wait")).toHaveTextContent(
       /Hide what can wait/i,
+    );
+    expect(screen.getByTestId("attention-holding-note")).toHaveTextContent(
+      /holding 47 lower-priority signals/i,
     );
     expect(screen.getByTestId("attention-can-wait-groups")).toBeInTheDocument();
   });
@@ -182,13 +226,16 @@ describe("Demo chrome stubs", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Review Atlas proposal/i)).toBeInTheDocument();
+      expect(screen.getByText(/Review Atlas proposal before Friday/i)).toBeInTheDocument();
     });
     fireEvent.click(screen.getAllByRole("button", { name: /^done$/i })[0]!);
     await waitFor(() => {
-      expect(screen.queryByText(/Review Atlas proposal/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Review Atlas proposal before Friday/i)).not.toBeInTheDocument();
     });
-    expect(screen.getByText(/Follow up with Maya/i)).toBeInTheDocument();
+    expect(screen.getByTestId("attention-badges-att-maya-scheduling")).toBeInTheDocument();
+    expect(screen.getByTestId("attention-next-line")).toHaveTextContent(
+      /Follow up with Maya/i,
+    );
   });
 
   it("MemoryBrowser lists memories without ground-truth overlay", async () => {

@@ -131,7 +131,7 @@ adversarial  UI     replay
 | N01 | Scorer stub | `todo` | [N01](../../tickets/next-action/N01-scorer-stub.md) |
 | N02 | Something-else cycling | `todo` | [N02](../../tickets/next-action/N02-something-else-cycling.md) |
 | N03 | Preference learning from rejects | `todo` | [N03](../../tickets/next-action/N03-preference-learning.md) |
-| D18 | Demo Next Action chrome | `todo` | [D18](../../tickets/demo-ui/D18-demo-next-action.md) |
+| D18 | Demo Next Action chrome | `done` | [D18](../../tickets/demo-ui/D18-demo-next-action.md) |
 
 ---
 
