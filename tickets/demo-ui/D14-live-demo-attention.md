@@ -50,6 +50,7 @@
 - `uv run pytest apps/api/tests/test_demo.py`
 - Smoke: `ENIGMA_ENVIRONMENT_MODE=demo` → step timeline a few hours → GET `/demo/attention` shows Maya/Q1 titles; advance day changes the set; reset restores epoch
 - Confirm no real connector credentials are read
+- Web: start Vite **without** absolute `VITE_API_BASE` (use `/demo` proxy); Pause then Next event still advances; 10× auto-plays; Attention refreshes with the clock
 
 ## Privacy constraints
 

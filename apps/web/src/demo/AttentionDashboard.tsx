@@ -7,6 +7,8 @@ export type AttentionDashboardProps = {
   fetchImpl?: typeof fetch;
   /** Secondary line under the product promise; omit in Private Mode reuse. */
   scenarioLabel?: string;
+  /** When simulated time changes (timeline step/day/auto-play), refetch attention. */
+  simulatedTime?: string | null;
 };
 
 function kindLabel(kind: string): string {
@@ -24,6 +26,7 @@ function sortByRank(items: DemoAttentionItem[]): DemoAttentionItem[] {
 export function AttentionDashboard({
   fetchImpl = fetch,
   scenarioLabel = "Alex Morgan",
+  simulatedTime = null,
 }: AttentionDashboardProps) {
   const [payload, setPayload] = useState<DemoAttentionPayload | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -48,7 +51,7 @@ export function AttentionDashboard({
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, simulatedTime]);
 
   async function onAction(itemId: string, action: "done" | "snooze") {
     setBusyId(itemId);

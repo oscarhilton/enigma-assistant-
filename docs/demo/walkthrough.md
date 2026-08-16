@@ -16,11 +16,11 @@ attention that reflects open loops**, without exposing ground truth in the UI.
 ## Operator steps
 
 1. Open Demo Mode overview (`/demo`) — banner must read `DEMO MODE — FICTIONAL DATA ONLY`.
-2. Confirm simulated clock starts at `2026-01-05` (day one: contact + standup only).
-3. Advance day / step through week 1 until Q1 roadmap mail + reminder appear.
+2. Confirm simulated clock starts at `2026-01-05` (day one: contact + standup only). Timeline starts **paused**.
+3. Advance with **Next event** / **Next day**, or pick **1×–100×** to auto-play (Pause stops auto-play). Open Attention — the list refreshes as simulated time moves.
 4. Continue through week 2 checkout recommendation (resolved).
 5. Stop after week 3 Sam empty-state loop remains open.
-6. Open **Attention** — expect the open Sam loop to surface (no ground-truth labels).
+6. On **Attention** — expect the open Sam loop to surface (no ground-truth labels).
 7. Open **Memory** / **Why** / **Privacy** hooks to show local continuity + privacy posture.
 8. Optional eval snapshot:
 

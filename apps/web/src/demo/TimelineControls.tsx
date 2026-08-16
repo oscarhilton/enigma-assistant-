@@ -1,14 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { advanceDemoDay, advanceDemoStep, fetchDemoStatus, setDemoSpeed } from "./api";
 import type { DemoStatus } from "./types";
 
 const SPEEDS = [0, 1, 10, 100] as const;
+
+/** Wall-clock ms between auto-play hour steps at 1× (higher speed ticks faster). */
+const AUTO_PLAY_BASE_MS = 1000;
 
 export type TimelineControlsProps = {
   fetchImpl?: typeof fetch;
   onStatusChange?: (status: DemoStatus) => void;
   initialStatus?: DemoStatus | null;
 };
+
+function autoPlayIntervalMs(speed: number): number {
+  return Math.max(100, Math.round(AUTO_PLAY_BASE_MS / speed));
+}
 
 export function TimelineControls({
   fetchImpl = fetch,
@@ -17,27 +24,74 @@ export function TimelineControls({
 }: TimelineControlsProps) {
   const [status, setStatus] = useState<DemoStatus | null>(initialStatus);
   const [busy, setBusy] = useState(false);
+  const onStatusChangeRef = useRef(onStatusChange);
+  onStatusChangeRef.current = onStatusChange;
+
+  function publish(next: DemoStatus) {
+    setStatus(next);
+    onStatusChangeRef.current?.(next);
+  }
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const next = await fetchDemoStatus(fetchImpl);
       if (!cancelled) {
-        setStatus(next);
-        onStatusChange?.(next);
+        publish(next);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [fetchImpl, onStatusChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount + fetchImpl only
+  }, [fetchImpl]);
+
+  const speed = status?.speed ?? 0;
+  const paused = status?.paused ?? speed === 0;
+
+  // Auto-play: speed > 0 advances one simulated hour per tick (1× ≈ 1s).
+  useEffect(() => {
+    if (paused || speed <= 0) {
+      return;
+    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const schedule = () => {
+      timer = setTimeout(() => {
+        void (async () => {
+          if (cancelled) {
+            return;
+          }
+          try {
+            const next = await advanceDemoStep(fetchImpl);
+            if (!cancelled) {
+              publish(next);
+            }
+          } finally {
+            if (!cancelled) {
+              schedule();
+            }
+          }
+        })();
+      }, autoPlayIntervalMs(speed));
+    };
+
+    schedule();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only rebind when speed/pause change
+  }, [fetchImpl, paused, speed]);
 
   async function apply(update: () => Promise<DemoStatus>) {
     setBusy(true);
     try {
       const next = await update();
-      setStatus(next);
-      onStatusChange?.(next);
+      publish(next);
     } finally {
       setBusy(false);
     }
@@ -69,18 +123,24 @@ export function TimelineControls({
       </div>
       <div className="demo-speed" role="group" aria-label="Simulation speed">
         <span className="muted">Speed</span>
-        {SPEEDS.map((speed) => (
+        {SPEEDS.map((value) => (
           <button
-            key={speed}
+            key={value}
             type="button"
-            className={status?.speed === speed ? "active" : undefined}
+            className={status?.speed === value ? "active" : undefined}
             disabled={busy}
-            onClick={() => void apply(() => setDemoSpeed(speed, fetchImpl))}
+            aria-pressed={status?.speed === value}
+            onClick={() => void apply(() => setDemoSpeed(value, fetchImpl))}
           >
-            {speed === 0 ? "Pause" : `${speed}×`}
+            {value === 0 ? "Pause" : `${value}×`}
           </button>
         ))}
       </div>
+      <p className="muted demo-speed-hint">
+        {paused || speed <= 0
+          ? "Paused — use Next event / Next day, or pick a speed to auto-play."
+          : `Auto-playing at ${speed}× (≈1 simulated hour every ${autoPlayIntervalMs(speed)}ms).`}
+      </p>
     </section>
   );
 }
