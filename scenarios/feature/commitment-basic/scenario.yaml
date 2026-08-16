@@ -1,0 +1,60 @@
+id: commitment-basic
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-02T08:00:00Z"
+description: Open reminder + follow-up email establishing an unresolved commitment.
+events:
+  - id: cb-contact-maya
+    at: "2026-03-02T08:05:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: maya
+      display_name: Maya Chen
+      email: maya.chen@northwind.example
+  - id: cb-rem-deck
+    at: "2026-03-02T09:00:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-deck
+      title: Send Q2 deck to Maya
+      due_at: "2026-03-04T17:00:00Z"
+      is_completed: false
+  - id: cb-mail-ask
+    at: "2026-03-02T10:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-ask-deck
+      subject: "Can you send the Q2 deck by Wednesday?"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Need the deck before the leadership review.
+  - id: cb-cal-review
+    at: "2026-03-03T09:00:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-leadership
+      title: Leadership review
+      start_at: "2026-03-05T14:00:00Z"
+      end_at: "2026-03-05T15:00:00Z"
+  - id: cb-note-outline
+    at: "2026-03-03T11:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-deck-outline
+      title: Deck outline
+      body_text: Cover metrics, risks, next bets. Still need Maya's latest numbers.
+  - id: cb-mail-nudge
+    at: "+2d"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-nudge
+      subject: "Re: Q2 deck"
+      from: maya.chen@northwind.example
+      snippet: Friendly nudge — still waiting on the deck.

@@ -1,0 +1,13 @@
+id: invalid-world-model
+version: "0.0.0"
+status: feature
+description: Fixture that must fail validation — embeds obligation in payload.
+events:
+  - id: bad-1
+    at: "2026-01-01T00:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      subject: hi
+      obligation:
+        description: should not be here

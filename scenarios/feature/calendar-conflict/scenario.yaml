@@ -1,0 +1,59 @@
+id: calendar-conflict
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-16T08:00:00Z"
+description: Two overlapping calendar events plus a conflicting reminder.
+events:
+  - id: cc-cal-design
+    at: "2026-03-16T09:00:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-design-crit
+      title: Design critique
+      start_at: "2026-03-17T15:00:00Z"
+      end_at: "2026-03-17T16:00:00Z"
+      location: Room 4B
+  - id: cc-cal-dentist
+    at: "2026-03-16T09:05:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-dentist
+      title: Dentist
+      start_at: "2026-03-17T15:30:00Z"
+      end_at: "2026-03-17T16:15:00Z"
+      location: Harley Street
+  - id: cc-rem-prep
+    at: "2026-03-16T10:00:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-crit-prep
+      title: Prep critique slides
+      due_at: "2026-03-17T14:00:00Z"
+  - id: cc-mail-conflict
+    at: "2026-03-16T11:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-crit-invite
+      subject: Critique moved to 15:00
+      from: sam.okonkwo@northwind.example
+      snippet: Please join design critique at 15:00 tomorrow.
+  - id: cc-cal-cancel-dentist
+    at: "2026-03-17T08:00:00Z"
+    type: calendar.cancel
+    source: calendar
+    payload:
+      id: cal-dentist
+      title: Dentist
+  - id: cc-note-reschedule
+    at: "2026-03-17T08:05:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-dentist
+      title: Dentist reschedule
+      body_text: Moved dentist after the conflict with critique.
