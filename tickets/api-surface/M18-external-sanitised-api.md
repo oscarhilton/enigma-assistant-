@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M18-external-sanitised-api` |
 | Domain | `api-surface` |
 
@@ -31,10 +31,10 @@
 
 ## Acceptance criteria
 
-- [ ] External API returns only sanitised / transformed resources
-- [ ] Auth for local clients
-- [ ] Explicit endpoints for attention items and capability status
-- [ ] Refusal paths when privacy gate fails
+- [x] External API returns only sanitised / transformed resources
+- [x] Auth for local clients
+- [x] Explicit endpoints for attention items and capability status
+- [x] Refusal paths when privacy gate fails
 
 ## Test plan
 
