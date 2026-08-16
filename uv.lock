@@ -495,10 +495,26 @@ version = "0.1.0"
 source = { editable = "packages/evaluation" }
 dependencies = [
     { name = "personal-enigma-domain" },
+    { name = "personal-enigma-fixtures" },
+    { name = "personal-enigma-privacy" },
+    { name = "personal-enigma-reasoning" },
+    { name = "personal-enigma-simulation" },
+    { name = "personal-enigma-transformation" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "personal-enigma-domain", editable = "packages/domain" }]
+requires-dist = [
+    { name = "personal-enigma-domain", editable = "packages/domain" },
+    { name = "personal-enigma-fixtures", editable = "packages/fixtures" },
+    { name = "personal-enigma-privacy", editable = "packages/privacy" },
+    { name = "personal-enigma-reasoning", editable = "packages/reasoning" },
+    { name = "personal-enigma-simulation", editable = "packages/simulation" },
+    { name = "personal-enigma-transformation", editable = "packages/transformation" },
+    { name = "pydantic", specifier = ">=2.10.0" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
+]
 
 [[package]]
 name = "personal-enigma-fixtures"

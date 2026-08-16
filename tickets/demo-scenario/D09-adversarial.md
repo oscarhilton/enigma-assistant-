@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/D09-adversarial` |
 | Domain | `demo-scenario` |
 
@@ -30,8 +30,8 @@
 
 ## Acceptance criteria
 
-- [ ] Packs for prompt injection, secrets, re-identification, malicious provider, provider failure
-- [ ] Privacy invariants remain zero-leak under the pack
+- [x] Packs for prompt injection, secrets, re-identification, malicious provider, provider failure
+- [x] Privacy invariants remain zero-leak under the pack
 
 ## Test plan
 
