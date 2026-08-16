@@ -1,0 +1,189 @@
+# Week 2 — 12–18 Jan 2026: checkout ambiguity, expense noise, friend plans.
+
+events:
+  - id: w2-contact-jordan
+    at: "2026-01-12T08:20:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: jordan
+      display_name: Jordan Lee
+      email: jordan.lee@northwind.example
+
+  - id: w2-mail-maya-checkout
+    at: "2026-01-12T09:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-maya-checkout
+      subject: "Checkout — Q1 or park it?"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Leadership asked; I need a recommendation by Wednesday EOD.
+    content_ref: content/emails/mail-maya-checkout.md
+
+  - id: w2-rem-checkout-rec
+    at: "2026-01-12T10:00:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-checkout-rec
+      title: Write checkout Q1 recommendation for Maya
+      due_at: "2026-01-14T17:00:00Z"
+      is_completed: false
+
+  - id: w2-cal-research-sync
+    at: "2026-01-12T11:00:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-research-sync
+      title: Research sync
+      start_at: "2026-01-13T15:00:00Z"
+      end_at: "2026-01-13T15:45:00Z"
+
+  - id: w2-mail-finance-expense
+    at: "2026-01-13T08:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-finance-expense
+      subject: "Action required: December expenses"
+      from: finance@northwind.example
+      snippet: Submit receipts by Friday or payroll will chase.
+
+  - id: w2-rem-expenses
+    at: "2026-01-13T08:25:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-expenses
+      title: Submit December expenses
+      due_at: "2026-01-16T12:00:00Z"
+
+  - id: w2-note-checkout-ambig
+    at: "2026-01-13T19:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-checkout-ambig
+      title: Checkout decision notes
+      body_text: >
+        Pros of Q1: revenue narrative. Cons: design system debt. Maybe park
+        behind tokens. Still not sure what Maya wants to hear.
+    content_ref: content/notes/note-checkout-ambig.md
+
+  - id: w2-mail-tom-climb
+    at: "2026-01-14T12:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-tom-climb
+      subject: "Climbing Sunday?"
+      from: tom@example.com
+      snippet: The Castle at 10:00 if you're free.
+
+  - id: w2-cal-climb
+    at: "2026-01-14T12:20:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-climb-tom
+      title: Climbing with Tom
+      start_at: "2026-01-18T10:00:00Z"
+      end_at: "2026-01-18T12:30:00Z"
+      location: The Castle
+
+  - id: w2-mail-checkout-send
+    at: "2026-01-14T16:40:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-alex-checkout
+      subject: "Re: Checkout — Q1 or park it?"
+      to: [maya.chen@northwind.example]
+      snippet: Recommend park behind tokens; revisit mid-Q2 with research.
+
+  - id: w2-rem-checkout-done
+    at: "2026-01-14T16:45:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-checkout-rec
+      is_completed: true
+      completed_at: "2026-01-14T16:45:00Z"
+
+  - id: w2-mail-jordan-tokens
+    at: "2026-01-15T09:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-jordan-tokens
+      subject: "Token audit kickoff"
+      from: jordan.lee@northwind.example
+      snippet: Can you own colour + spacing tokens for the audit?
+
+  - id: w2-rem-tokens
+    at: "2026-01-15T09:45:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-token-audit
+      title: Draft colour + spacing token inventory
+      due_at: "2026-01-21T17:00:00Z"
+
+  - id: w2-cal-dentist
+    at: "2026-01-15T11:00:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-dentist
+      title: Dentist
+      start_at: "2026-01-16T15:30:00Z"
+      end_at: "2026-01-16T16:15:00Z"
+
+  - id: w2-cal-conflict-crit
+    at: "2026-01-15T11:05:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-crit-overlap
+      title: Design critique
+      start_at: "2026-01-16T15:00:00Z"
+      end_at: "2026-01-16T16:00:00Z"
+
+  - id: w2-cal-dentist-cancel
+    at: "2026-01-16T08:00:00Z"
+    type: calendar.cancel
+    source: calendar
+    payload:
+      id: cal-dentist
+      title: Dentist
+
+  - id: w2-rem-expenses-done
+    at: "2026-01-16T11:20:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-expenses
+      is_completed: true
+      completed_at: "2026-01-16T11:20:00Z"
+
+  - id: w2-mail-promo-noise
+    at: "2026-01-17T07:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-noise-saas
+      subject: "50% off forever (really)"
+      from: growth@randomsaas.example
+      snippet: Ignore this.
+
+  - id: w2-note-week2
+    at: "2026-01-17T18:30:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-week2-close
+      title: End of week 2
+      body_text: Checkout parked. Token audit open. Climbing Sunday.

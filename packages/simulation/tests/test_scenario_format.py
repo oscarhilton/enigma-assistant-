@@ -37,11 +37,12 @@ def test_feature_scenarios_load(name: str) -> None:
         assert "commitment" not in event.payload
 
 
-def test_alex_scaffold_loads_deterministically() -> None:
+def test_alex_benchmark_loads_deterministically() -> None:
     first = load_scenario(ALEX)
     second = load_scenario(ALEX)
     assert first.manifest.id == "alex-v1"
-    assert first.manifest.status == "scaffold"
+    assert first.manifest.status == "benchmark"
+    assert first.manifest.version == "0.2.0"
     assert first.persona
     assert first.effective_seed == "alex-v1"
     assert [e.model_dump(mode="json") for e in first.events] == [
@@ -49,7 +50,7 @@ def test_alex_scaffold_loads_deterministically() -> None:
     ]
     assert first.persona == second.persona
     assert first.rng().random() == second.rng().random()
-
+    assert len(first.events) >= 40
 
 def test_scenario_rng_is_seeded() -> None:
     a = scenario_rng("alex-v1")

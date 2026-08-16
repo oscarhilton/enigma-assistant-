@@ -1,12 +1,11 @@
-# Alex Morgan v1 — canonical Demo Mode scenario (skeleton)
-
 id: alex-v1
-version: "0.1.0-scaffold"
-status: scaffold
+version: "0.2.0"
+status: benchmark
 seed: alex-v1
 persona: persona.yaml
 timezone: Europe/London
 start_at: "2026-01-05T08:00:00Z"
 description: >
-  Minimal skeleton for Phase 2 bootstrap. Full multi-week corpus is ticket D8.
-  Do not mutate released benchmark semantics in place — bump version instead.
+  Canonical Alex Morgan demo corpus — three coherent fictional weeks
+  (work, personal, projects, relationships, deadlines, noise, ambiguity,
+  cross-source evidence). Immutable after release; bump version for changes.

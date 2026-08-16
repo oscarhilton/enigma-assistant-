@@ -1,8 +1,31 @@
-# Schema example for D6 — memory checkpoint (spec §39).
-checkpoint:
-  at: "2026-03-31T00:00:00Z"
-  expected_memories:
-    - maya_is_manager
-    - atlas_is_active_project
-    - alex_normally_replies_to_maya_quickly
-  min_confidence: 0.6
+# Memory checkpoints (D6 schema) for Alex v0.2.0.
+
+memory_checkpoints:
+  - id: checkpoint-2026-03-31
+    at: "2026-03-31T00:00:00Z"
+    expected_memories:
+      - maya_is_manager
+      - atlas_is_active_project
+      - alex_normally_replies_to_maya_quickly
+    min_confidence: 0.6
+
+  - id: checkpoint_week1
+    at: "2026-01-11T20:00:00Z"
+    expected_memories:
+      - q1_priorities_sent_to_maya
+      - checkout_decision_still_ambiguous
+    min_confidence: 0.5
+
+  - id: checkpoint_week2
+    at: "2026-01-18T20:00:00Z"
+    expected_memories:
+      - checkout_parked_behind_tokens
+      - token_inventory_open_with_jordan
+    min_confidence: 0.5
+
+  - id: checkpoint_week3
+    at: "2026-01-25T20:00:00Z"
+    expected_memories:
+      - token_inventory_draft_sent
+      - open_loop_sam_empty_states
+    min_confidence: 0.5
