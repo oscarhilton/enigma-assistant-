@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from threading import Lock
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -142,6 +143,7 @@ class DemoSession:
 
 
 _SESSION = DemoSession()
+_SESSION_LOCK = Lock()
 
 
 def _require_demo() -> None:
@@ -153,7 +155,15 @@ def _require_demo() -> None:
 
 
 def install_demo_routes(application: FastAPI) -> None:
-    """Register ``/demo/*`` banner, status, timeline, and UI stub routes."""
+    """Register ``/demo/*`` banner, status, timeline, and UI stub routes.
+
+    Timeline state is process-global for local Demo UI (one shared clock).
+    Mutations are serialised with ``_SESSION_LOCK``. Multi-worker deployments
+    each keep an independent clock — intentional for this pre-D5 stub.
+    """
+
+    application.state.demo_session = _SESSION
+    application.state.demo_session_lock = _SESSION_LOCK
 
     @application.get("/demo/banner")
     def demo_banner() -> dict[str, str | bool]:
@@ -185,43 +195,50 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/status")
     def demo_status() -> dict[str, Any]:
-        return _SESSION.status_payload()
+        with _SESSION_LOCK:
+            return _SESSION.status_payload()
 
     @application.post("/demo/timeline/step")
     def demo_timeline_step() -> dict[str, Any]:
         _require_demo()
         # Without D5 event queue, step advances one simulated hour.
-        _SESSION.clock.advance(timedelta(hours=1))
-        return _SESSION.status_payload()
+        with _SESSION_LOCK:
+            _SESSION.clock.advance(timedelta(hours=1))
+            return _SESSION.status_payload()
 
     @application.post("/demo/timeline/day")
     def demo_timeline_day() -> dict[str, Any]:
         _require_demo()
-        _SESSION.clock.advance_days(1)
-        return _SESSION.status_payload()
+        with _SESSION_LOCK:
+            _SESSION.clock.advance_days(1)
+            return _SESSION.status_payload()
 
     @application.post("/demo/timeline/speed")
     def demo_timeline_speed(body: SpeedBody) -> dict[str, Any]:
         _require_demo()
-        _SESSION.speed = body.speed
-        if body.speed == 0:
-            _SESSION.clock.pause()
-        else:
-            _SESSION.clock.resume()
-        return _SESSION.status_payload()
+        with _SESSION_LOCK:
+            _SESSION.speed = body.speed
+            if body.speed == 0:
+                _SESSION.clock.pause()
+            else:
+                _SESSION.clock.resume()
+            return _SESSION.status_payload()
 
     @application.post("/demo/timeline/reset")
     def demo_timeline_reset() -> dict[str, Any]:
         _require_demo()
-        _SESSION.reset()
-        return _SESSION.status_payload()
+        with _SESSION_LOCK:
+            _SESSION.reset()
+            return _SESSION.status_payload()
 
     @application.get("/demo/attention")
     def demo_attention() -> dict[str, Any]:
         _require_demo()
+        with _SESSION_LOCK:
+            simulated_time = _SESSION.clock.now().isoformat()
         return {
             "items": list(_STUB_ATTENTION),
-            "simulated_time": _SESSION.clock.now().isoformat(),
+            "simulated_time": simulated_time,
         }
 
     @application.get("/demo/memory")

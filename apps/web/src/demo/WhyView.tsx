@@ -10,11 +10,12 @@ export type WhyViewProps = {
 
 export function WhyView({ itemId: itemIdProp, fetchImpl = fetch }: WhyViewProps) {
   const params = useParams();
-  const itemId = itemIdProp ?? params.itemId ?? "att-review-atlas";
-  const [payload, setPayload] = useState<DemoWhyPayload | null>(null);
+  const itemId = itemIdProp ?? params.itemId ?? "att-atlas-review";
+  const [payload, setPayload] = useState<DemoWhyPayload | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
+    setPayload(undefined);
     void (async () => {
       const next = await fetchDemoWhy(itemId, fetchImpl);
       if (!cancelled) {
@@ -26,7 +27,16 @@ export function WhyView({ itemId: itemIdProp, fetchImpl = fetch }: WhyViewProps)
     };
   }, [fetchImpl, itemId]);
 
-  if (!payload) {
+  if (payload === undefined) {
+    return (
+      <section className="demo-panel" aria-label="Why view">
+        <h2>Why?</h2>
+        <p className="muted">Loading explanation…</p>
+      </section>
+    );
+  }
+
+  if (payload === null) {
     return (
       <section className="demo-panel" aria-label="Why view">
         <h2>Why?</h2>

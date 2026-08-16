@@ -255,14 +255,6 @@ nav a.active {
   text-decoration: none;
 }
 
-.demo-speed {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.75rem 0 0;
-}
-
 .demo-status-grid {
   display: grid;
   gap: 0.65rem;
@@ -281,12 +273,6 @@ nav a.active {
 
 .demo-status-grid dd {
   margin: 0;
-}
-
-.demo-overview-links {
-  margin: 1.5rem 0 0;
-  padding-left: 1.2rem;
-  line-height: 1.8;
 }
 
 .demo-list-main {
