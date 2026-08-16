@@ -54,12 +54,19 @@ export function AttentionDashboard({
     setBusyId(itemId);
     try {
       const result = await postDemoAttentionAction(itemId, action, fetchImpl);
-      setPayload((prev) => ({
-        items: sortByRank(result.items),
-        surfaced_count: result.surfaced_count ?? result.items.length,
-        suppressed_count: result.suppressed_count ?? prev?.suppressed_count,
-        simulated_time: prev?.simulated_time,
-      }));
+      setPayload((prev) => {
+        const surfaced = result.surfaced_count ?? result.items.length;
+        const suppressed = result.suppressed_count ?? prev?.suppressed_count;
+        return {
+          items: sortByRank(result.items),
+          signals_considered:
+            result.signals_considered ??
+            (suppressed != null ? surfaced + suppressed : prev?.signals_considered),
+          surfaced_count: surfaced,
+          suppressed_count: suppressed,
+          simulated_time: prev?.simulated_time,
+        };
+      });
     } finally {
       setBusyId(null);
     }
@@ -68,6 +75,9 @@ export function AttentionDashboard({
   const items = payload?.items ?? [];
   const surfaced = payload?.surfaced_count ?? items.length;
   const suppressed = payload?.suppressed_count;
+  const considered =
+    payload?.signals_considered ??
+    (suppressed != null ? surfaced + suppressed : undefined);
 
   return (
     <section className="demo-panel" aria-label="Attention dashboard">
@@ -132,8 +142,9 @@ export function AttentionDashboard({
       </ul>
 
       {suppressed != null ? (
-        <p className="muted demo-attention-footer">
-          {surfaced} items surfaced · {suppressed} signals suppressed
+        <p className="muted demo-attention-footer" data-testid="attention-compression">
+          {considered ?? surfaced + suppressed} signals considered · {surfaced} surfaced ·{" "}
+          {suppressed} suppressed
         </p>
       ) : null}
 

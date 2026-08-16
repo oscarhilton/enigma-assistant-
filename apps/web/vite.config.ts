@@ -10,7 +10,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       // Demo Mode FastAPI routes (banner, status, environment, timeline,
-      // attention, memory, why). Same-origin UI fetches need this proxy.
+      // attention, memory, suppressed, why). Same-origin UI fetches need this proxy.
       // Bypass HTML document requests so React Router hard-refresh still
       // works where SPA paths overlap API paths (e.g. /demo/attention).
       "/demo": {

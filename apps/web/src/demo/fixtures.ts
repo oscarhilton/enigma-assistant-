@@ -3,6 +3,7 @@ import type {
   DemoAttentionPayload,
   DemoMemoryItem,
   DemoStatus,
+  DemoSuppressedPayload,
   DemoWhyPayload,
 } from "./types";
 
@@ -16,6 +17,10 @@ export const FIXTURE_STATUS: DemoStatus = {
   paused: false,
   storage_root: "/tmp/enigma-demo/alex-v1",
   ground_truth_visible: false,
+  signals_considered: 49,
+  surfaced_count: 2,
+  suppressed_count: 47,
+  noise_suppressed_count: 47,
 };
 
 export const FIXTURE_DEMO_STATUS = FIXTURE_STATUS;
@@ -50,9 +55,55 @@ export const FIXTURE_ATTENTION: DemoAttentionItem[] = [
 
 export const FIXTURE_ATTENTION_PAYLOAD: DemoAttentionPayload = {
   items: FIXTURE_ATTENTION,
+  signals_considered: 49,
   surfaced_count: 2,
   suppressed_count: 47,
   simulated_time: FIXTURE_STATUS.simulated_time,
+};
+
+export const FIXTURE_SUPPRESSED: DemoSuppressedPayload = {
+  developer_only: true,
+  filters: [
+    "background",
+    "newsletter",
+    "spam",
+    "low_priority",
+    "duplicate",
+    "resolved",
+  ],
+  filter: null,
+  signals_considered: 49,
+  surfaced_count: 2,
+  suppressed_count: 47,
+  sample_count: 2,
+  simulated_time: FIXTURE_STATUS.simulated_time,
+  items: [
+    {
+      id: "sup-newsletter-1",
+      message: "Newsletter announcing a local weekend event",
+      suppression_reason: "newsletter",
+      classification: "informational",
+      open_obligation: "none",
+      relationship_relevance: "low",
+      deadline: "none",
+      decision: "suppressed",
+      why_not: [
+        "Message is a bulk newsletter with no personal ask.",
+        "No open obligation or deadline tied to USER.",
+      ],
+    },
+    {
+      id: "sup-spam-1",
+      message: "Urgent prize claim with suspicious tracking links",
+      suppression_reason: "spam",
+      classification: "unsolicited",
+      open_obligation: "none",
+      relationship_relevance: "none",
+      deadline: "none",
+      decision: "suppressed",
+      why_not: ["Matches unsolicited / phishing-like patterns."],
+    },
+  ],
 };
 
 export const FIXTURE_MEMORY: DemoMemoryItem[] = [

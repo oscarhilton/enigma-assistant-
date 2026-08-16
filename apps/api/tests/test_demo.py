@@ -61,6 +61,31 @@ def test_demo_status_includes_suppression_stats(monkeypatch: pytest.MonkeyPatch)
     assert status["surfaced_count"] == 2
     assert status["suppressed_count"] == 47
     assert status["noise_suppressed_count"] == 47
+    assert status["signals_considered"] == 49
+
+
+def test_demo_suppressed_inspector(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    client = TestClient(create_app())
+    body = client.get("/demo/suppressed").json()
+    assert body["developer_only"] is True
+    assert body["signals_considered"] == 49
+    assert body["surfaced_count"] == 2
+    assert body["suppressed_count"] == 47
+    assert "newsletter" in body["filters"]
+    assert body["items"]
+    first = body["items"][0]
+    assert "why_not" in first
+    assert "suppression_reason" in first
+    assert "signal_class" not in first
+    assert "ground_truth" not in body
+    filtered = client.get("/demo/suppressed", params={"reason": "spam"}).json()
+    assert filtered["filter"] == "spam"
+    assert all(row["suppression_reason"] == "spam" for row in filtered["items"])
+    bad = client.get("/demo/suppressed", params={"reason": "signal_class"})
+    assert bad.status_code == 400
+    empty = client.get("/demo/suppressed", params={"reason": ""})
+    assert empty.status_code == 400
 
 
 def test_timeline_step_and_speed(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -90,6 +115,7 @@ def test_attention_and_why_omit_ground_truth(monkeypatch: pytest.MonkeyPatch) ->
     assert "ground_truth" not in attention
     assert attention["surfaced_count"] == len(attention["items"])
     assert attention["suppressed_count"] == 47
+    assert attention["signals_considered"] == 49
     first = attention["items"][0]
     assert first["title"] == "Review Atlas proposal before Friday"
     assert "Maya" in attention["items"][1]["title"]

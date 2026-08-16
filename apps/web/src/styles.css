@@ -338,6 +338,43 @@ nav a.active {
   margin-top: 1.25rem;
 }
 
+.demo-suppress-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.demo-why-not {
+  margin: 0.75rem 0 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.demo-why-not div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.demo-why-not dt {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.demo-why-not dd {
+  margin: 0;
+}
+
+.demo-why-not ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.demo-dev-link {
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
 .demo-why-metrics {
   display: flex;
   flex-wrap: wrap;
