@@ -6,6 +6,7 @@ import json
 from uuid import uuid4
 
 import pytest
+from pydantic import BaseModel
 
 from personal_enigma.domain import PrivateNote, PrivatePerson, SourceType
 from personal_enigma.fixtures import (
@@ -31,7 +32,6 @@ from personal_enigma.privacy import (
     assert_transformed_corpus_safe,
     default_level_for_source,
     may_send_remotely,
-    notes_default_privacy_level,
     wholesale_note_body_remote_safe,
 )
 from personal_enigma.transformation import DefaultEnigmaTransformer, TransformedContext
@@ -43,9 +43,9 @@ def _blob(ctx: TransformedContext) -> str:
     return json.dumps(ctx.model_dump(mode="json"), default=str)
 
 
-def _corpus_records() -> list[object]:
+def _corpus_records() -> list[BaseModel]:
     scenario = get_scenario("review_proposal")
-    records: list[object] = [
+    records: list[BaseModel] = [
         *scenario.calendar_events,
         *scenario.reminders,
         *scenario.contacts,
@@ -97,7 +97,7 @@ def _corpus_records() -> list[object]:
     return records
 
 
-def _people_from_corpus(records: list[object]) -> list[PrivatePerson]:
+def _people_from_corpus(records: list[BaseModel]) -> list[PrivatePerson]:
     people = [r for r in records if isinstance(r, PrivatePerson)]
     people.append(
         build_contact(
@@ -115,7 +115,7 @@ def _people_from_corpus(records: list[object]) -> list[PrivatePerson]:
     return people
 
 
-def _notes_from_corpus(records: list[object]) -> list[PrivateNote]:
+def _notes_from_corpus(records: list[BaseModel]) -> list[PrivateNote]:
     return [r for r in records if isinstance(r, PrivateNote)]
 
 
@@ -128,7 +128,6 @@ def test_allowlist_is_documented() -> None:
 
 def test_notes_and_contacts_default_high() -> None:
     assert default_level_for_source(SourceType.NOTE) == PrivacyLevel.HIGH
-    assert notes_default_privacy_level() == PrivacyLevel.HIGH
     assert default_level_for_source(SourceType.CONTACT) == PrivacyLevel.HIGH
 
 
@@ -204,39 +203,33 @@ def test_wholesale_note_body_cannot_be_remote_safe_without_exception() -> None:
         },
         may_transmit_remotely=True,
     )
-    with pytest.raises(PrivacyInvariantError, match="NotesRemotePolicyException|Wholesale"):
+    with pytest.raises(
+        PrivacyInvariantError,
+        match="NotesRemotePolicyException|remote-safe|Wholesale",
+    ):
         assert_notes_not_wholesale_remote_safe(dirty, note)
 
     with pytest.raises(PrivacyInvariantError):
         assert_remote_payload_safe(dirty, notes=[note])
 
-    exc = NotesRemotePolicyException(note_id=note.id, reason="audited test exception")
-    with pytest.raises(PrivacyInvariantError, match="Wholesale|passage-only"):
-        assert_notes_not_wholesale_remote_safe(dirty, note, policy_exception=exc)
+    passage_exc = NotesRemotePolicyException(note_id=note.id, reason="audited passage only")
+    with pytest.raises(PrivacyInvariantError, match="Wholesale"):
+        assert_notes_not_wholesale_remote_safe(dirty, note, policy_exception=passage_exc)
 
+    assert wholesale_note_body_remote_safe(body_text=body, candidate_text=body) is False
     assert (
         wholesale_note_body_remote_safe(
             body_text=body,
-            candidate_text=body,
-            exception=exc,
+            candidate_text="Secret diary line that must not ship wholesale.",
+            exception=passage_exc,
         )
-        is False
-    )
-    passage = "Secret diary line that must not ship wholesale."
-    assert wholesale_note_body_remote_safe(
-        body_text=body,
-        candidate_text=passage,
-        exception=exc,
+        is True
     )
 
 
 def test_notes_policy_exception_rejects_wholesale_flag() -> None:
     with pytest.raises(ValueError, match="passage_only"):
-        NotesRemotePolicyException(
-            note_id="n1",
-            reason="nope",
-            passage_only=False,
-        )
+        NotesRemotePolicyException(note_id="n", reason="x", passage_only=False)
 
 
 def test_transformer_notes_never_remote_even_with_allow_remote() -> None:

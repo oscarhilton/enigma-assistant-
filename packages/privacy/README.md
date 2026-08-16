@@ -17,15 +17,16 @@ Only these top-level keys may appear on the wire to a hosted model:
 | `metadata` | Subset in `REMOTE_METADATA_KEYS` |
 | `may_transmit_remotely` | Still requires remote inference enabled |
 
-Forbidden: raw `PrivatePerson` fields, emails, phones, wholesale Notes bodies
-(without an explicit `PolicyException`), and any non-allowlisted keys.
+Forbidden: raw `PrivatePerson` fields, emails, phones, wholesale Notes bodies,
+and any non-allowlisted keys. Notes may only become remote-safe via an explicit
+`NotesRemotePolicyException` (passage-only; never wholesale).
 
 Source of truth: `personal_enigma.privacy.allowlist` (`REMOTE_PAYLOAD_ALLOWLIST_DOC`).
 
 ## Notes
 
-Default level is **HIGH**. Marking a note remote-safe requires
-`PolicyException`; wholesale bodies also need `allow_wholesale_note_body=True`.
+Default level is **HIGH**. Wholesale note bodies cannot be marked remote-safe;
+`NotesRemotePolicyException` authorises passages only.
 
 ## Remote inference disabled
 

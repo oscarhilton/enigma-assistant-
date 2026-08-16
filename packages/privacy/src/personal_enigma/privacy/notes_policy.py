@@ -30,7 +30,8 @@ class NotesRemotePolicyException:
 def notes_default_privacy_level() -> PrivacyLevel:
     """Notes default remote privacy level (always HIGH)."""
     level = default_level_for_source(SourceType.NOTE)
-    assert level is PrivacyLevel.HIGH
+    if level is not PrivacyLevel.HIGH:
+        raise AssertionError("Notes must default to HIGH privacy")
     return level
 
 

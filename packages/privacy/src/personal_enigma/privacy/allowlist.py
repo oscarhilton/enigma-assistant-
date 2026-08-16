@@ -54,8 +54,6 @@ REMOTE_METADATA_KEYS: Final[frozenset[str]] = frozenset(
     }
 )
 
-#: Opaque entity tokens produced by the local entity resolver.
 PERSON_PSEUDONYM_PREFIX: Final[str] = "PERSON_"
 
-#: Human-readable summary of the allowlist for docs / inspector surfaces.
 REMOTE_PAYLOAD_ALLOWLIST_DOC: Final[str] = __doc__ or ""

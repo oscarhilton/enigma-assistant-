@@ -27,7 +27,7 @@ from personal_enigma.privacy.remote import RemoteInferenceConfig, may_send_remot
 
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _PHONE_RE = re.compile(
-    r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}(?!\w)"
+    r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}(?!\w)"
 )
 _PERSON_TOKEN_RE = re.compile(rf"^{re.escape(PERSON_PSEUDONYM_PREFIX)}[0-9A-F]{{6}}$")
 
@@ -126,7 +126,7 @@ def assert_notes_not_wholesale_remote_safe(
 ) -> None:
     """Fail if a note is marked remote-safe without a passage-only policy exception.
 
-    Wholesale bodies are **never** remote-safe — even with
+    Wholesale bodies are never remote-safe — even with
     :class:`NotesRemotePolicyException` (passage-only by construction).
     """
     data = payload_as_dict(payload)
@@ -140,9 +140,7 @@ def assert_notes_not_wholesale_remote_safe(
     summary = data.get("summary")
     summary_text = summary if isinstance(summary, str) else ""
 
-    if not is_this_note and note.body_text.strip() and note.body_text not in _serialised_blob(
-        data
-    ):
+    if not is_this_note and note.body_text.strip() and note.body_text not in _serialised_blob(data):
         return
 
     if default_level_for_source(SourceType.NOTE) is not PrivacyLevel.HIGH:
