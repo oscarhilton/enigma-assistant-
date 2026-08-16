@@ -9,12 +9,14 @@ from personal_enigma.reasoning.protocol import (
     PaygTransport,
     ReasoningResult,
 )
+from personal_enigma.reasoning.openai_transport import OpenAIChatTransport
 from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
 
 __all__ = [
     "InMemoryUsageLogger",
     "MockPaygTransport",
     "NullPaygTransport",
+    "OpenAIChatTransport",
     "PaygReasoningClient",
     "PaygReasoningService",
     "PaygTransport",
