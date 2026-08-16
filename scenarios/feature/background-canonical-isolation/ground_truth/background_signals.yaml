@@ -1,0 +1,5 @@
+# Evaluator-only — never attached to SyntheticMailSource payloads.
+signals:
+  - evidence_id: mail-isolation-critical
+    signal_class: canonical
+    expected_attention: true

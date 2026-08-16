@@ -22,6 +22,7 @@ from personal_enigma.simulation.corpus.background import (
     canonical_contact_emails,
     load_background_config,
     load_scenario_background,
+    materialise_background_cast,
 )
 from personal_enigma.simulation.corpus.cache import (
     CorpusCache,
@@ -141,6 +142,7 @@ __all__ = [
     "load_scenario_background",
     "load_scenario_noise",
     "looks_like_machine_noise",
+    "materialise_background_cast",
     "merge_stream_events",
     "place_conversation_on_timeline",
     "place_conversations_on_timeline",

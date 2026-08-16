@@ -7,7 +7,7 @@ on ``SyntheticMailSource`` payloads that Enigma ingests.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -20,7 +20,10 @@ from personal_enigma.simulation.corpus.expand import expand_conversations
 from personal_enigma.simulation.corpus.models import CorpusConversation
 from personal_enigma.simulation.corpus.registry import CorpusRegistry, default_registry
 from personal_enigma.simulation.corpus.safety import assert_public_demo_allowed
-from personal_enigma.simulation.corpus.sanitise import sanitise_conversation
+from personal_enigma.simulation.corpus.sanitise import (
+    IdentityMapping,
+    sanitise_conversation_detailed,
+)
 from personal_enigma.simulation.corpus.selectors import select_conversations
 from personal_enigma.simulation.corpus.streams import CorpusBackgroundStream
 from personal_enigma.simulation.corpus.timeline import place_conversation_on_timeline
@@ -187,6 +190,8 @@ class BackgroundBuildResult:
     signals: list[BackgroundSignalTruth] = field(default_factory=list)
     events: list[ScenarioEvent] = field(default_factory=list)
     profile: DemoProfileName = "demo"
+    # Rewritten cast keyed by source email (simulation data, not Enigma memory).
+    identities: dict[str, IdentityMapping] = field(default_factory=dict)
 
 
 def load_background_config(path: Path | str) -> BackgroundConfig:
@@ -218,6 +223,45 @@ def _canonical_emails(package: ScenarioPackage) -> set[str]:
 def canonical_contact_emails(package: ScenarioPackage) -> set[str]:
     """Public helper for disjointness tests (background vs story roster)."""
     return _canonical_emails(package)
+
+
+def materialise_background_cast(
+    identities: Mapping[str, IdentityMapping],
+    *,
+    at: datetime,
+    exclude_emails: Collection[str] | None = None,
+) -> list[ScenarioEvent]:
+    """Materialise rewritten background people as ``contact.upsert`` events.
+
+    Contacts carry ordinary roster fields only — never ``signal_class``,
+    ``expected_attention``, ``is_important``, or other evaluator labels.
+    """
+    blocked = {e.strip().lower() for e in (exclude_emails or ())}
+    seen_person: set[str] = set()
+    events: list[ScenarioEvent] = []
+    for mapping in identities.values():
+        if mapping.person_id == "demo-protagonist":
+            continue
+        email_key = mapping.email.strip().lower()
+        if email_key in blocked:
+            continue
+        if mapping.person_id in seen_person:
+            continue
+        seen_person.add(mapping.person_id)
+        events.append(
+            ScenarioEvent(
+                id=f"bg-cast:{mapping.person_id}",
+                at=at,
+                source="contacts",
+                type="contact.upsert",
+                payload={
+                    "id": mapping.person_id,
+                    "display_name": mapping.display_name,
+                    "email": mapping.email,
+                },
+            )
+        )
+    return sorted(events, key=lambda e: (e.at, e.id))
 
 
 def _self_email(package: ScenarioPackage) -> str | None:
@@ -324,6 +368,7 @@ def build_background_stream(
     self_email = _self_email(package)
     all_events: list[ScenarioEvent] = []
     signals: list[BackgroundSignalTruth] = []
+    identities: dict[str, IdentityMapping] = {}
 
     for spec in specs:
         manifest = reg.get(spec.corpus)
@@ -336,17 +381,19 @@ def build_background_stream(
             message_count=spec.message_count,
         )
         for conv in selected:
-            try:
-                cleaned = sanitise_conversation(
-                    conv,
-                    rewrite_domains=True,
-                    rewrite_seed=spec.seed,
-                    preserve_emails={self_email} if self_email else None,
-                    self_email=self_email,
-                )
-            except ValueError:
+            result = sanitise_conversation_detailed(
+                conv,
+                rewrite_domains=True,
+                rewrite_seed=spec.seed,
+                preserve_emails={self_email} if self_email else None,
+                self_email=self_email,
+            )
+            if result.conversation is None:
                 # Rejected by secret scanner — skip for public Demo.
                 continue
+            cleaned = result.conversation
+            for key, mapping in result.diagnostics.identities.items():
+                identities[key] = mapping
             placed = place_conversation_on_timeline(
                 cleaned,
                 window_start=spec.date_range.start,
@@ -385,6 +432,7 @@ def build_background_stream(
         signals=signals,
         events=all_events,
         profile=resolved_profile,
+        identities=identities,
     )
 
 
@@ -410,4 +458,5 @@ __all__ = [
     "canonical_contact_emails",
     "load_background_config",
     "load_scenario_background",
+    "materialise_background_cast",
 ]

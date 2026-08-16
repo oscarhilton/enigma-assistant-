@@ -1,0 +1,7 @@
+obligations:
+  - id: obligation_board_signoff
+    description: Sign board pack before tomorrow
+    importance: critical
+    created_at: "2026-04-08T10:00:00Z"
+    due_at: "2026-04-09T17:00:00Z"
+    evidence_ids: [mail-isolation-critical, rem-board-signoff]

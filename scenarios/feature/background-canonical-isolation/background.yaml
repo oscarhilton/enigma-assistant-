@@ -1,0 +1,20 @@
+# F-background-canonical-isolation — GT stays evaluator-only (CI, no HF).
+profile: feature
+
+notes: >
+  Background traffic is ordinary mail. Classification lives only in
+  ground_truth/background_signals.yaml for the evaluator.
+
+profiles:
+  feature:
+    email:
+      - id: isolation-correspondence
+        corpus: finepersonas-mini
+        seed: f-background-canonical-isolation-v1
+        conversation_count: 2
+        date_range:
+          start: 2026-04-08
+          end: 2026-04-12
+        classification:
+          signal_class: background
+          expected_attention: false
