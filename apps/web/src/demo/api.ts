@@ -116,6 +116,18 @@ export async function setDemoSpeed(
   }
 }
 
+export async function resetDemo(
+  fetchImpl: typeof fetch = fetch,
+): Promise<DemoStatus> {
+  try {
+    return await readJson<DemoStatus>(
+      await fetchImpl(`${API_BASE}/demo/reset`, { method: "POST" }),
+    );
+  } catch {
+    return structuredClone(FIXTURE_DEMO_STATUS);
+  }
+}
+
 export async function fetchDemoAttention(
   fetchImpl: typeof fetch = fetch,
 ): Promise<DemoAttentionPayload> {

@@ -64,6 +64,8 @@ Do **not** invent a top-level milestone for background corpus. Extend D03–D12 
 | D11 | Provider recording + deterministic replay | `done` | [D11](../../tickets/demo-evaluation/D11-replay-provider.md) |
 | D12 | Curated product demo / Phase 2 exit gate | `done` | [D12](../../tickets/demo-scenario/D12-product-demo-scenario.md) |
 | D13 | Demo Why + Attention UX polish | `done` | [D13](../../tickets/demo-ui/D13-demo-why-attention-ux.md) |
+| D15 | Attention card UX polish | `done` | [D15](../../tickets/demo-ui/D15-attention-card-ux.md) |
+| D16 | Demo reset (wipe + reseed) | `in_progress` | [D16](../../tickets/demo-ui/D16-demo-reset.md) |
 
 ### Phase 2 waves
 

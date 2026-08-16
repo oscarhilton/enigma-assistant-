@@ -57,11 +57,23 @@ def test_rejects_private_storage_root(tmp_path: Path) -> None:
     package = load_scenario(FEATURE)
     private = tmp_path / ".enigma" / "private" / package.manifest.id
     private.mkdir(parents=True)
-    with pytest.raises(ValueError, match="not Private"):
+    with pytest.raises(ValueError, match="not private"):
         SimulationEngine(
             package=package,
             clock=SimulationClock(),
             storage_root=private,
+        )
+
+
+def test_rejects_shadow_storage_root(tmp_path: Path) -> None:
+    package = load_scenario(FEATURE)
+    shadow = tmp_path / ".enigma" / "shadow"
+    shadow.mkdir(parents=True)
+    with pytest.raises(ValueError, match="not shadow"):
+        SimulationEngine(
+            package=package,
+            clock=SimulationClock(),
+            storage_root=shadow,
         )
 
 

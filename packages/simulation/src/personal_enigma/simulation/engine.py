@@ -28,17 +28,23 @@ from personal_enigma.simulation.scenario import ScenarioPackage, load_scenario
 
 
 def assert_demo_storage_root(root: Path, *, scenario_id: str) -> None:
-    """Reject Private roots and require a per-scenario demo directory."""
+    """Reject Private/Shadow roots and require a per-scenario demo directory."""
     resolved = root.resolve()
     parts = resolved.parts
-    # ADR-005 Private roots are ``…/.enigma/private`` (or override). Do not treat
-    # macOS ``/private/var/…`` temp paths as Private Mode storage.
+    # ADR-005 Private/Shadow roots are ``…/.enigma/{private,shadow}`` (or override).
+    # Do not treat macOS ``/private/var/…`` temp paths as Private Mode storage.
     for index, part in enumerate(parts[:-1]):
-        if part in {".enigma", "enigma"} and parts[index + 1] == "private":
+        if part in {".enigma", "enigma"} and parts[index + 1] in {"private", "shadow"}:
+            kind = parts[index + 1]
             raise ValueError(
-                "SimulationEngine must bind to a Demo storage root, not Private "
-                f"(got {resolved})"
+                "SimulationEngine must bind to a Demo storage root, not "
+                f"{kind} (got {resolved})"
             )
+    if resolved.name in {"private", "shadow"}:
+        raise ValueError(
+            "SimulationEngine must bind to a Demo storage root, not "
+            f"{resolved.name} (got {resolved})"
+        )
     if resolved.name != scenario_id:
         raise ValueError(
             "SimulationEngine storage_root must be the per-scenario demo directory "

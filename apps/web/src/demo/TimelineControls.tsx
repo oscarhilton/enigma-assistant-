@@ -1,19 +1,30 @@
 import { useEffect, useState } from "react";
-import { advanceDemoDay, advanceDemoStep, fetchDemoStatus, setDemoSpeed } from "./api";
+import {
+  advanceDemoDay,
+  advanceDemoStep,
+  fetchDemoStatus,
+  resetDemo,
+  setDemoSpeed,
+} from "./api";
 import type { DemoStatus } from "./types";
 
 const SPEEDS = [0, 1, 10, 100] as const;
+
+const RESET_CONFIRM =
+  "Reset demo? This wipes Demo storage for the active scenario and reseeds from the scenario epoch. Private and Shadow data are not touched.";
 
 export type TimelineControlsProps = {
   fetchImpl?: typeof fetch;
   onStatusChange?: (status: DemoStatus) => void;
   initialStatus?: DemoStatus | null;
+  confirmImpl?: (message: string) => boolean;
 };
 
 export function TimelineControls({
   fetchImpl = fetch,
   onStatusChange,
   initialStatus = null,
+  confirmImpl = window.confirm.bind(window),
 }: TimelineControlsProps) {
   const [status, setStatus] = useState<DemoStatus | null>(initialStatus);
   const [busy, setBusy] = useState(false);
@@ -43,6 +54,13 @@ export function TimelineControls({
     }
   }
 
+  function onResetClick() {
+    if (!confirmImpl(RESET_CONFIRM)) {
+      return;
+    }
+    void apply(() => resetDemo(fetchImpl));
+  }
+
   const simulatedTime = status?.simulated_time ?? "—";
 
   return (
@@ -65,6 +83,9 @@ export function TimelineControls({
           onClick={() => void apply(() => advanceDemoDay(fetchImpl))}
         >
           Next day
+        </button>
+        <button type="button" className="demo-reset" disabled={busy} onClick={onResetClick}>
+          Reset demo
         </button>
       </div>
       <div className="demo-speed" role="group" aria-label="Simulation speed">
