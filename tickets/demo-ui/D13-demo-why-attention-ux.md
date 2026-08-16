@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #42) |
 | Branch | `ticket/demo-why-attention-ux` |
 | Domain | `demo-ui` |
 
