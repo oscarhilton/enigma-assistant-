@@ -62,15 +62,14 @@ profiles:
           expected_attention: false
 
   # Documented Phase-2 benchmark budget (~5k bg + ~1.5k noise). Not loaded by
-  # default in CI. Mini fixture cannot satisfy 5000 messages without expand-to;
-  # nightly/manual runs use offline expand or a pinned HF revision.
+  # default in CI. Builder expands finepersonas-mini offline when message_count
+  # exceeds the fixture (never downloads FinePersonas 115k in PR CI).
   canonical:
     email:
       - id: ordinary-correspondence
         corpus: finepersonas-mini
         seed: alex-v1-email-background-v1
         message_count: 5000
-        conversation_count: 2
         date_range:
           start: 2026-01-05
           end: 2026-01-25
@@ -85,7 +84,6 @@ profiles:
         corpus: finepersonas-mini
         seed: alex-v1-email-background-stress-v1
         message_count: 25000
-        conversation_count: 3
         date_range:
           start: 2026-01-05
           end: 2026-01-25

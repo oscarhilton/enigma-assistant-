@@ -64,6 +64,20 @@ def compare_to_baseline(
             f"(>{limits['cost_increase_ratio']:.0%} threshold)"
         )
 
+    scale = metrics.get("scale", {})
+    false_per_1k = scale.get("false_alerts_per_1k")
+    if false_per_1k is None:
+        false_per_1k = scale.get("background_false_alerts_per_1k")
+    if false_per_1k is None:
+        false_per_1k = metrics.get("background_false_alerts_per_1000")
+    if false_per_1k is not None:
+        rate = float(false_per_1k)
+        limit = float(limits["background_false_alerts_per_1000"])
+        if rate > limit + 1e-9:
+            violations.append(
+                f"background_false_alerts_per_1000={rate:.3f} exceeds {limit:.3f}"
+            )
+
     return RegressionResult(passed=not violations, violations=violations)
 
 

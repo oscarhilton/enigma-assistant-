@@ -16,6 +16,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from personal_enigma.simulation.corpus.expand import expand_conversations
 from personal_enigma.simulation.corpus.models import CorpusConversation
 from personal_enigma.simulation.corpus.registry import CorpusRegistry, default_registry
 from personal_enigma.simulation.corpus.safety import assert_public_demo_allowed
@@ -236,24 +237,57 @@ def _select_for_budget(
     conversation_count: int | None,
     message_count: int | None,
 ) -> list[CorpusConversation]:
+    """Select conversations to meet message/conversation budgets.
+
+    When ``conversation_count`` is set (demo / CI), never expand — keep the
+    tiny deterministic footprint that matches checked-in ground truth.
+
+    When only ``message_count`` is set (canonical / stress), expand the
+    checked-in mini corpus offline to reach the budget (never downloads
+    FinePersonas 115k).
+    """
+    pool: list[CorpusConversation] = list(conversations)
+    if not pool:
+        return []
+
     if conversation_count is not None:
-        selected = select_conversations(
-            conversations, seed=seed, count=conversation_count
-        )
-    else:
-        selected = select_conversations(
-            conversations, seed=seed, count=len(conversations)
-        )
+        selected = select_conversations(pool, seed=seed, count=conversation_count)
+        if message_count is None:
+            return selected
+        out: list[CorpusConversation] = []
+        total = 0
+        for conv in selected:
+            out.append(conv)
+            total += len(conv.messages)
+            if total >= message_count:
+                break
+        return out
+
+    # No conversation_count: expand offline until message_count is met.
+    selected = select_conversations(pool, seed=seed, count=len(pool))
     if message_count is None:
         return selected
-    out: list[CorpusConversation] = []
-    total = 0
-    for conv in selected:
-        out.append(conv)
-        total += len(conv.messages)
-        if total >= message_count:
-            break
-    return out
+
+    def _take(up_to: Sequence[CorpusConversation]) -> list[CorpusConversation]:
+        out: list[CorpusConversation] = []
+        total = 0
+        for conv in up_to:
+            out.append(conv)
+            total += len(conv.messages)
+            if total >= message_count:
+                break
+        return out
+
+    taken = _take(selected)
+    if sum(len(c.messages) for c in taken) >= message_count:
+        return taken
+
+    avg = max(1, sum(len(c.messages) for c in pool) // max(1, len(pool)))
+    need = max(len(pool) + 1, (message_count + avg - 1) // avg)
+    expanded = expand_conversations(
+        pool, target_count=need, seed=f"{seed}:expand"
+    )
+    return _take(select_conversations(expanded, seed=seed, count=len(expanded)))
 
 
 async def _load_conversations(

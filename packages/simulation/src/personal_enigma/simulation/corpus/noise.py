@@ -387,11 +387,10 @@ def build_noise_stream(
     resolved = str(profile or cfg.profile)
     try:
         specs = cfg.specs_for_profile(resolved)
-    except KeyError:
-        return NoiseBuildResult(
-            stream=GeneratedNoiseStream(events=[]),
-            profile=resolved,
-        )
+    except KeyError as exc:
+        raise KeyError(
+            f"unknown noise profile {resolved!r} in {package.root / 'noise.yaml'}"
+        ) from exc
 
     to_email = _self_email(package)
     all_events: list[ScenarioEvent] = []

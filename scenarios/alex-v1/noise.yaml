@@ -48,7 +48,8 @@ profiles:
     noise:
       - id: machine-sludge
         seed: alex-v1-noise-stress-v1
-        message_count: 64
+        # Documented stress noise budget (~5k). Manual / nightly only — not PR CI.
+        message_count: 5000
         date_range:
           start: 2026-01-05
           end: 2026-01-25
