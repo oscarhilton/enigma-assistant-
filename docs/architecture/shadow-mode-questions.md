@@ -1,10 +1,11 @@
-# Shadow Mode — unanswered questions (after synthetic Alex)
+# Shadow Mode — unanswered questions (evaluation goals)
 
-**Status:** Question inventory — rubric in [shadow-evaluation.md](./shadow-evaluation.md)  
-**Mode scaffold:** S01 (`EnvironmentMode.SHADOW`, storage) — separate track  
-**Eval tickets:** [SE01](../../tickets/shadow/SE01-action-vs-attention.md) · [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) · [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md)
+**Status:** Evaluation goals for Phase 3 — rubric in [shadow-evaluation.md](./shadow-evaluation.md)  
+**Architecture:** [shadow-mode.md](./shadow-mode.md)  
+**Prerequisite:** Phase 2.5 PASS (`v0.2.0-demo`) — satisfied; Shadow tickets may proceed.  
+**Scaffold:** S01 `done` (#65) — env/banner/storage refuse. Eval artefacts: SE01–SE03 (soft deps).
 
-Demo Mode can show that Enigma works on a coherent fictional life. It cannot yet answer whether a **real** life behaves like Alex’s synthetic one. These are the open questions Shadow evaluation must confront:
+Demo Mode showed that Enigma works on a coherent fictional life. Shadow Mode asks whether a **real** life behaves like Alex’s synthetic one. Treat these as **evaluation goals** for journals, metrics, and comparison stubs — not as features to re-implement in the S01 scaffold.
 
 1. **Act-on recognition** — When the user actually acts on something, did Enigma surface it (or would it have)?
 2. **Nearly-forgot** — Does Enigma catch obligations the user almost missed, or only the obvious ones?
@@ -16,10 +17,11 @@ Demo Mode can show that Enigma works on a coherent fictional life. It cannot yet
 
 ## How we will measure
 
-| Questions | Instrumentation ticket |
+| Questions | Ticket |
 | --- | --- |
-| 1, 2, 3, 6 | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) — user actions vs attention |
-| 3 (would-notify waste) | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) — suppressed notification audit |
-| 4, 5, 7 (+ weekly rollup) | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) — weekly review artefact |
+| Interface stubs for all seven goals | [S05](../../tickets/shadow/S05-comparison-stubs.md) |
+| 1, 2, 3, 6 — user actions vs attention | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) |
+| 3 — would-notify waste (suppress audit) | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) |
+| 4, 5, 7 (+ weekly rollup) | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) |
 
-**Design vs implementation:** Rubric + SE* tickets may land as docs after Phase 2.5 PASS. Do **not** conflate that with S01 env/storage work — evaluation PRs must not edit `EnvironmentMode`. Full UI, live notification delivery, and Demo→Shadow migration remain out of scope until their owning tickets say otherwise.
+Mode order (env → storage → suppress → attention log → comparison stubs → exit): [tickets/shadow/](../../tickets/shadow/) S01–S06. SE* refine measurement artefacts; they must **not** edit `EnvironmentMode` or re-ship the SHADOW MODE banner.

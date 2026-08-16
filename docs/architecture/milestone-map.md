@@ -115,20 +115,57 @@ adversarial  UI     replay
 - Prefer architecture freeze at **`f404597`** unless D08c exposes a structural failure; favour evaluation depth over cleverness.
 - **D08c** is the first scientific gate (A/B spine vs background + artefacts). **D08d** = machine noise / quiet-day. **D08e** = scale curves to ~5k.
 - Hold F-* tickets until D08c is green; then claim in the order documented in [tickets/README.md](../../tickets/README.md).
-- **Phase 2.5 exit** (then Shadow Mode): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).
+- **Phase 2.5 exit** (PASS at `v0.2.0-demo`): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).
 
 ---
 
-## Phase 3 — Shadow Mode (eval design first)
+## Phase 3 — Shadow Mode — bootstrap (S01–S06) + eval rubric (SE*)
 
-Architecture: [shadow-mode-questions.md](./shadow-mode-questions.md) · [shadow-evaluation.md](./shadow-evaluation.md).  
-Branches: `ticket/SExx-slug` (eval) or `ticket/Sxx-slug` (mode scaffold — S01 owns `EnvironmentMode`).  
-Mode scaffold (`EnvironmentMode.SHADOW`, storage, suppression) is a **separate PR track**; eval tickets must not edit the env enum.
+Architecture: [shadow-mode.md](./shadow-mode.md) · [shadow-evaluation.md](./shadow-evaluation.md) · storage [ADR-008](../adr/008-shadow-storage-roots.md).  
+Branches: `ticket/Sxx-slug` (mode) or `ticket/SExx-slug` (eval artefacts). Demo Mode is **frozen** for polish — do not add F-* / Demo chrome here.  
+**Do not edit `EnvironmentMode` from SE* tickets** — S01 owns env/banner/scaffold.
 
 | # | Milestone | Status | Ticket |
 | --- | --- | --- | --- |
+| S01 | Env flag + scaffold + refuse Demo migration | `done` | [S01](../../tickets/shadow/S01-shadow-scaffold.md) |
+| S02 | Shadow storage isolation | `todo` | [S02](../../tickets/shadow/S02-shadow-storage.md) |
+| S03 | Notification suppression | `todo` | [S03](../../tickets/shadow/S03-notification-suppression.md) |
+| S04 | Shadow attention log | `todo` | [S04](../../tickets/shadow/S04-shadow-attention-log.md) |
+| S05 | Comparison stubs (seven evaluation goals) | `todo` | [S05](../../tickets/shadow/S05-comparison-stubs.md) |
+| S06 | Shadow exit criteria / promote gate | `todo` | [S06](../../tickets/shadow/S06-shadow-exit-criteria.md) |
 | SE01 | User actions vs attention log | `todo` | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) |
 | SE02 | Suppressed notifications audit | `todo` | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) |
 | SE03 | Weekly Shadow review artefact | `todo` | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) |
 
-Soft (~) deps on S01–S03 preferred. No full UI in SE*. Minimal JSON/Markdown stubs: [shadow-eval-stubs/](./shadow-eval-stubs/).
+### Phase 3 waves
+
+```text
+v0.2.0-demo (Phase 2.5 PASS)
+    │
+    ▼
+S01 Env flag + banner + refuse Demo→Shadow   ← done (#65)
+    │
+    ▼
+S02 Storage isolation (fresh Shadow root / keys)
+    │
+    ▼
+S03 Notification suppression ──── soft ──► SE02 suppress audit
+    │
+    ▼
+S04 Shadow attention log ──────── soft ──► SE01 action↔attention
+    │
+    ▼
+S05 Comparison stubs ──────────── soft ──► SE01–SE03 rubric artefacts
+    │
+    ▼
+S06 Exit criteria (before Private notifications)
+         ▲
+         └── SE03 weekly review feeds honesty inputs
+```
+
+**Hard rules**
+
+- Shadow never shares Demo or Private storage roots / HMAC keys ([ADR-008](../adr/008-shadow-storage-roots.md)).
+- No Demo→Shadow migration path exists.
+- The seven questions are evaluation goals ([shadow-mode-questions.md](./shadow-mode-questions.md)); detailed observables live in [shadow-evaluation.md](./shadow-evaluation.md).
+- SE* tickets soft-depend on S01–S05; they must not re-implement env/banner/storage.

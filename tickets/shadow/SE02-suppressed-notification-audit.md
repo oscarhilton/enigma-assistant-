@@ -22,10 +22,10 @@
 
 ## Soft depends (~)
 
-- S01 (mode identity)
-- S02 (structural notification suppression) — SE02 measures/audits; S02 enforces silence
+- S01 `done` (mode identity)
+- S03 (structural notification suppression) — SE02 measures/audits; S03 enforces silence
+- S05 (comparison stubs)
 - SE01 (candidate ids / ranks for join)
-
 ## Unlocks / enhances
 
 - Rubric question 3 (importance overestimate) with a clean “would have bothered you” denominator

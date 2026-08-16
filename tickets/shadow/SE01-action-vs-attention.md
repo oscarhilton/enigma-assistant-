@@ -22,9 +22,10 @@
 
 ## Soft depends (~)
 
-- S01 (Shadow mode / storage root exists)
-- S03 (Shadow attention log) — reuse candidate rows if present; otherwise stub both sides
-
+- S01 `done` (Shadow mode / storage identity)
+- S04 (Shadow attention log) — reuse candidate rows if present; otherwise stub both sides
+- S05 (comparison stub interfaces for the seven goals)
+- SE02 (shared subject refs with suppress audit)
 ## Unlocks / enhances
 
 - Rubric questions 1, 2, 3, 6 (act-on, nearly-forgot, overestimate, timing)

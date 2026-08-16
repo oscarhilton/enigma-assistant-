@@ -24,9 +24,10 @@
 
 - SE01 (action vs attention metrics)
 - SE02 (suppression summary)
-- S01 / S06 (Shadow root path)
-- S03 (attention log volume)
-
+- S01 `done` / S02 (Shadow root path)
+- S04 (attention log volume)
+- S05 (comparison stub interfaces)
+- S06 (exit criteria inputs)
 ## Unlocks / enhances
 
 - Rubric questions 4, 5, 7 (relationships sample, memory improvement curves, novel misses)

@@ -174,4 +174,5 @@ Stop expanding Demo Mode when:
 
 Then the open question is no longer “does the simulator work?” but **Shadow Mode**: does a real human life’s distribution behave like the synthetic one?
 
+Phase 2.5 exit at tag **`v0.2.0-demo`** is **PASS**. Shadow bootstrap: [shadow-mode.md](./shadow-mode.md) · tickets S01–S06.  
 Evaluation rubric for the seven post-Alex questions: [shadow-evaluation.md](./shadow-evaluation.md).

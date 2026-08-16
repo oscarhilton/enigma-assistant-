@@ -1,8 +1,8 @@
 # Shadow evaluation rubric
 
-**Status:** Design + tickets (SE01–SE03) — no full UI; no `EnvironmentMode` changes in this track  
+**Status:** Design + tickets (SE01–SE03) — no full UI; no `EnvironmentMode` / banner changes (S01 `done` #65)  
 **Questions list:** [shadow-mode-questions.md](./shadow-mode-questions.md)  
-**Mode scaffold (soft):** S01+ under `tickets/shadow/` (env flag, storage, suppression, attention log) — **owned by the S01 track**  
+**Mode scaffold:** [shadow-mode.md](./shadow-mode.md) · S01–S06 under `tickets/shadow/`  
 **Tickets:** [SE01](../../tickets/shadow/SE01-action-vs-attention.md) · [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) · [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md)  
 **Minimal stubs:** [shadow-eval-stubs/](./shadow-eval-stubs/) (`UserAction`, `ShadowAttentionCandidate`, `SuppressedNotificationAudit`, weekly review JSON + Markdown)
 
@@ -117,16 +117,19 @@ Not a hard gate yet — record intent so later ADRs can harden numbers:
 - At least one documented **novel miss** class fed back into Demo/corpus or attention policy (or explicitly deferred)
 - Relationship sample error rate known (even if high — honesty > silence)
 
-## Coordination with S01 scaffold
+## Coordination with S01–S06 scaffold
 
 | Concern | Owner |
 | --- | --- |
-| `EnvironmentMode.SHADOW`, banner, storage root, no Demo migration | **S01 track** |
-| Notification delivery short-circuit | S02 (soft for SE02) |
-| Attention log persistence | S03 (soft for SE01) |
-| Rubric, action join, suppression audit schema, weekly review | **This track (SE01–SE03)** |
+| `EnvironmentMode.SHADOW`, banner, refuse Demo migration | **S01** (`done` #65) — do not re-edit from SE* |
+| Shadow storage root / keys | S02 |
+| Notification delivery short-circuit | S03 (soft for SE02) |
+| Attention log persistence | S04 (soft for SE01) |
+| Comparison stub interfaces (seven goals) | S05 (soft for SE01–SE03) |
+| Exit / promote-from-Shadow gate | S06 (soft for SE03) |
+| Rubric observables, action join, suppress audit, weekly review | **This track (SE01–SE03)** |
 
-Prefer **soft (~)** dependencies so eval design and stubs can land on `main` before or beside S01. Do not edit `packages/simulation/.../environment.py` from SE* tickets.
+Prefer **soft (~)** dependencies. SE* must not edit `packages/simulation/.../environment.py`, Shadow banner UI, or ADR-008 storage policy.
 
 ## Privacy
 
