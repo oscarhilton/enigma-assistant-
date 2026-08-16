@@ -14,7 +14,7 @@ describe("SettingsPage", () => {
   it("lists calendars and Apple permission placeholders", async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith("/settings")) {
+      if (url.endsWith("/api/settings")) {
         return jsonResponse(FIXTURE_SETTINGS);
       }
       throw new Error(`unexpected fetch ${url}`);
@@ -37,10 +37,10 @@ describe("SettingsPage", () => {
     let state = structuredClone(FIXTURE_SETTINGS);
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.endsWith("/settings") && (!init || !init.method || init.method === "GET")) {
+      if (url.endsWith("/api/settings") && (!init || !init.method || init.method === "GET")) {
         return jsonResponse(state);
       }
-      if (url.endsWith("/settings/calendars") && init?.method === "PUT") {
+      if (url.endsWith("/api/settings/calendars") && init?.method === "PUT") {
         const body = JSON.parse(String(init.body)) as { enabled_ids: string[] };
         const enabled = new Set(body.enabled_ids);
         state = {

@@ -275,3 +275,14 @@ def test_remote_inference_disabled_keeps_apple_paths_testable() -> None:
     )
     assert may_send_remotely(remote, payload_allows_remote=True) is False
     assert_remote_payload_safe(claimed, remote=remote)
+
+
+def test_missing_source_type_cannot_claim_remote() -> None:
+    claimed = TransformedContext(
+        summary="Anonymous payload",
+        entities=[],
+        metadata={},
+        may_transmit_remotely=True,
+    )
+    with pytest.raises(PrivacyInvariantError, match="source_type"):
+        assert_remote_payload_safe(claimed)

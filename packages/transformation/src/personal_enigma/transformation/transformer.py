@@ -36,10 +36,18 @@ class DefaultEnigmaTransformer:
         self,
         resolver: EntityResolver | None = None,
         *,
-        hmac_key: bytes | str = b"enigma-stub-hmac-key",
+        hmac_key: bytes | str | None = None,
         allow_remote: bool = False,
     ) -> None:
-        self._resolver: EntityResolver = resolver or StubHmacResolver(hmac_key)
+        if resolver is not None:
+            self._resolver: EntityResolver = resolver
+        elif hmac_key is not None:
+            self._resolver = StubHmacResolver(hmac_key)
+        else:
+            raise ValueError(
+                "DefaultEnigmaTransformer requires an explicit hmac_key or resolver; "
+                "refusing a shared default key that would correlate pseudonyms across users"
+            )
         self._allow_remote = allow_remote
 
     def transform(self, private_record: dict[str, Any] | BaseModel) -> TransformedContext:

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M11-gmail` |
 | Domain | `google` |
 
@@ -32,10 +32,10 @@
 
 ## Acceptance criteria
 
-- [ ] Read-only Gmail API ingestion → `PrivateMessage`
-- [ ] `DataSource.get_changes` implementation in `gmail.py`
-- [ ] Entity resolution against Contacts when available
-- [ ] Works with remote LLM disabled (ingest + local transform only)
+- [x] Read-only Gmail API ingestion → `PrivateMessage`
+- [x] `DataSource.get_changes` implementation in `gmail.py`
+- [x] Entity resolution against Contacts when available
+- [x] Works with remote LLM disabled (ingest + local transform only)
 
 ## Test plan
 

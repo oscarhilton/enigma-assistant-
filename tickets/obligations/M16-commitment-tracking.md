@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M16-commitment-tracking` |
 | Domain | `obligations` |
 
@@ -33,11 +33,11 @@
 
 ## Acceptance criteria
 
-- [ ] Track inferred commitments vs explicit reminders
-- [ ] Update state when evidence appears (follow-up email, completed reminder, elapsed due date)
-- [ ] Surface stale commitments in attention engine
-- [ ] Notes deferred-task pattern supported when M13/M14 present
-- [ ] MVP path works with Apple-only evidence (no Gmail required)
+- [x] Track inferred commitments vs explicit reminders
+- [x] Update state when evidence appears (follow-up email, completed reminder, elapsed due date)
+- [x] Surface stale commitments in attention engine
+- [x] Notes deferred-task pattern supported when M13/M14 present
+- [x] MVP path works with Apple-only evidence (no Gmail required)
 
 ## Test plan
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,9 @@ from personal_enigma.privacy.invariants import (
 )
 from personal_enigma.privacy.levels import PrivacyLevel, default_level_for_source
 from personal_enigma.privacy.remote import RemoteInferenceConfig, may_send_remotely
-from personal_enigma.transformation import TransformedContext
+
+if TYPE_CHECKING:
+    from personal_enigma.transformation import TransformedContext
 
 
 class RedactionNote(BaseModel):
@@ -80,14 +82,17 @@ def inspect_transformed_context(
             cancelled=True,
         )
 
+    metadata = {
+        k: str(v)
+        for k, v in ctx.metadata.items()
+        if k in {"source_type", "provider", "passage_chars", "record_id"}
+    }
+    if source_type is not None:
+        metadata.setdefault("source_type", source_type.value)
     payload = {
         "summary": ctx.summary,
         "entities": list(ctx.entities),
-        "metadata": {
-            k: str(v)
-            for k, v in ctx.metadata.items()
-            if k in {"source_type", "provider", "passage_chars", "record_id"}
-        },
+        "metadata": metadata,
         "may_transmit_remotely": ctx.may_transmit_remotely,
     }
 

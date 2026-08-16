@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M15-cross-source-merging` |
 | Domain | `obligations` |
 
@@ -35,10 +35,10 @@
 
 ## Acceptance criteria
 
-- [ ] Merge reminder + email follow-up + calendar meeting into one `Obligation` with typed evidence
-- [ ] Single attention item with combined evidence narrative
-- [ ] Confidence score populated
-- [ ] Google/Apple calendar duplicates do not produce duplicate attention items (via M12 dedupe + merge)
+- [x] Merge reminder + email follow-up + calendar meeting into one `Obligation` with typed evidence
+- [x] Single attention item with combined evidence narrative
+- [x] Confidence score populated
+- [x] Google/Apple calendar duplicates do not produce duplicate attention items (via M12 dedupe + merge)
 
 ## Test plan
 
