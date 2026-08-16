@@ -26,6 +26,11 @@ def test_assert_local_sqlite_rejects_host_qualified() -> None:
         assert_local_sqlite_url("sqlite://db.example.com/private.db")
 
 
+def test_assert_local_sqlite_rejects_missing_slashes() -> None:
+    with pytest.raises(ValueError, match="sqlite:///"):
+        assert_local_sqlite_url("sqlite:relative.db")
+
+
 def test_migration_up_down_smoke(tmp_path: Path) -> None:
     db_path = tmp_path / "private.db"
     url = f"sqlite:///{db_path}"

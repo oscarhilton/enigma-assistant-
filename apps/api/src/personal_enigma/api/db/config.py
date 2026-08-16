@@ -34,16 +34,22 @@ def assert_local_sqlite_url(url: str) -> str:
             f"Only local sqlite URLs are allowed for the private DB; got {url!r}"
         )
     # After ``sqlite:`` expect ``//`` then a path (``/…``) or ``:memory:``.
+    # Reject shapes like ``sqlite:relative.db`` that omit ``//`` (except ``:memory:``).
     rest = normalized[len("sqlite:") :]
-    if rest.startswith("//"):
-        after_slashes = rest[2:]
-        if not (
-            after_slashes.startswith("/")
-            or after_slashes.lower().startswith(":memory:")
-        ):
-            raise ValueError(
-                f"Networked or host-qualified sqlite URLs are forbidden; got {url!r}"
-            )
+    if rest.lower() == ":memory:" or rest.lower().startswith(":memory:?"):
+        return normalized
+    if not rest.startswith("//"):
+        raise ValueError(
+            f"SQLite URLs must use sqlite:///… or sqlite:///:memory:; got {url!r}"
+        )
+    after_slashes = rest[2:]
+    if not (
+        after_slashes.startswith("/")
+        or after_slashes.lower().startswith(":memory:")
+    ):
+        raise ValueError(
+            f"Networked or host-qualified sqlite URLs are forbidden; got {url!r}"
+        )
     return normalized
 
 

@@ -28,6 +28,8 @@ packages = ["src/personal_enigma"]
 "src/personal_enigma/api/db/alembic.ini" = "personal_enigma/api/db/alembic.ini"
 "src/personal_enigma/api/db/README.md" = "personal_enigma/api/db/README.md"
 "src/personal_enigma/api/db/migrations/script.py.mako" = "personal_enigma/api/db/migrations/script.py.mako"
+"src/personal_enigma/api/db/migrations/env.py" = "personal_enigma/api/db/migrations/env.py"
+"src/personal_enigma/api/db/migrations/versions/001_initial_private.py" = "personal_enigma/api/db/migrations/versions/001_initial_private.py"
 
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
