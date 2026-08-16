@@ -1,5 +1,12 @@
+import Contacts
 import EnigmaAppleBridgeCore
 import XCTest
+
+private struct DeniedContactsStore: ContactsStore {
+    func authorizationStatus() -> CNAuthorizationStatus { .denied }
+    func requestAccess() async throws -> Bool { false }
+    func fetchPeople() throws -> [RawContactPerson] { [] }
+}
 
 final class CapabilityReportTests: XCTestCase {
     func testScaffoldCapabilities() throws {
@@ -16,7 +23,8 @@ final class CapabilityReportTests: XCTestCase {
     func testUnauthorisedSourcesStillEncodedIndependently() throws {
         let hooks = PermissionHooks(
             calendarIsAuthorised: { false },
-            remindersSource: RemindersSource(authorisedProvider: { false })
+            remindersSource: RemindersSource(authorisedProvider: { false }),
+            contactsSource: ContactsSource(store: DeniedContactsStore())
         )
         let report = hooks.capabilities()
         XCTAssertFalse(report.calendar.authorised)
@@ -49,15 +57,18 @@ final class BridgeHTTPServerTests: XCTestCase {
     private func deniedServer(token: String = "test-token") -> BridgeHTTPServer {
         let deniedCalendar = CalendarSource(isAuthorised: { false }, requestAccess: { false })
         let deniedReminders = RemindersSource(authorisedProvider: { false })
+        let deniedContacts = ContactsSource(store: DeniedContactsStore())
         let hooks = PermissionHooks(
             calendarIsAuthorised: { false },
-            remindersSource: deniedReminders
+            remindersSource: deniedReminders,
+            contactsSource: deniedContacts
         )
         return BridgeHTTPServer(
             token: token,
             permissionHooks: hooks,
             calendarSource: deniedCalendar,
-            remindersSource: deniedReminders
+            remindersSource: deniedReminders,
+            contactsSource: deniedContacts
         )
     }
 
@@ -96,15 +107,18 @@ final class BridgeHTTPServerTests: XCTestCase {
             let port = freeLoopbackPort()
             let token = "integration-token-\(port)"
             let deniedReminders = RemindersSource(authorisedProvider: { false })
+            let deniedContacts = ContactsSource(store: DeniedContactsStore())
             let server = BridgeHTTPServer(
                 endpoint: .loopback(port: port),
                 token: token,
                 permissionHooks: PermissionHooks(
                     calendarIsAuthorised: { false },
-                    remindersSource: deniedReminders
+                    remindersSource: deniedReminders,
+                    contactsSource: deniedContacts
                 ),
                 calendarSource: CalendarSource(isAuthorised: { false }, requestAccess: { false }),
-                remindersSource: deniedReminders
+                remindersSource: deniedReminders,
+                contactsSource: deniedContacts
             )
             do {
                 try server.start()
@@ -136,7 +150,7 @@ final class BridgeHTTPServerTests: XCTestCase {
 
             XCTAssertEqual(statusCode, 200)
             let report = try JSONDecoder().decode(CapabilityReport.self, from: body)
-            XCTAssertTrue(report.reminders.available)
+            XCTAssertTrue(report.contacts.available)
             return
         }
         XCTFail("Failed to bind loopback server after retries: \(String(describing: lastError))")
@@ -153,7 +167,8 @@ final class PermissionHooksTests: XCTestCase {
         let hooks = PermissionHooks(
             calendarIsAuthorised: { false },
             calendarRequestAccess: { false },
-            remindersSource: RemindersSource(authorisedProvider: { false })
+            remindersSource: RemindersSource(authorisedProvider: { false }),
+            contactsSource: ContactsSource(store: DeniedContactsStore())
         )
         let authorised = await hooks.requestAuthorisation(for: .calendar)
         XCTAssertFalse(authorised)
@@ -164,10 +179,12 @@ final class PermissionHooksTests: XCTestCase {
     func testCalendarAuthorisedWhenInjected() {
         let hooks = PermissionHooks(
             calendarIsAuthorised: { true },
-            remindersSource: RemindersSource(authorisedProvider: { false })
+            remindersSource: RemindersSource(authorisedProvider: { false }),
+            contactsSource: ContactsSource(store: DeniedContactsStore())
         )
         XCTAssertTrue(hooks.isAuthorised(.calendar))
         XCTAssertFalse(hooks.isAuthorised(.reminders))
+        XCTAssertFalse(hooks.isAuthorised(.contacts))
         XCTAssertTrue(hooks.capabilities().calendar.authorised)
     }
 }
