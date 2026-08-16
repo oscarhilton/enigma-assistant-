@@ -8,10 +8,16 @@ from __future__ import annotations
 
 from personal_enigma.simulation.corpus.background import (
     CANONICAL_BACKGROUND_MESSAGE_TARGET,
+    CI_SCALE_LADDER_POINTS,
     DEMO_BACKGROUND_MESSAGE_TARGET,
+    FULL_SCALE_LADDER_POINTS,
+    STRESS_BACKGROUND_MESSAGE_TARGET,
+    STRESS_NOISE_MESSAGE_TARGET,
+    STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET,
     BackgroundBuildResult,
     BackgroundConfig,
     BackgroundSignalTruth,
+    DocumentedProfileTargets,
     build_background_stream,
     canonical_contact_emails,
     load_background_config,
@@ -78,17 +84,24 @@ from personal_enigma.simulation.corpus.timeline import (
     place_conversations_on_timeline,
 )
 
+# Prefer D08d noise module constants for shared noise budgets.
+
 __all__ = [
     "CANONICAL_BACKGROUND_MESSAGE_TARGET",
     "CANONICAL_NOISE_MESSAGE_TARGET",
+    "CI_SCALE_LADDER_POINTS",
     "DEMO_BACKGROUND_MESSAGE_TARGET",
     "DEMO_NOISE_MESSAGE_TARGET",
+    "FULL_SCALE_LADDER_POINTS",
     "GENERATION_METADATA_KEYS",
     "MAX_BACKGROUND_FALSE_ALERTS_PER_1K",
     "NOISE_CATEGORIES",
     "QUIET_DAY_MESSAGE_COUNT",
     "QUIET_DAY_NOISE_MESSAGE_COUNT",
     "SANITISER_VERSION",
+    "STRESS_BACKGROUND_MESSAGE_TARGET",
+    "STRESS_NOISE_MESSAGE_TARGET",
+    "STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET",
     "BackgroundBuildResult",
     "BackgroundConfig",
     "BackgroundSignalTruth",
@@ -104,6 +117,7 @@ __all__ = [
     "CorpusProvenance",
     "CorpusRegistry",
     "DerivedCorpusCache",
+    "DocumentedProfileTargets",
     "GeneratedNoiseStream",
     "MailStream",
     "NoiseBuildResult",

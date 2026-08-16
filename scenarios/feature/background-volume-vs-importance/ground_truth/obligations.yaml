@@ -1,0 +1,7 @@
+obligations:
+  - id: obligation_visa_letter
+    description: Sign visa letter for Jordan before Friday noon
+    importance: critical
+    created_at: "2026-04-06T09:00:00Z"
+    due_at: "2026-04-10T12:00:00Z"
+    evidence_ids: [mail-critical-visa, rem-visa-letter]

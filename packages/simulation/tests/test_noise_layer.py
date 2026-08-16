@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import pytest
+
 from personal_enigma.attention import collect_attention_items
 from personal_enigma.evaluation import (
     MAX_BACKGROUND_FALSE_ALERTS_PER_1000,
@@ -218,3 +220,9 @@ def test_looks_like_machine_noise_on_template_payloads() -> None:
     for event in built.events:
         assert looks_like_machine_noise(event.payload)
         assert looks_like_machine_noise(message_from_event(event))
+
+
+def test_unknown_noise_profile_raises() -> None:
+    pkg = load_scenario(ALEX)
+    with pytest.raises(KeyError, match="unknown noise profile"):
+        build_noise_stream(pkg, profile="not-a-real-profile")

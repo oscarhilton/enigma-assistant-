@@ -1,0 +1,19 @@
+signals:
+  - evidence_id: mail-critical-visa
+    signal_class: canonical
+    expected_attention: true
+  - evidence_id: mail-vol-01
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-05
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-10
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-15
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-20
+    signal_class: background
+    expected_attention: false

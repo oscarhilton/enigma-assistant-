@@ -64,14 +64,21 @@ def compare_to_baseline(
             f"(>{limits['cost_increase_ratio']:.0%} threshold)"
         )
 
+    scale = metrics.get("scale", {})
+    false_per_1k = scale.get("false_alerts_per_1k")
+    if false_per_1k is None:
+        false_per_1k = scale.get("background_false_alerts_per_1k")
+    if false_per_1k is None:
+        false_per_1k = metrics.get("background_false_alerts_per_1000")
     suppression = metrics.get("suppression", {})
-    if suppression:
-        rate = float(suppression.get("background_false_alerts_per_1000", 0.0))
-        ceiling = float(limits["background_false_alerts_per_1000"])
-        if rate > ceiling + 1e-9:
+    if false_per_1k is None and suppression:
+        false_per_1k = suppression.get("background_false_alerts_per_1000")
+    if false_per_1k is not None:
+        rate = float(false_per_1k)
+        limit = float(limits["background_false_alerts_per_1000"])
+        if rate > limit + 1e-9:
             violations.append(
-                "background_false_alerts_per_1000 "
-                f"{rate:.3f} exceeds ceiling {ceiling:.3f}"
+                f"background_false_alerts_per_1000={rate:.3f} exceeds {limit:.3f}"
             )
 
     return RegressionResult(passed=not violations, violations=violations)

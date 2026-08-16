@@ -1,0 +1,154 @@
+signals:
+  - evidence_id: mail-critical-lease
+    signal_class: canonical
+    expected_attention: true
+  - evidence_id: mail-bg-01
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-02
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-03
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-04
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-05
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-06
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-07
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-08
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-09
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-10
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-11
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-12
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-13
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-14
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-15
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-16
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-17
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-18
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-19
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-20
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-21
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-22
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-23
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-24
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-25
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-26
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-27
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-28
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-29
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-30
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-31
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-32
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-33
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-34
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-35
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-36
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-37
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-38
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-39
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-40
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-41
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-42
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-43
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-44
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-45
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-46
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-47
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-48
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-49
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-bg-50
+    signal_class: background
+    expected_attention: false

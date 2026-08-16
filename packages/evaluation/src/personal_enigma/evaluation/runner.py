@@ -12,7 +12,7 @@ from personal_enigma.evaluation.ground_truth import (
     GroundTruthCorpus,
     load_ground_truth,
 )
-from personal_enigma.evaluation.metrics import attention, cost, memory, privacy, retrieval
+from personal_enigma.evaluation.metrics import attention, cost, memory, privacy, retrieval, scale
 from personal_enigma.evaluation.observations import EvaluationObservations
 from personal_enigma.evaluation.report import render_summary_markdown, write_report
 
@@ -78,12 +78,35 @@ class EvaluationRunner:
         retrieval_m = retrieval.compute_retrieval_metrics(obs.retrieval)
         cost_m = cost.compute_cost_metrics(obs.cost_events, scenario_days=self.scenario_days)
 
+        message_count = obs.message_count
+        if message_count is None:
+            message_count = max(
+                0,
+                (obs.background_count or 0) + (obs.noise_count or 0),
+            )
+        scale_m = scale.compute_scale_metrics(
+            message_count=message_count,
+            items_surfaced=len(obs.alerts),
+            background_count=obs.background_count or 0,
+            noise_count=obs.noise_count or 0,
+            background_false_alerts=obs.background_false_alerts,
+            noise_false_alerts=obs.noise_false_alerts,
+            remote_calls=obs.remote_calls,
+            estimated_cost_usd=cost_m.total_usd,
+            index_size_bytes=obs.index_size_bytes,
+            ingest_time_ms=obs.ingest_time_ms,
+            retrieval_latency_ms=obs.retrieval_latency_ms,
+            recall_at_k=float(retrieval_m.as_dict().get("recall_at_k", 1.0)),
+            precision=attention_m.precision,
+        )
+
         metrics: dict[str, Any] = {
             "attention": attention_m.as_dict(),
             "privacy": privacy_m.as_dict(),
             "memory": memory_m.as_dict(),
             "retrieval": retrieval_m.as_dict(),
             "cost": cost_m.as_dict(),
+            "scale": scale_m.as_dict(),
         }
 
         failures: dict[str, Any] = {
@@ -112,6 +135,7 @@ class EvaluationRunner:
             "privacy_policy_version": obs.privacy_policy_version,
             "evaluated_at": at.isoformat(),
             "environment": "demo",
+            "corpus_fingerprint": obs.corpus_fingerprint,
         }
 
         timeline = {

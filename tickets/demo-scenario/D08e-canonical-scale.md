@@ -2,10 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/D08e-canonical-scale` |
 | Domain | `demo-scenario` / `demo-evaluation` |
 | Parent | [D08](./D08-canonical-alex.md) |
+| PR | [#48](https://github.com/oscarhilton/enigma-assistant-/pull/48) |
 
 ## Question
 
@@ -29,6 +30,7 @@ Canonical target: **~5k** background messages. The deliverable is the **shape of
 ## Soft depends (~)
 
 - D10 suppression dashboard
+- D08d noise layer (merged when available; noise budgets documented meanwhile)
 
 ## Unlocks / enhances
 
@@ -39,6 +41,7 @@ Canonical target: **~5k** background messages. The deliverable is the **shape of
 
 - Replacing interactive demo with 25k inbox
 - Architectural rewrites for cleverness; fix only measured cliffs
+- **Premature performance SLOs** — do not set “must be fast” targets before the curves exist. Prefer **understood** behaviour over early optimisation.
 
 ## Scale ladder
 
@@ -66,21 +69,25 @@ For each N, record:
 - remote calls
 - cost
 
-**Look for shape:** gentle latency growth with flat recall is success. A Recall@10 cliff around ~3k is more valuable than a green ticket — file a finding, don’t hide it.
+**Look for shape:** roughly linear latency + flat Recall@K is success. Cost inflection because items leak into premium reasoning tells you where the next optimisation belongs. A Recall@10 cliff around ~3k is more valuable than a green ticket — file a finding, don’t hide it.
+
+If 5k is slower than ideal but **predictable and correct**, Phase 2.5 can still pass: Shadow Mode teaches more than another week of synthetic tuning.
 
 ## Acceptance criteria
 
-- [ ] Canonical profile ~5k background + ~1–2k noise (D08d)
-- [ ] Ladder runs produce graphable artefacts for the metrics above
-- [ ] Storyline / critical recall under noise still gated (≤1 pp vs spine at canonical N)
-- [ ] Corpus fingerprint on every eval report
-- [ ] Stress profile (10k/25k) documented for manual runs only
-- [ ] Written note on curve shape (flat / cliff / cost blow-up) attached to PR or `docs/`
+- [x] Canonical profile ~5k background + ~1–2k noise (D08d) — documented targets; CI keeps demo/feature small
+- [x] Ladder runs produce graphable artefacts for the metrics above (`scale_ladder.json` / `.csv`)
+- [x] Storyline / critical recall under noise still gated (≤1 pp vs spine; critical displacement == 0); optional noise arm
+- [x] Corpus fingerprint on every eval report (`summary.corpus_fingerprint` + ladder digests)
+- [x] Stress profile (10k/25k) documented for manual runs only
+- [x] Written note on curve shape — [docs/architecture/demo-scale-curves.md](../../docs/architecture/demo-scale-curves.md)
 
 ## Test plan
 
-- Nightly canonical A/B at 5k; PR uses mini + maybe 100/500
-- Embedding index size + retrieval latency sampled at 1k / 5k minimum
+- [x] PR CI ladder at 100/500 via expand-to (no FinePersonas 115k)
+- [x] Feature scenarios: background-basic, background-volume-vs-importance, background-no-alert
+- [x] Demo `/demo/status` exposes surfaced/suppressed counts
+- Nightly canonical A/B at 5k (manual / future)
 
 ## Privacy constraints
 

@@ -87,7 +87,15 @@ def test_report_json_markdown_schema_snapshot(tmp_path: Path) -> None:
         "environment",
         "privacy_policy_version",
     }
-    assert set(metrics) == {"attention", "privacy", "memory", "retrieval", "cost"}
+    assert set(metrics) == {
+        "attention",
+        "privacy",
+        "memory",
+        "retrieval",
+        "cost",
+        "scale",
+    }
+    assert "attention_compression_ratio" in metrics["scale"]
     for key in (
         "critical_recall",
         "precision",
@@ -183,6 +191,24 @@ def test_regression_baseline_flags_pii() -> None:
     )
     assert result.passed is False
     assert any("direct_identifier" in v for v in result.violations)
+
+
+def test_regression_flags_false_alerts_per_1k() -> None:
+    result = compare_to_baseline(
+        {
+            "attention": {"critical_recall": 1.0, "duplicate_rate": 0.0},
+            "privacy": {"direct_identifier_leaks": 0},
+            "cost": {"total_usd": 0.01},
+            "scale": {"false_alerts_per_1k": 5.0},
+        },
+        {
+            "attention": {"critical_recall": 1.0, "duplicate_rate": 0.0},
+            "privacy": {"direct_identifier_leaks": 0},
+            "cost": {"total_usd": 0.01},
+        },
+    )
+    assert result.passed is False
+    assert any("false_alerts" in v for v in result.violations)
 
 
 def test_duplicates_and_stale_counted(tmp_path: Path) -> None:

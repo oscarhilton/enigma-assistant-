@@ -16,6 +16,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from personal_enigma.simulation.corpus.expand import expand_conversations
 from personal_enigma.simulation.corpus.models import CorpusConversation
 from personal_enigma.simulation.corpus.registry import CorpusRegistry, default_registry
 from personal_enigma.simulation.corpus.safety import assert_public_demo_allowed
@@ -29,7 +30,25 @@ DemoProfileName = Literal["feature", "demo", "canonical", "stress"]
 
 # Documented Phase-2 benchmarks (full FinePersonas; not loaded in PR CI).
 CANONICAL_BACKGROUND_MESSAGE_TARGET = 5_000
+CANONICAL_NOISE_MESSAGE_TARGET = 1_500
 DEMO_BACKGROUND_MESSAGE_TARGET = 1_000
+DEMO_NOISE_MESSAGE_TARGET = 250
+STRESS_BACKGROUND_MESSAGE_TARGET = 25_000
+STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET = 10_000
+STRESS_NOISE_MESSAGE_TARGET = 5_000
+
+# PR CI ladder smoke points (expand-to; never download FinePersonas 115k).
+CI_SCALE_LADDER_POINTS: tuple[int, ...] = (100, 500)
+# Full ladder (nightly / manual) — documented, not enforced in PR CI.
+FULL_SCALE_LADDER_POINTS: tuple[int, ...] = (
+    100,
+    500,
+    1_000,
+    2_500,
+    5_000,
+    10_000,
+    25_000,
+)
 
 
 class BackgroundDateRange(BaseModel):
@@ -89,12 +108,25 @@ class BackgroundEmailSpec(BaseModel):
         return self
 
 
+class DocumentedProfileTargets(BaseModel):
+    """Declared message budgets for scale curves (may exceed CI fixture size)."""
+
+    background_messages: int = 0
+    noise_messages: int = 0
+    ci_background_messages: int | None = None
+    stretch_background_messages: int | None = None
+    note: str | None = None
+
+
 class BackgroundConfig(BaseModel):
     """Contents of ``background.yaml`` (simulation metadata, not Enigma input)."""
 
     profile: DemoProfileName = "demo"
     email: list[BackgroundEmailSpec] = Field(default_factory=list)
     profiles: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    documented_targets: dict[str, DocumentedProfileTargets] = Field(
+        default_factory=dict
+    )
     notes: str | None = None
 
     def specs_for_profile(
@@ -111,6 +143,32 @@ class BackgroundConfig(BaseModel):
         if name == self.profile or not self.profiles:
             return list(self.email)
         raise KeyError(f"unknown background profile {name!r}")
+
+    def targets_for_profile(
+        self, profile: DemoProfileName | None = None
+    ) -> DocumentedProfileTargets:
+        """Documented background/noise budgets (D08e curves; soft noise = D08d)."""
+        name = profile or self.profile
+        if name in self.documented_targets:
+            return self.documented_targets[name]
+        defaults: dict[str, DocumentedProfileTargets] = {
+            "feature": DocumentedProfileTargets(),
+            "demo": DocumentedProfileTargets(
+                background_messages=DEMO_BACKGROUND_MESSAGE_TARGET,
+                noise_messages=DEMO_NOISE_MESSAGE_TARGET,
+            ),
+            "canonical": DocumentedProfileTargets(
+                background_messages=CANONICAL_BACKGROUND_MESSAGE_TARGET,
+                noise_messages=CANONICAL_NOISE_MESSAGE_TARGET,
+            ),
+            "stress": DocumentedProfileTargets(
+                background_messages=STRESS_BACKGROUND_MESSAGE_TARGET,
+                noise_messages=STRESS_NOISE_MESSAGE_TARGET,
+                stretch_background_messages=STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET,
+                note="manual / nightly only — never PR CI",
+            ),
+        }
+        return defaults.get(name, DocumentedProfileTargets())
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,24 +237,57 @@ def _select_for_budget(
     conversation_count: int | None,
     message_count: int | None,
 ) -> list[CorpusConversation]:
+    """Select conversations to meet message/conversation budgets.
+
+    When ``conversation_count`` is set (demo / CI), never expand — keep the
+    tiny deterministic footprint that matches checked-in ground truth.
+
+    When only ``message_count`` is set (canonical / stress), expand the
+    checked-in mini corpus offline to reach the budget (never downloads
+    FinePersonas 115k).
+    """
+    pool: list[CorpusConversation] = list(conversations)
+    if not pool:
+        return []
+
     if conversation_count is not None:
-        selected = select_conversations(
-            conversations, seed=seed, count=conversation_count
-        )
-    else:
-        selected = select_conversations(
-            conversations, seed=seed, count=len(conversations)
-        )
+        selected = select_conversations(pool, seed=seed, count=conversation_count)
+        if message_count is None:
+            return selected
+        out: list[CorpusConversation] = []
+        total = 0
+        for conv in selected:
+            out.append(conv)
+            total += len(conv.messages)
+            if total >= message_count:
+                break
+        return out
+
+    # No conversation_count: expand offline until message_count is met.
+    selected = select_conversations(pool, seed=seed, count=len(pool))
     if message_count is None:
         return selected
-    out: list[CorpusConversation] = []
-    total = 0
-    for conv in selected:
-        out.append(conv)
-        total += len(conv.messages)
-        if total >= message_count:
-            break
-    return out
+
+    def _take(up_to: Sequence[CorpusConversation]) -> list[CorpusConversation]:
+        out: list[CorpusConversation] = []
+        total = 0
+        for conv in up_to:
+            out.append(conv)
+            total += len(conv.messages)
+            if total >= message_count:
+                break
+        return out
+
+    taken = _take(selected)
+    if sum(len(c.messages) for c in taken) >= message_count:
+        return taken
+
+    avg = max(1, sum(len(c.messages) for c in pool) // max(1, len(pool)))
+    need = max(len(pool) + 1, (message_count + avg - 1) // avg)
+    expanded = expand_conversations(
+        pool, target_count=need, seed=f"{seed}:expand"
+    )
+    return _take(select_conversations(expanded, seed=seed, count=len(expanded)))
 
 
 async def _load_conversations(
@@ -299,7 +390,14 @@ def build_background_stream(
 
 __all__ = [
     "CANONICAL_BACKGROUND_MESSAGE_TARGET",
+    "CANONICAL_NOISE_MESSAGE_TARGET",
+    "CI_SCALE_LADDER_POINTS",
     "DEMO_BACKGROUND_MESSAGE_TARGET",
+    "DEMO_NOISE_MESSAGE_TARGET",
+    "FULL_SCALE_LADDER_POINTS",
+    "STRESS_BACKGROUND_MESSAGE_TARGET",
+    "STRESS_NOISE_MESSAGE_TARGET",
+    "STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET",
     "BackgroundBuildResult",
     "BackgroundClassification",
     "BackgroundConfig",
@@ -307,6 +405,7 @@ __all__ = [
     "BackgroundEmailSpec",
     "BackgroundSignalTruth",
     "DemoProfileName",
+    "DocumentedProfileTargets",
     "build_background_stream",
     "canonical_contact_emails",
     "load_background_config",

@@ -86,7 +86,7 @@ MVP baseline tag: `v0.1.0-mvp` (`6253f96`).
 | [D08b](./demo-scenario/D08b-corpus-pipeline.md) | `done` | FinePersonas adapter, sanitiser, derived cache, 100-conv replay |
 | [D08c](./demo-scenario/D08c-background-integration.md) | `done` | Canonical+background merge; A/B recall hook |
 | [D08d](./demo-scenario/D08d-noise-layer.md) | `done` | Machine sludge + quiet-day (≠ D08c) |
-| [D08e](./demo-scenario/D08e-canonical-scale.md) | `todo` | Scale ladder + curve shapes → Phase 2.5 |
+| [D08e](./demo-scenario/D08e-canonical-scale.md) | `done` | Scale ladder + curve shapes → Phase 2.5 |
 
 Architecture freeze preferred at `f404597` unless D08c proves a structural failure.
 

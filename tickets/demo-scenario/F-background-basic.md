@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Domain | `demo-scenario` |
-| Related | D08c, D03 |
+| Related | D08c, D03, D08e |
 
 ## Intent
 
@@ -17,6 +17,6 @@ Canonical message surrounded by ~50 irrelevant background messages. Enigma shoul
 
 ## Acceptance
 
-- [ ] Scenario package validates
-- [ ] Critical recall holds with background present
-- [ ] Source payloads omit `signal_class`
+- [x] Scenario package validates
+- [x] Critical recall holds with background present (fixture + GT)
+- [x] Source payloads omit `signal_class`

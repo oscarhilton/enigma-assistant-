@@ -187,6 +187,9 @@ class DemoSession:
     def status_payload(self) -> dict[str, Any]:
         mode = environment_mode_from_env()
         active = mode is EnvironmentMode.DEMO
+        # D10-style compression stats on status (surfaced vs suppressed / noise).
+        surfaced = len(self.attention_items) if active else None
+        suppressed = self.suppressed_count if active else None
         return {
             "active": active,
             "mode": mode.value,
@@ -197,6 +200,9 @@ class DemoSession:
             "paused": self.clock.paused if active else None,
             "storage_root": str(self.env.storage_root) if active else None,
             "ground_truth_visible": False,
+            "surfaced_count": surfaced,
+            "suppressed_count": suppressed,
+            "noise_suppressed_count": suppressed,
         }
 
     def attention_payload(self) -> dict[str, Any]:

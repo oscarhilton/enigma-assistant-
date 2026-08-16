@@ -26,3 +26,17 @@ def test_storyline_recall_ab_fails_when_drop_exceeds_budget() -> None:
     regression = compare_storyline_ab(spine, with_bg)
     assert not regression.passed
     assert any("critical_recall" in v for v in regression.violations)
+
+
+def test_storyline_recall_ab_fails_on_displacement_even_if_recall_flat() -> None:
+    spine = {"attention": {"critical_recall": 1.0}}
+    with_bg = {"attention": {"critical_recall": 1.0}}
+    result = storyline_recall_under_noise(
+        spine, with_bg, critical_displacement=2
+    )
+    assert not result.passed
+    regression = compare_storyline_ab(
+        spine, with_bg, critical_displacement=2
+    )
+    assert not regression.passed
+    assert any("critical_displacement" in v for v in regression.violations)
