@@ -42,7 +42,7 @@ Corpus density is **not** a new top-level milestone. Track under:
 | Subtask | Ticket | Status |
 | --- | --- | --- |
 | Canonical spine | [D08a](./D08a-canonical-spine.md) | `done` |
-| Corpus pipeline | [D08b](./D08b-corpus-pipeline.md) | scaffolding |
+| Corpus pipeline | [D08b](./D08b-corpus-pipeline.md) | `done` |
 | Background integration | [D08c](./D08c-background-integration.md) | `todo` |
 | Noise layer | [D08d](./D08d-noise-layer.md) | `todo` |
 | Canonical scale | [D08e](./D08e-canonical-scale.md) | `todo` |

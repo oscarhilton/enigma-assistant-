@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/D08c-background-integration` |
 | Domain | `demo-scenario` / `demo-simulation` |
 | Parent | [D08](./D08-canonical-alex.md) |
@@ -37,16 +37,16 @@
 
 ## Acceptance criteria
 
-- [ ] Canonical + background merge into one chronological mailbox
-- [ ] Enigma cannot observe `signal_class` / background labels
-- [ ] Critical canonical recall does not materially degrade vs spine-only (measure; target ≤1 pp)
-- [ ] Seeded reset reproduces identical background traffic
-- [ ] Background contacts remain disjoint from canonical person namespaces
+- [x] Canonical + background merge into one chronological mailbox
+- [x] Enigma cannot observe `signal_class` / background labels
+- [x] Critical canonical recall does not materially degrade vs spine-only (measure; target ≤1 pp)
+- [x] Seeded reset reproduces identical background traffic
+- [x] Background contacts remain disjoint from canonical person namespaces
 
 ## Test plan
 
-- A/B eval: alex spine only vs spine + mini/demo background
-- Isolation test: ground-truth metadata absent from source payloads
+- [x] A/B eval: alex spine only vs spine + mini/demo background
+- [x] Isolation test: ground-truth metadata absent from source payloads
 
 ## Privacy constraints
 

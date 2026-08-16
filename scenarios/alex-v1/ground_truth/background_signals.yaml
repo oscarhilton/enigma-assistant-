@@ -1,0 +1,20 @@
+# Evaluator-only background signal classifications for alex-v1 demo profile.
+# Generated from seed alex-v1-email-background-v1 + finepersonas-mini.
+# Enigma / SyntheticMailSource payloads must never include these fields.
+
+signals:
+  - evidence_id: mini-conv-003-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-1
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-003-2
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-0
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mini-conv-001-1
+    signal_class: background
+    expected_attention: false

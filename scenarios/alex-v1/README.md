@@ -23,12 +23,18 @@ Once released as a benchmark, treat the package as **immutable**.
 ```text
 scenario.yaml      Package metadata
 persona.yaml       Declarative fictional persona
+background.yaml    Demo/canonical background density (evaluator metadata)
 entities/          Contacts roster
 timeline/          week-01.yaml … week-03.yaml
 content/           Email / notes bodies
-ground_truth/      Obligations, commitments, windows, checkpoints
+ground_truth/      Obligations, commitments, windows, checkpoints, background signals
 attacks/           Adversarial packs (D9)
 ```
+
+## Background profiles (D08c)
+
+Default `profile: demo` loads a **small** finepersonas-mini slice for CI.
+`profiles.canonical` documents the Phase-2 ~5k message target (D08e; not enabled in PR CI).
 
 ## Themes covered
 
