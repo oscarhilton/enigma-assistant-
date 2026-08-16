@@ -68,7 +68,7 @@ _BRANDS: dict[NoiseCategory, tuple[str, ...]] = {
     "spam_like": ("PrizeVault", "LuckyClick", "OfferRiver"),
 }
 
-_CATEGORY_WEIGHTS: dict[NoiseCategory, float] = {
+_CATEGORY_WEIGHTS: dict[str, float] = {
     "newsletter": 0.18,
     "receipt": 0.12,
     "automated_notification": 0.18,
@@ -322,7 +322,9 @@ def generate_noise_events(
     if message_count <= 0:
         return [], []
     rng = scenario_rng(seed)
-    weights = dict(category_weights or _CATEGORY_WEIGHTS)
+    weights: dict[str, float] = (
+        dict(category_weights) if category_weights is not None else dict(_CATEGORY_WEIGHTS)
+    )
     # Guarantee every category appears at least once when the budget allows.
     if message_count >= len(NOISE_CATEGORIES):
         categories: list[NoiseCategory] = list(NOISE_CATEGORIES)

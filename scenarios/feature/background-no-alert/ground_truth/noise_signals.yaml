@@ -1,5 +1,5 @@
-# Evaluator-only noise signal classifications.
-# Generated from noise.yaml; Enigma payloads must never include these fields.
+# Evaluator-only noise signal classifications (D08d).
+# Enigma payloads must never include these fields.
 
 signals:
 - evidence_id: noise-newsletter-0000

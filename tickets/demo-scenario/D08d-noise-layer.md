@@ -6,7 +6,7 @@
 | Branch | `ticket/D08d-noise-layer` |
 | Domain | `demo-scenario` / `demo-simulation` |
 | Parent | [D08](./D08-canonical-alex.md) |
-| PR | (pending) |
+| PR | [#47](https://github.com/oscarhilton/enigma-assistant-/pull/47) |
 
 ## Distinct question from D08c
 
