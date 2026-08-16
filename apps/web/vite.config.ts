@@ -17,7 +17,11 @@ export default defineConfig({
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
         bypass(req) {
-          if (req.headers.accept?.includes("text/html")) {
+          const accept = req.headers.accept;
+          const acceptHeader = Array.isArray(accept)
+            ? accept.join(",")
+            : (accept ?? "");
+          if (acceptHeader.includes("text/html")) {
             return "/index.html";
           }
         },
