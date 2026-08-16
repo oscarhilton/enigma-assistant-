@@ -76,4 +76,4 @@ def test_background_threading_window_edge_preserves_reply_order() -> None:
     assert all(e.payload["thread_id"] == "edge-thread" for e in placed)
     stamps = [e.at for e in placed]
     assert stamps == sorted(stamps)
-    assert all(a < b for a, b in zip(stamps, stamps[1:], strict=True))
+    assert all(a < b for a, b in zip(stamps, stamps[1:], strict=False))
