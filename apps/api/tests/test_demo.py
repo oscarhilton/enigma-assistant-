@@ -54,6 +54,15 @@ def test_timeline_day_advances_simulated_time(monkeypatch: pytest.MonkeyPatch) -
     assert after > before
 
 
+def test_demo_status_includes_suppression_stats(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    client = TestClient(create_app())
+    status = client.get("/demo/status").json()
+    assert status["surfaced_count"] == 2
+    assert status["suppressed_count"] == 47
+    assert status["noise_suppressed_count"] == 47
+
+
 def test_timeline_step_and_speed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
     client = TestClient(create_app())

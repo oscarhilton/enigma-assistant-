@@ -29,7 +29,25 @@ DemoProfileName = Literal["feature", "demo", "canonical", "stress"]
 
 # Documented Phase-2 benchmarks (full FinePersonas; not loaded in PR CI).
 CANONICAL_BACKGROUND_MESSAGE_TARGET = 5_000
+CANONICAL_NOISE_MESSAGE_TARGET = 1_500
 DEMO_BACKGROUND_MESSAGE_TARGET = 1_000
+DEMO_NOISE_MESSAGE_TARGET = 250
+STRESS_BACKGROUND_MESSAGE_TARGET = 25_000
+STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET = 10_000
+STRESS_NOISE_MESSAGE_TARGET = 5_000
+
+# PR CI ladder smoke points (expand-to; never download FinePersonas 115k).
+CI_SCALE_LADDER_POINTS: tuple[int, ...] = (100, 500)
+# Full ladder (nightly / manual) — documented, not enforced in PR CI.
+FULL_SCALE_LADDER_POINTS: tuple[int, ...] = (
+    100,
+    500,
+    1_000,
+    2_500,
+    5_000,
+    10_000,
+    25_000,
+)
 
 
 class BackgroundDateRange(BaseModel):
@@ -89,12 +107,25 @@ class BackgroundEmailSpec(BaseModel):
         return self
 
 
+class DocumentedProfileTargets(BaseModel):
+    """Declared message budgets for scale curves (may exceed CI fixture size)."""
+
+    background_messages: int = 0
+    noise_messages: int = 0
+    ci_background_messages: int | None = None
+    stretch_background_messages: int | None = None
+    note: str | None = None
+
+
 class BackgroundConfig(BaseModel):
     """Contents of ``background.yaml`` (simulation metadata, not Enigma input)."""
 
     profile: DemoProfileName = "demo"
     email: list[BackgroundEmailSpec] = Field(default_factory=list)
     profiles: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    documented_targets: dict[str, DocumentedProfileTargets] = Field(
+        default_factory=dict
+    )
     notes: str | None = None
 
     def specs_for_profile(
@@ -111,6 +142,32 @@ class BackgroundConfig(BaseModel):
         if name == self.profile or not self.profiles:
             return list(self.email)
         raise KeyError(f"unknown background profile {name!r}")
+
+    def targets_for_profile(
+        self, profile: DemoProfileName | None = None
+    ) -> DocumentedProfileTargets:
+        """Documented background/noise budgets (D08e curves; soft noise = D08d)."""
+        name = profile or self.profile
+        if name in self.documented_targets:
+            return self.documented_targets[name]
+        defaults: dict[str, DocumentedProfileTargets] = {
+            "feature": DocumentedProfileTargets(),
+            "demo": DocumentedProfileTargets(
+                background_messages=DEMO_BACKGROUND_MESSAGE_TARGET,
+                noise_messages=DEMO_NOISE_MESSAGE_TARGET,
+            ),
+            "canonical": DocumentedProfileTargets(
+                background_messages=CANONICAL_BACKGROUND_MESSAGE_TARGET,
+                noise_messages=CANONICAL_NOISE_MESSAGE_TARGET,
+            ),
+            "stress": DocumentedProfileTargets(
+                background_messages=STRESS_BACKGROUND_MESSAGE_TARGET,
+                noise_messages=STRESS_NOISE_MESSAGE_TARGET,
+                stretch_background_messages=STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET,
+                note="manual / nightly only — never PR CI",
+            ),
+        }
+        return defaults.get(name, DocumentedProfileTargets())
 
 
 @dataclass(frozen=True, slots=True)
@@ -299,7 +356,14 @@ def build_background_stream(
 
 __all__ = [
     "CANONICAL_BACKGROUND_MESSAGE_TARGET",
+    "CANONICAL_NOISE_MESSAGE_TARGET",
+    "CI_SCALE_LADDER_POINTS",
     "DEMO_BACKGROUND_MESSAGE_TARGET",
+    "DEMO_NOISE_MESSAGE_TARGET",
+    "FULL_SCALE_LADDER_POINTS",
+    "STRESS_BACKGROUND_MESSAGE_TARGET",
+    "STRESS_NOISE_MESSAGE_TARGET",
+    "STRESS_STRETCH_BACKGROUND_MESSAGE_TARGET",
     "BackgroundBuildResult",
     "BackgroundClassification",
     "BackgroundConfig",
@@ -307,6 +371,7 @@ __all__ = [
     "BackgroundEmailSpec",
     "BackgroundSignalTruth",
     "DemoProfileName",
+    "DocumentedProfileTargets",
     "build_background_stream",
     "canonical_contact_emails",
     "load_background_config",

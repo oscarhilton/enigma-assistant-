@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Domain | `demo-scenario` |
-| Related | D08c, D07 |
+| Related | D08c, D07, D08e |
 
 ## Intent
 
@@ -12,5 +12,5 @@ Large irrelevant thread (high message volume) versus a small critical canonical 
 
 ## Acceptance
 
-- [ ] High-volume background does not outrank explicit canonical commitment
-- [ ] Metric / assertion documented in eval report
+- [x] High-volume background does not outrank explicit canonical commitment (fixture)
+- [x] Metric / assertion documented in eval report (scale compression + GT signals)

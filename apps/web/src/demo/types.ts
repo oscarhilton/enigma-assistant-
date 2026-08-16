@@ -23,6 +23,12 @@ export type DemoStatus = {
   paused: boolean | null;
   storage_root: string | null;
   ground_truth_visible: boolean;
+  /** Attention items currently on the surface (D08e / D10 stats). */
+  surfaced_count?: number | null;
+  /** Signals considered but not surfaced (background + noise). */
+  suppressed_count?: number | null;
+  /** Alias for noise-layer suppression when D08d streams contribute. */
+  noise_suppressed_count?: number | null;
 };
 
 /** Attention card fields — priority ≠ confidence; rank ≠ confidence. */

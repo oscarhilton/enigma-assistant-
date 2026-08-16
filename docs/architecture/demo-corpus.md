@@ -1,9 +1,10 @@
 # Demo Mode — Background email corpus
 
-**Status:** D08b–D08d landed (pipeline + background + machine noise); scale is D08e  
+**Status:** D08b–D08e landed (pipeline + background + noise + scale curves)  
 **Plan:** Enigma Demo Mode — Background Email Corpus Integration  
 **Governing rule:** Story creates meaning. Corpus creates noise. Enigma must discover the difference.  
-**ADR:** [007-demo-corpus-provenance.md](../adr/007-demo-corpus-provenance.md)
+**ADR:** [007-demo-corpus-provenance.md](../adr/007-demo-corpus-provenance.md)  
+**Scale curves:** [demo-scale-curves.md](./demo-scale-curves.md)
 
 ## Why
 

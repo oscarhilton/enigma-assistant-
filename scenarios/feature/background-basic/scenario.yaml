@@ -1,0 +1,494 @@
+id: background-basic
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-01T08:00:00Z"
+description: >
+  One critical canonical obligation surrounded by ~50 irrelevant background
+  messages. Enigma should still surface the obligation (D08e feature scenario).
+events:
+  - id: bb-contact-self
+    at: "2026-04-01T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+  - id: bb-contact-maya
+    at: "2026-04-01T08:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: maya
+      display_name: Maya Chen
+      email: maya.chen@northwind.example
+  - id: bb-mail-critical
+    at: "2026-04-01T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-critical-lease
+      subject: "Lease renewal paperwork due Friday"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Need the signed lease renewal before Friday.
+  - id: bb-rem-lease
+    at: "2026-04-01T10:05:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-lease-friday
+      title: Sign lease renewal
+      due_at: "2026-04-04T17:00:00Z"
+      is_completed: false
+  - id: bb-bg-01
+    at: "2026-04-01T09:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-01
+      subject: "Thread chatter #1"
+      from: chatter1@northwind.example
+      snippet: Irrelevant office chatter 1.
+  - id: bb-bg-02
+    at: "2026-04-01T09:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-02
+      subject: "Thread chatter #2"
+      from: chatter2@northwind.example
+      snippet: Irrelevant office chatter 2.
+  - id: bb-bg-03
+    at: "2026-04-01T09:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-03
+      subject: "Thread chatter #3"
+      from: chatter3@northwind.example
+      snippet: Irrelevant office chatter 3.
+  - id: bb-bg-04
+    at: "2026-04-01T09:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-04
+      subject: "Thread chatter #4"
+      from: chatter4@northwind.example
+      snippet: Irrelevant office chatter 4.
+  - id: bb-bg-05
+    at: "2026-04-01T09:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-05
+      subject: "Thread chatter #5"
+      from: chatter5@northwind.example
+      snippet: Irrelevant office chatter 5.
+  - id: bb-bg-06
+    at: "2026-04-01T09:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-06
+      subject: "Thread chatter #6"
+      from: chatter6@northwind.example
+      snippet: Irrelevant office chatter 6.
+  - id: bb-bg-07
+    at: "2026-04-01T09:35:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-07
+      subject: "Thread chatter #7"
+      from: chatter7@northwind.example
+      snippet: Irrelevant office chatter 7.
+  - id: bb-bg-08
+    at: "2026-04-01T09:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-08
+      subject: "Thread chatter #8"
+      from: chatter8@northwind.example
+      snippet: Irrelevant office chatter 8.
+  - id: bb-bg-09
+    at: "2026-04-01T09:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-09
+      subject: "Thread chatter #9"
+      from: chatter9@northwind.example
+      snippet: Irrelevant office chatter 9.
+  - id: bb-bg-10
+    at: "2026-04-01T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-10
+      subject: "Thread chatter #10"
+      from: chatter10@northwind.example
+      snippet: Irrelevant office chatter 10.
+  - id: bb-bg-11
+    at: "2026-04-01T10:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-11
+      subject: "Thread chatter #11"
+      from: chatter11@northwind.example
+      snippet: Irrelevant office chatter 11.
+  - id: bb-bg-12
+    at: "2026-04-01T10:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-12
+      subject: "Thread chatter #12"
+      from: chatter12@northwind.example
+      snippet: Irrelevant office chatter 12.
+  - id: bb-bg-13
+    at: "2026-04-01T10:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-13
+      subject: "Thread chatter #13"
+      from: chatter13@northwind.example
+      snippet: Irrelevant office chatter 13.
+  - id: bb-bg-14
+    at: "2026-04-01T10:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-14
+      subject: "Thread chatter #14"
+      from: chatter14@northwind.example
+      snippet: Irrelevant office chatter 14.
+  - id: bb-bg-15
+    at: "2026-04-01T10:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-15
+      subject: "Thread chatter #15"
+      from: chatter15@northwind.example
+      snippet: Irrelevant office chatter 15.
+  - id: bb-bg-16
+    at: "2026-04-01T10:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-16
+      subject: "Thread chatter #16"
+      from: chatter16@northwind.example
+      snippet: Irrelevant office chatter 16.
+  - id: bb-bg-17
+    at: "2026-04-01T10:35:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-17
+      subject: "Thread chatter #17"
+      from: chatter17@northwind.example
+      snippet: Irrelevant office chatter 17.
+  - id: bb-bg-18
+    at: "2026-04-01T10:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-18
+      subject: "Thread chatter #18"
+      from: chatter18@northwind.example
+      snippet: Irrelevant office chatter 18.
+  - id: bb-bg-19
+    at: "2026-04-01T10:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-19
+      subject: "Thread chatter #19"
+      from: chatter19@northwind.example
+      snippet: Irrelevant office chatter 19.
+  - id: bb-bg-20
+    at: "2026-04-01T11:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-20
+      subject: "Thread chatter #20"
+      from: chatter20@northwind.example
+      snippet: Irrelevant office chatter 20.
+  - id: bb-bg-21
+    at: "2026-04-01T11:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-21
+      subject: "Thread chatter #21"
+      from: chatter21@northwind.example
+      snippet: Irrelevant office chatter 21.
+  - id: bb-bg-22
+    at: "2026-04-01T11:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-22
+      subject: "Thread chatter #22"
+      from: chatter22@northwind.example
+      snippet: Irrelevant office chatter 22.
+  - id: bb-bg-23
+    at: "2026-04-01T11:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-23
+      subject: "Thread chatter #23"
+      from: chatter23@northwind.example
+      snippet: Irrelevant office chatter 23.
+  - id: bb-bg-24
+    at: "2026-04-01T11:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-24
+      subject: "Thread chatter #24"
+      from: chatter24@northwind.example
+      snippet: Irrelevant office chatter 24.
+  - id: bb-bg-25
+    at: "2026-04-01T11:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-25
+      subject: "Thread chatter #25"
+      from: chatter25@northwind.example
+      snippet: Irrelevant office chatter 25.
+  - id: bb-bg-26
+    at: "2026-04-01T11:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-26
+      subject: "Thread chatter #26"
+      from: chatter26@northwind.example
+      snippet: Irrelevant office chatter 26.
+  - id: bb-bg-27
+    at: "2026-04-01T11:35:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-27
+      subject: "Thread chatter #27"
+      from: chatter27@northwind.example
+      snippet: Irrelevant office chatter 27.
+  - id: bb-bg-28
+    at: "2026-04-01T11:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-28
+      subject: "Thread chatter #28"
+      from: chatter28@northwind.example
+      snippet: Irrelevant office chatter 28.
+  - id: bb-bg-29
+    at: "2026-04-01T11:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-29
+      subject: "Thread chatter #29"
+      from: chatter29@northwind.example
+      snippet: Irrelevant office chatter 29.
+  - id: bb-bg-30
+    at: "2026-04-01T12:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-30
+      subject: "Thread chatter #30"
+      from: chatter30@northwind.example
+      snippet: Irrelevant office chatter 30.
+  - id: bb-bg-31
+    at: "2026-04-01T12:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-31
+      subject: "Thread chatter #31"
+      from: chatter31@northwind.example
+      snippet: Irrelevant office chatter 31.
+  - id: bb-bg-32
+    at: "2026-04-01T12:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-32
+      subject: "Thread chatter #32"
+      from: chatter32@northwind.example
+      snippet: Irrelevant office chatter 32.
+  - id: bb-bg-33
+    at: "2026-04-01T12:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-33
+      subject: "Thread chatter #33"
+      from: chatter33@northwind.example
+      snippet: Irrelevant office chatter 33.
+  - id: bb-bg-34
+    at: "2026-04-01T12:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-34
+      subject: "Thread chatter #34"
+      from: chatter34@northwind.example
+      snippet: Irrelevant office chatter 34.
+  - id: bb-bg-35
+    at: "2026-04-01T12:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-35
+      subject: "Thread chatter #35"
+      from: chatter35@northwind.example
+      snippet: Irrelevant office chatter 35.
+  - id: bb-bg-36
+    at: "2026-04-01T12:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-36
+      subject: "Thread chatter #36"
+      from: chatter36@northwind.example
+      snippet: Irrelevant office chatter 36.
+  - id: bb-bg-37
+    at: "2026-04-01T12:35:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-37
+      subject: "Thread chatter #37"
+      from: chatter37@northwind.example
+      snippet: Irrelevant office chatter 37.
+  - id: bb-bg-38
+    at: "2026-04-01T12:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-38
+      subject: "Thread chatter #38"
+      from: chatter38@northwind.example
+      snippet: Irrelevant office chatter 38.
+  - id: bb-bg-39
+    at: "2026-04-01T12:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-39
+      subject: "Thread chatter #39"
+      from: chatter39@northwind.example
+      snippet: Irrelevant office chatter 39.
+  - id: bb-bg-40
+    at: "2026-04-01T13:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-40
+      subject: "Thread chatter #40"
+      from: chatter40@northwind.example
+      snippet: Irrelevant office chatter 40.
+  - id: bb-bg-41
+    at: "2026-04-01T13:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-41
+      subject: "Thread chatter #41"
+      from: chatter41@northwind.example
+      snippet: Irrelevant office chatter 41.
+  - id: bb-bg-42
+    at: "2026-04-01T13:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-42
+      subject: "Thread chatter #42"
+      from: chatter42@northwind.example
+      snippet: Irrelevant office chatter 42.
+  - id: bb-bg-43
+    at: "2026-04-01T13:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-43
+      subject: "Thread chatter #43"
+      from: chatter43@northwind.example
+      snippet: Irrelevant office chatter 43.
+  - id: bb-bg-44
+    at: "2026-04-01T13:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-44
+      subject: "Thread chatter #44"
+      from: chatter44@northwind.example
+      snippet: Irrelevant office chatter 44.
+  - id: bb-bg-45
+    at: "2026-04-01T13:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-45
+      subject: "Thread chatter #45"
+      from: chatter45@northwind.example
+      snippet: Irrelevant office chatter 45.
+  - id: bb-bg-46
+    at: "2026-04-01T13:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-46
+      subject: "Thread chatter #46"
+      from: chatter46@northwind.example
+      snippet: Irrelevant office chatter 46.
+  - id: bb-bg-47
+    at: "2026-04-01T13:35:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-47
+      subject: "Thread chatter #47"
+      from: chatter47@northwind.example
+      snippet: Irrelevant office chatter 47.
+  - id: bb-bg-48
+    at: "2026-04-01T13:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-48
+      subject: "Thread chatter #48"
+      from: chatter48@northwind.example
+      snippet: Irrelevant office chatter 48.
+  - id: bb-bg-49
+    at: "2026-04-01T13:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-49
+      subject: "Thread chatter #49"
+      from: chatter49@northwind.example
+      snippet: Irrelevant office chatter 49.
+  - id: bb-bg-50
+    at: "2026-04-01T14:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-bg-50
+      subject: "Thread chatter #50"
+      from: chatter50@northwind.example
+      snippet: Irrelevant office chatter 50.

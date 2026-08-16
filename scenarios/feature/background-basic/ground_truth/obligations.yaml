@@ -1,0 +1,7 @@
+obligations:
+  - id: obligation_lease_renewal
+    description: Sign lease renewal paperwork before Friday
+    importance: critical
+    created_at: "2026-04-01T10:00:00Z"
+    due_at: "2026-04-04T17:00:00Z"
+    evidence_ids: [mail-critical-lease, rem-lease-friday]

@@ -87,7 +87,15 @@ def test_report_json_markdown_schema_snapshot(tmp_path: Path) -> None:
         "environment",
         "privacy_policy_version",
     }
-    assert set(metrics) == {"attention", "privacy", "memory", "retrieval", "cost"}
+    assert set(metrics) == {
+        "attention",
+        "privacy",
+        "memory",
+        "retrieval",
+        "cost",
+        "scale",
+    }
+    assert "attention_compression_ratio" in metrics["scale"]
     for key in (
         "critical_recall",
         "precision",

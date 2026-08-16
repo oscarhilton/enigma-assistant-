@@ -99,6 +99,17 @@ class EvaluationObservations(BaseModel):
     prompt_versions: dict[str, str] = Field(default_factory=dict)
     privacy_policy_version: str = "v1"
     git_commit: str | None = None
+    # Optional D08e scale / fingerprint context (Demo Mode only).
+    corpus_fingerprint: dict[str, Any] | None = None
+    message_count: int | None = None
+    background_count: int | None = None
+    noise_count: int | None = None
+    background_false_alerts: int = 0
+    noise_false_alerts: int = 0
+    remote_calls: int = 0
+    index_size_bytes: int | None = None
+    ingest_time_ms: float | None = None
+    retrieval_latency_ms: float | None = None
 
     @field_validator("evaluated_at", mode="before")
     @classmethod

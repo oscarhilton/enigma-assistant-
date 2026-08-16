@@ -38,13 +38,13 @@
 
 ### Amendment — noise / scale metrics (plan §85)
 
-- [ ] Background suppression rate
-- [ ] Background false alerts / 1k messages
-- [ ] Attention compression ratio
-- [ ] Storyline recall under noise (A/B)
+- [x] Background suppression rate
+- [x] Background false alerts / 1k messages
+- [x] Attention compression ratio
+- [x] Storyline recall under noise (A/B) — D08c + D08e displacement / noise arm
 - [ ] Retrieval pollution / canonical evidence recall@K
-- [ ] Remote calls + cost per 1k inbound signals
-- [ ] Corpus fingerprint on reports
+- [x] Remote calls + cost per 1k inbound signals
+- [x] Corpus fingerprint on reports
 
 ## Test plan
 

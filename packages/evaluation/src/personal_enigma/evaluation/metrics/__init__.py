@@ -6,7 +6,16 @@ from personal_enigma.evaluation.metrics import (
     memory,
     privacy,
     retrieval,
+    scale,
     suppression,
 )
 
-__all__ = ["attention", "cost", "memory", "privacy", "retrieval", "suppression"]
+__all__ = [
+    "attention",
+    "cost",
+    "memory",
+    "privacy",
+    "retrieval",
+    "scale",
+    "suppression",
+]

@@ -1,24 +1,47 @@
-# Alex v1 background email density (D08c).
+# Alex v1 background email density (D08c / D08e).
 #
 # Simulation / evaluator metadata only — never sent to Enigma as labels.
 #
-# Profiles:
-#   demo      — small CI / interactive count (this default)
-#   canonical — documented ~5k background messages (D08e; requires full corpus)
-#   feature   — no background
-#   stress    — large developer budgets (not for public Demo)
+# Profiles (message budgets):
+#   feature   — 0 background / 0 noise (surgical tests)
+#   demo      — small CI / interactive slice (default; keep PR CI fast)
+#   canonical — documented ~5k background + ~1.5k noise (D08e; full corpus offline)
+#   stress    — 10k / 25k documented for manual runs only (never normal CI)
 #
 # Default `profile: demo` keeps PR CI fast. Canonical 5k is declared under
-# `profiles.canonical` for documentation and future scale runs — do not enable
-# it in CI until FinePersonas (or an equivalent) is available offline.
+# `profiles.canonical` for documentation and nightly scale runs — do not enable
+# it in CI until FinePersonas (or expand-to offline replay) is available without
+# downloading the 115k HF snapshot in PR CI.
 #
 # Specs live only under `profiles.*` (no duplicated top-level `email:`).
+# Noise stream budgets are documented; GeneratedNoiseStream wiring is D08d.
 
 profile: demo
 
 notes: >
   Story creates meaning. Corpus creates noise. Background traffic is
-  finepersonas-mini for CI; production-scale canonical targets ~5000 messages.
+  finepersonas-mini for CI; production-scale canonical targets ~5000 background
+  messages plus ~1500 noise. Stress profiles (10k / 25k) are manual only.
+
+# Documented budgets for scale curves (may exceed CI fixture size). Soft-dep D08d.
+documented_targets:
+  feature:
+    background_messages: 0
+    noise_messages: 0
+  demo:
+    background_messages: 1000
+    noise_messages: 250
+    ci_background_messages: 8
+    note: "CI loads message_count=8 from profiles.demo; documented target ~1k"
+  canonical:
+    background_messages: 5000
+    noise_messages: 1500
+    note: "Phase 2.5 benchmark — nightly/manual; not PR CI default"
+  stress:
+    background_messages: 25000
+    noise_messages: 5000
+    stretch_background_messages: 10000
+    note: "manual / nightly only — never PR CI"
 
 profiles:
   feature:
@@ -38,14 +61,14 @@ profiles:
           signal_class: background
           expected_attention: false
 
-  # Documented Phase-2 benchmark budget (~5k). Not loaded by default in CI.
+  # Documented Phase-2 benchmark budget (~5k bg + ~1.5k noise). Not loaded by
+  # default in CI. Mini fixture cannot satisfy 5000 messages without expand-to;
+  # nightly/manual runs use offline expand or a pinned HF revision.
   canonical:
     email:
       - id: ordinary-correspondence
         corpus: finepersonas-mini
         seed: alex-v1-email-background-v1
-        # Target for full FinePersonas-backed runs (D08e). Mini fixture cannot
-        # satisfy 5000 messages; keep conversation_count tiny until then.
         message_count: 5000
         conversation_count: 2
         date_range:
@@ -55,13 +78,14 @@ profiles:
           signal_class: background
           expected_attention: false
 
+  # Manual stress only — stretch 10k + stress 25k. Never enable in PR CI.
   stress:
     email:
       - id: ordinary-correspondence
         corpus: finepersonas-mini
         seed: alex-v1-email-background-stress-v1
+        message_count: 25000
         conversation_count: 3
-        message_count: 16
         date_range:
           start: 2026-01-05
           end: 2026-01-25
