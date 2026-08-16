@@ -495,10 +495,16 @@ version = "0.1.0"
 source = { editable = "packages/evaluation" }
 dependencies = [
     { name = "personal-enigma-domain" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "personal-enigma-domain", editable = "packages/domain" }]
+requires-dist = [
+    { name = "personal-enigma-domain", editable = "packages/domain" },
+    { name = "pydantic", specifier = ">=2.10.0" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
+]
 
 [[package]]
 name = "personal-enigma-fixtures"

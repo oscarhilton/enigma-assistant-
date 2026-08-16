@@ -1,10 +1,12 @@
 [project]
 name = "personal-enigma-evaluation"
 version = "0.1.0"
-description = "Demo Mode evaluation runner and metric placeholders"
+description = "Demo Mode evaluation runner, ground truth, and metric placeholders"
 requires-python = ">=3.12"
 dependencies = [
   "personal-enigma-domain",
+  "pydantic>=2.10.0",
+  "pyyaml>=6.0.0",
 ]
 
 [build-system]
