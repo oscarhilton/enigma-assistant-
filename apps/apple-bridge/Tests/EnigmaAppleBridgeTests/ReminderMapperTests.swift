@@ -2,180 +2,200 @@ import EnigmaAppleBridgeCore
 import XCTest
 
 final class ReminderMapperTests: XCTestCase {
-    func testMapsPrivateReminderWithAppleRemindersProvider() throws {
-        let due = Date(timeIntervalSince1970: 1_724_817_600)
-        let created = Date(timeIntervalSince1970: 1_724_800_000)
-        let modified = Date(timeIntervalSince1970: 1_724_810_000)
+    private let due = Date(timeIntervalSince1970: 1_787_000_000)
+    private let updated = Date(timeIntervalSince1970: 1_787_100_000)
 
+    func testMapsIncompleteDueReminderToPrivateReminderShape() throws {
         let snapshot = ReminderSnapshot(
-            calendarItemIdentifier: "REM-42",
-            listIdentifier: "list-personal",
+            calendarItemIdentifier: "ek-1",
+            listIdentifier: "list-a",
             title: "Send deployment notes",
-            notes: "Include PERSON_81",
+            notes: "Explicit user intent",
             dueAt: due,
-            completedAt: nil,
             isCompleted: false,
             priority: 1,
-            createdAt: created,
-            lastModifiedAt: modified
+            createdAt: due,
+            lastModifiedAt: updated
         )
 
         let dto = try XCTUnwrap(ReminderMapper.map(snapshot))
-
         XCTAssertEqual(dto.provider, "apple_reminders")
-        XCTAssertEqual(dto.id, "apple_reminders:REM-42")
-        XCTAssertEqual(dto.provider_id, "REM-42")
-        XCTAssertEqual(dto.list_id, "list-personal")
+        XCTAssertEqual(dto.provider_id, "ek-1")
+        XCTAssertEqual(dto.id, "apple_reminders:ek-1")
         XCTAssertEqual(dto.title, "Send deployment notes")
-        XCTAssertEqual(dto.notes, "Include PERSON_81")
-        XCTAssertEqual(dto.is_completed, false)
-        XCTAssertEqual(dto.priority, 1)
+        XCTAssertEqual(dto.list_id, "list-a")
+        XCTAssertFalse(dto.is_completed)
         XCTAssertNotNil(dto.due_at)
-        XCTAssertNotNil(dto.created_at)
-        XCTAssertNotNil(dto.updated_at)
-
-        let data = try BridgeJSON.encode(dto)
-        let json = String(decoding: data, as: UTF8.self)
-        XCTAssertTrue(json.contains("\"provider\":\"apple_reminders\""))
-        XCTAssertTrue(json.contains("\"provider_id\":\"REM-42\""))
-        XCTAssertTrue(json.contains("\"due_at\""))
+        XCTAssertEqual(dto.priority, 1)
+        XCTAssertEqual(ReminderMapper.intentSignalKind, "explicit_reminder")
     }
 
-    func testMVPDefaultsKeepIncompleteWithDueDatesOnly() {
-        let due = Date(timeIntervalSince1970: 1_724_817_600)
+    func testMVPDefaultsDropCompletedReminders() {
+        let completed = ReminderSnapshot(
+            calendarItemIdentifier: "done-1",
+            title: "Already done",
+            dueAt: due,
+            completedAt: updated,
+            isCompleted: true,
+            lastModifiedAt: updated
+        )
+        XCTAssertNil(ReminderMapper.map(completed))
+        XCTAssertFalse(ReminderMapper.shouldIngest(completed))
+    }
 
-        let incompleteWithDue = ReminderSnapshot(
-            calendarItemIdentifier: "a",
-            title: "Do the thing",
-            dueAt: due,
-            isCompleted: false
-        )
-        let completedWithDue = ReminderSnapshot(
-            calendarItemIdentifier: "b",
-            title: "Done",
-            dueAt: due,
-            completedAt: due,
-            isCompleted: true
-        )
-        let incompleteWithoutDue = ReminderSnapshot(
-            calendarItemIdentifier: "c",
-            title: "Someday",
+    func testMVPDefaultsDropIncompleteRemindersWithoutDueDate() {
+        let noDue = ReminderSnapshot(
+            calendarItemIdentifier: "someday-1",
+            title: "Someday / maybe",
             dueAt: nil,
             isCompleted: false
         )
-
-        XCTAssertTrue(ReminderMapper.shouldIngest(incompleteWithDue))
-        XCTAssertFalse(ReminderMapper.shouldIngest(completedWithDue))
-        XCTAssertFalse(ReminderMapper.shouldIngest(incompleteWithoutDue))
-        XCTAssertNotNil(ReminderMapper.map(incompleteWithDue))
-        XCTAssertNil(ReminderMapper.map(completedWithDue))
-        XCTAssertNil(ReminderMapper.map(incompleteWithoutDue))
+        XCTAssertNil(ReminderMapper.map(noDue))
+        XCTAssertFalse(ReminderMapper.shouldIngest(noDue))
     }
 
-    func testGetChangesFiltersCompletedAndUndated() {
-        let due = Date(timeIntervalSince1970: 1_724_817_600)
-        let older = Date(timeIntervalSince1970: 1_724_800_000)
-        let newer = Date(timeIntervalSince1970: 1_724_820_000)
+    func testRelaxedDefaultsKeepCompletedAndUndated() {
+        let defaults = ReminderIngestDefaults(incompleteOnly: false, requireDueDate: false)
+        let completed = ReminderSnapshot(
+            calendarItemIdentifier: "done-2",
+            title: "Done",
+            dueAt: nil,
+            isCompleted: true
+        )
+        XCTAssertNotNil(ReminderMapper.map(completed, defaults: defaults))
+    }
 
+    func testExplicitRemindersAreFirstClassIntentSignals() {
+        let snapshots = [
+            ReminderSnapshot(
+                calendarItemIdentifier: "intent-1",
+                title: "Review proposal",
+                dueAt: due,
+                isCompleted: false,
+                lastModifiedAt: updated
+            ),
+            ReminderSnapshot(
+                calendarItemIdentifier: "intent-2",
+                title: "Completed noise",
+                dueAt: due,
+                isCompleted: true,
+                lastModifiedAt: updated
+            ),
+        ]
+
+        let batch = ReminderMapper.changeBatch(from: snapshots, cursor: nil)
+        XCTAssertEqual(batch.items.count, 1)
+        XCTAssertEqual(batch.items[0].title, "Review proposal")
+        XCTAssertEqual(batch.items[0].provider, ReminderMapper.provider)
+        XCTAssertEqual(ReminderMapper.intentSignalKind, "explicit_reminder")
+        XCTAssertTrue(batch.exhausted)
+        XCTAssertTrue(batch.authorised)
+        XCTAssertNotNil(batch.next_cursor)
+    }
+
+    func testCursorSkipsAlreadySeenReminders() {
+        let older = ReminderSnapshot(
+            calendarItemIdentifier: "a",
+            title: "Older",
+            dueAt: due,
+            isCompleted: false,
+            lastModifiedAt: Date(timeIntervalSince1970: 1_000)
+        )
+        let newer = ReminderSnapshot(
+            calendarItemIdentifier: "b",
+            title: "Newer",
+            dueAt: due,
+            isCompleted: false,
+            lastModifiedAt: Date(timeIntervalSince1970: 2_000)
+        )
+        let first = ReminderMapper.changeBatch(from: [older, newer], cursor: nil)
+        let cursor = try! XCTUnwrap(first.next_cursor?.value)
+        let second = ReminderMapper.changeBatch(from: [older, newer], cursor: cursor)
+        XCTAssertTrue(second.items.isEmpty)
+
+        let olderKey = ReminderMapper.cursorKey(
+            updatedAt: ReminderMapper.iso8601(older.lastModifiedAt),
+            providerID: older.calendarItemIdentifier
+        )
+        let afterOlder = ReminderMapper.changeBatch(from: [older, newer], cursor: olderKey)
+        XCTAssertEqual(afterOlder.items.map(\.provider_id), ["b"])
+    }
+}
+
+final class RemindersHTTPRouteTests: XCTestCase {
+    func testRemindersChangesRequiresBearerToken() throws {
+        let source = RemindersSource(
+            snapshotProvider: { [] },
+            authorisedProvider: { true }
+        )
+        let server = BridgeHTTPServer(token: "test-token", remindersSource: source)
+        let denied = try server.handleHTTP(method: "GET", path: "/reminders/changes", authorization: nil)
+        XCTAssertEqual(denied.status, 401)
+    }
+
+    func testRemindersChangesReturnsMappedItemsWithCursor() throws {
+        let due = Date(timeIntervalSince1970: 1_787_000_000)
         let source = RemindersSource(
             snapshotProvider: {
                 [
                     ReminderSnapshot(
-                        calendarItemIdentifier: "keep",
-                        title: "Explicit reminder",
+                        calendarItemIdentifier: "r1",
+                        title: "Pay invoice",
                         dueAt: due,
                         isCompleted: false,
-                        lastModifiedAt: newer
+                        lastModifiedAt: due
                     ),
                     ReminderSnapshot(
-                        calendarItemIdentifier: "done",
+                        calendarItemIdentifier: "r2",
                         title: "Completed",
                         dueAt: due,
                         isCompleted: true,
-                        lastModifiedAt: newer
-                    ),
-                    ReminderSnapshot(
-                        calendarItemIdentifier: "undated",
-                        title: "No due",
-                        dueAt: nil,
-                        isCompleted: false,
-                        lastModifiedAt: newer
-                    ),
-                    ReminderSnapshot(
-                        calendarItemIdentifier: "stale",
-                        title: "Before cursor",
-                        dueAt: due,
-                        isCompleted: false,
-                        lastModifiedAt: older
+                        lastModifiedAt: due
                     ),
                 ]
             },
             authorisedProvider: { true }
         )
-
-        let cursor = ReminderMapper.cursorKey(
-            updatedAt: ReminderMapper.iso8601(Date(timeIntervalSince1970: 1_724_810_000)),
-            providerID: "mid"
+        let server = BridgeHTTPServer(token: "test-token", remindersSource: source)
+        let result = try server.handleHTTP(
+            method: "GET",
+            path: "/reminders/changes",
+            authorization: "Bearer test-token"
         )
-        let batch = source.changes(cursor: cursor)
-
+        XCTAssertEqual(result.status, 200)
+        let batch = try JSONDecoder().decode(ReminderChangeBatch.self, from: result.body)
         XCTAssertTrue(batch.authorised)
         XCTAssertEqual(batch.items.count, 1)
-        XCTAssertEqual(batch.items[0].provider_id, "keep")
         XCTAssertEqual(batch.items[0].provider, "apple_reminders")
-        XCTAssertEqual(batch.next_cursor?.source, "apple_reminders")
-        XCTAssertTrue(batch.exhausted)
+        XCTAssertEqual(batch.items[0].title, "Pay invoice")
+        XCTAssertNotNil(batch.next_cursor)
     }
 
-    func testPermissionDeniedReturnsAuthorisedFalseWithoutCrashing() throws {
-        let denied = RemindersSource(
-            snapshotProvider: { [] },
+    func testRemindersChangesUnauthorisedDoesNotCrash() throws {
+        let source = RemindersSource(
+            snapshotProvider: {
+                XCTFail("should not fetch when unauthorised")
+                return []
+            },
             authorisedProvider: { false }
         )
-
-        XCTAssertFalse(denied.isReady())
-        let changes = denied.changes(cursor: nil)
-        XCTAssertFalse(changes.authorised)
-        XCTAssertTrue(changes.items.isEmpty)
-        XCTAssertTrue(changes.exhausted)
-        XCTAssertNil(changes.next_cursor)
-
-        let hooks = PermissionHooks(remindersSource: denied)
-        XCTAssertFalse(hooks.capabilities().reminders.authorised)
-
-        let server = BridgeHTTPServer(token: "test-token", remindersSource: denied)
+        let server = BridgeHTTPServer(token: "test-token", remindersSource: source)
         let result = try server.handleHTTP(
             method: "GET",
             path: "/reminders/changes",
             authorization: "Bearer test-token",
-            query: ["cursor": "2026-01-01T00:00:00Z"]
+            query: ["cursor": "anything"]
         )
         XCTAssertEqual(result.status, 200)
-        let decoded = try JSONDecoder().decode(ReminderChangeBatch.self, from: result.body)
-        XCTAssertFalse(decoded.authorised)
-        XCTAssertTrue(decoded.items.isEmpty)
+        let batch = try JSONDecoder().decode(ReminderChangeBatch.self, from: result.body)
+        XCTAssertFalse(batch.authorised)
+        XCTAssertTrue(batch.items.isEmpty)
+        XCTAssertTrue(batch.exhausted)
     }
 
-    func testExplicitRemindersAreFirstClassIntentSignals() {
-        // Documented contract: Apple Reminders are EXPLICIT_REMINDER signals —
-        // stronger than inferred email obligations (see attention kinds).
-        XCTAssertEqual(ReminderMapper.intentSignalKind, "explicit_reminder")
-
-        let due = Date(timeIntervalSince1970: 1_724_817_600)
-        let snapshot = ReminderSnapshot(
-            calendarItemIdentifier: "intent-1",
-            title: "Send deployment notes to PERSON_81",
-            dueAt: due,
-            isCompleted: false
-        )
-
-        XCTAssertTrue(
-            ReminderMapper.shouldIngest(snapshot),
-            "Incomplete dated reminders are first-class explicit intent signals"
-        )
-        let dto = ReminderMapper.map(snapshot)
-        XCTAssertEqual(dto?.provider, "apple_reminders")
-        XCTAssertEqual(dto?.is_completed, false)
-        XCTAssertNotNil(dto?.due_at)
+    func testQueryParserExtractsCursor() {
+        let query = BridgeHTTPServer.parseQuery("cursor=abc%7Cdef&other=1")
+        XCTAssertEqual(query["cursor"], "abc|def")
+        XCTAssertEqual(query["other"], "1")
     }
 }

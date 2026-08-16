@@ -265,7 +265,7 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         return response
     }
 
-    static func parseQuery(_ raw: String?) -> [String: String] {
+    public static func parseQuery(_ raw: String?) -> [String: String] {
         guard let raw, !raw.isEmpty else { return [:] }
         var result: [String: String] = [:]
         for pair in raw.split(separator: "&") {
