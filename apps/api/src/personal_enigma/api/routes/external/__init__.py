@@ -97,8 +97,11 @@ def _assert_item_sanitised(item: SanitisedAttentionItem) -> None:
 
 
 def install_external_routes(app: FastAPI) -> None:
+<<<<<<< HEAD
     from personal_enigma.api.routes.external.chat import install_chat_routes
 
+=======
+>>>>>>> origin/main
     @app.get("/external/capabilities", response_model=CapabilityStatus)
     def external_capabilities(
         authorization: str | None = Header(default=None),
@@ -125,5 +128,8 @@ def install_external_routes(app: FastAPI) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="PrivatePerson records are not exposed on the external API",
         )
+<<<<<<< HEAD
 
     install_chat_routes(app)
+=======
+>>>>>>> origin/main
