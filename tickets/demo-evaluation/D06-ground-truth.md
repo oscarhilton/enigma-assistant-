@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` (PR pending) |
+| Status | `done` (PR #31) |
 | Branch | `ticket/D06-ground-truth` |
 | Domain | `demo-evaluation` |
 
