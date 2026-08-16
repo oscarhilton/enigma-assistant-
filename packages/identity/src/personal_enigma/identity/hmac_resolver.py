@@ -27,8 +27,15 @@ class HmacEntityResolver:
     pseudonym.
     """
 
-    def __init__(self, key: bytes | str = b"enigma-identity-hmac-key") -> None:
-        self._key = key.encode("utf-8") if isinstance(key, str) else key
+    def __init__(self, key: bytes | str) -> None:
+        if isinstance(key, str):
+            if not key:
+                raise ValueError("HmacEntityResolver key must be non-empty")
+            self._key = key.encode("utf-8")
+        else:
+            if not key:
+                raise ValueError("HmacEntityResolver key must be non-empty")
+            self._key = key
         self._anchor_to_entity: dict[str, str] = {}
         self._entity_canonical: dict[str, str] = {}
 
