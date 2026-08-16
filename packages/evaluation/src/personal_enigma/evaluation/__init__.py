@@ -4,6 +4,11 @@ Ground-truth APIs are developer-only. Never import them into Enigma reasoning,
 attention, memory, or the external sanitised surface.
 """
 
+from personal_enigma.evaluation.ab_eval import (
+    StorylineRecallAB,
+    compare_storyline_ab,
+    storyline_recall_under_noise,
+)
 from personal_enigma.evaluation.adversarial import (
     ADVERSARIAL_PACK_IDS,
     AdversarialPackReport,
@@ -18,6 +23,7 @@ from personal_enigma.evaluation.ground_truth import (
     MissedObligation,
     ObligationTruth,
     ScenarioSignalClass,
+    SignalTruth,
     detect_missed_obligations,
     load_ground_truth,
 )
@@ -46,9 +52,13 @@ __all__ = [
     "ReplayMismatchPolicy",
     "ReplayPaygTransport",
     "ScenarioSignalClass",
+    "SignalTruth",
+    "StorylineRecallAB",
+    "compare_storyline_ab",
     "default_replay_fixture_path",
     "detect_missed_obligations",
     "load_ground_truth",
     "load_recording_store",
     "run_adversarial_pack",
+    "storyline_recall_under_noise",
 ]

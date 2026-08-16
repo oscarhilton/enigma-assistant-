@@ -55,10 +55,10 @@ Do **not** invent a top-level D13 for background corpus. Extend D03–D12 accept
 | D07 | Evaluation runner + metrics (+ suppression / compression) | `done` | [D07](../../tickets/demo-evaluation/D07-evaluation-runner.md) |
 | D08 | Alex v1 canonical synthetic life | `done` | [D08](../../tickets/demo-scenario/D08-canonical-alex.md) |
 | D08a | Canonical Alex story spine | `done` | [D08a](../../tickets/demo-scenario/D08a-canonical-spine.md) |
-| D08b | Background corpus pipeline | scaffolding | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) |
-| D08c | Background integration (canonical + corpus) | `todo` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
-| D08d | Noise layer | `todo` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
-| D08e | Canonical scale profile | `todo` | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) |
+| D08b | Background corpus pipeline | `done` | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) |
+| D08c | Background integration (canonical + corpus) | `done` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
+| D08d | Noise layer (machine sludge) | `todo` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
+| D08e | Canonical scale profile (curves) | `todo` | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) |
 | D09 | Adversarial / privacy scenario pack | `done` | [D09](../../tickets/demo-scenario/D09-adversarial.md) |
 | D10 | Demo UI + explainability | `done` | [D10](../../tickets/demo-ui/D10-demo-ui.md) |
 | D11 | Provider recording + deterministic replay | `done` | [D11](../../tickets/demo-evaluation/D11-replay-provider.md) |
@@ -111,3 +111,7 @@ adversarial  UI     replay
 - Keep `scenarios/alex-v1/` mostly empty until D08; use tiny `scenarios/feature/*` packs for D03–D07.
 - D08 consumes D01–D07 — it is not “invent a life and patch the platform.”
 - Background corpus: **Story creates meaning. Corpus creates noise.** Public Demo only `SYNTHETIC_CONFIRMED` ([ADR-007](../adr/007-demo-corpus-provenance.md)).
+- Prefer architecture freeze at **`f404597`** unless D08c exposes a structural failure; favour evaluation depth over cleverness.
+- **D08c** is the first scientific gate (A/B spine vs background + artefacts). **D08d** = machine noise / quiet-day. **D08e** = scale curves to ~5k.
+- Hold F-* tickets until D08c is green; then claim in the order documented in [tickets/README.md](../../tickets/README.md).
+- **Phase 2.5 exit** (then Shadow Mode): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).

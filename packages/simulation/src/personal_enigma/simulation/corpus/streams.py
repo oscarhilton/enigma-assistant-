@@ -62,5 +62,11 @@ def merge_stream_events(streams: Sequence[MailStream]) -> list[ScenarioEvent]:
 
 def strip_evaluator_keys(payload: dict[str, Any]) -> dict[str, Any]:
     """Ensure evaluator-only keys never leak into source payloads."""
-    forbidden = {"signal_class", "expected_attention", "scenario_source", "is_important"}
+    forbidden = {
+        "signal_class",
+        "source_class",
+        "expected_attention",
+        "scenario_source",
+        "is_important",
+    }
     return {k: v for k, v in payload.items() if k not in forbidden}

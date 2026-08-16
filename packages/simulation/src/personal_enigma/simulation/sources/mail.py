@@ -13,6 +13,7 @@ from typing import Any
 from personal_enigma.domain import PrivateMessage, PrivatePersonRef
 from personal_enigma.ingestion.protocol import ChangeBatch, SyncCursor
 from personal_enigma.simulation.corpus.streams import (
+    CanonicalScenarioStream,
     MailStream,
     merge_stream_events,
     strip_evaluator_keys,
@@ -107,6 +108,34 @@ class SyntheticMailSource:
             )
         else:
             self._events = []
+
+    @classmethod
+    def for_scenario(
+        cls,
+        package: ScenarioPackage,
+        *,
+        profile: str | None = "demo",
+        include_background: bool = True,
+        until: datetime | None = None,
+        background_stream: MailStream | None = None,
+    ) -> SyntheticMailSource:
+        """Merge canonical scenario mail with optional background chronologically.
+
+        Background ``signal_class`` / ``source_class`` never appear on emitted
+        messages — only ordinary mail fields reach Enigma.
+        """
+        streams: list[MailStream] = [CanonicalScenarioStream(events=package, until=until)]
+        if include_background:
+            if background_stream is not None:
+                streams.append(background_stream)
+            else:
+                from personal_enigma.simulation.corpus.background import (
+                    build_background_stream,
+                )
+
+                built = build_background_stream(package, profile=profile)  # type: ignore[arg-type]
+                streams.append(built.stream)
+        return cls(streams=streams, until=until)
 
     async def get_changes(self, cursor: SyncCursor | None) -> ChangeBatch:
         items = [

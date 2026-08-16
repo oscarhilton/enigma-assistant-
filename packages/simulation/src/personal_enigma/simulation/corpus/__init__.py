@@ -1,4 +1,4 @@
-"""Background email corpus plumbing for Demo Mode (D08b scaffold).
+"""Background email corpus plumbing for Demo Mode (D08b).
 
 Governing rule: Story creates meaning. Corpus creates noise.
 See ``docs/architecture/demo-corpus.md`` and ADR-007.
@@ -6,13 +6,35 @@ See ``docs/architecture/demo-corpus.md`` and ADR-007.
 
 from __future__ import annotations
 
-from personal_enigma.simulation.corpus.cache import CorpusCache, default_cache_root
+from personal_enigma.simulation.corpus.background import (
+    CANONICAL_BACKGROUND_MESSAGE_TARGET,
+    DEMO_BACKGROUND_MESSAGE_TARGET,
+    BackgroundBuildResult,
+    BackgroundConfig,
+    BackgroundSignalTruth,
+    build_background_stream,
+    canonical_contact_emails,
+    load_background_config,
+    load_scenario_background,
+)
+from personal_enigma.simulation.corpus.cache import (
+    CorpusCache,
+    DerivedCorpusCache,
+    default_cache_root,
+    default_derived_root,
+)
+from personal_enigma.simulation.corpus.expand import expand_conversations
 from personal_enigma.simulation.corpus.manifest import CorpusManifest, load_manifest
 from personal_enigma.simulation.corpus.models import (
     CorpusConversation,
     CorpusMessage,
     CorpusMetadata,
     CorpusProvenance,
+)
+from personal_enigma.simulation.corpus.pipeline import (
+    CorpusBuildResult,
+    build_demo_safe_corpus,
+    collect_conversations,
 )
 from personal_enigma.simulation.corpus.protocol import CorpusAdapter
 from personal_enigma.simulation.corpus.registry import CorpusRegistry, default_registry
@@ -22,7 +44,11 @@ from personal_enigma.simulation.corpus.safety import (
 )
 from personal_enigma.simulation.corpus.sanitise import (
     GENERATION_METADATA_KEYS,
+    SANITISER_VERSION,
+    SanitiseResult,
     sanitise_conversation,
+    sanitise_conversation_detailed,
+    sanitise_raw_record,
 )
 from personal_enigma.simulation.corpus.selectors import select_conversations
 from personal_enigma.simulation.corpus.streams import (
@@ -32,13 +58,23 @@ from personal_enigma.simulation.corpus.streams import (
     MailStream,
     merge_stream_events,
 )
-from personal_enigma.simulation.corpus.timeline import place_conversation_on_timeline
+from personal_enigma.simulation.corpus.timeline import (
+    place_conversation_on_timeline,
+    place_conversations_on_timeline,
+)
 
 __all__ = [
+    "CANONICAL_BACKGROUND_MESSAGE_TARGET",
+    "DEMO_BACKGROUND_MESSAGE_TARGET",
     "GENERATION_METADATA_KEYS",
+    "SANITISER_VERSION",
+    "BackgroundBuildResult",
+    "BackgroundConfig",
+    "BackgroundSignalTruth",
     "CanonicalScenarioStream",
     "CorpusAdapter",
     "CorpusBackgroundStream",
+    "CorpusBuildResult",
     "CorpusCache",
     "CorpusConversation",
     "CorpusManifest",
@@ -46,15 +82,28 @@ __all__ = [
     "CorpusMetadata",
     "CorpusProvenance",
     "CorpusRegistry",
+    "DerivedCorpusCache",
     "GeneratedNoiseStream",
     "MailStream",
     "PublicDemoCorpusError",
+    "SanitiseResult",
     "assert_public_demo_allowed",
+    "build_background_stream",
+    "build_demo_safe_corpus",
+    "canonical_contact_emails",
+    "collect_conversations",
     "default_cache_root",
+    "default_derived_root",
     "default_registry",
+    "expand_conversations",
+    "load_background_config",
     "load_manifest",
+    "load_scenario_background",
     "merge_stream_events",
     "place_conversation_on_timeline",
+    "place_conversations_on_timeline",
     "sanitise_conversation",
+    "sanitise_conversation_detailed",
+    "sanitise_raw_record",
     "select_conversations",
 ]

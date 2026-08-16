@@ -248,6 +248,27 @@ class MemoryCheckpoint(BaseModel):
         return self
 
 
+class SignalTruth(BaseModel):
+    """Per-evidence evaluator metadata (never fed to Enigma ingest)."""
+
+    evidence_id: str
+    signal_class: ScenarioSignalClass = ScenarioSignalClass.BACKGROUND
+    expected_attention: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_keys(cls, data: Any) -> Any:
+        if not isinstance(data, Mapping):
+            return data
+        payload = dict(data)
+        if "evidence_id" not in payload:
+            for alt in ("id", "event_id", "message_id"):
+                if alt in payload:
+                    payload["evidence_id"] = payload.pop(alt)
+                    break
+        return payload
+
+
 class GroundTruthCorpus(BaseModel):
     """Merged ground truth for one scenario package."""
 
@@ -255,6 +276,7 @@ class GroundTruthCorpus(BaseModel):
     commitments: list[CommitmentTruth] = Field(default_factory=list)
     attention_windows: list[AttentionWindow] = Field(default_factory=list)
     memory_checkpoints: list[MemoryCheckpoint] = Field(default_factory=list)
+    signals: list[SignalTruth] = Field(default_factory=list)
     source_paths: list[str] = Field(default_factory=list)
 
     def obligation_by_id(self, obligation_id: str) -> ObligationTruth | None:
@@ -268,6 +290,9 @@ class GroundTruthCorpus(BaseModel):
             if window.obligation_id == obligation_id:
                 return window
         return None
+
+    def signals_for_class(self, signal_class: ScenarioSignalClass) -> list[SignalTruth]:
+        return [s for s in self.signals if s.signal_class == signal_class]
 
 
 class MissedObligation(BaseModel):
@@ -310,6 +335,7 @@ def _append_validated(
     commitments: Any = None,
     attention_windows: Any = None,
     memory_checkpoints: Any = None,
+    signals: Any = None,
 ) -> None:
     errors: list[str] = []
     try:
@@ -321,6 +347,8 @@ def _append_validated(
             corpus.attention_windows.append(AttentionWindow.model_validate(item))
         for item in _as_mapping_list(memory_checkpoints):
             corpus.memory_checkpoints.append(MemoryCheckpoint.model_validate(item))
+        for item in _as_mapping_list(signals):
+            corpus.signals.append(SignalTruth.model_validate(item))
     except GroundTruthValidationError as exc:
         errors.extend(f"{path}: {msg}" for msg in exc.errors)
     except ValidationError as exc:
@@ -366,6 +394,7 @@ def _parse_and_merge(corpus: GroundTruthCorpus, data: dict[str, Any], *, path: s
         "commitments",
         "attention_windows",
         "memory_checkpoints",
+        "signals",
     }
     if section_keys.intersection(data):
         _append_validated(
@@ -375,7 +404,15 @@ def _parse_and_merge(corpus: GroundTruthCorpus, data: dict[str, Any], *, path: s
             commitments=data.get("commitments"),
             attention_windows=data.get("attention_windows"),
             memory_checkpoints=data.get("memory_checkpoints"),
+            signals=data.get("signals"),
         )
+        corpus.source_paths.append(path)
+        return
+
+    if {"signal_class", "expected_attention"}.issubset(data) or (
+        "signal_class" in data and ("evidence_id" in data or "id" in data)
+    ):
+        _append_validated(corpus, path=path, signals=data)
         corpus.source_paths.append(path)
         return
 
@@ -406,7 +443,7 @@ def _parse_and_merge(corpus: GroundTruthCorpus, data: dict[str, Any], *, path: s
         [
             f"{path}: unrecognised ground-truth document; "
             "expected obligations/commitments/attention_windows/"
-            "memory_checkpoints or a kind discriminator"
+            "memory_checkpoints/signals or a kind discriminator"
         ]
     )
 
@@ -597,6 +634,8 @@ __all__ = [
     "MissedObligation",
     "ObligationStatus",
     "ObligationTruth",
+    "ScenarioSignalClass",
+    "SignalTruth",
     "StatusPoint",
     "detect_missed_obligations",
     "load_ground_truth",

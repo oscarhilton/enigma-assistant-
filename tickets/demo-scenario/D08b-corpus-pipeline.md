@@ -2,10 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` (scaffolding only — foundation PR) |
-| Branch | `ticket/corpus-background-integration` |
+| Status | `done` |
+| Branch | `ticket/D08b-corpus-pipeline` |
 | Domain | `demo-scenario` / `demo-simulation` |
 | Parent | [D08](./D08-canonical-alex.md) |
+| PR | [#44](https://github.com/oscarhilton/enigma-assistant-/pull/44) |
 
 ## Package boundary (hard)
 
@@ -38,20 +39,22 @@
 ## Acceptance criteria
 
 - [x] CorpusAdapter protocol + CorpusMessage/CorpusConversation (no Enigma obligation fields)
-- [x] Manifest, registry, cache, selectors, sanitise, timeline, safety stubs
-- [x] finepersonas / mbox / maildir adapter stubs
-- [x] Mini fixture `finepersonas-mini` (2–3 original synthetic conversations; not HF download)
-- [x] CLI stubs: `enigma corpus list|fetch|inspect|sanitise|sample|verify`
-- [x] Hard invariants tested: public demo rejects non-`SYNTHETIC_CONFIRMED`; seeded selection deterministic; generation metadata stripped; `signal_class` never on mail items
-- [ ] Full FinePersonas fetch + 100-conversation deterministic replay (follow-up; not PR CI)
+- [x] Manifest, registry, cache, selectors, sanitise, timeline, safety
+- [x] Working FinePersonas adapter against `finepersonas-mini` (+ optional HF fetch behind `--force-network`, never CI)
+- [x] Full sanitiser: identity/domain/URL rewrite, secret scan, provenance `SYNTHETIC_CONFIRMED`
+- [x] Seeded conversation selection (not message sampling); deterministic timeline placement
+- [x] Derived cache under configurable root (`ENIGMA_CORPUS_DERIVED` / `--derived-root`)
+- [x] CLI: `enigma corpus list|fetch|inspect|sanitise|sample|verify|build` functional on mini fixture
+- [x] 100 imported conversations replay deterministically via mini expansion (no 115k download in CI)
 
 ## Test plan
 
 - Unit tests on mini fixture only (no network corpus download)
 - Public-demo provenance gate
-- Sanitiser drops generation metadata keys
+- Sanitiser drops generation metadata keys; rejects secret-like strings; rewrites domains/URLs
+- 100-conversation expand → build → SyntheticMailSource fingerprint equality
 
 ## Privacy constraints
 
 - Public Demo: `SYNTHETIC_CONFIRMED` only ([ADR-007](../../docs/adr/007-demo-corpus-provenance.md))
-- Cache under `~/.cache/enigma/datasets/`; never share Private roots
+- Cache under `~/.cache/enigma/datasets/` (override via `ENIGMA_CORPUS_CACHE`); derived under `datasets-derived/`; never share Private roots
