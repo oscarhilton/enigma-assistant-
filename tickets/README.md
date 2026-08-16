@@ -51,7 +51,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-scenario | [demo-scenario/](./demo-scenario/) | `scenarios/**` |
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
-| demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome |
+| demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md)) |
 
 ## Ingestion file ownership (do not cross)
 

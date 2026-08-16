@@ -61,6 +61,105 @@ _STUB_ATTENTION_BASE: list[dict[str, Any]] = [
 
 _DEFAULT_SUPPRESSED = 47
 
+# Developer-only suppression inspector filters (engine reasons — not ScenarioSignalClass).
+_SUPPRESSION_FILTERS: tuple[str, ...] = (
+    "background",
+    "newsletter",
+    "spam",
+    "low_priority",
+    "duplicate",
+    "resolved",
+)
+
+# Representative suppressed samples for /demo/suppressed (totals stay on status).
+_STUB_SUPPRESSED: list[dict[str, Any]] = [
+    {
+        "id": "sup-newsletter-1",
+        "message": "Newsletter announcing a local weekend event",
+        "suppression_reason": "newsletter",
+        "classification": "informational",
+        "open_obligation": "none",
+        "relationship_relevance": "low",
+        "deadline": "none",
+        "decision": "suppressed",
+        "why_not": [
+            "Message is a bulk newsletter with no personal ask.",
+            "No open obligation or deadline tied to USER.",
+            "Relationship relevance is low relative to active commitments.",
+        ],
+    },
+    {
+        "id": "sup-background-1",
+        "message": "Colleague thread about an office coffee machine",
+        "suppression_reason": "background",
+        "classification": "social chatter",
+        "open_obligation": "none",
+        "relationship_relevance": "low",
+        "deadline": "none",
+        "decision": "suppressed",
+        "why_not": [
+            "Conversation is ambient workplace chatter.",
+            "USER is not asked to act.",
+        ],
+    },
+    {
+        "id": "sup-spam-1",
+        "message": "Urgent prize claim with suspicious tracking links",
+        "suppression_reason": "spam",
+        "classification": "unsolicited",
+        "open_obligation": "none",
+        "relationship_relevance": "none",
+        "deadline": "none",
+        "decision": "suppressed",
+        "why_not": [
+            "Matches unsolicited / phishing-like patterns.",
+            "No trusted sender relationship.",
+        ],
+    },
+    {
+        "id": "sup-low-1",
+        "message": "Optional survey about desk chair preferences",
+        "suppression_reason": "low_priority",
+        "classification": "optional admin",
+        "open_obligation": "none",
+        "relationship_relevance": "low",
+        "deadline": "none",
+        "decision": "suppressed",
+        "why_not": [
+            "Ask is optional and low impact.",
+            "Does not outrank open commitments in the attention window.",
+        ],
+    },
+    {
+        "id": "sup-dup-1",
+        "message": "Calendar reminder duplicate of Friday Atlas review",
+        "suppression_reason": "duplicate",
+        "classification": "already covered",
+        "open_obligation": "covered by att-atlas-review",
+        "relationship_relevance": "medium",
+        "deadline": "Friday",
+        "decision": "suppressed",
+        "why_not": [
+            "Evidence already supports a surfaced attention item.",
+            "Surfacing again would create a duplicate alert.",
+        ],
+    },
+    {
+        "id": "sup-resolved-1",
+        "message": "Earlier scheduling ping that Maya already closed",
+        "suppression_reason": "resolved",
+        "classification": "closed loop",
+        "open_obligation": "none",
+        "relationship_relevance": "medium",
+        "deadline": "none",
+        "decision": "suppressed",
+        "why_not": [
+            "Thread shows completion evidence.",
+            "No residual action for USER.",
+        ],
+    },
+]
+
 _STUB_MEMORY: list[dict[str, Any]] = [
     {
         "id": "mem-person-a",
@@ -187,9 +286,14 @@ class DemoSession:
     def status_payload(self) -> dict[str, Any]:
         mode = environment_mode_from_env()
         active = mode is EnvironmentMode.DEMO
-        # D10-style compression stats on status (surfaced vs suppressed / noise).
+        # D10 compression stats: signals considered vs surfaced / suppressed.
         surfaced = len(self.attention_items) if active else None
         suppressed = self.suppressed_count if active else None
+        considered = (
+            surfaced + suppressed
+            if surfaced is not None and suppressed is not None
+            else None
+        )
         return {
             "active": active,
             "mode": mode.value,
@@ -200,6 +304,7 @@ class DemoSession:
             "paused": self.clock.paused if active else None,
             "storage_root": str(self.env.storage_root) if active else None,
             "ground_truth_visible": False,
+            "signals_considered": considered,
             "surfaced_count": surfaced,
             "suppressed_count": suppressed,
             "noise_suppressed_count": suppressed,
@@ -211,11 +316,36 @@ class DemoSession:
             key=lambda row: float(row["attention_rank"]),
             reverse=True,
         )
+        surfaced = len(items)
         return {
             "items": items,
             "simulated_time": self.clock.now().isoformat(),
-            "surfaced_count": len(items),
+            "signals_considered": surfaced + self.suppressed_count,
+            "surfaced_count": surfaced,
             "suppressed_count": self.suppressed_count,
+        }
+
+    def suppressed_payload(self, reason: str | None = None) -> dict[str, Any]:
+        """Developer-only inspector — never expose ScenarioSignalClass labels."""
+        items = list(_STUB_SUPPRESSED)
+        if reason:
+            if reason not in _SUPPRESSION_FILTERS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unknown suppression filter {reason!r}",
+                )
+            items = [row for row in items if row["suppression_reason"] == reason]
+        surfaced = len(self.attention_items)
+        return {
+            "developer_only": True,
+            "filters": list(_SUPPRESSION_FILTERS),
+            "filter": reason,
+            "signals_considered": surfaced + self.suppressed_count,
+            "surfaced_count": surfaced,
+            "suppressed_count": self.suppressed_count,
+            "sample_count": len(items),
+            "items": items,
+            "simulated_time": self.clock.now().isoformat(),
         }
 
     def apply_attention_action(
@@ -379,6 +509,13 @@ def install_demo_routes(application: FastAPI) -> None:
             "categories": categories,
             "items": list(_STUB_MEMORY),
         }
+
+    @application.get("/demo/suppressed")
+    def demo_suppressed(reason: str | None = None) -> dict[str, Any]:
+        """Developer-only suppression inspector (not product chrome)."""
+        _require_demo()
+        with _lock_for(application):
+            return _session_for(application).suppressed_payload(reason)
 
     @application.get("/demo/why/{item_id}")
     def demo_why(item_id: str) -> dict[str, Any]:

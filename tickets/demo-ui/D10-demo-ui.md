@@ -38,9 +38,11 @@
 
 ### Amendment — compression / suppression (plan §85)
 
-- [ ] Dashboard stats: signals considered vs surfaced / suppressed
-- [ ] Developer-only suppression inspector (`/demo/suppressed`)
-- [ ] Why-not-surfaced view for false-positive debugging (developer mode)
+- [x] Dashboard stats: signals considered vs surfaced / suppressed
+- [x] Developer-only suppression inspector (`/demo/suppressed`)
+- [x] Why-not-surfaced view for false-positive debugging (developer mode)
+
+Follow-up branch: `ticket/demo-suppression-ui`
 
 ## Test plan
 

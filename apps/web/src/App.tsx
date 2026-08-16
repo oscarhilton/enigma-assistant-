@@ -6,6 +6,7 @@ import {
   DemoModeBanner,
   DemoOverviewPage,
   DemoPrivacyPage,
+  DemoSuppressedPage,
   DemoWhyPage,
 } from "./demo";
 import { ChatPage } from "./pages/ChatPage";
@@ -46,6 +47,7 @@ export function App() {
             <Route path="attention" element={<DemoAttentionPage />} />
             <Route path="memory" element={<DemoMemoryPage />} />
             <Route path="privacy" element={<DemoPrivacyPage />} />
+            <Route path="suppressed" element={<DemoSuppressedPage />} />
             <Route path="why/:itemId" element={<DemoWhyPage />} />
           </Route>
         </Routes>

@@ -8,10 +8,14 @@ import {
   FIXTURE_ATTENTION,
   FIXTURE_ATTENTION_PAYLOAD,
   FIXTURE_MEMORY,
+  FIXTURE_STATUS,
+  FIXTURE_SUPPRESSED,
   FIXTURE_WHY,
 } from "./fixtures";
 import { MemoryBrowser } from "./MemoryBrowser";
 import { PrivacyInspectorHook } from "./PrivacyInspectorHook";
+import { SimulationStatus } from "./SimulationStatus";
+import { SuppressionInspector } from "./SuppressionInspector";
 import { WhyView } from "./WhyView";
 
 describe("Demo chrome stubs", () => {
@@ -52,7 +56,7 @@ describe("Demo chrome stubs", () => {
     expect(screen.queryByText(/score\s+0\./i)).not.toBeInTheDocument();
     expect(screen.getByText("4/5")).toBeInTheDocument();
     expect(screen.getByText("0.91")).toBeInTheDocument();
-    expect(screen.getByText(/2 items surfaced · 47 signals suppressed/i)).toBeInTheDocument();
+    expect(screen.getByText(/49 signals considered · 2 surfaced · 47 suppressed/i)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /why\?/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^done$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /^snooze$/i }).length).toBeGreaterThan(0);
@@ -142,5 +146,60 @@ describe("Demo chrome stubs", () => {
       "href",
       "/privacy",
     );
+  });
+
+  it("SimulationStatus shows signals considered vs surfaced from /demo/status", () => {
+    render(<SimulationStatus status={FIXTURE_STATUS} />);
+    expect(screen.getByTestId("status-compression")).toHaveTextContent(
+      /49 considered · 2 surfaced · 47 suppressed/,
+    );
+    expect(screen.queryByText(/signal_class/i)).not.toBeInTheDocument();
+  });
+
+  it("SuppressionInspector lists why-not samples without ground-truth labels", async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("reason=spam")) {
+        return Response.json({
+          ...FIXTURE_SUPPRESSED,
+          filter: "spam",
+          items: FIXTURE_SUPPRESSED.items.filter((item) => item.suppression_reason === "spam"),
+          sample_count: 1,
+        });
+      }
+      return Response.json(FIXTURE_SUPPRESSED);
+    }) as unknown as typeof fetch;
+
+    render(<SuppressionInspector fetchImpl={fetchImpl} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Newsletter announcing/i)).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("suppression-compression")).toHaveTextContent(
+      /49 signals considered · 2 surfaced · 47 suppressed/,
+    );
+    expect(screen.getByText(/Developer-only/i)).toBeInTheDocument();
+    expect(screen.queryByText(/signal_class/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ground.?truth/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^spam$/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Urgent prize claim/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Newsletter announcing/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /why was this not surfaced/i }));
+    expect(screen.getByTestId("why-not-sup-spam-1")).toHaveTextContent(/unsolicited/i);
+  });
+
+  it("mounts /demo/suppressed without adding it to the main demo nav", () => {
+    render(
+      <MemoryRouter initialEntries={["/demo/suppressed"]}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { name: /suppressed signals/i })).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: /^demo$/i });
+    expect(nav).not.toHaveTextContent(/suppressed/i);
   });
 });

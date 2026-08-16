@@ -38,11 +38,17 @@ export function SimulationStatus({ status }: SimulationStatusProps) {
           <dt>Ground truth in UI</dt>
           <dd>{status.ground_truth_visible ? "visible" : "hidden"}</dd>
         </div>
-        {status.surfaced_count != null || status.suppressed_count != null ? (
+        {status.signals_considered != null ||
+        status.surfaced_count != null ||
+        status.suppressed_count != null ? (
           <div>
             <dt>Attention compression</dt>
             <dd data-testid="status-compression">
-              {status.surfaced_count ?? "—"} surfaced ·{" "}
+              {status.signals_considered ??
+                (status.surfaced_count != null && status.suppressed_count != null
+                  ? status.surfaced_count + status.suppressed_count
+                  : "—")}{" "}
+              considered · {status.surfaced_count ?? "—"} surfaced ·{" "}
               {status.suppressed_count ?? "—"} suppressed
             </dd>
           </div>

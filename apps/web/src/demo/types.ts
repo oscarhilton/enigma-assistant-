@@ -23,6 +23,8 @@ export type DemoStatus = {
   paused: boolean | null;
   storage_root: string | null;
   ground_truth_visible: boolean;
+  /** Total signals in the attention window (surfaced + suppressed). */
+  signals_considered?: number | null;
   /** Attention items currently on the surface (D08e / D10 stats). */
   surfaced_count?: number | null;
   /** Signals considered but not surfaced (background + noise). */
@@ -59,6 +61,7 @@ export type DemoAttentionItem = {
 export type DemoAttentionPayload = {
   items: DemoAttentionItem[];
   simulated_time?: string | null;
+  signals_considered?: number;
   surfaced_count?: number;
   suppressed_count?: number;
 };
@@ -91,6 +94,40 @@ export type DemoAttentionActionResult = {
   item_id: string;
   action: "done" | "snooze";
   items: DemoAttentionItem[];
+  signals_considered?: number;
   surfaced_count?: number;
   suppressed_count?: number;
+};
+
+/** Engine suppression reason for the developer inspector (not ScenarioSignalClass). */
+export type DemoSuppressionReason =
+  | "background"
+  | "newsletter"
+  | "spam"
+  | "low_priority"
+  | "duplicate"
+  | "resolved";
+
+export type DemoSuppressedItem = {
+  id: string;
+  message: string;
+  suppression_reason: DemoSuppressionReason;
+  classification: string;
+  open_obligation: string;
+  relationship_relevance: string;
+  deadline: string;
+  decision: "suppressed";
+  why_not: string[];
+};
+
+export type DemoSuppressedPayload = {
+  developer_only: boolean;
+  filters: DemoSuppressionReason[];
+  filter: DemoSuppressionReason | null;
+  signals_considered: number;
+  surfaced_count: number;
+  suppressed_count: number;
+  sample_count: number;
+  items: DemoSuppressedItem[];
+  simulated_time?: string | null;
 };

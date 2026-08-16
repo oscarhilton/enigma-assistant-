@@ -6,6 +6,8 @@ import type {
   DemoAttentionPayload,
   DemoMemoryItem,
   DemoStatus,
+  DemoSuppressedPayload,
+  DemoSuppressionReason,
   DemoWhyPayload,
 } from "./types";
 import {
@@ -13,6 +15,7 @@ import {
   FIXTURE_ATTENTION_PAYLOAD,
   FIXTURE_DEMO_STATUS,
   FIXTURE_MEMORY,
+  FIXTURE_SUPPRESSED,
   FIXTURE_WHY_BY_ID,
 } from "./fixtures";
 
@@ -22,6 +25,9 @@ export type {
   DemoAttentionPayload,
   DemoMemoryItem,
   DemoStatus,
+  DemoSuppressedItem,
+  DemoSuppressedPayload,
+  DemoSuppressionReason,
   DemoWhyPayload,
 } from "./types";
 export {
@@ -30,6 +36,7 @@ export {
   FIXTURE_DEMO_STATUS,
   FIXTURE_MEMORY,
   FIXTURE_STATUS,
+  FIXTURE_SUPPRESSED,
   FIXTURE_WHY,
   FIXTURE_WHY_BY_ID,
 } from "./fixtures";
@@ -142,14 +149,36 @@ export async function postDemoAttentionAction(
     };
   } catch {
     const remaining = FIXTURE_ATTENTION.filter((item) => item.id !== itemId);
+    const suppressed = FIXTURE_ATTENTION_PAYLOAD.suppressed_count ?? 0;
     return {
       ok: true,
       item_id: itemId,
       action,
       items: sortByAttentionRank(remaining),
+      signals_considered: remaining.length + suppressed,
       surfaced_count: remaining.length,
-      suppressed_count: FIXTURE_ATTENTION_PAYLOAD.suppressed_count,
+      suppressed_count: suppressed,
     };
+  }
+}
+
+export async function fetchDemoSuppressed(
+  reason?: DemoSuppressionReason | null,
+  fetchImpl: typeof fetch = fetch,
+): Promise<DemoSuppressedPayload> {
+  try {
+    const params = reason != null ? `?reason=${encodeURIComponent(reason)}` : "";
+    return await readJson<DemoSuppressedPayload>(
+      await fetchImpl(`${API_BASE}/demo/suppressed${params}`),
+    );
+  } catch {
+    const next = structuredClone(FIXTURE_SUPPRESSED);
+    if (reason) {
+      next.filter = reason;
+      next.items = next.items.filter((item) => item.suppression_reason === reason);
+      next.sample_count = next.items.length;
+    }
+    return next;
   }
 }
 

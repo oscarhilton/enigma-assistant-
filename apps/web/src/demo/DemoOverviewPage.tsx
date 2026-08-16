@@ -34,6 +34,9 @@ export function DemoOverviewPage() {
         <li>
           <Link to="/demo/privacy">Privacy inspector hook</Link>
         </li>
+        <li className="demo-dev-link">
+          <Link to="/demo/suppressed">Developer: suppressed signals</Link>
+        </li>
       </ul>
     </section>
   );
