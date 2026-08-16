@@ -1,45 +1,51 @@
-# D11 — Replay provider
+# D11 — Provider recording + deterministic replay
 
 | Field | Value |
 | --- | --- |
 | Status | `todo` |
 | Branch | `ticket/D11-replay-provider` |
 | Domain | `demo-evaluation` |
+| Baseline | `v0.1.0-mvp` |
 
 ## Package boundary (hard)
 
-- May edit: `packages/reasoning/**` replay/record transports (coordinate if conflicting with live PAYG), `provider-replays/**`, evaluation wiring
-- Must not edit: scenario YAML corpus (D8), web chrome beyond provider-mode selectors (D10)
+- May edit: `packages/evaluation/src/personal_enigma/evaluation/replay/**` (create as needed)
+- May edit: `packages/reasoning/**` only for a replay/fake provider implementing the PAYG interface
+- May edit: recorded fixtures under `scenarios/**/recordings/` or `packages/evaluation/fixtures/replay/`
+- Must not call live OpenAI in default CI
 
 ## Hard depends
 
-- D1
-- M05 reasoning provider abstraction
+- D05
+- D07
 
 ## Soft depends (~)
 
-- D7
+- M05 PAYG interface (already on MVP)
 
 ## Unlocks / enhances
 
-- Offline public demos
-- Cost-free UI tests
+- Deterministic reasoning paths for eval
+- Offline demos without spending tokens
 
 ## Non-goals
 
-- Replacing MockReasoningProvider for unit tests
+- Recording real Private user sessions into the repo
+- Replacing privacy gates
 
 ## Acceptance criteria
 
-- [ ] Record live provider response (transformed prompt, response, tokens, latency, cost)
-- [ ] Replay response deterministically from fixtures
-- [ ] Complete public demo runs without internet access
+- [ ] Record sanitised provider request/response pairs from Demo runs (TransformedContext only)
+- [ ] Replay provider serves recordings by request hash / scenario step
+- [ ] Eval runner can run fully offline with replay
+- [ ] Mismatch behaviour is explicit (fail vs passthrough policy documented)
 
 ## Test plan
 
-- Record → replay golden fixture
-- Assert identical assistant output bytes under REPLAY mode
+- Record → replay → identical eval report for a feature scenario
+- Attempting replay with Private credentials present still does not hit network when replay mode forced
 
 ## Privacy constraints
 
-- Recorded prompts must already be privacy-gated; never record raw PrivatePerson
+- Recordings must never contain PrivatePerson fields or wholesale Notes
+- Only Demo Mode may write recordings by default

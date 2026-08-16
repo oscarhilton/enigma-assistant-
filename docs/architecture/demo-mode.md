@@ -1,8 +1,8 @@
 # Demo Mode (Phase 2)
 
-**Status:** Scaffolded (post-MVP)  
+**Status:** Tickets ready (post-`v0.1.0-mvp`) — implementation starts at D01  
 **Spec:** Enigma Phase 2 — Demo Mode Technical Specification v0.2  
-**Tickets:** [milestone-map.md](./milestone-map.md) (D1–D12)
+**Tickets:** [milestone-map.md](./milestone-map.md) (D01–D12)
 
 ## Executive summary
 
@@ -70,7 +70,7 @@ When Demo Mode is active:
 REAL SOURCE ACCESS = IMPOSSIBLE
 ```
 
-Not merely UI-disabled. `DemoEnvironment` exposes no real credentials (`gmail_credentials = None`, `apple_bridge = None`). Registering or instantiating a real connector while `EnvironmentMode.DEMO` must raise. This is a tested invariant owned by D1 (`packages/simulation`).
+Not merely UI-disabled. `DemoEnvironment` exposes no real credentials (`gmail_credentials = None`, `apple_bridge = None`). Registering or instantiating a real connector while `EnvironmentMode.DEMO` must raise. This is a tested invariant owned by D01 (`packages/simulation`).
 
 ## Environment banner
 
@@ -81,7 +81,7 @@ DEMO MODE — FICTIONAL DATA ONLY
 Scenario: Alex Morgan v1
 ```
 
-API and web stubs ship with D1; full demo chrome is D10.
+API and web stubs ship with D01; full demo chrome is D10.
 
 ## Clock injection
 
@@ -102,4 +102,4 @@ before Enigma is entrusted with a real person's life.
 | `packages/simulation` | Environment, clock stubs, event stubs, synthetic source pins |
 | `packages/evaluation` | Eval runner + metric placeholders |
 | `scenarios/` | Immutable scenario packages (`alex-v1`, …) |
-| `tickets/demo-*` | Phase 2 work units D1–D12 |
+| `tickets/demo-*` | Phase 2 work units D01–D12 |

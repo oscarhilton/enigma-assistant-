@@ -6,9 +6,9 @@ This repository is a **polyglot Turborepo** (TypeScript + Python + Swift) with w
 
 ## Status
 
-**MVP (M00a–M19) is complete** and merged to `main`: private persistence, settings, domain schemas, Apple Bridge (Calendar / Reminders / Contacts / Notes), Gmail & Google Calendar, transformation, privacy invariants, attention, obligations, local embeddings, privacy inspector, sanitised API, and optional ChatGPT reasoning.
+**MVP (M00a–M19) is complete** — immutable baseline tag **`v0.1.0-mvp`** (`6253f96`): private persistence, settings, domain schemas, Apple Bridge (Calendar / Reminders / Contacts / Notes), Gmail & Google Calendar, transformation, privacy invariants, attention, obligations, local embeddings, privacy inspector, sanitised API, and optional ChatGPT reasoning.
 
-**Phase 2 — Demo Mode** is next: run the real pipeline against fictional lives with known ground truth (starting with Alex Morgan / `scenarios/alex-v1/`). Spec: [docs/architecture/demo-mode.md](docs/architecture/demo-mode.md).
+**Phase 2 — Demo Mode** (0 / 12): tickets D01–D12 are written; implementation starts at **D01 Environment separation**. Spec: [docs/architecture/demo-mode.md](docs/architecture/demo-mode.md). Map: [docs/architecture/milestone-map.md](docs/architecture/milestone-map.md).
 
 Governing rule: **select first → transform second → transmit last.** Remote inference is disable-able; Apple ingestion still works.
 

@@ -69,12 +69,13 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 | Ticket | Owned path |
 | --- | --- |
-| D4 | `packages/simulation/src/personal_enigma/simulation/sources/{mail,calendar,reminders,notes,contacts}.py` |
+| D04 | `packages/simulation/src/personal_enigma/simulation/sources/{mail,calendar,reminders,notes,contacts}.py` |
 
 Shared protocol types (`packages/ingestion/.../protocol.py`) are owned by M01-era scaffold; later tickets may only *import* them unless a dedicated ticket claims a protocol change.
 
 Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milestone-map.md).  
-Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).
+Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).  
+MVP baseline tag: `v0.1.0-mvp` (`6253f96`).
 
 ## Ticket template fields
 

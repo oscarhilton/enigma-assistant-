@@ -1,43 +1,51 @@
-# D12 — Product demo scenario
+# D12 — Curated product demo / Phase 2 exit gate
 
 | Field | Value |
 | --- | --- |
 | Status | `todo` |
 | Branch | `ticket/D12-product-demo-scenario` |
 | Domain | `demo-scenario` |
+| Baseline | `v0.1.0-mvp` |
 
 ## Package boundary (hard)
 
-- May edit: curated walkthrough scenario under `scenarios/` (e.g. `scenarios/product-demo-v1/**`) and docs for the 5–10 minute script
-- Soft touch: `apps/web` demo entry presets only if needed
-- Must not edit: full alex-v1 three-month authorship (D8) except referencing checkpoints
+- May edit: a curated walkthrough scenario (e.g. `scenarios/product-demo/**`) and docs under `docs/architecture/` / `docs/demo/`
+- May edit: D10 UI copy/routes for the scripted walkthrough only
+- Must not reopen MVP architecture unless exit-gate metrics reveal a hard failure
 
 ## Hard depends
 
-- D1, D3
+- D07
+- D08
+- D10
 
 ## Soft depends (~)
 
-- D8, D10, D11
+- D09
+- D11
 
 ## Unlocks / enhances
 
-- Sales / onboarding narrative without real accounts
+- Phase 2 exit: credible answer to “does continuity help?”
+- Safe onboarding demo for humans
 
 ## Non-goals
 
-- Replacing the canonical eval corpus (D8)
+- Public launch marketing site
+- Claiming production readiness for real Private lives without explicit sign-off
 
 ## Acceptance criteria
 
-- [ ] Curated 5–10 minute walkthrough demonstrating: initial ignorance → memory formation → cross-source reasoning → attention selection → privacy transformation → automatic resolution
-- [ ] Runs without connecting a real account
+- [ ] Scripted demo path: day-one emptiness → weeks of evidence → attention that reflects open loops
+- [ ] Walkthrough doc: operator steps, expected screens, eval snapshot vs `v0.1.0-mvp` control
+- [ ] Exit-gate checklist: environment separation holds, feature+Alex evals green, adversarial privacy pack green, remote optional
+- [ ] Explicit statement of what Phase 2 proved and what remains out of scope (Mail, Messages, etc.)
 
 ## Test plan
 
-- Scripted batch replay of walkthrough checkpoints
-- Manual checklist in ticket PR description
+- Automated smoke of the product-demo scenario through engine + eval
+- Manual checklist attached to PR
 
 ## Privacy constraints
 
-- Fictional data only; banner required throughout
+- Demo remains structurally unable to reach real sources (D01 invariant still tested)
