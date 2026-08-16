@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M19-chatgpt-integration` |
 | Domain | `api-surface` |
 
@@ -33,10 +33,10 @@
 
 ## Acceptance criteria
 
-- [ ] ChatGPT (or OpenAI API) used only with sanitised transformed context
-- [ ] User can run Enigma with remote inference disabled; Apple sources still work
-- [ ] Privacy inspector preview before send (default on)
-- [ ] Clear labelling of what left the machine
+- [x] ChatGPT (or OpenAI API) used only with sanitised transformed context
+- [x] User can run Enigma with remote inference disabled; Apple sources still work
+- [x] Privacy inspector preview before send (default on)
+- [x] Clear labelling of what left the machine
 
 ## Test plan
 

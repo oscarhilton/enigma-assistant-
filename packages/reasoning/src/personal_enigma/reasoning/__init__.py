@@ -9,6 +9,7 @@ from personal_enigma.reasoning.logging import (
     UsageRecord,
 )
 from personal_enigma.reasoning.modes import ReasoningMode
+from personal_enigma.reasoning.openai_transport import OpenAIChatTransport
 from personal_enigma.reasoning.protocol import (
     PaygReasoningClient,
     PaygTransport,
@@ -20,6 +21,7 @@ __all__ = [
     "InMemoryUsageLogger",
     "MockPaygTransport",
     "NullPaygTransport",
+    "OpenAIChatTransport",
     "NullUsageLogger",
     "PaygReasoningClient",
     "PaygReasoningService",
