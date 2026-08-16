@@ -1,4 +1,4 @@
-import type { DemoStatus } from "./api";
+import type { DemoStatus } from "./types";
 
 export type SimulationStatusProps = {
   status: DemoStatus | null;
@@ -17,7 +17,7 @@ export function SimulationStatus({ status }: SimulationStatusProps) {
   return (
     <section className="demo-panel" aria-label="Simulation status">
       <h2>Simulation status</h2>
-      <dl className="demo-status">
+      <dl className="demo-status-grid">
         <div>
           <dt>Mode</dt>
           <dd>{status.mode}</dd>

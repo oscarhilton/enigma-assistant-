@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { DemoStatus } from "./api";
 import { advanceDemoDay, advanceDemoStep, fetchDemoStatus, setDemoSpeed } from "./api";
+import type { DemoStatus } from "./types";
 
 const SPEEDS = [0, 1, 10, 100] as const;
 
@@ -73,7 +73,7 @@ export function TimelineControls({
           <button
             key={speed}
             type="button"
-            aria-pressed={status?.speed === speed}
+            className={status?.speed === speed ? "active" : undefined}
             disabled={busy}
             onClick={() => void apply(() => setDemoSpeed(speed, fetchImpl))}
           >

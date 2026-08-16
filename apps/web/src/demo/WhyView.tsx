@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import type { DemoWhyPayload } from "./api";
 import { fetchDemoWhy } from "./api";
+import type { DemoWhyPayload } from "./types";
 
 export type WhyViewProps = {
   itemId?: string;
@@ -10,7 +10,7 @@ export type WhyViewProps = {
 
 export function WhyView({ itemId: itemIdProp, fetchImpl = fetch }: WhyViewProps) {
   const params = useParams();
-  const itemId = itemIdProp ?? params.itemId ?? "att-atlas-review";
+  const itemId = itemIdProp ?? params.itemId ?? "att-review-atlas";
   const [payload, setPayload] = useState<DemoWhyPayload | null>(null);
 
   useEffect(() => {

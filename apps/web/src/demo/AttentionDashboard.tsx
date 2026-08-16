@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchDemoAttention } from "./api";
-import type { DemoAttentionItem } from "./api";
+import type { DemoAttentionItem } from "./types";
 
 export type AttentionDashboardProps = {
   fetchImpl?: typeof fetch;
