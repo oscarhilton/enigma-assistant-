@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/D09-adversarial` |
 | Domain | `demo-scenario` |
 

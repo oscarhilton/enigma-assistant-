@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` (PR pending) |
 | Branch | `ticket/D04-synthetic-adapters` |
 | Domain | `demo-simulation` |
 | Baseline | `v0.1.0-mvp` |
@@ -42,11 +42,11 @@
 
 ## Acceptance criteria
 
-- [ ] Each adapter implements the same `DataSource` (or equivalent) contract as production sources
-- [ ] Outputs are canonical private records only: messages, calendar events, reminders, notes, persons
-- [ ] Adapters stop at the **source layer** — Enigma discovers obligations downstream
-- [ ] Wired only through `DemoEnvironment` source registry (never registered on Private)
-- [ ] Module paths are not under `personal_enigma.ingestion.sources`
+- [x] Each adapter implements the same `DataSource` (or equivalent) contract as production sources
+- [x] Outputs are canonical private records only: messages, calendar events, reminders, notes, persons
+- [x] Adapters stop at the **source layer** — Enigma discovers obligations downstream
+- [x] Wired only through `DemoEnvironment` source registry (never registered on Private)
+- [x] Module paths are not under `personal_enigma.ingestion.sources`
 
 ## Test plan
 

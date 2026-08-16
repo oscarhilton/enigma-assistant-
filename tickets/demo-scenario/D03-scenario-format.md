@@ -48,11 +48,13 @@
   - `quiet-day`
 - [x] `scenarios/alex-v1/` may keep placeholder dirs only until D08
 - [x] Events describe **source-layer** evidence (mail/calendar/reminder/note/contact) — not pre-baked `Obligation` objects
+- [x] Seeded RNG primitives (`scenario_rng` / `package.rng()`); alex-v1 loads deterministically
 
 ## Test plan
 
 - Load + validate each feature scenario
 - Invalid fixtures fail validation tests
+- alex-v1 double-load is byte-stable; seeded RNG repeats
 
 ## Privacy constraints
 
