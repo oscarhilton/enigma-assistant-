@@ -53,6 +53,21 @@ Forbidden payload keys: `obligation(s)`, `commitment(s)`, `attention_item(s)`.
 Tiny packs under `scenarios/feature/` (≈5–10 events) exercise single behaviours
 for CI. Canonical life corpus is `scenarios/alex-v1/` (D08).
 
+## Adversarial packs (D09)
+
+Executable attack corpora live under `scenarios/feature/adversarial/`:
+
+| Pack | Focus |
+| --- | --- |
+| `prompt-injection` | Jailbreak / override language in mail & notes |
+| `secrets` | Synthetic API keys & passwords in private content |
+| `re-identification` | Distinctive PII that must become `PERSON_*` only |
+| `malicious-provider` | PAYG stub that hunts bait tokens |
+| `provider-failure` | Transport errors must not fall back to private data |
+
+Alex cross-links (forbidden-token lists) are under `scenarios/alex-v1/attacks/`.
+Eval harness: `personal_enigma.evaluation.adversarial.run_adversarial_pack`.
+
 ## Loader + seeded RNG
 
 ```python

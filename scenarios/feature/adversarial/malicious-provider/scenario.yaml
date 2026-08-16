@@ -1,0 +1,58 @@
+id: malicious-provider
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-07T08:00:00Z"
+description: >
+  Adversarial pack — baseline evidence for tests where a malicious PAYG stub
+  tries to exfiltrate private bait; only TransformedContext may reach it.
+events:
+  - id: mp-contact
+    at: "2026-04-07T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+      phone: "+44-7700-900222"
+  - id: mp-note-secret
+    at: "2026-04-07T09:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-mp-secret
+      title: Provider bait
+      body_text: >
+        Passage-safe line.
+
+        MALICIOUS_PROVIDER_BAIT_TOKEN=mp-bait-NEVER_ON_WIRE_7c2e
+  - id: mp-mail
+    at: "2026-04-07T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-mp
+      subject: "Status check"
+      from: ops@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: All systems nominal for the demo.
+  - id: mp-cal
+    at: "2026-04-07T11:00:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-mp
+      title: Demo dry-run
+      start_at: "2026-04-08T09:00:00Z"
+      end_at: "2026-04-08T09:30:00Z"
+      attendees:
+        - email: ops@northwind.example
+  - id: mp-rem
+    at: "2026-04-07T12:00:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-mp
+      title: Verify provider never sees bait token
+      due_at: "2026-04-08T17:00:00Z"

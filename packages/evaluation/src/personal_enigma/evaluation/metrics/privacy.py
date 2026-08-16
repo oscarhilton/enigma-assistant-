@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -117,8 +118,21 @@ def evaluate_privacy_probes(probes: list[PrivacyProbe]) -> PrivacyMetrics:
     )
 
 
+
+
+def count_forbidden_token_leaks(blob: str, forbidden_tokens: Sequence[str]) -> int:
+    """Count how many known attack tokens appear in a remote payload blob."""
+    return sum(1 for token in forbidden_tokens if token and token in blob)
+
+
+def zero_leak(*, leak_count: int) -> bool:
+    """True when the adversarial / privacy scan found no leaks."""
+    return leak_count == 0
+
 __all__ = [
     "PrivacyMetrics",
+    "count_forbidden_token_leaks",
     "direct_identifier_leaks",
     "evaluate_privacy_probes",
+    "zero_leak",
 ]

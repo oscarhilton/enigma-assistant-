@@ -4,6 +4,11 @@ Ground-truth APIs are developer-only. Never import them into Enigma reasoning,
 attention, memory, or the external sanitised surface.
 """
 
+from personal_enigma.evaluation.adversarial import (
+    ADVERSARIAL_PACK_IDS,
+    AdversarialPackReport,
+    run_adversarial_pack,
+)
 from personal_enigma.evaluation.ground_truth import (
     AttentionWindow,
     CommitmentTruth,
@@ -19,6 +24,8 @@ from personal_enigma.evaluation.observations import EvaluationObservations
 from personal_enigma.evaluation.runner import EvaluationReport, EvaluationRunner
 
 __all__ = [
+    "ADVERSARIAL_PACK_IDS",
+    "AdversarialPackReport",
     "AttentionWindow",
     "CommitmentTruth",
     "EvaluationObservations",
@@ -31,4 +38,5 @@ __all__ = [
     "ObligationTruth",
     "detect_missed_obligations",
     "load_ground_truth",
+    "run_adversarial_pack",
 ]
