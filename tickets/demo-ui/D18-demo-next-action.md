@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (PR #72) |
 | Branch | `ticket/demo-next-action` |
 | Domain | `demo-ui` |
 
