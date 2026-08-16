@@ -6,7 +6,7 @@
 | Branch | `ticket/D08e-canonical-scale` |
 | Domain | `demo-scenario` / `demo-evaluation` |
 | Parent | [D08](./D08-canonical-alex.md) |
-| PR | _(pending)_ |
+| PR | [#48](https://github.com/oscarhilton/enigma-assistant-/pull/48) |
 
 ## Question
 
