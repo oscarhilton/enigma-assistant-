@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` |
+| Status | `done` (merged #67) |
 | Branch | `ticket/demo-reset` |
 | Domain | `demo-ui` |
 
