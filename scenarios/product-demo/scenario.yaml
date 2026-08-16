@@ -1,0 +1,10 @@
+id: product-demo
+version: "0.1.0"
+status: product-demo
+seed: product-demo
+timezone: Europe/London
+start_at: "2026-01-05T08:00:00Z"
+description: >
+  Curated Phase 2 product walkthrough: day-one emptiness → weeks of evidence →
+  attention that reflects open loops. Subset narrative derived from Alex Morgan
+  themes; not a full life corpus (see alex-v1).

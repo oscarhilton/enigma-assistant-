@@ -1,0 +1,136 @@
+# Product demo walkthrough timeline — sparse day one, then accumulating loops.
+
+events:
+  - id: pd-day1-contact
+    at: "2026-01-05T08:05:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+
+  - id: pd-day1-cal
+    at: "2026-01-05T08:30:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-standup-day1
+      title: Team standup
+      start_at: "2026-01-05T09:00:00Z"
+      end_at: "2026-01-05T09:15:00Z"
+
+  - id: pd-week1-mail
+    at: "2026-01-05T10:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-maya-q1
+      subject: "Q1 roadmap draft — need your slice by Friday"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please send the product design Q1 priorities before Friday standup.
+
+  - id: pd-week1-rem
+    at: "2026-01-05T10:20:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-q1-roadmap
+      title: Send Q1 design priorities to Maya
+      due_at: "2026-01-09T16:00:00Z"
+      is_completed: false
+
+  - id: pd-week1-note
+    at: "2026-01-05T18:40:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-q1-braindump
+      title: Q1 braindump
+      body_text: Onboarding, tokens, research ops. Checkout still fuzzy.
+
+  - id: pd-week1-done-mail
+    at: "2026-01-09T14:30:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-alex-roadmap
+      subject: "Re: Q1 roadmap draft"
+      to: [maya.chen@northwind.example]
+      snippet: Priorities attached — checkout TBD.
+
+  - id: pd-week1-rem-done
+    at: "2026-01-09T14:35:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-q1-roadmap
+      is_completed: true
+      completed_at: "2026-01-09T14:35:00Z"
+
+  - id: pd-week2-mail
+    at: "2026-01-12T09:40:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-maya-checkout
+      subject: "Checkout — Q1 or park it?"
+      from: maya.chen@northwind.example
+      snippet: Need a recommendation by Wednesday EOD.
+
+  - id: pd-week2-rem
+    at: "2026-01-12T10:00:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-checkout-rec
+      title: Write checkout Q1 recommendation for Maya
+      due_at: "2026-01-14T17:00:00Z"
+
+  - id: pd-week2-send
+    at: "2026-01-14T16:40:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-alex-checkout
+      subject: "Re: Checkout — Q1 or park it?"
+      to: [maya.chen@northwind.example]
+      snippet: Recommend park behind tokens; revisit mid-Q2.
+
+  - id: pd-week2-rem-done
+    at: "2026-01-14T16:45:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-checkout-rec
+      is_completed: true
+
+  - id: pd-week3-mail-sam
+    at: "2026-01-22T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-sam-followup
+      subject: "Did we decide on empty states?"
+      from: sam.okonkwo@northwind.example
+      snippet: Still open after critique?
+
+  - id: pd-week3-rem-open
+    at: "2026-01-22T10:15:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-empty-states
+      title: Reply to Sam on empty-state decision
+      due_at: "2026-01-23T17:00:00Z"
+      is_completed: false
+
+  - id: pd-week3-note-open
+    at: "2026-01-23T18:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-open-loop-sam
+      title: Still owe Sam a reply
+      body_text: Empty states — lean illustrative. Haven't sent yet.
