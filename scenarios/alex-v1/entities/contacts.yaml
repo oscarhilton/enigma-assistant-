@@ -1,0 +1,31 @@
+# Fictional contacts for Alex Morgan (authoritative roster; timeline upserts emit evidence).
+
+contacts:
+  alex:
+    display_name: Alex Morgan
+    email: alex.morgan@northwind.example
+    role: self
+  maya:
+    display_name: Maya Chen
+    email: maya.chen@northwind.example
+    role: manager
+  elena:
+    display_name: Elena Vargas
+    email: elena@example.com
+    role: partner
+  sam:
+    display_name: Sam Okonkwo
+    email: sam.okonkwo@northwind.example
+    role: colleague
+  tom:
+    display_name: Tom Rivera
+    email: tom@example.com
+    role: friend
+  jordan:
+    display_name: Jordan Lee
+    email: jordan.lee@northwind.example
+    role: design-ops
+  finance:
+    display_name: Northwind Finance
+    email: finance@northwind.example
+    role: finance

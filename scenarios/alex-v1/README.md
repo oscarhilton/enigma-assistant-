@@ -2,32 +2,36 @@
 
 Canonical Demo Mode scenario package for **Alex Morgan** (fictional).
 
+## Release
+
+| Field | Value |
+| --- | --- |
+| Version | `0.2.0` |
+| Status | `benchmark` |
+| Span | 3 weeks (2026-01-05 → 2026-01-25) |
+
 ## Immutability
 
-Once this scenario is **released** as a benchmark (evaluation baselines published
-or CI gates pinned to it), treat the package as **immutable**.
+Once released as a benchmark, treat the package as **immutable**.
 
 - Do **not** edit released timeline / ground-truth semantics in place.
-- Ship changes as `alex-v1.1` or `alex-v2` (see Phase 2 scenario versioning).
-- Scaffold / pre-release edits are allowed until D8 marks the corpus released.
+- Ship changes as `alex-v1.1` / bump `version` in `scenario.yaml`.
 
 ## Layout
 
 ```text
 scenario.yaml      Package metadata
 persona.yaml       Declarative fictional persona
-entities/          Contacts, orgs, projects, places (D8)
-timeline/          Time-ordered events (D8)
-content/           Email / notes / attachments bodies (D8)
-ground_truth/      Obligations, commitments, checkpoints (D6/D8)
+entities/          Contacts roster
+timeline/          week-01.yaml … week-03.yaml
+content/           Email / notes bodies
+ground_truth/      Obligations, commitments, windows, checkpoints
 attacks/           Adversarial packs (D9)
 ```
 
-## Ownership
+## Themes covered
 
-| Concern | Ticket |
-| --- | --- |
-| Schema / loader | D3 |
-| Full 3-month corpus | D8 |
-| Ground-truth models | D6 |
-| Attacks | D9 |
+Work planning, personal logistics, project ambiguity (checkout), relationships,
+deadlines, newsletter/promo noise, and cross-source merges (mail+reminder+calendar).
+
+Intentional open loop at end of week 3: Sam empty-state reply (attention eval).

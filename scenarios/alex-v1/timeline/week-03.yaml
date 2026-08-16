@@ -1,0 +1,170 @@
+# Week 3 — 19–25 Jan 2026: token work, stale loop risk, relationship planning.
+
+events:
+  - id: w3-mail-maya-nudge-tokens
+    at: "2026-01-19T09:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-maya-tokens-nudge
+      subject: "Token inventory — still on for Tuesday?"
+      from: maya.chen@northwind.example
+      snippet: Jordan is blocked without your draft.
+
+  - id: w3-cal-token-review
+    at: "2026-01-19T09:30:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-token-review
+      title: Token inventory review
+      start_at: "2026-01-21T14:00:00Z"
+      end_at: "2026-01-21T15:00:00Z"
+
+  - id: w3-mail-elena-weekend
+    at: "2026-01-19T18:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-elena-weekend
+      subject: "Parents visiting Saturday"
+      from: elena@example.com
+      snippet: Can you handle brunch bookings? They're arriving 11:00.
+
+  - id: w3-rem-brunch
+    at: "2026-01-19T18:15:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-brunch-book
+      title: Book Saturday brunch for Elena's parents
+      due_at: "2026-01-22T12:00:00Z"
+
+  - id: w3-cal-brunch
+    at: "2026-01-19T18:20:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-brunch-parents
+      title: Brunch with Elena's parents
+      start_at: "2026-01-24T11:00:00Z"
+      end_at: "2026-01-24T13:00:00Z"
+
+  - id: w3-note-token-wip
+    at: "2026-01-20T20:10:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-token-wip
+      title: Token inventory WIP
+      body_text: >
+        Colour ramp mostly done. Spacing still messy across marketing pages.
+        Need Jordan's Figma link — ambiguous whether I'm blocked.
+
+  - id: w3-mail-jordan-figma
+    at: "2026-01-21T08:45:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-jordan-figma
+      subject: "Re: Token audit kickoff"
+      from: jordan.lee@northwind.example
+      snippet: Figma link inside — sorry for the delay.
+
+  - id: w3-mail-token-send
+    at: "2026-01-21T13:20:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-alex-tokens
+      subject: "Token inventory draft"
+      to: [jordan.lee@northwind.example, maya.chen@northwind.example]
+      snippet: Colour + spacing draft attached; marketing pages still TBD.
+
+  - id: w3-rem-tokens-done
+    at: "2026-01-21T13:25:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-token-audit
+      is_completed: true
+      completed_at: "2026-01-21T13:25:00Z"
+
+  - id: w3-mail-sam-followup
+    at: "2026-01-22T10:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-sam-followup
+      subject: "Did we decide on empty states?"
+      from: sam.okonkwo@northwind.example
+      snippet: You mentioned following up after critique — still open?
+
+  - id: w3-rem-empty-states
+    at: "2026-01-22T10:15:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-empty-states
+      title: Reply to Sam on empty-state decision
+      due_at: "2026-01-23T17:00:00Z"
+      is_completed: false
+
+  - id: w3-rem-brunch-done
+    at: "2026-01-22T11:50:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-brunch-book
+      is_completed: true
+      completed_at: "2026-01-22T11:50:00Z"
+
+  - id: w3-cal-standup-w3
+    at: "2026-01-22T08:30:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-standup-w3
+      title: Team standup
+      start_at: "2026-01-22T09:00:00Z"
+      end_at: "2026-01-22T09:15:00Z"
+
+  - id: w3-mail-noise-linkedin
+    at: "2026-01-23T07:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-noise-linkedin
+      subject: "You appeared in 8 searches"
+      from: updates@linkedin.example
+      snippet: Noise.
+
+  - id: w3-note-open-loop
+    at: "2026-01-23T18:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-open-loop-sam
+      title: Still owe Sam a reply
+      body_text: Empty states — lean toward illustrative, not blank. Haven't sent yet.
+
+  - id: w3-mail-tom-thanks
+    at: "2026-01-25T09:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-tom-thanks
+      subject: "Good session Sunday"
+      from: tom@example.com
+      snippet: Same time next week?
+
+  - id: w3-note-week3
+    at: "2026-01-25T17:30:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-week3-close
+      title: End of week 3
+      body_text: >
+        Tokens shipped. Brunch booked. Sam empty-state reply still open —
+        intentional leftover for attention eval.

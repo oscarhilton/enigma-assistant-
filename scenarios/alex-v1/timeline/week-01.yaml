@@ -1,0 +1,199 @@
+# Week 1 — 5–11 Jan 2026: post-holiday settle, Q1 planning open loops.
+
+events:
+  - id: w1-contact-alex
+    at: "2026-01-05T08:05:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+
+  - id: w1-contact-maya
+    at: "2026-01-05T08:10:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: maya
+      display_name: Maya Chen
+      email: maya.chen@northwind.example
+
+  - id: w1-contact-elena
+    at: "2026-01-05T08:11:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: elena
+      display_name: Elena Vargas
+      email: elena@example.com
+
+  - id: w1-contact-sam
+    at: "2026-01-05T08:12:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: sam
+      display_name: Sam Okonkwo
+      email: sam.okonkwo@northwind.example
+
+  - id: w1-contact-tom
+    at: "2026-01-05T08:13:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      email: tom@example.com
+
+  - id: w1-cal-standup
+    at: "2026-01-05T08:30:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-standup-w1
+      title: Team standup
+      start_at: "2026-01-05T09:00:00Z"
+      end_at: "2026-01-05T09:15:00Z"
+
+  - id: w1-mail-maya-q1
+    at: "2026-01-05T10:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-maya-q1
+      subject: "Q1 roadmap draft — need your slice by Friday"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Please send the product design Q1 priorities before Friday standup.
+    content_ref: content/emails/mail-maya-q1.md
+
+  - id: w1-rem-roadmap
+    at: "2026-01-05T10:20:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-q1-roadmap
+      title: Send Q1 design priorities to Maya
+      due_at: "2026-01-09T16:00:00Z"
+      is_completed: false
+
+  - id: w1-note-braindump
+    at: "2026-01-05T18:40:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-q1-braindump
+      title: Q1 braindump
+      body_text: >
+        Onboarding polish, design system tokens, research ops. Still fuzzy on
+        whether checkout redesign is Q1 or Q2.
+    content_ref: content/notes/note-q1-braindump.md
+
+  - id: w1-mail-newsletter
+    at: "2026-01-06T07:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-noise-designweekly
+      subject: "Design Weekly #401"
+      from: news@designweekly.example
+      snippet: Five links; skim later.
+
+  - id: w1-cal-1on1
+    at: "2026-01-06T09:00:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-1on1-maya
+      title: 1:1 Maya
+      start_at: "2026-01-07T14:00:00Z"
+      end_at: "2026-01-07T14:30:00Z"
+
+  - id: w1-mail-elena-dinner
+    at: "2026-01-06T19:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-elena-dinner
+      subject: "Dinner Thursday?"
+      from: elena@example.com
+      to: [alex.morgan@example.com]
+      snippet: Can we do Thursday 19:30 at home? I'll cook if you grab wine.
+
+  - id: w1-rem-wine
+    at: "2026-01-06T19:25:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-buy-wine
+      title: Buy wine for Thursday dinner
+      due_at: "2026-01-08T17:00:00Z"
+
+  - id: w1-cal-dinner
+    at: "2026-01-06T19:30:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-dinner-elena
+      title: Dinner with Elena
+      start_at: "2026-01-08T19:30:00Z"
+      end_at: "2026-01-08T21:30:00Z"
+
+  - id: w1-mail-sam-critique
+    at: "2026-01-07T11:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-sam-critique
+      subject: "Critique slot Friday?"
+      from: sam.okonkwo@northwind.example
+      snippet: Want to walk the checkout flows Friday afternoon?
+
+  - id: w1-cal-critique
+    at: "2026-01-07T11:20:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-critique-fri
+      title: Design critique — checkout
+      start_at: "2026-01-09T15:00:00Z"
+      end_at: "2026-01-09T16:00:00Z"
+
+  - id: w1-rem-wine-done
+    at: "2026-01-08T17:40:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-buy-wine
+      is_completed: true
+      completed_at: "2026-01-08T17:40:00Z"
+
+  - id: w1-mail-send-roadmap
+    at: "2026-01-09T14:30:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-alex-roadmap
+      subject: "Re: Q1 roadmap draft — need your slice by Friday"
+      to: [maya.chen@northwind.example]
+      snippet: Attached priorities — onboarding, tokens, research ops. Checkout TBD.
+
+  - id: w1-rem-roadmap-done
+    at: "2026-01-09T14:35:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-q1-roadmap
+      title: Send Q1 design priorities to Maya
+      is_completed: true
+      completed_at: "2026-01-09T14:35:00Z"
+
+  - id: w1-note-weekend
+    at: "2026-01-10T18:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-weekend-w1
+      title: Weekend
+      body_text: Quiet weekend. Critique went ok; Maya wants clearer checkout decision.

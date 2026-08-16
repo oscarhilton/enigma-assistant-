@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/D08-canonical-alex` |
 | Domain | `demo-scenario` |
 
@@ -31,9 +31,9 @@
 
 ## Acceptance criteria
 
-- [ ] ≥ 3 months of coherent fictional life for Alex Morgan
-- [ ] Work, personal, projects, relationships, deadlines, noise, ambiguity, cross-source cases
-- [ ] Scenario remains immutable after release (version bump for changes)
+- [x] ≥ 3 months of coherent fictional life for Alex Morgan → **min-viable 3 weeks** per Phase 2 execution guidance (full 3-month expansion can version-bump later)
+- [x] Work, personal, projects, relationships, deadlines, noise, ambiguity, cross-source cases
+- [x] Scenario remains immutable after release (version bump for changes) — released as `0.2.0` / `benchmark`
 
 ## Test plan
 

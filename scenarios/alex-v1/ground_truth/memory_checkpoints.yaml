@@ -1,0 +1,26 @@
+# Memory checkpoints — what Alex should "know" after each week.
+
+memory_checkpoints:
+  - id: checkpoint_week1
+    at: "2026-01-11T20:00:00Z"
+    must_include:
+      - Q1 design priorities sent to Maya
+      - Checkout decision still ambiguous after critique
+    must_not_include:
+      - Token audit complete
+
+  - id: checkpoint_week2
+    at: "2026-01-18T20:00:00Z"
+    must_include:
+      - Checkout parked behind design tokens
+      - Token inventory still open with Jordan
+    must_not_include:
+      - Empty-state reply to Sam completed
+
+  - id: checkpoint_week3
+    at: "2026-01-25T20:00:00Z"
+    must_include:
+      - Token inventory draft sent
+      - Open loop with Sam on empty states
+    must_not_include:
+      - Empty-state reply sent to Sam
