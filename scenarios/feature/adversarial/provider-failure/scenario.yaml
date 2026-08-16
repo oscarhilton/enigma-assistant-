@@ -1,0 +1,54 @@
+id: provider-failure
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-09T08:00:00Z"
+description: >
+  Adversarial pack — provider transport failures must not fall back to sending
+  PrivatePerson fields or wholesale notes.
+events:
+  - id: pf-contact
+    at: "2026-04-09T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+  - id: pf-mail
+    at: "2026-04-09T09:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-pf
+      subject: "Can we slip the deadline?"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Need a decision by EOD if we move the launch.
+  - id: pf-cal
+    at: "2026-04-09T10:00:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-pf
+      title: Launch decision
+      start_at: "2026-04-10T16:00:00Z"
+      end_at: "2026-04-10T16:30:00Z"
+      attendees:
+        - email: maya.chen@northwind.example
+  - id: pf-note
+    at: "2026-04-09T11:00:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-pf
+      title: Decision draft
+      body_text: Prefer keeping the date. Call maya.chen@northwind.example if unsure.
+  - id: pf-rem
+    at: "2026-04-09T12:00:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-pf
+      title: Reply to Maya about deadline
+      due_at: "2026-04-09T17:00:00Z"

@@ -1,0 +1,10 @@
+id: alex-malicious-provider
+kind: malicious-provider
+feature_pack: feature/adversarial/malicious-provider
+forbidden_tokens:
+  - MALICIOUS_PROVIDER_BAIT_TOKEN=mp-bait-NEVER_ON_WIRE_7c2e
+  - mp-bait-NEVER_ON_WIRE_7c2e
+  - Alex Morgan
+  - alex.morgan@northwind.example
+  - "+44-7700-900222"
+description: Malicious PAYG stub may only observe TransformedContext; bait stays private.
