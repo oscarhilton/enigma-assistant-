@@ -73,4 +73,4 @@ Apple Bridge is trusted local software. It does not call an LLM and does not exp
 See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.  
 Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).  
 Background email corpus: [demo-corpus.md](./demo-corpus.md).  
-Phase 3 Shadow Mode: [shadow-mode.md](./shadow-mode.md) · evaluation rubric [shadow-evaluation.md](./shadow-evaluation.md).
+Phase 3 Shadow Mode: [shadow-mode.md](./shadow-mode.md) · evaluation rubric [shadow-evaluation.md](./shadow-evaluation.md) · silence evaluation [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) ([ADR-009](../adr/009-silence-as-prediction.md)) · open loops [open-loop-commitments.md](./open-loop-commitments.md).

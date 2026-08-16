@@ -1,11 +1,13 @@
 # Shadow Mode — unanswered questions (evaluation goals)
 
 **Status:** Evaluation goals for Phase 3 — rubric in [shadow-evaluation.md](./shadow-evaluation.md)  
-**Architecture:** [shadow-mode.md](./shadow-mode.md)  
+**Architecture:** [shadow-mode.md](./shadow-mode.md) · silence [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) ([ADR-009](../adr/009-silence-as-prediction.md))  
 **Prerequisite:** Phase 2.5 PASS (`v0.2.0-demo`) — satisfied; Shadow tickets may proceed.  
-**Scaffold:** S01 `done` (#65) — env/banner/storage refuse. Eval artefacts: SE01–SE03 (soft deps).
+**Scaffold:** S01 `done` (#65) — env/banner/storage refuse. Eval artefacts: SE01–SE03; silence track SE04–SE10 (soft deps).
 
 Demo Mode showed that Enigma works on a coherent fictional life. Shadow Mode asks whether a **real** life behaves like Alex’s synthetic one. Treat these as **evaluation goals** for journals, metrics, and comparison stubs — not as features to re-implement in the S01 scaffold.
+
+**Silence dual:** proving that *not* speaking was correct is as important as proving that surfaces matched actions. See Suppression Accuracy and Silent Miss Rate in [shadow-silence-evaluation.md](./shadow-silence-evaluation.md).
 
 1. **Act-on recognition** — When the user actually acts on something, did Enigma surface it (or would it have)?
 2. **Nearly-forgot** — Does Enigma catch obligations the user almost missed, or only the obvious ones?
@@ -23,5 +25,7 @@ Demo Mode showed that Enigma works on a coherent fictional life. Shadow Mode ask
 | 1, 2, 3, 6 — user actions vs attention | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) |
 | 3 — would-notify waste (suppress audit) | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) |
 | 4, 5, 7 (+ weekly rollup) | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) |
+| Silence / SUPPRESS as prediction (all goals’ dual) | [SE04](../../tickets/shadow/SE04-suppression-decision-log.md)–[SE10](../../tickets/shadow/SE10-counterfactual-ab-harness.md) · [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) |
+| Open-loop due ≠ interrupt | [SE11](../../tickets/shadow/SE11-open-loop-due-resolution.md) · [open-loop-commitments.md](./open-loop-commitments.md) |
 
 Mode order (env → storage → suppress → attention log → comparison stubs → exit): [tickets/shadow/](../../tickets/shadow/) S01–S06. SE* refine measurement artefacts; they must **not** edit `EnvironmentMode` or re-ship the SHADOW MODE banner.
