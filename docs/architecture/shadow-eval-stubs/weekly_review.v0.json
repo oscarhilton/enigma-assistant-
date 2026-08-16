@@ -1,0 +1,22 @@
+{
+  "schema": "shadow.weekly_review/v0",
+  "week_id": "2026-W33",
+  "path_convention": "reviews/YYYY-Www.json under Shadow storage root",
+  "config_snapshot": {
+    "window_hours": 72,
+    "top_k": 5,
+    "lead_time_hours": 24
+  },
+  "rubric_scores": {
+    "act_on_hit": null,
+    "act_on_miss": null,
+    "late_hit": null,
+    "overestimate": null,
+    "near_miss_catch": null,
+    "timing_error_hours": []
+  },
+  "relationship_sample": [],
+  "novel_misses": [],
+  "suppression_summary": { "would_notify_count": 0, "delivered_count": 0 },
+  "privacy_note": "Local Shadow root only; PERSON_* / transformed refs; no wholesale Notes."
+}

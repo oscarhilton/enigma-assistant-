@@ -1,6 +1,7 @@
 # Weekly shadow review — week stub
 
 **Week id:** `2026-W33`  
+**JSON twin:** [weekly_review.v0.json](./weekly_review.v0.json) → `reviews/2026-W33.json` under Shadow root  
 **Generated:** stub (SE03)  
 **Mode:** Shadow (notifications suppressed)
 
