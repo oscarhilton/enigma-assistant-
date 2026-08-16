@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from personal_enigma.api.routes.settings import install_settings_routes
+
 
 def create_app() -> FastAPI:
     application = FastAPI(
@@ -16,6 +18,7 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok", "service": "enigma-core"}
 
+    install_settings_routes(application)
     return application
 
 
