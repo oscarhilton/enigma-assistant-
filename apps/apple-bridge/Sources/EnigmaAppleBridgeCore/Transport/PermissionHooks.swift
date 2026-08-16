@@ -10,18 +10,30 @@ public enum BridgeSourceID: String, Codable, Sendable, CaseIterable {
 }
 
 public struct PermissionHooks: Sendable {
-    public init() {}
+    private let notesSource: NotesSource
 
-    /// Stub permission prompt. Always returns `false` until a source ticket lands.
+    public init(notesSource: NotesSource = NotesSource()) {
+        self.notesSource = notesSource
+    }
+
+    /// Stub permission prompt for non-Notes sources. Notes uses explicit opt-in + automation.
     public func requestAuthorisation(for source: BridgeSourceID) async -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .notes:
+            return await notesSource.requestAuthorisation()
+        case .calendar, .reminders, .contacts:
+            return false
+        }
     }
 
     /// Current authorisation snapshot without prompting.
     public func isAuthorised(_ source: BridgeSourceID) -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .notes:
+            return notesSource.isAuthorised()
+        case .calendar, .reminders, .contacts:
+            return false
+        }
     }
 
     /// Build a capability report that continues even when individual sources are denied.

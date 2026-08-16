@@ -4,22 +4,26 @@ import Network
 /// Local-only HTTP server for the Apple Bridge.
 ///
 /// Binds to `127.0.0.1` or a Unix domain socket, requires bearer auth, and exposes
-/// `GET /health` + `GET /capabilities`. Never calls LLM providers.
+/// `GET /health`, `GET /capabilities`, and `GET /notes/changes`.
+/// Never calls LLM providers.
 public final class BridgeHTTPServer: @unchecked Sendable {
     public let endpoint: BridgeEndpoint
     private let auth: BridgeAuth
     private let permissionHooks: PermissionHooks
+    private let notesSource: NotesSource
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.personal-enigma.bridge-http")
 
     public init(
         endpoint: BridgeEndpoint = .defaultLoopback,
         token: String,
-        permissionHooks: PermissionHooks = PermissionHooks()
+        permissionHooks: PermissionHooks? = nil,
+        notesSource: NotesSource = NotesSource()
     ) {
         self.endpoint = endpoint
         self.auth = BridgeAuth(expectedToken: token)
-        self.permissionHooks = permissionHooks
+        self.notesSource = notesSource
+        self.permissionHooks = permissionHooks ?? PermissionHooks(notesSource: notesSource)
     }
 
     public var isRunning: Bool { listener != nil }
@@ -105,7 +109,12 @@ public final class BridgeHTTPServer: @unchecked Sendable {
     }
 
     /// Handle a single HTTP request (test helper / in-process routing).
-    public func handleHTTP(method: String, path: String, authorization: String?) throws -> (
+    public func handleHTTP(
+        method: String,
+        path: String,
+        authorization: String?,
+        query: [String: String] = [:]
+    ) throws -> (
         status: Int,
         contentType: String,
         body: Data
@@ -128,6 +137,11 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         case ("GET", "/capabilities"):
             let report = permissionHooks.capabilities()
             let body = try BridgeJSON.encode(report)
+            return (200, "application/json", body)
+        case ("GET", "/notes/changes"):
+            let cursor = query["cursor"]
+            let response = notesSource.changes(cursor: cursor)
+            let body = try BridgeJSON.encode(response)
             return (200, "application/json", body)
         default:
             return (
@@ -196,7 +210,10 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         }
 
         let method = String(parts[0])
-        let path = String(parts[1].split(separator: "?").first ?? parts[1])
+        let rawTarget = String(parts[1])
+        let pathAndQuery = rawTarget.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+        let path = String(pathAndQuery.first ?? Substring(rawTarget))
+        let query = Self.parseQuery(pathAndQuery.count > 1 ? String(pathAndQuery[1]) : nil)
 
         var authorization: String?
         for line in lines.dropFirst() {
@@ -208,7 +225,12 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         }
 
         do {
-            let result = try handleHTTP(method: method, path: path, authorization: authorization)
+            let result = try handleHTTP(
+                method: method,
+                path: path,
+                authorization: authorization,
+                query: query
+            )
             return httpResponse(status: result.status, contentType: result.contentType, body: result.body)
         } catch {
             return httpResponse(status: 500, contentType: "application/json", body: Data(#"{"error":"internal"}"#.utf8))
@@ -241,5 +263,24 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         var response = Data(header.utf8)
         response.append(body)
         return response
+    }
+
+    public static func parseQuery(_ raw: String?) -> [String: String] {
+        guard let raw, !raw.isEmpty else { return [:] }
+        var result: [String: String] = [:]
+        for pair in raw.split(separator: "&") {
+            let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard let keyPart = parts.first else { continue }
+            let key = String(keyPart).removingPercentEncoding ?? String(keyPart)
+            let value: String
+            if parts.count > 1 {
+                let rawValue = String(parts[1])
+                value = rawValue.removingPercentEncoding ?? rawValue
+            } else {
+                value = ""
+            }
+            result[key] = value
+        }
+        return result
     }
 }
