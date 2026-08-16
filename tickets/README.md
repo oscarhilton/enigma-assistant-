@@ -80,8 +80,10 @@ Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/de
 Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; do not invent a top-level D13 for corpus).  
 Shadow Mode: [docs/architecture/shadow-mode.md](../docs/architecture/shadow-mode.md) (S01–S06 after `v0.2.0-demo`).  
 Shadow evaluation rubric: [docs/architecture/shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) (seven post-Alex questions · SE01–SE03).  
+Attention surface (Phase 2.5 wind-tunnel / F-* naming): [docs/architecture/attention-surface.md](../docs/architecture/attention-surface.md).  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
+
 ## Phase 2 corpus extension (D08 subtasks)
 
 | Ticket | Status | Notes |
@@ -103,6 +105,12 @@ Do not invent speculative F-* work during D08c. Once the merge gate is green, cl
 1. Correctness: `F-background-basic` → `F-background-threading` → `F-background-identity` → `F-background-canonical-isolation` → `F-background-no-alert`
 2. Quality: `F-background-volume-vs-importance` → `F-retrieval-keyword-pollution`
 3. Import boundary: `F-corpus-real-domain-rewrite` → `F-corpus-live-url` → `F-corpus-secret-like-string` → `F-corpus-unexpected-real-entity`
+
+### Attention-surface F-* (from wind-tunnel dump)
+
+Named failures from the Demo Attention “successful failure” — see [attention-surface.md](../docs/architecture/attention-surface.md):
+
+`F-calendar-existence-is-not-attention` · `F-past-calendar-event-resolves` · `F-automated-mail-is-not-commitment` · `F-newsletter-is-not-commitment` · `F-package-notification-is-not-commitment` · `F-social-question-is-pending-reply` · `F-unrelated-machine-mail-not-merged` · `F-distinct-social-plans-not-merged` · `F-low-priority-candidate-not-surfaced`
 
 ## Ticket template fields
 
