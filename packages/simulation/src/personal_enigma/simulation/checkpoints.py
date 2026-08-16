@@ -78,8 +78,11 @@ def reset_demo_storage(root: Path) -> None:
     """Clear demo storage contents under ``root`` only (never touches Private)."""
     if root.exists():
         for child in list(root.iterdir()):
-            if child.is_dir():
+            # Symlinks must not be followed into foreign trees via rmtree.
+            if child.is_symlink() or child.is_file():
+                child.unlink()
+            elif child.is_dir():
                 shutil.rmtree(child)
             else:
-                child.unlink()
+                child.unlink(missing_ok=True)
     ensure_demo_layout(root)

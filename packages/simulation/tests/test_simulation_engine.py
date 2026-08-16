@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from personal_enigma.simulation import SimulationClock
+import pytest
+
+from personal_enigma.simulation import SimulationClock, load_scenario
 from personal_enigma.simulation.engine import SimulationEngine
 
 REPO = Path(__file__).resolve().parents[3]
@@ -49,3 +51,27 @@ def test_reset_clears_demo_storage_only(tmp_path: Path) -> None:
     assert engine.emitted == []
     assert len(engine.pending) == len(engine.package.events)
     assert (private / "keep.txt").read_text(encoding="utf-8") == "safe"
+
+
+def test_rejects_private_storage_root(tmp_path: Path) -> None:
+    package = load_scenario(FEATURE)
+    private = tmp_path / ".enigma" / "private" / package.manifest.id
+    private.mkdir(parents=True)
+    with pytest.raises(ValueError, match="not Private"):
+        SimulationEngine(
+            package=package,
+            clock=SimulationClock(),
+            storage_root=private,
+        )
+
+
+def test_rejects_non_scenario_named_root(tmp_path: Path) -> None:
+    package = load_scenario(FEATURE)
+    bad = tmp_path / ".enigma" / "demo" / "wrong-id"
+    bad.mkdir(parents=True)
+    with pytest.raises(ValueError, match="per-scenario"):
+        SimulationEngine(
+            package=package,
+            clock=SimulationClock(),
+            storage_root=bad,
+        )

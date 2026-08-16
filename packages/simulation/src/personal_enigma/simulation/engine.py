@@ -27,6 +27,30 @@ from personal_enigma.simulation.events import EmittedEvent, SimulationEvent
 from personal_enigma.simulation.scenario import ScenarioPackage, load_scenario
 
 
+def assert_demo_storage_root(root: Path, *, scenario_id: str) -> None:
+    """Reject Private roots and require a per-scenario demo directory."""
+    resolved = root.resolve()
+    parts = resolved.parts
+    # ADR-005 Private roots are ``…/.enigma/private`` (or override). Do not treat
+    # macOS ``/private/var/…`` temp paths as Private Mode storage.
+    for index, part in enumerate(parts[:-1]):
+        if part in {".enigma", "enigma"} and parts[index + 1] == "private":
+            raise ValueError(
+                "SimulationEngine must bind to a Demo storage root, not Private "
+                f"(got {resolved})"
+            )
+    if resolved.name != scenario_id:
+        raise ValueError(
+            "SimulationEngine storage_root must be the per-scenario demo directory "
+            f"(expected name {scenario_id!r}, got {resolved.name!r})"
+        )
+    if "demo" not in parts:
+        raise ValueError(
+            "SimulationEngine storage_root must live under a demo/ path segment "
+            f"(got {resolved})"
+        )
+
+
 @dataclass
 class SimulationEngine:
     """Deterministic timeline driver for Demo Mode."""
@@ -38,10 +62,10 @@ class SimulationEngine:
     _pending: list[SimulationEvent] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
-        if "private" in self.storage_root.parts and "demo" not in self.storage_root.parts:
-            raise ValueError(
-                "SimulationEngine must bind to a Demo storage root, not Private"
-            )
+        assert_demo_storage_root(
+            self.storage_root,
+            scenario_id=self.package.manifest.id,
+        )
         ensure_demo_layout(self.storage_root)
         self._pending = [
             SimulationEvent(
@@ -90,21 +114,32 @@ class SimulationEngine:
 
     def due_events(self) -> list[SimulationEvent]:
         now = self.clock.now()
-        return [e for e in self._pending if e.at <= now]
+        due: list[SimulationEvent] = []
+        for event in self._pending:
+            if event.at > now:
+                break
+            due.append(event)
+        return due
 
     def emit_due(self) -> list[EmittedEvent]:
-        """Emit all events with ``at <= now`` in stable order."""
-        due = self.due_events()
+        """Emit all events with ``at <= now`` in stable order (O(n) prefix)."""
+        now = self.clock.now()
+        cut = 0
+        for event in self._pending:
+            if event.at > now:
+                break
+            cut += 1
+        due = self._pending[:cut]
+        self._pending = self._pending[cut:]
         out: list[EmittedEvent] = []
         for event in due:
-            self._pending.remove(event)
             record = EmittedEvent(
                 id=event.id,
                 at=event.at,
                 type=event.type,
                 source=event.source,
                 payload=dict(event.payload),
-                emitted_at=self.clock.now(),
+                emitted_at=now,
             )
             self.emitted.append(record)
             out.append(record)
@@ -128,16 +163,13 @@ class SimulationEngine:
 
     def run_batch(self, *, until_exhausted: bool = True) -> list[EmittedEvent]:
         """Emit all currently due events; optionally drain the full timeline."""
-        collected: list[EmittedEvent] = []
-        collected.extend(self.emit_due())
-        if until_exhausted:
-            while self._pending:
-                step = self.advance_one_event()
-                if step is None:
-                    break
-                collected.append(step)
-            return list(self.emitted)
-        return collected
+        if not until_exhausted:
+            return self.emit_due()
+        self.emit_due()
+        while self._pending:
+            if self.advance_one_event() is None:
+                break
+        return list(self.emitted)
 
     def reset(self) -> None:
         """Reset clock, pending queue, and demo storage under this root only."""
