@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` (PR pending) |
+| Status | `done` (merged #28) |
 | Branch | `ticket/D04-synthetic-adapters` |
 | Domain | `demo-simulation` |
 | Baseline | `v0.1.0-mvp` |

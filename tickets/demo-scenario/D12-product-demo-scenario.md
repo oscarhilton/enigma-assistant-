@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (merged #37) |
 | Branch | `ticket/D12-product-demo-scenario` |
 | Domain | `demo-scenario` |
 | Baseline | `v0.1.0-mvp` |

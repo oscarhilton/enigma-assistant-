@@ -20,7 +20,7 @@ Checklist for declaring Demo Mode Phase 2 complete enough to answer:
 - [x] Alex v0.2.0 three-week benchmark corpus (D08)
 - [x] Adversarial privacy packs (D09)
 - [x] Demo UI chrome with banner + timeline controls (D10)
-- [ ] Provider replay offline path (D11) — soft for exit; optional if sibling lands
+- [x] Provider replay offline path (D11) (merged #38)
 - [x] Curated product-demo walkthrough (D12)
 
 ## What Phase 2 proved
