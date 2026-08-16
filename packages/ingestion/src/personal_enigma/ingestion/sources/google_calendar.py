@@ -164,7 +164,7 @@ class GoogleCalendarSource:
             raise GoogleCalendarError("Google Calendar sync token expired")
         if response.status_code >= 400:
             raise GoogleCalendarError(
-                f"Google Calendar returned HTTP {response.status_code}: {response.text}"
+                f"Google Calendar returned HTTP {response.status_code}"
             )
         return response.json()
 

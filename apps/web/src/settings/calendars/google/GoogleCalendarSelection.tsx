@@ -27,7 +27,7 @@ export function GoogleCalendarSelection({
   onChange,
 }: GoogleCalendarSelectionProps) {
   const [internalSelected, setInternalSelected] = useState<string[]>(
-    selectedIds ?? calendars.map((calendar) => calendar.id),
+    selectedIds ?? [],
   );
   const selected = selectedIds ?? internalSelected;
 

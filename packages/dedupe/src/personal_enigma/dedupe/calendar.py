@@ -123,10 +123,29 @@ def dedupe_calendar_events(events: list[PrivateCalendarEvent]) -> list[PrivateCa
         else:
             parents[root_left] = root_right
 
-    for i, left in enumerate(events):
-        for j in range(i + 1, len(events)):
-            if _events_match(left, events[j]):
-                union(i, j)
+    # Bucket by normalised title + coarse start minute to avoid O(n²) over all pairs.
+    buckets: dict[tuple[str, int], list[int]] = {}
+    for i, event in enumerate(events):
+        key = (_normalize_title(event.title), int(event.start_at.timestamp()) // 120)
+        buckets.setdefault(key, []).append(i)
+
+    for indices in buckets.values():
+        for pos, i in enumerate(indices):
+            left = events[i]
+            for j in indices[pos + 1 :]:
+                if _events_match(left, events[j]):
+                    union(i, j)
+    # Same-provider id matches can cross title buckets; compare provider keys separately.
+    by_provider: dict[tuple[str, str, str], list[int]] = {}
+    for i, event in enumerate(events):
+        key = (event.provider, event.provider_event_id, event.calendar_id or "")
+        by_provider.setdefault(key, []).append(i)
+    for indices in by_provider.values():
+        if len(indices) < 2:
+            continue
+        root = indices[0]
+        for j in indices[1:]:
+            union(root, j)
 
     clusters: dict[int, list[PrivateCalendarEvent]] = {}
     order: list[int] = []

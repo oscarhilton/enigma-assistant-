@@ -6,6 +6,7 @@ Scaffold only — no live Google OAuth until credentials are configured.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from urllib.parse import urlencode
 
 from personal_enigma.ingestion.sources.google_calendar import CALENDAR_READONLY_SCOPE
 
@@ -39,11 +40,17 @@ def google_calendar_oauth_start(
     if not config.client_id:
         raise ValueError("Google Calendar OAuth client_id is not configured")
     scope = " ".join(config.scopes)
-    authorize_url = (
-        f"{OAUTH_AUTHORIZE_URL}?client_id={config.client_id}"
-        f"&redirect_uri={config.redirect_uri}"
-        f"&response_type=code&scope={scope}&state={state}&access_type=offline"
+    query = urlencode(
+        {
+            "client_id": config.client_id,
+            "redirect_uri": config.redirect_uri,
+            "response_type": "code",
+            "scope": scope,
+            "state": state,
+            "access_type": "offline",
+        }
     )
+    authorize_url = f"{OAUTH_AUTHORIZE_URL}?{query}"
     return GoogleCalendarOAuthStart(authorize_url=authorize_url, state=state, scope=scope)
 
 
