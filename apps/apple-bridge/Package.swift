@@ -17,6 +17,7 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("Network"),
                 .linkedFramework("Security"),
+                .linkedFramework("Contacts"),
             ]
         ),
         .executableTarget(

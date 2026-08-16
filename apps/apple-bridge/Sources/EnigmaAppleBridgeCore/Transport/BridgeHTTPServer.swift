@@ -9,17 +9,20 @@ public final class BridgeHTTPServer: @unchecked Sendable {
     public let endpoint: BridgeEndpoint
     private let auth: BridgeAuth
     private let permissionHooks: PermissionHooks
+    private let contactsSource: ContactsSource
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.personal-enigma.bridge-http")
 
     public init(
         endpoint: BridgeEndpoint = .defaultLoopback,
         token: String,
-        permissionHooks: PermissionHooks = PermissionHooks()
+        permissionHooks: PermissionHooks = PermissionHooks(),
+        contactsSource: ContactsSource = ContactsSource()
     ) {
         self.endpoint = endpoint
         self.auth = BridgeAuth(expectedToken: token)
         self.permissionHooks = permissionHooks
+        self.contactsSource = contactsSource
     }
 
     public var isRunning: Bool { listener != nil }
@@ -105,7 +108,12 @@ public final class BridgeHTTPServer: @unchecked Sendable {
     }
 
     /// Handle a single HTTP request (test helper / in-process routing).
-    public func handleHTTP(method: String, path: String, authorization: String?) throws -> (
+    public func handleHTTP(
+        method: String,
+        path: String,
+        authorization: String?,
+        query: [String: String] = [:]
+    ) throws -> (
         status: Int,
         contentType: String,
         body: Data
@@ -128,6 +136,10 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         case ("GET", "/capabilities"):
             let report = permissionHooks.capabilities()
             let body = try BridgeJSON.encode(report)
+            return (200, "application/json", body)
+        case ("GET", "/contacts/changes"):
+            let batch = try contactsSource.changes(since: query["cursor"])
+            let body = try BridgeJSON.encode(batch)
             return (200, "application/json", body)
         default:
             return (
@@ -196,7 +208,9 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         }
 
         let method = String(parts[0])
-        let path = String(parts[1].split(separator: "?").first ?? parts[1])
+        let rawTarget = String(parts[1])
+        let path = String(rawTarget.split(separator: "?").first ?? Substring(rawTarget))
+        let query = Self.parseQuery(from: rawTarget)
 
         var authorization: String?
         for line in lines.dropFirst() {
@@ -208,7 +222,12 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         }
 
         do {
-            let result = try handleHTTP(method: method, path: path, authorization: authorization)
+            let result = try handleHTTP(
+                method: method,
+                path: path,
+                authorization: authorization,
+                query: query
+            )
             return httpResponse(status: result.status, contentType: result.contentType, body: result.body)
         } catch {
             return httpResponse(status: 500, contentType: "application/json", body: Data(#"{"error":"internal"}"#.utf8))
@@ -219,6 +238,24 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         connection.send(content: data, completion: .contentProcessed { _ in
             connection.cancel()
         })
+    }
+
+    static func parseQuery(from target: String) -> [String: String] {
+        guard let queryIndex = target.firstIndex(of: "?") else { return [:] }
+        let query = target[target.index(after: queryIndex)...]
+        var result: [String: String] = [:]
+        for pair in query.split(separator: "&") where !pair.isEmpty {
+            let parts = pair.split(separator: "=", maxSplits: 1)
+            let key = String(parts[0]).removingPercentEncoding ?? String(parts[0])
+            let value: String
+            if parts.count == 2 {
+                value = String(parts[1]).removingPercentEncoding ?? String(parts[1])
+            } else {
+                value = ""
+            }
+            result[key] = value
+        }
+        return result
     }
 
     private func httpResponse(status: Int, contentType: String, body: Data) -> Data {
