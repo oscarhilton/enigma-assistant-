@@ -142,8 +142,7 @@ class DemoSession:
         }
 
 
-_SESSION = DemoSession()
-_SESSION_LOCK = Lock()
+_LOCK_TYPE = type(Lock())
 
 
 def _require_demo() -> None:
@@ -154,16 +153,32 @@ def _require_demo() -> None:
         )
 
 
+def _session_for(application: FastAPI) -> DemoSession:
+    session = getattr(application.state, "demo_session", None)
+    if not isinstance(session, DemoSession):
+        session = DemoSession()
+        application.state.demo_session = session
+    return session
+
+
+def _lock_for(application: FastAPI) -> Any:
+    lock = getattr(application.state, "demo_session_lock", None)
+    if not isinstance(lock, _LOCK_TYPE):
+        lock = Lock()
+        application.state.demo_session_lock = lock
+    return lock
+
+
 def install_demo_routes(application: FastAPI) -> None:
     """Register ``/demo/*`` banner, status, timeline, and UI stub routes.
 
-    Timeline state is process-global for local Demo UI (one shared clock).
-    Mutations are serialised with ``_SESSION_LOCK``. Multi-worker deployments
-    each keep an independent clock — intentional for this pre-D5 stub.
+    Timeline clock state lives on ``application.state`` (per app / process) and
+    mutations are serialised with a lock so overlapping advances stay atomic
+    within one worker.
     """
 
-    application.state.demo_session = _SESSION
-    application.state.demo_session_lock = _SESSION_LOCK
+    application.state.demo_session = DemoSession()
+    application.state.demo_session_lock = Lock()
 
     @application.get("/demo/banner")
     def demo_banner() -> dict[str, str | bool]:
@@ -195,47 +210,51 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/status")
     def demo_status() -> dict[str, Any]:
-        with _SESSION_LOCK:
-            return _SESSION.status_payload()
+        with _lock_for(application):
+            return _session_for(application).status_payload()
 
     @application.post("/demo/timeline/step")
     def demo_timeline_step() -> dict[str, Any]:
         _require_demo()
-        # Without D5 event queue, step advances one simulated hour.
-        with _SESSION_LOCK:
-            _SESSION.clock.advance(timedelta(hours=1))
-            return _SESSION.status_payload()
+        with _lock_for(application):
+            session = _session_for(application)
+            # Without D5 event queue, step advances one simulated hour.
+            session.clock.advance(timedelta(hours=1))
+            return session.status_payload()
 
     @application.post("/demo/timeline/day")
     def demo_timeline_day() -> dict[str, Any]:
         _require_demo()
-        with _SESSION_LOCK:
-            _SESSION.clock.advance_days(1)
-            return _SESSION.status_payload()
+        with _lock_for(application):
+            session = _session_for(application)
+            session.clock.advance_days(1)
+            return session.status_payload()
 
     @application.post("/demo/timeline/speed")
     def demo_timeline_speed(body: SpeedBody) -> dict[str, Any]:
         _require_demo()
-        with _SESSION_LOCK:
-            _SESSION.speed = body.speed
+        with _lock_for(application):
+            session = _session_for(application)
+            session.speed = body.speed
             if body.speed == 0:
-                _SESSION.clock.pause()
+                session.clock.pause()
             else:
-                _SESSION.clock.resume()
-            return _SESSION.status_payload()
+                session.clock.resume()
+            return session.status_payload()
 
     @application.post("/demo/timeline/reset")
     def demo_timeline_reset() -> dict[str, Any]:
         _require_demo()
-        with _SESSION_LOCK:
-            _SESSION.reset()
-            return _SESSION.status_payload()
+        with _lock_for(application):
+            session = _session_for(application)
+            session.reset()
+            return session.status_payload()
 
     @application.get("/demo/attention")
     def demo_attention() -> dict[str, Any]:
         _require_demo()
-        with _SESSION_LOCK:
-            simulated_time = _SESSION.clock.now().isoformat()
+        with _lock_for(application):
+            simulated_time = _session_for(application).clock.now().isoformat()
         return {
             "items": list(_STUB_ATTENTION),
             "simulated_time": simulated_time,

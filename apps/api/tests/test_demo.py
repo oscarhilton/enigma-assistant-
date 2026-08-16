@@ -6,13 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from personal_enigma.api import create_app
-from personal_enigma.api.routes import demo as demo_routes
 from personal_enigma.simulation import DEMO_BANNER_TEXT
-
-
-@pytest.fixture(autouse=True)
-def _reset_demo_session() -> None:
-    demo_routes._SESSION = demo_routes.DemoSession()
 
 
 def test_demo_banner_inactive_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
