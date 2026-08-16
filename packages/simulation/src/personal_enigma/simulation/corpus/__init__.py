@@ -6,6 +6,17 @@ See ``docs/architecture/demo-corpus.md`` and ADR-007.
 
 from __future__ import annotations
 
+from personal_enigma.simulation.corpus.background import (
+    CANONICAL_BACKGROUND_MESSAGE_TARGET,
+    DEMO_BACKGROUND_MESSAGE_TARGET,
+    BackgroundBuildResult,
+    BackgroundConfig,
+    BackgroundSignalTruth,
+    build_background_stream,
+    canonical_contact_emails,
+    load_background_config,
+    load_scenario_background,
+)
 from personal_enigma.simulation.corpus.cache import (
     CorpusCache,
     DerivedCorpusCache,
@@ -53,8 +64,13 @@ from personal_enigma.simulation.corpus.timeline import (
 )
 
 __all__ = [
+    "CANONICAL_BACKGROUND_MESSAGE_TARGET",
+    "DEMO_BACKGROUND_MESSAGE_TARGET",
     "GENERATION_METADATA_KEYS",
     "SANITISER_VERSION",
+    "BackgroundBuildResult",
+    "BackgroundConfig",
+    "BackgroundSignalTruth",
     "CanonicalScenarioStream",
     "CorpusAdapter",
     "CorpusBackgroundStream",
@@ -72,13 +88,17 @@ __all__ = [
     "PublicDemoCorpusError",
     "SanitiseResult",
     "assert_public_demo_allowed",
+    "build_background_stream",
     "build_demo_safe_corpus",
+    "canonical_contact_emails",
     "collect_conversations",
     "default_cache_root",
     "default_derived_root",
     "default_registry",
     "expand_conversations",
+    "load_background_config",
     "load_manifest",
+    "load_scenario_background",
     "merge_stream_events",
     "place_conversation_on_timeline",
     "place_conversations_on_timeline",

@@ -34,6 +34,17 @@ from personal_enigma.simulation.corpus.sanitise import (
 from personal_enigma.simulation.corpus.selectors import select_conversations
 
 
+def _parse_window_instant(value: str) -> datetime:
+    """Parse ISO-8601 window bounds; convert aware times to UTC (never clobber offset)."""
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 async def _collect(corpus_id: str) -> list:
     registry = default_registry()
     adapter = registry.adapter_for(corpus_id)
@@ -157,14 +168,6 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
-def _parse_cli_datetime(value: str) -> datetime:
-    """Parse ISO datetime; naive values are treated as UTC, aware values converted."""
-    parsed = datetime.fromisoformat(value)
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
-
-
 def cmd_build(args: argparse.Namespace) -> int:
     registry = default_registry()
     manifest = registry.get(args.corpus_id)
@@ -172,8 +175,8 @@ def cmd_build(args: argparse.Namespace) -> int:
         assert_public_demo_allowed(manifest)
 
     conversations = asyncio.run(_collect(args.corpus_id))
-    window_start = _parse_cli_datetime(args.window_start)
-    window_end = _parse_cli_datetime(args.window_end)
+    window_start = _parse_window_instant(args.window_start)
+    window_end = _parse_window_instant(args.window_end)
     derived = DerivedCorpusCache(
         root=Path(args.derived_root) if args.derived_root else None
     )

@@ -84,11 +84,21 @@ MVP baseline tag: `v0.1.0-mvp` (`6253f96`).
 | --- | --- | --- |
 | [D08a](./demo-scenario/D08a-canonical-spine.md) | `done` | Spine landed with `scenarios/alex-v1/` |
 | [D08b](./demo-scenario/D08b-corpus-pipeline.md) | `done` | FinePersonas adapter, sanitiser, derived cache, 100-conv replay |
-| [D08c](./demo-scenario/D08c-background-integration.md) | `todo` | Merge canonical + background |
-| [D08d](./demo-scenario/D08d-noise-layer.md) | `todo` | Generated noise |
-| [D08e](./demo-scenario/D08e-canonical-scale.md) | `todo` | Canonical/stress scale |
+| [D08c](./demo-scenario/D08c-background-integration.md) | `done` | Canonical+background merge; A/B recall hook |
+| [D08d](./demo-scenario/D08d-noise-layer.md) | `todo` | Machine sludge + quiet-day (≠ D08c) |
+| [D08e](./demo-scenario/D08e-canonical-scale.md) | `todo` | Scale ladder + curve shapes → Phase 2.5 |
 
-D03–D12 tickets carry **amendments** for background schema, multi-stream mail, `ScenarioSignalClass`, suppression metrics, UI stats, scale replay, and the compression demo sequence. Feature scenario stubs live under `tickets/demo-scenario/` and `tickets/demo-evaluation/`.
+Architecture freeze preferred at `f404597` unless D08c proves a structural failure.
+
+D03–D12 tickets carry **amendments** for background schema, multi-stream mail, `ScenarioSignalClass`, suppression metrics, UI stats, scale replay, and the compression demo sequence.
+
+### F-* claim order (after D08c green)
+
+Do not invent speculative F-* work during D08c. Once the merge gate is green, claim in this order:
+
+1. Correctness: `F-background-basic` → `F-background-threading` → `F-background-identity` → `F-background-canonical-isolation` → `F-background-no-alert`
+2. Quality: `F-background-volume-vs-importance` → `F-retrieval-keyword-pollution`
+3. Import boundary: `F-corpus-real-domain-rewrite` → `F-corpus-live-url` → `F-corpus-secret-like-string` → `F-corpus-unexpected-real-entity`
 
 ## Ticket template fields
 

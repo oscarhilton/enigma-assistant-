@@ -50,6 +50,7 @@ def build_demo_safe_corpus(
     rewrite_seed: str | None = None,
     expand_to: int | None = None,
     require_synthetic: bool = True,
+    self_email: str | None = None,
 ) -> CorpusBuildResult:
     """Select conversations (not messages), sanitise, cache, and place on timeline.
 
@@ -73,7 +74,9 @@ def build_demo_safe_corpus(
     accepted: list[CorpusConversation] = []
     rejected: list[dict[str, Any]] = []
     for conv in selected:
-        result = sanitise_conversation_detailed(conv, rewrite_seed=rewrite)
+        result = sanitise_conversation_detailed(
+            conv, rewrite_seed=rewrite, self_email=self_email
+        )
         if result.conversation is None:
             rejected.append(
                 {
@@ -89,6 +92,7 @@ def build_demo_safe_corpus(
         window_start=window_start,
         window_end=window_end,
         seed=seed,
+        self_email=self_email,
     )
 
     revision = manifest.source.revision or "unspecified"

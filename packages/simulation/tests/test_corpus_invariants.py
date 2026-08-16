@@ -170,6 +170,7 @@ def test_signal_class_never_visible_on_synthetic_mail_messages() -> None:
             "from": "maya@northstar.example",
             "to": ["alex@morgan.example"],
             "signal_class": ScenarioSignalClass.CANONICAL.value,
+            "source_class": "canonical",
             "expected_attention": True,
         },
     )
@@ -185,6 +186,7 @@ def test_signal_class_never_visible_on_synthetic_mail_messages() -> None:
             "from": "sam@company-0001.example",
             "to": ["alex@morgan.example"],
             "signal_class": ScenarioSignalClass.BACKGROUND.value,
+            "source_class": "background",
         },
     )
     noise = ScenarioEvent(
@@ -218,6 +220,7 @@ def test_signal_class_never_visible_on_synthetic_mail_messages() -> None:
     assert len(items) == 3
     for item in items:
         assert "signal_class" not in item
+        assert "source_class" not in item
         assert "expected_attention" not in item
         assert "scenario_source" not in item
         assert "is_important" not in item
