@@ -116,13 +116,15 @@ class SyntheticMailSource:
         *,
         profile: str | None = "demo",
         include_background: bool = True,
+        include_noise: bool = True,
         until: datetime | None = None,
         background_stream: MailStream | None = None,
+        noise_stream: MailStream | None = None,
     ) -> SyntheticMailSource:
-        """Merge canonical scenario mail with optional background chronologically.
+        """Merge canonical + optional background + noise chronologically.
 
-        Background ``signal_class`` / ``source_class`` never appear on emitted
-        messages — only ordinary mail fields reach Enigma.
+        Evaluator ``signal_class`` / ``source_class`` / ``expected_attention``
+        never appear on emitted messages — only ordinary mail fields reach Enigma.
         """
         streams: list[MailStream] = [CanonicalScenarioStream(events=package, until=until)]
         if include_background:
@@ -135,6 +137,14 @@ class SyntheticMailSource:
 
                 built = build_background_stream(package, profile=profile)  # type: ignore[arg-type]
                 streams.append(built.stream)
+        if include_noise:
+            if noise_stream is not None:
+                streams.append(noise_stream)
+            else:
+                from personal_enigma.simulation.corpus.noise import build_noise_stream
+
+                noise = build_noise_stream(package, profile=profile)
+                streams.append(noise.stream)
         return cls(streams=streams, until=until)
 
     async def get_changes(self, cursor: SyncCursor | None) -> ChangeBatch:

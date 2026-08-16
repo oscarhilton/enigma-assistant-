@@ -57,7 +57,7 @@ Do **not** invent a top-level D13 for background corpus. Extend D03–D12 accept
 | D08a | Canonical Alex story spine | `done` | [D08a](../../tickets/demo-scenario/D08a-canonical-spine.md) |
 | D08b | Background corpus pipeline | `done` | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) |
 | D08c | Background integration (canonical + corpus) | `done` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
-| D08d | Noise layer (machine sludge) | `todo` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
+| D08d | Noise layer (machine sludge) | `done` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
 | D08e | Canonical scale profile (curves) | `todo` | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) |
 | D09 | Adversarial / privacy scenario pack | `done` | [D09](../../tickets/demo-scenario/D09-adversarial.md) |
 | D10 | Demo UI + explainability | `done` | [D10](../../tickets/demo-ui/D10-demo-ui.md) |

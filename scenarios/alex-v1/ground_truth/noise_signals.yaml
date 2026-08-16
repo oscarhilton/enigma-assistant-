@@ -1,0 +1,52 @@
+# Evaluator-only noise signal classifications.
+# Generated from noise.yaml; Enigma payloads must never include these fields.
+
+signals:
+- evidence_id: noise-spam_like-0000
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-account_notice-0001
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-calendar_confirmation-0002
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-delivery_update-0003
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-newsletter-0004
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-calendar_confirmation-0005
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-spam_like-0006
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-spam_like-0007
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-marketing-0008
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-marketing-0009
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-automated_notification-0010
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-automated_notification-0011
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-receipt-0012
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-marketing-0013
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-spam_like-0014
+  signal_class: noise
+  expected_attention: false
+- evidence_id: noise-newsletter-0015
+  signal_class: noise
+  expected_attention: false

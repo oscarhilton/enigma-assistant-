@@ -1,11 +1,11 @@
-id: quiet-day
+id: background-no-alert
 version: "0.2.0"
 status: feature
 timezone: Europe/London
 start_at: "2026-03-28T08:00:00Z"
 seed: quiet-day
 description: >
-  Quiet day with routine calendar only — 183 machine-sludge emails arrive via
+  Background-no-alert: substantial sludge, zero obligations — 183 machine-sludge emails arrive via
   noise.yaml, and zero genuine obligations. Attention must stay empty.
 events:
   - id: qd-standup

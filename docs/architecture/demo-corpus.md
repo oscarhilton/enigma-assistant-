@@ -1,6 +1,6 @@
 # Demo Mode — Background email corpus
 
-**Status:** D08b pipeline + D08c background integration landed; noise/scale are D08d–D08e  
+**Status:** D08b–D08d landed (pipeline + background + machine noise); scale is D08e  
 **Plan:** Enigma Demo Mode — Background Email Corpus Integration  
 **Governing rule:** Story creates meaning. Corpus creates noise. Enigma must discover the difference.  
 **ADR:** [007-demo-corpus-provenance.md](../adr/007-demo-corpus-provenance.md)
@@ -86,6 +86,8 @@ Dataset-specific behaviour stays in adapters under
 | `demo` | ~1k | ~250 | interactive product demo |
 | `alex-v1/spine` | 0 | 0 | **A — control** for D08c gate |
 | `alex-v1/background` | mini→canonical | 0 | **B — spine + human background** (D08c) |
+| `alex-v1/demo` | mini | mini (16 CI) | interactive + false-alert headline |
+| `quiet_day` / `background-no-alert` | 0 | **183** | D08d hard gate: attention empty |
 | `canonical` | ~5k | ~1.5k | Phase 2.5 benchmark (D08e) |
 | `stress` | 25k–100k+ | as needed | performance / cost (manual) |
 
@@ -115,7 +117,7 @@ PR CI uses checked-in `finepersonas-mini` plus deterministic `--expand-to` so
 ## Metrics (D07 extensions)
 
 - **Background suppression rate** — background items correctly ignored / all background
-- **Background false alerts / 1k** — incorrect attention caused by background (**D08d headline**)
+- **Background false alerts / 1k** — incorrect attention caused by background/noise (**D08d headline**; ceiling ≤1.0; quiet-day hard-gates at 0)
 - **Attention compression ratio** — signals considered : items surfaced
 - **Storyline recall under noise** — critical recall with vs without background (≤1 pp degradation target)
 - **Quiet-day false attention** — must be **0** when no genuine obligations exist (D08d)
@@ -166,7 +168,7 @@ Stop expanding Demo Mode when:
 | Recall regression (vs spine) | ≤ 1 pp |
 | Known privacy leaks | = 0 |
 | Quiet-day false attention | = 0 |
-| Background false-alert rate | acceptably low (measured) |
+| Background false-alert rate | ≤ 1.0 / 1k (measured; quiet-day = 0) |
 | Cost / month (demo profile) | known |
 
 Then the open question is no longer “does the simulator work?” but **Shadow Mode**: does a real human life’s distribution behave like the synthetic one?

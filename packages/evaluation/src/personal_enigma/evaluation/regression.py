@@ -19,6 +19,7 @@ DEFAULT_THRESHOLDS = {
     "critical_recall_drop": 0.01,
     "duplicate_rate_rise": 0.02,
     "cost_increase_ratio": 0.25,
+    "background_false_alerts_per_1000": 1.0,
 }
 
 

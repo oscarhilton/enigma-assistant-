@@ -44,7 +44,7 @@ Corpus density is **not** a new top-level milestone. Track under:
 | Canonical spine | [D08a](./D08a-canonical-spine.md) | `done` |
 | Corpus pipeline | [D08b](./D08b-corpus-pipeline.md) | `done` |
 | Background integration | [D08c](./D08c-background-integration.md) | `todo` |
-| Noise layer | [D08d](./D08d-noise-layer.md) | `todo` |
+| Noise layer | [D08d](./D08d-noise-layer.md) | `done` |
 | Canonical scale | [D08e](./D08e-canonical-scale.md) | `todo` |
 
 Governing rule: **Story creates meaning. Corpus creates noise.** See [demo-corpus.md](../../docs/architecture/demo-corpus.md).

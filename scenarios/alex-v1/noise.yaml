@@ -1,0 +1,57 @@
+# Alex v1 machine-noise layer (D08d).
+#
+# Simulation / evaluator metadata only — never sent to Enigma as labels.
+# Conceptually distinct from FinePersonas human background (D08c).
+#
+# Profiles:
+#   feature   — no noise
+#   demo      — small CI count (this default)
+#   canonical — documented ~1.5k noise messages (D08e)
+#   stress    — larger developer budgets
+
+profile: demo
+
+notes: >
+  Story creates meaning. Corpus creates noise. Machine sludge uses local
+  fictional-brand templates (BuildCloud, ParcelPost, …) — not trademarked
+  providers and not adversarial packs (D09).
+
+profiles:
+  feature:
+    noise: []
+
+  demo:
+    noise:
+      - id: machine-sludge
+        seed: alex-v1-noise-v1
+        message_count: 16
+        date_range:
+          start: 2026-01-05
+          end: 2026-01-25
+        classification:
+          signal_class: noise
+          expected_attention: false
+
+  canonical:
+    noise:
+      - id: machine-sludge
+        seed: alex-v1-noise-canonical-v1
+        message_count: 1500
+        date_range:
+          start: 2026-01-05
+          end: 2026-01-25
+        classification:
+          signal_class: noise
+          expected_attention: false
+
+  stress:
+    noise:
+      - id: machine-sludge
+        seed: alex-v1-noise-stress-v1
+        message_count: 64
+        date_range:
+          start: 2026-01-05
+          end: 2026-01-25
+        classification:
+          signal_class: noise
+          expected_attention: false
