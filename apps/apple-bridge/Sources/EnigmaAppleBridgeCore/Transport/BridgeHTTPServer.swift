@@ -4,25 +4,29 @@ import Network
 /// Local-only HTTP server for the Apple Bridge.
 ///
 /// Binds to `127.0.0.1` or a Unix domain socket, requires bearer auth, and exposes
-/// `GET /health`, `GET /capabilities`, and `GET /calendar/*`. Never calls LLM providers.
+/// `GET /health`, `GET /capabilities`, `GET /calendar/*`, and `GET /reminders/changes`.
+/// Never calls LLM providers.
 public final class BridgeHTTPServer: @unchecked Sendable {
     public let endpoint: BridgeEndpoint
     private let auth: BridgeAuth
     private let permissionHooks: PermissionHooks
     private let calendarSource: CalendarSource
+    private let remindersSource: RemindersSource
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.personal-enigma.bridge-http")
 
     public init(
         endpoint: BridgeEndpoint = .defaultLoopback,
         token: String,
-        permissionHooks: PermissionHooks = PermissionHooks(),
-        calendarSource: CalendarSource = CalendarSource()
+        permissionHooks: PermissionHooks? = nil,
+        calendarSource: CalendarSource = CalendarSource(),
+        remindersSource: RemindersSource = RemindersSource()
     ) {
         self.endpoint = endpoint
         self.auth = BridgeAuth(expectedToken: token)
-        self.permissionHooks = permissionHooks
         self.calendarSource = calendarSource
+        self.remindersSource = remindersSource
+        self.permissionHooks = permissionHooks ?? PermissionHooks(remindersSource: remindersSource)
     }
 
     public var isRunning: Bool { listener != nil }
@@ -154,6 +158,11 @@ public final class BridgeHTTPServer: @unchecked Sendable {
             )
             let body = try BridgeJSON.encode(typed)
             return (200, "application/json", body)
+        case ("GET", "/reminders/changes"):
+            let cursor = query["cursor"]
+            let response = remindersSource.changes(cursor: cursor)
+            let body = try BridgeJSON.encode(response)
+            return (200, "application/json", body)
         default:
             return (
                 404,
@@ -277,7 +286,7 @@ public final class BridgeHTTPServer: @unchecked Sendable {
         return response
     }
 
-    static func parseQuery(_ raw: String?) -> [String: String] {
+    public static func parseQuery(_ raw: String?) -> [String: String] {
         guard let raw, !raw.isEmpty else { return [:] }
         var result: [String: String] = [:]
         for pair in raw.split(separator: "&") {
