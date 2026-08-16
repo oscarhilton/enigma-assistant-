@@ -1,5 +1,6 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
+import { PrivacyInspectorPage } from "./pages/PrivacyInspectorPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 export function App() {
@@ -12,12 +13,14 @@ export function App() {
         <nav>
           <NavLink to="/">Home</NavLink>
           <NavLink to="/settings">Settings</NavLink>
+          <NavLink to="/privacy">Privacy</NavLink>
         </nav>
       </header>
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/privacy" element={<PrivacyInspectorPage />} />
         </Routes>
       </main>
     </div>
