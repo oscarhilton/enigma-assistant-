@@ -123,3 +123,23 @@ def test_cli_spine_metrics_flag(tmp_path: Path, monkeypatch) -> None:  # type: i
     )
     assert "storyline_recall_under_noise" in metrics
     assert metrics["suppression"]["background_suppression_rate"] == 1.0
+    assert metrics["suppression"]["false_alerts_per_1000"] == 0.0
+
+
+def test_cli_rejects_non_object_spine_metrics(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    bad = tmp_path / "spine.json"
+    bad.write_text("[1, 2]", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    code = main(
+        [
+            "noise-mini",
+            "--ground-truth",
+            str(TRUTH),
+            "--observations",
+            str(OBS),
+            "--spine-metrics",
+            str(bad),
+            "--dry-run",
+        ]
+    )
+    assert code == 2

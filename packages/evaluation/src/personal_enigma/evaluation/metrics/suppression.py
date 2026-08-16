@@ -44,7 +44,13 @@ class BackgroundFalseAlertRate:
 
 @dataclass(frozen=True, slots=True)
 class NoiseSuppressionMetrics:
-    """Plan §38–40 headline fields for enigma-eval ``metrics.json``."""
+    """Plan §38–40 headline fields for enigma-eval ``metrics.json``.
+
+    ``background_false_alerts_per_1000`` is the product headline for incorrect
+    attention caused by background *or* noise (legacy D08d name). Prefer
+    ``false_alerts_per_1000`` for the same combined rate, and the
+    ``*_only_false_alerts_per_1000`` fields when splitting classes.
+    """
 
     background_count: int
     background_correctly_ignored: int
@@ -56,6 +62,9 @@ class NoiseSuppressionMetrics:
     noise_false_alerts: int
     message_count: int
     background_false_alerts_per_1000: float
+    background_only_false_alerts_per_1000: float
+    noise_false_alerts_per_1000: float
+    false_alerts_per_1000: float
     false_alert_ids: tuple[str, ...]
     signals_considered: int
     items_surfaced: int
@@ -74,7 +83,13 @@ class NoiseSuppressionMetrics:
             "background_false_alerts": self.background_false_alerts,
             "noise_false_alerts": self.noise_false_alerts,
             "message_count": self.message_count,
+            # Combined headline (background ∪ noise); D08d legacy key.
             "background_false_alerts_per_1000": self.background_false_alerts_per_1000,
+            "false_alerts_per_1000": self.false_alerts_per_1000,
+            "background_only_false_alerts_per_1000": (
+                self.background_only_false_alerts_per_1000
+            ),
+            "noise_false_alerts_per_1000": self.noise_false_alerts_per_1000,
             "false_alert_ids": list(self.false_alert_ids),
             "signals_considered": self.signals_considered,
             "items_surfaced": self.items_surfaced,
@@ -107,8 +122,6 @@ def _non_attention_evidence_ids(
 def _alert_hits_suppressed(
     alert: SurfacedAlert, suppressed: set[str]
 ) -> bool:
-    if alert.id in suppressed:
-        return True
     return any(eid in suppressed for eid in alert.evidence_ids)
 
 
@@ -186,9 +199,10 @@ def compute_noise_suppression_metrics(
     noise_ignored = max(0, noise_total - noise_false)
     items = len(alerts)
     considered = msg_count if signals_considered is None else signals_considered
-    per_1000 = (
-        (len(combined_false_ids) / msg_count * 1000.0) if msg_count else 0.0
-    )
+    combined_count = len(combined_false_ids)
+    per_1000 = (combined_count / msg_count * 1000.0) if msg_count else 0.0
+    bg_only_per_1000 = (bg_false / msg_count * 1000.0) if msg_count else 0.0
+    noise_per_1000 = (noise_false / msg_count * 1000.0) if msg_count else 0.0
     return NoiseSuppressionMetrics(
         background_count=bg_total,
         background_correctly_ignored=bg_ignored,
@@ -204,6 +218,9 @@ def compute_noise_suppression_metrics(
         noise_false_alerts=noise_false,
         message_count=msg_count,
         background_false_alerts_per_1000=per_1000,
+        background_only_false_alerts_per_1000=bg_only_per_1000,
+        noise_false_alerts_per_1000=noise_per_1000,
+        false_alerts_per_1000=per_1000,
         false_alert_ids=tuple(combined_false_ids),
         signals_considered=considered,
         items_surfaced=items,

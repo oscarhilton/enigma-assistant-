@@ -92,6 +92,12 @@ def main(argv: list[str] | None = None) -> int:
     observations = _load_observations(args.observations)
     if args.spine_metrics is not None:
         spine = json.loads(args.spine_metrics.read_text(encoding="utf-8"))
+        if not isinstance(spine, dict):
+            print(
+                f"--spine-metrics must be a JSON object, got {type(spine).__name__}",
+                file=sys.stderr,
+            )
+            return 2
         observations = observations.model_copy(update={"spine_metrics": spine})
     runner = EvaluationRunner(
         reports_root=args.reports_dir,
