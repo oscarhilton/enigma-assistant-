@@ -19,12 +19,19 @@ public struct CapabilityReport: Codable, Equatable, Sendable {
     public var contacts: SourceCapability
     public var notes: SourceCapability
 
+    public init(
+        calendar: SourceCapability,
+        reminders: SourceCapability,
+        contacts: SourceCapability,
+        notes: SourceCapability
+    ) {
+        self.calendar = calendar
+        self.reminders = reminders
+        self.contacts = contacts
+        self.notes = notes
+    }
+
     public static func scaffold() -> CapabilityReport {
-        CapabilityReport(
-            calendar: .init(available: true, authorised: false),
-            reminders: .init(available: true, authorised: false),
-            contacts: .init(available: true, authorised: false),
-            notes: .init(available: true, authorised: false, quality: "best_effort")
-        )
+        PermissionHooks().capabilities()
     }
 }

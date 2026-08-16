@@ -1,0 +1,34 @@
+"""PAYG reasoning — remote calls only over TransformedContext."""
+
+from personal_enigma.reasoning.client import PaygReasoningService, build_reasoning_client
+from personal_enigma.reasoning.errors import PrivacyGateError, ReasoningDisabledError
+from personal_enigma.reasoning.logging import (
+    InMemoryUsageLogger,
+    NullUsageLogger,
+    UsageLogger,
+    UsageRecord,
+)
+from personal_enigma.reasoning.modes import ReasoningMode
+from personal_enigma.reasoning.protocol import (
+    PaygReasoningClient,
+    PaygTransport,
+    ReasoningResult,
+)
+from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
+
+__all__ = [
+    "InMemoryUsageLogger",
+    "MockPaygTransport",
+    "NullPaygTransport",
+    "NullUsageLogger",
+    "PaygReasoningClient",
+    "PaygReasoningService",
+    "PaygTransport",
+    "PrivacyGateError",
+    "ReasoningDisabledError",
+    "ReasoningMode",
+    "ReasoningResult",
+    "UsageLogger",
+    "UsageRecord",
+    "build_reasoning_client",
+]

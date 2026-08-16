@@ -12,6 +12,7 @@ dependencies = [
   "personal-enigma-ingestion",
   "personal-enigma-privacy",
   "personal-enigma-attention",
+  "personal-enigma-reasoning",
 ]
 
 [project.scripts]
@@ -36,3 +37,4 @@ personal-enigma-domain = { workspace = true }
 personal-enigma-ingestion = { workspace = true }
 personal-enigma-privacy = { workspace = true }
 personal-enigma-attention = { workspace = true }
+personal-enigma-reasoning = { workspace = true }

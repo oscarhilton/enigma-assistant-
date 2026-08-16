@@ -9,6 +9,7 @@ dependencies = [
   "personal-enigma-attention",
   "personal-enigma-fixtures",
   "personal-enigma-api",
+  "personal-enigma-reasoning",
 ]
 
 [project.scripts]
@@ -27,3 +28,4 @@ personal-enigma-ingestion = { workspace = true }
 personal-enigma-attention = { workspace = true }
 personal-enigma-fixtures = { workspace = true }
 personal-enigma-api = { workspace = true }
+personal-enigma-reasoning = { workspace = true }

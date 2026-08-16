@@ -1,12 +1,11 @@
 [project]
-name = "personal-enigma-ingestion"
+name = "personal-enigma-reasoning"
 version = "0.1.0"
-description = "Provider-agnostic data source protocol for Enigma"
+description = "PAYG remote reasoning client — TransformedContext only"
 requires-python = ">=3.12"
 dependencies = [
-  "personal-enigma-domain",
+  "personal-enigma-transformation",
   "pydantic>=2.10.0",
-  "httpx>=0.28.0",
 ]
 
 [build-system]
@@ -17,4 +16,4 @@ build-backend = "hatchling.build"
 packages = ["src/personal_enigma"]
 
 [tool.uv.sources]
-personal-enigma-domain = { workspace = true }
+personal-enigma-transformation = { workspace = true }
