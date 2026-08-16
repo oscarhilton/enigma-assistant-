@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `in_progress` (PR #63) |
 | Branch | `ticket/F-unrelated-machine-mail-not-merged` |
 | Domain | `demo-evaluation` |
 | Related | D08c, D08d, D07, M15 |
