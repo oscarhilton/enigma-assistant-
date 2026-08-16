@@ -5,7 +5,7 @@ final class CapabilityReportTests: XCTestCase {
     func testScaffoldCapabilities() throws {
         let report = CapabilityReport.scaffold()
         XCTAssertTrue(report.calendar.available)
-        XCTAssertFalse(report.calendar.authorised)
+        // Live EventKit status varies by machine; scaffold still encodes notes quality.
         XCTAssertEqual(report.notes.quality, "best_effort")
 
         let json = try LocalTransport().describe(capabilities: report)
@@ -14,7 +14,7 @@ final class CapabilityReportTests: XCTestCase {
     }
 
     func testUnauthorisedSourcesStillEncodedIndependently() throws {
-        let hooks = PermissionHooks()
+        let hooks = PermissionHooks(calendarIsAuthorised: { false })
         let report = hooks.capabilities()
         XCTAssertFalse(report.calendar.authorised)
         XCTAssertFalse(report.reminders.authorised)
@@ -43,8 +43,14 @@ final class BridgeAuthTests: XCTestCase {
 }
 
 final class BridgeHTTPServerTests: XCTestCase {
+    private func deniedServer(token: String = "test-token") -> BridgeHTTPServer {
+        let denied = CalendarSource(isAuthorised: { false }, requestAccess: { false })
+        let hooks = PermissionHooks(calendarIsAuthorised: { false })
+        return BridgeHTTPServer(token: token, permissionHooks: hooks, calendarSource: denied)
+    }
+
     func testCapabilitiesRequiresBearerToken() throws {
-        let server = BridgeHTTPServer(token: "test-token")
+        let server = deniedServer()
         let denied = try server.handleHTTP(method: "GET", path: "/capabilities", authorization: nil)
         XCTAssertEqual(denied.status, 401)
 
@@ -61,7 +67,7 @@ final class BridgeHTTPServerTests: XCTestCase {
     }
 
     func testHealthEndpoint() throws {
-        let server = BridgeHTTPServer(token: "test-token")
+        let server = deniedServer()
         let result = try server.handleHTTP(
             method: "GET",
             path: "/health",
@@ -75,7 +81,12 @@ final class BridgeHTTPServerTests: XCTestCase {
     func testLoopbackServerRoundTrip() throws {
         let port = freeLoopbackPort()
         let token = "integration-token-\(port)"
-        let server = BridgeHTTPServer(endpoint: .loopback(port: port), token: token)
+        let server = BridgeHTTPServer(
+            endpoint: .loopback(port: port),
+            token: token,
+            permissionHooks: PermissionHooks(calendarIsAuthorised: { false }),
+            calendarSource: CalendarSource(isAuthorised: { false }, requestAccess: { false })
+        )
         try server.start()
         defer { server.stop() }
 
@@ -109,10 +120,20 @@ final class BridgeHTTPServerTests: XCTestCase {
 
 final class PermissionHooksTests: XCTestCase {
     func testRequestAuthorisationStubDoesNotThrow() async {
-        let hooks = PermissionHooks()
+        let hooks = PermissionHooks(
+            calendarIsAuthorised: { false },
+            calendarRequestAccess: { false }
+        )
         let authorised = await hooks.requestAuthorisation(for: .calendar)
         XCTAssertFalse(authorised)
         let notes = await hooks.requestAuthorisation(for: .notes)
         XCTAssertFalse(notes)
+    }
+
+    func testCalendarAuthorisedWhenInjected() {
+        let hooks = PermissionHooks(calendarIsAuthorised: { true })
+        XCTAssertTrue(hooks.isAuthorised(.calendar))
+        XCTAssertFalse(hooks.isAuthorised(.reminders))
+        XCTAssertTrue(hooks.capabilities().calendar.authorised)
     }
 }
