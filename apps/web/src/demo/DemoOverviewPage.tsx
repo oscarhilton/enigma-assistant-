@@ -11,8 +11,13 @@ export function DemoOverviewPage() {
     <section className="page demo-page">
       <h1>Demo Mode</h1>
       <p>
-        Walk a fictional life through the real Enigma pipeline. Timeline controls advance
-        simulated time; attention and memory stay free of ground-truth overlays.
+        Scripted walkthrough: start on day one (almost empty), advance through weeks of
+        evidence, then check Attention for open loops. Banner stays visible — fictional
+        data only; ground truth never appears in this chrome.
+      </p>
+      <p className="demo-walkthrough-hint">
+        Operator path: <code>scenarios/product-demo</code> · see{" "}
+        <code>docs/demo/walkthrough.md</code>
       </p>
       <TimelineControls onStatusChange={setStatus} />
       <SimulationStatus status={status} />
