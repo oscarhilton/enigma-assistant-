@@ -261,6 +261,7 @@ def build_background_stream(
                 window_start=spec.date_range.start,
                 window_end=spec.date_range.end,
                 seed=spec.seed,
+                self_email=self_email,
             )
             for event in placed:
                 # Defence: never leave evaluator keys on payloads.

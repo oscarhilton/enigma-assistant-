@@ -11,25 +11,14 @@
 # Default `profile: demo` keeps PR CI fast. Canonical 5k is declared under
 # `profiles.canonical` for documentation and future scale runs — do not enable
 # it in CI until FinePersonas (or an equivalent) is available offline.
+#
+# Specs live only under `profiles.*` (no duplicated top-level `email:`).
 
 profile: demo
 
 notes: >
   Story creates meaning. Corpus creates noise. Background traffic is
   finepersonas-mini for CI; production-scale canonical targets ~5000 messages.
-
-email:
-  - id: ordinary-correspondence
-    corpus: finepersonas-mini
-    seed: alex-v1-email-background-v1
-    conversation_count: 2
-    message_count: 8
-    date_range:
-      start: 2026-01-05
-      end: 2026-01-25
-    classification:
-      signal_class: background
-      expected_attention: false
 
 profiles:
   feature:

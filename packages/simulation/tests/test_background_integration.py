@@ -113,6 +113,23 @@ def test_ground_truth_background_signals_match_builder() -> None:
     assert built_ids == truth_ids
 
 
+def test_background_protagonist_replies_are_email_send() -> None:
+    pkg = load_scenario(ALEX)
+    built = build_background_stream(pkg, profile="demo")
+    self_email = "alex.morgan@northwind.example"
+    sends = [e for e in built.events if e.type == "email.send"]
+    receives = [e for e in built.events if e.type == "email.receive"]
+    assert sends
+    assert receives
+    for event in sends:
+        assert event.payload.get("from") == self_email
+        assert "sent_at" in event.payload
+        assert "received_at" not in event.payload
+    for event in receives:
+        assert event.payload.get("from") != self_email
+        assert "received_at" in event.payload
+
+
 def test_ab_critical_recall_holds_with_mini_background(tmp_path: Path) -> None:
     """Mini-scale A/B: same alerts → critical recall must not drop >1 pp."""
     truth = load_ground_truth(ALEX / "ground_truth")

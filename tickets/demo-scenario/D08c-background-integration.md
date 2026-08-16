@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` |
+| Status | `done` (PR #46) |
 | Branch | `ticket/D08c-background-integration` |
 | Domain | `demo-scenario` / `demo-simulation` |
 | Parent | [D08](./D08-canonical-alex.md) |

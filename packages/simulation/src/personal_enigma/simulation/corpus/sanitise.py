@@ -157,12 +157,12 @@ def _identity_for(
     self_email: str | None,
 ) -> IdentityMapping:
     email_key = source_email.strip().lower()
+    # Only preserve explicitly known protagonist aliases — never a bare "alex@"
+    # prefix match (could be a real-world domain in upstream corpora).
     protagonist = False
     if self_email and email_key == self_email.lower():
         protagonist = True
     elif email_key in preserve_emails or email_key in _PRESERVE_EMAILS:
-        protagonist = True
-    elif email_key.startswith("alex@") or email_key.startswith("alex.morgan@"):
         protagonist = True
     if protagonist:
         return IdentityMapping(

@@ -38,12 +38,15 @@ def place_conversation_on_timeline(
     window_start: datetime,
     window_end: datetime,
     seed: str,
+    self_email: str | None = None,
 ) -> list[ScenarioEvent]:
     """Map conversation messages into scenario mail events inside ``[start, end]``.
 
     Relative reply gaps are preserved (deterministic 1–5h spacing). When the
     natural schedule would exceed ``window_end``, timestamps stay strictly
     increasing so merge sort by ``(at, id)`` cannot reorder replies.
+
+    Messages from ``self_email`` (when set) are emitted as ``email.send``.
     """
     if not conversation.messages:
         return []
@@ -67,6 +70,7 @@ def place_conversation_on_timeline(
     if start > window_end:
         start = window_end - timedelta(minutes=max(1, len(conversation.messages)))
 
+    self_key = self_email.lower() if self_email else None
     events: list[ScenarioEvent] = []
     cursor: datetime | None = None
     for index, msg in enumerate(conversation.messages):
@@ -80,22 +84,28 @@ def place_conversation_on_timeline(
         if cursor is not None and at <= cursor:
             at = cursor + timedelta(seconds=1)
         cursor = at
+        is_send = self_key is not None and msg.sender_email.strip().lower() == self_key
+        event_type = "email.send" if is_send else "email.receive"
+        payload: dict = {
+            "id": f"{conversation.id}-{index}",
+            "thread_id": conversation.id,
+            "subject": msg.subject,
+            "body_text": msg.body_text,
+            "from": msg.sender_email,
+            "from_name": msg.sender_name,
+            "to": msg.recipient_emails,
+        }
+        if is_send:
+            payload["sent_at"] = at.isoformat()
+        else:
+            payload["received_at"] = at.isoformat()
         events.append(
             ScenarioEvent(
                 id=f"corpus:{conversation.id}:{index}",
                 at=at,
                 source="mail",
-                type="email.receive",
-                payload={
-                    "id": f"{conversation.id}-{index}",
-                    "thread_id": conversation.id,
-                    "subject": msg.subject,
-                    "body_text": msg.body_text,
-                    "from": msg.sender_email,
-                    "from_name": msg.sender_name,
-                    "to": msg.recipient_emails,
-                    "received_at": at.isoformat(),
-                },
+                type=event_type,
+                payload=payload,
             )
         )
     return events
@@ -107,6 +117,7 @@ def place_conversations_on_timeline(
     window_start: datetime,
     window_end: datetime,
     seed: str,
+    self_email: str | None = None,
 ) -> list[ScenarioEvent]:
     """Place many conversations and return a chronologically sorted event list."""
     events: list[ScenarioEvent] = []
@@ -117,6 +128,7 @@ def place_conversations_on_timeline(
                 window_start=window_start,
                 window_end=window_end,
                 seed=seed,
+                self_email=self_email,
             )
         )
     return sorted(events, key=lambda e: (e.at, e.id))
