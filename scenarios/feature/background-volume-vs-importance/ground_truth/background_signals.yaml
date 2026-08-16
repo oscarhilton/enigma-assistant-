@@ -2,18 +2,99 @@ signals:
   - evidence_id: mail-critical-visa
     signal_class: canonical
     expected_attention: true
+  - evidence_id: rem-visa-letter
+    signal_class: canonical
+    expected_attention: true
+  - evidence_id: mail-visa-ack
+    signal_class: canonical
+    expected_attention: false
   - evidence_id: mail-vol-01
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-02
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-03
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-04
     signal_class: background
     expected_attention: false
   - evidence_id: mail-vol-05
     signal_class: background
     expected_attention: false
+  - evidence_id: mail-vol-06
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-07
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-08
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-09
+    signal_class: background
+    expected_attention: false
   - evidence_id: mail-vol-10
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-11
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-12
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-13
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-14
     signal_class: background
     expected_attention: false
   - evidence_id: mail-vol-15
     signal_class: background
     expected_attention: false
+  - evidence_id: mail-vol-16
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-17
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-18
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-19
+    signal_class: background
+    expected_attention: false
   - evidence_id: mail-vol-20
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-21
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-22
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-23
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-24
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-25
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-26
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-27
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-28
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-29
+    signal_class: background
+    expected_attention: false
+  - evidence_id: mail-vol-30
     signal_class: background
     expected_attention: false
