@@ -57,10 +57,24 @@ def test_scenario_rng_is_seeded() -> None:
     seq_a = [a.random() for _ in range(8)]
     seq_b = [b.random() for _ in range(8)]
     assert seq_a == seq_b
-    other = scenario_rng("other")
-    seq_other = [other.random() for _ in range(8)]
-    assert seq_a != seq_other
+    assert scenario_rng("alex-v1").getstate() == scenario_rng("alex-v1").getstate()
     assert scenario_rng("alex-v1").getstate() != scenario_rng("other").getstate()
+
+
+def test_rejects_empty_seed(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="non-empty"):
+        scenario_rng("")
+    with pytest.raises(ValueError, match="non-empty"):
+        scenario_rng(b"")
+    root = tmp_path / "empty-seed"
+    root.mkdir()
+    (root / "scenario.yaml").write_text(
+        "id: empty-seed\nversion: '0'\nseed: '   '\nevents: []\n",
+        encoding="utf-8",
+    )
+    result = try_load_scenario(root)
+    assert not result.ok
+    assert any("seed" in err.lower() for err in result.errors)
 
 
 def test_relative_offsets_resolve() -> None:

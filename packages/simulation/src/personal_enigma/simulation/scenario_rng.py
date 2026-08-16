@@ -20,7 +20,11 @@ if TYPE_CHECKING:
 
 def normalize_scenario_seed(seed: str | int | bytes) -> str | int | bytes:
     """Return a stable seed value suitable for ``random.Random``."""
-    if isinstance(seed, (int, bytes)):
+    if isinstance(seed, int):
+        return seed
+    if isinstance(seed, bytes):
+        if not seed:
+            raise ValueError("scenario seed must be non-empty")
         return seed
     text = seed.strip()
     if not text:

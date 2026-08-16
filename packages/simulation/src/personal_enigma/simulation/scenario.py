@@ -73,6 +73,16 @@ class ScenarioManifest(BaseModel):
             return _parse_instant(value)
         return value
 
+    @field_validator("seed")
+    @classmethod
+    def _validate_seed(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = value.strip()
+        if not text:
+            raise ValueError("seed must be non-empty when set")
+        return text
+
 
 class ScenarioEvent(BaseModel):
     """One source-layer timeline event."""
