@@ -193,6 +193,24 @@ def test_regression_baseline_flags_pii() -> None:
     assert any("direct_identifier" in v for v in result.violations)
 
 
+def test_regression_flags_false_alerts_per_1k() -> None:
+    result = compare_to_baseline(
+        {
+            "attention": {"critical_recall": 1.0, "duplicate_rate": 0.0},
+            "privacy": {"direct_identifier_leaks": 0},
+            "cost": {"total_usd": 0.01},
+            "scale": {"false_alerts_per_1k": 5.0},
+        },
+        {
+            "attention": {"critical_recall": 1.0, "duplicate_rate": 0.0},
+            "privacy": {"direct_identifier_leaks": 0},
+            "cost": {"total_usd": 0.01},
+        },
+    )
+    assert result.passed is False
+    assert any("false_alerts" in v for v in result.violations)
+
+
 def test_duplicates_and_stale_counted(tmp_path: Path) -> None:
     truth = load_ground_truth(SMOKE_TRUTH)
     observations = EvaluationObservations(

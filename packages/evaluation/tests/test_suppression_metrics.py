@@ -57,3 +57,19 @@ def test_false_alert_rate_counts_noise_evidence() -> None:
 def test_quiet_day_attention_empty_helper() -> None:
     assert quiet_day_attention_empty(attention_items=[], obligation_count=0)
     assert not quiet_day_attention_empty(attention_items=["x"], obligation_count=0)
+
+
+def test_compare_to_baseline_enforces_false_alert_ceiling() -> None:
+    from personal_enigma.evaluation.regression import compare_to_baseline
+
+    ok = compare_to_baseline(
+        {"suppression": {"background_false_alerts_per_1000": 0.5}},
+        {},
+    )
+    assert ok.passed
+    bad = compare_to_baseline(
+        {"suppression": {"background_false_alerts_per_1000": 2.0}},
+        {},
+    )
+    assert not bad.passed
+    assert any("background_false_alerts_per_1000" in v for v in bad.violations)

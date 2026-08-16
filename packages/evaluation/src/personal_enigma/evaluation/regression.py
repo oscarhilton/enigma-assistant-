@@ -70,6 +70,9 @@ def compare_to_baseline(
         false_per_1k = scale.get("background_false_alerts_per_1k")
     if false_per_1k is None:
         false_per_1k = metrics.get("background_false_alerts_per_1000")
+    suppression = metrics.get("suppression", {})
+    if false_per_1k is None and suppression:
+        false_per_1k = suppression.get("background_false_alerts_per_1000")
     if false_per_1k is not None:
         rate = float(false_per_1k)
         limit = float(limits["background_false_alerts_per_1000"])
