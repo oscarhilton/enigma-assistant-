@@ -10,21 +10,30 @@ public enum BridgeSourceID: String, Codable, Sendable, CaseIterable {
 }
 
 public struct PermissionHooks: Sendable {
-    public init() {}
+    private let remindersSource: RemindersSource
 
-    /// Stub permission prompt. Always returns `false` until a source ticket lands.
+    public init(remindersSource: RemindersSource = RemindersSource()) {
+        self.remindersSource = remindersSource
+    }
+
     public func requestAuthorisation(for source: BridgeSourceID) async -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .reminders:
+            return await remindersSource.requestAuthorisation()
+        case .calendar, .contacts, .notes:
+            return false
+        }
     }
 
-    /// Current authorisation snapshot without prompting.
     public func isAuthorised(_ source: BridgeSourceID) -> Bool {
-        _ = source
-        return false
+        switch source {
+        case .reminders:
+            return remindersSource.isAuthorised()
+        case .calendar, .contacts, .notes:
+            return false
+        }
     }
 
-    /// Build a capability report that continues even when individual sources are denied.
     public func capabilities() -> CapabilityReport {
         CapabilityReport(
             calendar: .init(available: true, authorised: isAuthorised(.calendar)),
