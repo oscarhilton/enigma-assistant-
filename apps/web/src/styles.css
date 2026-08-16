@@ -308,8 +308,32 @@ nav a.active {
   margin: 0 0 0.5rem;
 }
 
+.demo-attention-can-wait {
+  margin: 0 0 0.85rem;
+}
+
+.demo-attention-can-wait-note {
+  margin: 0.4rem 0 0;
+  max-width: 36rem;
+}
+
 .demo-attention-what {
   font-size: 1.05rem;
+}
+
+.demo-attention-badges {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo-attention-reason {
+  margin: 0.35rem 0 0;
+  max-width: 36rem;
+  line-height: 1.4;
 }
 
 .demo-attention-meta {
