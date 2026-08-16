@@ -147,3 +147,20 @@ def test_dry_run_also_enforces_privacy_gate() -> None:
     client = build_reasoning_client(mode="dry_run")
     with pytest.raises(PrivacyGateError):
         client.reason(_safe_context(may_transmit_remotely=False))
+
+
+def test_enabled_requires_explicit_transport() -> None:
+    with pytest.raises(ValueError, match="explicit PaygTransport"):
+        PaygReasoningService(mode=ReasoningMode.ENABLED)
+
+
+def test_invalid_mode_string_is_actionable() -> None:
+    with pytest.raises(ValueError, match="allowed values"):
+        build_reasoning_client(mode="not-a-mode")
+
+
+def test_default_usage_logger_is_null() -> None:
+    from personal_enigma.reasoning.logging import NullUsageLogger
+
+    client = PaygReasoningService(mode=ReasoningMode.DRY_RUN)
+    assert isinstance(client.usage_logger, NullUsageLogger)

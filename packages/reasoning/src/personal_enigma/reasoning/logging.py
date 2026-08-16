@@ -28,6 +28,13 @@ class UsageLogger(Protocol):
         ...
 
 
+class NullUsageLogger:
+    """No-op logger suitable as the production default (no unbounded retention)."""
+
+    def log_usage(self, record: UsageRecord) -> None:
+        return
+
+
 class InMemoryUsageLogger:
     """Test-friendly usage logger that retains records in process memory."""
 

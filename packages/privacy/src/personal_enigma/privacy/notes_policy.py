@@ -35,6 +35,28 @@ def notes_default_privacy_level() -> PrivacyLevel:
     return level
 
 
+def may_transmit_note_remotely_by_default(*, body_text: str) -> bool:
+    """Full note bodies never ``may_transmit_remotely`` by default (ADR-004)."""
+    _ = body_text
+    return False
+
+
+def local_relevance_passages(*, body_text: str, query: str | None = None) -> list[str]:
+    """Stub local relevance path — no auto-selected passages until M14/M04."""
+    _ = (body_text, query)
+    return []
+
+
+def extract_passage_stub(body_text: str, *, max_chars: int = 280) -> str | None:
+    """Stub local relevance / passage extraction (real path lands with M14).
+
+    Returns ``None`` so callers never auto-select a remote-safe passage.
+    ``max_chars`` is reserved for the future extractor.
+    """
+    _ = (body_text, max_chars)
+    return None
+
+
 def wholesale_note_body_remote_safe(
     *,
     body_text: str,
@@ -56,5 +78,8 @@ def wholesale_note_body_remote_safe(
     if exception is None:
         return False
     if not exception.passage_only:
+        return False
+    # Passage-only: candidate must be a strict contiguous excerpt of the body.
+    if candidate not in wholesale:
         return False
     return len(candidate) < len(wholesale)

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M09-apple-reminders` |
 | Domain | `apple-bridge` |
 
@@ -34,11 +34,11 @@
 
 ## Acceptance criteria
 
-- [ ] Read-only EventKit reminders access
-- [ ] Ingest incomplete reminders with due dates
-- [ ] Map to `PrivateReminder` (`provider="apple_reminders"`)
-- [ ] `GET /reminders/changes` with cursor
-- [ ] Explicit reminders documented as first-class intent signals in tests
+- [x] Read-only EventKit reminders access
+- [x] Ingest incomplete reminders with due dates
+- [x] Map to `PrivateReminder` (`provider="apple_reminders"`)
+- [x] `GET /reminders/changes` with cursor
+- [x] Explicit reminders documented as first-class intent signals in tests
 
 ## Test plan
 

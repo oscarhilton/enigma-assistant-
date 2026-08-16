@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M13-apple-notes` |
 | Domain | `apple-bridge` |
 
@@ -36,11 +36,11 @@
 
 ## Acceptance criteria
 
-- [ ] Explicit opt-in; automation permission separate from Calendar/Reminders/Contacts
-- [ ] `NotesSource` list/read via Apple Events / AppleScript
-- [ ] Map to `PrivateNote`
-- [ ] Capability `quality: "best_effort"`
-- [ ] Local relevance detection path stubs; no auto remote ship of full body
+- [x] Explicit opt-in; automation permission separate from Calendar/Reminders/Contacts
+- [x] `NotesSource` list/read via Apple Events / AppleScript
+- [x] Map to `PrivateNote`
+- [x] Capability `quality: "best_effort"`
+- [x] Local relevance detection path stubs; no auto remote ship of full body
 
 ## Test plan
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M14-local-embeddings` |
 | Domain | `retrieval` |
 
@@ -32,11 +32,11 @@
 
 ## Acceptance criteria
 
-- [ ] Local embedding model integration
-- [ ] Chunk → embed → local vector index pipeline
-- [ ] Retrieve top passages for a query; return text suitable for transformation
-- [ ] Index email/notes/reminders/calendar descriptions as configured
-- [ ] Works for non-Notes corpora even if M13 incomplete
+- [x] Local embedding model integration
+- [x] Chunk → embed → local vector index pipeline
+- [x] Retrieve top passages for a query; return text suitable for transformation
+- [x] Index email/notes/reminders/calendar descriptions as configured
+- [x] Works for non-Notes corpora even if M13 incomplete
 
 ## Test plan
 

@@ -7,6 +7,7 @@ snapshot tests.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -166,15 +167,16 @@ def review_proposal_scenario() -> ScenarioPack:
     )
 
 
-SCENARIO_REGISTRY: dict[str, ScenarioPack] = {
-    "review_proposal": review_proposal_scenario(),
+SCENARIO_REGISTRY: dict[str, Callable[[], ScenarioPack]] = {
+    "review_proposal": review_proposal_scenario,
 }
 
 
 def get_scenario(name: str) -> ScenarioPack:
-    """Return a registered scenario pack by name."""
+    """Return a fresh registered scenario pack by name (never a shared instance)."""
     try:
-        return SCENARIO_REGISTRY[name]
+        factory = SCENARIO_REGISTRY[name]
     except KeyError as exc:
         known = ", ".join(sorted(SCENARIO_REGISTRY))
         raise KeyError(f"Unknown scenario {name!r}; known: {known}") from exc
+    return factory()

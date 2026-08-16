@@ -1,0 +1,7 @@
+{
+  "messages": [
+    {"id": "msg_alpha", "threadId": "thread_1"},
+    {"id": "msg_beta", "threadId": "thread_1"}
+  ],
+  "resultSizeEstimate": 2
+}

@@ -5,7 +5,6 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from personal_enigma.api.routes.external import install_external_routes
-from personal_enigma.api.routes.external.chat import install_chat_routes
 from personal_enigma.api.routes.privacy_inspector import install_privacy_inspector_routes
 from personal_enigma.api.routes.settings import install_settings_routes
 
@@ -24,7 +23,6 @@ def create_app() -> FastAPI:
     install_settings_routes(application)
     install_privacy_inspector_routes(application)
     install_external_routes(application)
-    install_chat_routes(application)
     return application
 
 

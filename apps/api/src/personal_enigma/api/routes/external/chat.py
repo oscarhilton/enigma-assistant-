@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
 from personal_enigma.privacy import (
-    InspectionResult,
     REMOTE_METADATA_KEYS,
+    InspectionResult,
     RemoteInferenceConfig,
     inspect_transformed_context,
 )

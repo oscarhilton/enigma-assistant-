@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,9 @@ from personal_enigma.privacy.invariants import (
 )
 from personal_enigma.privacy.levels import PrivacyLevel, default_level_for_source
 from personal_enigma.privacy.remote import RemoteInferenceConfig, may_send_remotely
-from personal_enigma.transformation import TransformedContext
+
+if TYPE_CHECKING:
+    from personal_enigma.transformation import TransformedContext
 
 
 class RedactionNote(BaseModel):

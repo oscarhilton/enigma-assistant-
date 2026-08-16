@@ -57,3 +57,4 @@ data/
 *.db
 *.sqlite
 *.sock
+.worktrees/
