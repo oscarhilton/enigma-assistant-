@@ -5,9 +5,19 @@ attention, memory, or the external sanitised surface.
 """
 
 from personal_enigma.evaluation.ab_eval import (
+    ABComparisonArtefact,
+    AttentionDisplacement,
+    ComparisonArtefact,
+    PollutionHit,
+    PollutionTrace,
     StorylineRecallAB,
+    assert_ab_gate,
+    build_ab_comparison,
+    build_comparison_artefact,
     compare_storyline_ab,
     storyline_recall_under_noise,
+    write_ab_comparison,
+    write_comparison_artefact,
 )
 from personal_enigma.evaluation.adversarial import (
     ADVERSARIAL_PACK_IDS,
@@ -43,11 +53,14 @@ from personal_enigma.evaluation.replay import (
 from personal_enigma.evaluation.runner import EvaluationReport, EvaluationRunner
 
 __all__ = [
+    "ABComparisonArtefact",
     "ADVERSARIAL_PACK_IDS",
     "AdversarialPackReport",
+    "AttentionDisplacement",
     "AttentionWindow",
     "BackgroundFalseAlertRate",
     "CommitmentTruth",
+    "ComparisonArtefact",
     "EvaluationObservations",
     "EvaluationReport",
     "EvaluationRunner",
@@ -57,13 +70,18 @@ __all__ = [
     "MemoryCheckpoint",
     "MissedObligation",
     "ObligationTruth",
+    "PollutionHit",
+    "PollutionTrace",
     "ReplayMismatchPolicy",
     "ReplayPaygTransport",
     "ScenarioSignalClass",
     "SignalTruth",
     "StorylineRecallAB",
     "SurfacedAlert",
+    "assert_ab_gate",
     "background_false_alerts_per_1000",
+    "build_ab_comparison",
+    "build_comparison_artefact",
     "compare_storyline_ab",
     "default_replay_fixture_path",
     "detect_missed_obligations",
@@ -72,4 +90,6 @@ __all__ = [
     "quiet_day_attention_empty",
     "run_adversarial_pack",
     "storyline_recall_under_noise",
+    "write_ab_comparison",
+    "write_comparison_artefact",
 ]

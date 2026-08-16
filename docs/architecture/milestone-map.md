@@ -56,7 +56,7 @@ Do **not** invent a top-level D13 for background corpus. Extend D03–D12 accept
 | D08 | Alex v1 canonical synthetic life | `done` | [D08](../../tickets/demo-scenario/D08-canonical-alex.md) |
 | D08a | Canonical Alex story spine | `done` | [D08a](../../tickets/demo-scenario/D08a-canonical-spine.md) |
 | D08b | Background corpus pipeline | `done` | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) |
-| D08c | Background integration (canonical + corpus) | `done` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
+| D08c | Background integration + gate hardening | `done` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
 | D08d | Noise layer (machine sludge) | `done` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
 | D08e | Canonical scale profile (curves) | `todo` | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) |
 | D09 | Adversarial / privacy scenario pack | `done` | [D09](../../tickets/demo-scenario/D09-adversarial.md) |
@@ -111,7 +111,8 @@ adversarial  UI     replay
 - Keep `scenarios/alex-v1/` mostly empty until D08; use tiny `scenarios/feature/*` packs for D03–D07.
 - D08 consumes D01–D07 — it is not “invent a life and patch the platform.”
 - Background corpus: **Story creates meaning. Corpus creates noise.** Public Demo only `SYNTHETIC_CONFIRMED` ([ADR-007](../adr/007-demo-corpus-provenance.md)).
-- Prefer architecture freeze at **`f404597`** unless D08c exposes a structural failure; favour evaluation depth over cleverness.
-- **D08c** is the first scientific gate (A/B spine vs background + artefacts). **D08d** = machine noise / quiet-day. **D08e** = scale curves to ~5k.
-- Hold F-* tickets until D08c is green; then claim in the order documented in [tickets/README.md](../../tickets/README.md).
+- Prefer architecture freeze at **`f404597`**. New abstractions must earn existence by explaining a **measured** failure.
+- **D08c–e** = final scientific PoC for Demo Mode (human noise / machine sludge / scale). **No D08f–z.** F-* = regression hardening.
+- D08c merge (#46) + **gate hardening** (immutable comparison artefact, displacement, rich pollution traces) required before Phase 2.5.
+- **Phase 2.5 is a release gate** → then **Phase 3 Shadow Mode** (separate design).
 - **Phase 2.5 exit** (then Shadow Mode): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).

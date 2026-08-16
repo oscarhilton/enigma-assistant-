@@ -84,7 +84,7 @@ MVP baseline tag: `v0.1.0-mvp` (`6253f96`).
 | --- | --- | --- |
 | [D08a](./demo-scenario/D08a-canonical-spine.md) | `done` | Spine landed with `scenarios/alex-v1/` |
 | [D08b](./demo-scenario/D08b-corpus-pipeline.md) | `done` | FinePersonas adapter, sanitiser, derived cache, 100-conv replay |
-| [D08c](./demo-scenario/D08c-background-integration.md) | `done` | Canonical+background merge; A/B recall hook |
+| [D08c](./demo-scenario/D08c-background-integration.md) | `done` | Merge + scientific gate hardening (comparison artefact) |
 | [D08d](./demo-scenario/D08d-noise-layer.md) | `done` | Machine sludge + quiet-day (≠ D08c) |
 | [D08e](./demo-scenario/D08e-canonical-scale.md) | `todo` | Scale ladder + curve shapes → Phase 2.5 |
 

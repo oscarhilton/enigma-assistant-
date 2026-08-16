@@ -124,51 +124,63 @@ PR CI uses checked-in `finepersonas-mini` plus deterministic `--expand-to` so
 
 ## D08c scientific gate (A/B)
 
-Core architecture freeze preferred at **`f404597`** unless D08c exposes a structural failure. Favour evaluation depth over cleverness.
+Integration merged (#46). **Gate hardening** (immutable comparison artefact, displacement, rich pollution traces) lives in `personal_enigma.evaluation.ab_eval` — see [D08c](../../tickets/demo-scenario/D08c-background-integration.md).
 
-Run **A — SPINE ONLY** (`alex-v1/spine`) vs **B — SPINE + BACKGROUND** (`alex-v1/background`) with the **same** command. Preserve run artefacts. Report side-by-side:
+Architecture freeze preferred at **`f404597`**. New abstractions must earn existence by explaining a **measured** failure — improve the experiment, not the laboratory for its own sake.
 
-Critical recall · Precision · Duplicate rate · Stale alert rate · Canonical Recall@K · Retrieval Precision@K · Attention count · Remote calls · Input tokens · Estimated cost · Processing time
+Run **A — SPINE ONLY** (`alex-v1/spine`) vs **B — SPINE + BACKGROUND** (`alex-v1/background`) with the **same** command. Emit a **single immutable comparison artefact** via `build_ab_comparison` / `write_ab_comparison` with `baseline` / `treatment` / `delta_pp` (and siblings) plus `git_commit`, `corpus_revision`, `sanitiser_version`, `seed`. CI asserts gate pass/fail from that file (`assert_ab_gate`).
 
-Identical recall with collapsed retrieval precision or tripled tokens is still a failure to explain. Require retrieval-pollution traces for every canonical miss / changed decision. Invariants: one mailbox / identical ingestion; no Enigma-visible evaluator fields; disjoint identity namespaces; deterministic seeded reset; background stays non-meaningful.
+Metrics in the artefact: Critical recall · Precision · Duplicate rate · Stale alert rate · Canonical Recall@K · Retrieval Precision@K · Attention count · Remote calls · Input tokens · Estimated cost · Processing time · **Canonical attention rank / mean rank delta / critical displacement below surface threshold**.
 
-See [D08c](../../tickets/demo-scenario/D08c-background-integration.md).
+Pollution traces: rank, source, similarity, entity/project overlap, temporal relevance, canonical/background (**evaluator-only**).
 
-## D08d vs D08c
+Identical recall with collapsed retrieval quality, token blow-up, or **critical displacement > 0** is still a failure.
+
+## D08d vs D08c vs D08e
 
 | Ticket | Asks |
 | --- | --- |
-| D08c | Can Enigma cope with lots of **plausible human conversation**? |
-| D08d | Can Enigma ruthlessly ignore **machine-generated sludge**? |
+| D08c | Plausible **human** conversational noise? |
+| D08d | **Machine** sludge + quiet-day `attention_items == 0`? |
+| D08e | **Scale curves** — understood behaviour, not premature SLOs |
 
 ## Implementation tickets
 
-Top-level milestones stay D01–D12. Corpus work is D08 subtasks:
+Top-level milestones stay D01–D12. Corpus work is D08 subtasks (**no D08f–z**):
 
 | Ticket | Focus |
 | --- | --- |
 | [D08a](../../tickets/demo-scenario/D08a-canonical-spine.md) | Canonical Alex story spine |
 | [D08b](../../tickets/demo-scenario/D08b-corpus-pipeline.md) | Corpus infrastructure |
-| [D08c](../../tickets/demo-scenario/D08c-background-integration.md) | Scientific gate: merge + A/B artefacts |
+| [D08c](../../tickets/demo-scenario/D08c-background-integration.md) | Human background + scientific gate hardening |
 | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) | Machine noise + quiet-day |
 | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) | Scale ladder + curve shapes |
 
-Related amendments: D03 (background/profile schema), D04 (multi-stream mail), D05 (timeline merge), D06 (`ScenarioSignalClass`), D07 (noise metrics), D09–D12 (developer corpora, UI suppression stats, scale replay, compression demo).
+Related amendments: D03–D07, D09–D12 as before. F-* tickets = regression hardening around D08c–e.
 
-## Phase 2.5 exit → Shadow Mode
+## Phase 2.5 exit → Phase 3 Shadow Mode
 
-Stop expanding Demo Mode when:
+**Release gate** (not a planning note). Stop expanding Demo Mode when:
 
 | Gate | Target |
 | --- | --- |
-| Core Demo (D01–D12) | ✓ |
-| Synthetic continuity + ground-truth eval + explainability + adversarial | ✓ |
+| Core Demo (D01–D12) + continuity + eval + explainability + adversarial | ✓ |
 | ~5k plausible background + realistic noise | D08c–e |
 | Critical recall | ≥ 95% |
 | Recall regression (vs spine) | ≤ 1 pp |
+| **Critical displacement** | **= 0** |
 | Known privacy leaks | = 0 |
-| Quiet-day false attention | = 0 |
+| Quiet-day false attention | **= 0** (exactly) |
 | Background false-alert rate | ≤ 1.0 / 1k (measured; quiet-day = 0) |
-| Cost / month (demo profile) | known |
+| Cost / month (demo) | measured |
+| 5k-scale behaviour | **understood** (≠ necessarily “fast”) |
 
-Then the open question is no longer “does the simulator work?” but **Shadow Mode**: does a real human life’s distribution behave like the synthetic one?
+```text
+SYNTHETIC (Phase 2 / 2.5)          REAL SHADOW MODE (Phase 3)
+─────────────────────────          ─────────────────────────
+We know the truth.                 We do not know the truth in advance.
+Can Enigma recover it?             Do Enigma's predictions line up
+                                   with what the user actually does?
+```
+
+Shadow Mode is supervised-simulation → behavioural observation. It deserves its **own Phase 3 design**, not smuggling into further D08 tickets.
