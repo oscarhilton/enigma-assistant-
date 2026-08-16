@@ -1,0 +1,35 @@
+id: background-threading
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-06T08:00:00Z"
+description: >
+  Multi-message FinePersonas-mini threads keep a stable thread_id and
+  chronological reply order after sanitiser + timeline placement.
+events:
+  - id: bt-contact-self
+    at: "2026-04-06T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+  - id: bt-contact-maya
+    at: "2026-04-06T08:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: maya
+      display_name: Maya Chen
+      email: maya.chen@northwind.example
+  - id: bt-mail-note
+    at: "2026-04-06T09:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-thread-note
+      subject: "FYI — background threads are noise"
+      from: maya.chen@northwind.example
+      to: [alex.morgan@northwind.example]
+      snippet: Canonical note only; threading proofs live in background.yaml.
