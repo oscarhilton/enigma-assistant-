@@ -8,6 +8,7 @@ from personal_enigma.api.routes.demo import install_demo_routes
 from personal_enigma.api.routes.external import install_external_routes
 from personal_enigma.api.routes.privacy_inspector import install_privacy_inspector_routes
 from personal_enigma.api.routes.settings import install_settings_routes
+from personal_enigma.api.routes.shadow import install_shadow_routes
 
 
 def create_app() -> FastAPI:
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
     install_privacy_inspector_routes(application)
     install_external_routes(application)
     install_demo_routes(application)
+    install_shadow_routes(application)
     return application
 
 

@@ -13,17 +13,29 @@ import { ChatPage } from "./pages/ChatPage";
 import { HomePage } from "./pages/HomePage";
 import { PrivacyInspectorPage } from "./pages/PrivacyInspectorPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ShadowModeBanner } from "./shadow";
 
-function PersistentDemoBanner() {
+function PersistentModeBanners() {
   const { pathname } = useLocation();
   const onDemoRoute = pathname === "/demo" || pathname.startsWith("/demo/");
-  return <DemoModeBanner active={onDemoRoute ? true : undefined} />;
+  const shadowEnv =
+    typeof import.meta !== "undefined" &&
+    import.meta.env?.VITE_ENIGMA_MODE === "shadow";
+  // Demo chrome must not override an active Shadow session (ADR-008 / S01).
+  return (
+    <>
+      <DemoModeBanner
+        active={onDemoRoute ? (shadowEnv ? false : true) : undefined}
+      />
+      <ShadowModeBanner />
+    </>
+  );
 }
 
 export function App() {
   return (
     <div className="shell">
-      <PersistentDemoBanner />
+      <PersistentModeBanners />
       <header className="topbar">
         <NavLink to="/" className="brand">
           personal-enigma
