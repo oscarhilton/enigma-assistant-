@@ -79,4 +79,7 @@ def wholesale_note_body_remote_safe(
         return False
     if not exception.passage_only:
         return False
+    # Passage-only: candidate must be a strict contiguous excerpt of the body.
+    if candidate not in wholesale:
+        return False
     return len(candidate) < len(wholesale)

@@ -53,6 +53,14 @@ def test_wholesale_body_rejected_even_with_passage_exception() -> None:
         )
         is True
     )
+    assert (
+        wholesale_note_body_remote_safe(
+            body_text=body,
+            candidate_text="Unrelated shorter text",
+            exception=exc,
+        )
+        is False
+    )
 
 
 def test_notes_policy_exception_rejects_wholesale_flag() -> None:

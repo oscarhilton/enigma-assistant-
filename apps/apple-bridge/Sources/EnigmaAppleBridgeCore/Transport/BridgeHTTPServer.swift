@@ -199,7 +199,8 @@ public final class BridgeHTTPServer: @unchecked Sendable {
             return httpResponse(status: 400, contentType: "application/json", body: Data(#"{"error":"bad_request"}"#.utf8))
         }
 
-        let lines = headerText.split(separator: "\r\n", omittingEmptySubsequences: false)
+        let normalized = headerText.replacingOccurrences(of: "\r\n", with: "\n")
+        let lines = normalized.split(separator: "\n", omittingEmptySubsequences: false)
         guard let requestLine = lines.first else {
             return httpResponse(status: 400, contentType: "application/json", body: Data(#"{"error":"bad_request"}"#.utf8))
         }

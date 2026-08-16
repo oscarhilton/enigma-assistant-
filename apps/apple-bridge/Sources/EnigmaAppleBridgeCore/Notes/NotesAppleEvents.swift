@@ -43,7 +43,7 @@ public struct ScriptedNotesAppleEventsClient: NotesAppleEventsClient {
     public static let probeScript = """
     try
       tell application "Notes"
-        if (count of notes) ≥ 0 then
+        if (count of notes) >= 0 then
           return "ok"
         end if
       end tell
@@ -106,8 +106,8 @@ public struct ScriptedNotesAppleEventsClient: NotesAppleEventsClient {
                     title: String(fields[1]),
                     bodyText: String(fields[5]),
                     folder: fields[2].isEmpty ? nil : String(fields[2]),
-                    createdAt: nil,
-                    modifiedAt: nil
+                    createdAt: Self.parseAppleScriptDate(String(fields[3])),
+                    modifiedAt: Self.parseAppleScriptDate(String(fields[4]))
                 )
             )
         }
