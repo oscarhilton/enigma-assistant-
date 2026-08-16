@@ -22,11 +22,12 @@ scenarios/<id>/
 
 | Field | Required | Notes |
 | --- | --- | --- |
-| `id` | yes | Directory id should match |
+| `id` | yes | **Must** match the directory name |
 | `version` | yes | Bump on released semantic change |
 | `status` | no | `scaffold` \| `feature` \| `benchmark` \| `product-demo` |
 | `timezone` | no | Default `UTC` |
-| `start_at` | no | Anchor for relative `+2d` offsets |
+| `start_at` | no | Required when any event uses relative `+2d` / `+3h` / `+30m` offsets |
+| `seed` | no | Deterministic RNG seed (defaults to `id`) |
 | `persona` | no | Path to persona file |
 | `description` | no | Human summary |
 | `events` | no | Inline event list (tiny feature packs) |
@@ -52,10 +53,13 @@ Forbidden payload keys: `obligation(s)`, `commitment(s)`, `attention_item(s)`.
 Tiny packs under `scenarios/feature/` (≈5–10 events) exercise single behaviours
 for CI. Canonical life corpus is `scenarios/alex-v1/` (D08).
 
-## Loader
+## Loader + seeded RNG
 
 ```python
-from personal_enigma.simulation.scenario import load_scenario, try_load_scenario
+from personal_enigma.simulation.scenario import load_scenario, scenario_rng
 
-pkg = load_scenario("scenarios/feature/commitment-basic")
+pkg = load_scenario("scenarios/alex-v1")
+rng = pkg.rng()  # or scenario_rng("alex-v1")
 ```
+
+Do not call unseeded randomness from scenario / corpus generation.
