@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
-from typing import Any
+from datetime import datetime
+from typing import Any, Protocol
 from uuid import uuid4
 
 from sqlalchemy import select
@@ -15,23 +15,30 @@ from personal_enigma.api.db.engine import create_db_engine, make_session_factory
 from personal_enigma.api.db.models import Base, IngestedRecordRow, ObligationRow, SyncCursorRow
 from personal_enigma.domain import Obligation
 from personal_enigma.ingestion import SyncCursor
+from personal_enigma.simulation import SystemClock
 
 
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
+class _Clock(Protocol):
+    def now(self) -> datetime: ...
 
 
 class PrivateStore:
     """Read/write access to the local private SQLite database."""
 
-    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+    def __init__(
+        self,
+        session_factory: sessionmaker[Session],
+        *,
+        clock: _Clock | None = None,
+    ) -> None:
         self._session_factory = session_factory
+        self._clock: _Clock = clock if clock is not None else SystemClock()
 
     def upsert_sync_cursor(self, cursor: SyncCursor) -> SyncCursor:
         """Persist a sync cursor keyed by ``cursor.source`` (required)."""
         if not cursor.source:
             raise ValueError("SyncCursor.source is required for persistence")
-        now = _utcnow()
+        now = self._clock.now()
         with session_scope(self._session_factory) as session:
             row = session.get(SyncCursorRow, cursor.source)
             if row is None:
@@ -60,7 +67,7 @@ class PrivateStore:
         payload: dict[str, Any],
     ) -> str:
         """Insert or update a canonical ingested record; returns ``record_id``."""
-        now = _utcnow()
+        now = self._clock.now()
         payload_json = json.dumps(payload, default=str, sort_keys=True)
         with session_scope(self._session_factory) as session:
             row = session.get(IngestedRecordRow, record_id)
@@ -94,7 +101,7 @@ class PrivateStore:
 
     def upsert_obligation(self, obligation: Obligation, *, obligation_id: str | None = None) -> str:
         """Insert or update an obligation; returns the row id."""
-        now = _utcnow()
+        now = self._clock.now()
         oid = obligation_id or str(uuid4())
         evidence_json = json.dumps(
             [item.model_dump(mode="json") for item in obligation.evidence],

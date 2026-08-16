@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` (PR pending) |
 | Branch | `ticket/D02-simulation-clock` |
 | Domain | `demo-environment` |
 | Baseline | `v0.1.0-mvp` |
@@ -36,11 +36,11 @@
 
 ## Acceptance criteria
 
-- [ ] Shared `Clock` protocol with `now()` (timezone-aware)
-- [ ] `SystemClock` for Private; `SimulationClock` with `advance(...)` for Demo
-- [ ] Environment from D01 supplies the active clock
-- [ ] Domain decisions affecting deadlines, commitments, overdue, snooze, memory decay, event recency, attention escalation, retrieval recency, notification timing use `clock.now()` — not naked `datetime.now()` / `utcnow()` / `date.today()` / `time.time()`
-- [ ] Repo audit documents remaining wall-clock uses (logging OK; domain leaks fail CI or ticket checklist)
+- [x] Shared `Clock` protocol with `now()` (timezone-aware)
+- [x] `SystemClock` for Private; `SimulationClock` with `advance(...)` for Demo
+- [x] Environment from D01 supplies the active clock
+- [x] Domain decisions affecting deadlines, commitments, overdue, snooze, memory decay, event recency, attention escalation, retrieval recency, notification timing use `clock.now()` — not naked `datetime.now()` / `utcnow()` / `date.today()` / `time.time()`
+- [x] Repo audit documents remaining wall-clock uses (logging OK; domain leaks fail CI or ticket checklist)
 
 ## Test plan
 

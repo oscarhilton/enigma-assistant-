@@ -1,4 +1,4 @@
-"""Environment mode and Demo/Private storage separation (D1)."""
+"""Environment mode and Demo/Private storage separation (D1 + clock wiring D2)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,24 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from personal_enigma.simulation.clock import Clock, SimulationClock, SystemClock
+
 ENV_MODE = "ENIGMA_ENVIRONMENT_MODE"
 ENV_ENIGMA_HOME = "ENIGMA_HOME"
 ENV_PRIVATE_ROOT = "ENIGMA_PRIVATE_STORAGE_ROOT"
 ENV_DEMO_ROOT = "ENIGMA_DEMO_STORAGE_ROOT"
 
 DEMO_BANNER_TEXT = "DEMO MODE — FICTIONAL DATA ONLY"
+
+# Credential keys that must never appear in a Demo secret namespace.
+PRIVATE_CREDENTIAL_KEYS = frozenset(
+    {
+        "GOOGLE_CLIENT_SECRET",
+        "GMAIL_TOKEN",
+        "APPLE_BRIDGE_TOKEN",
+        "PRIVATE_HMAC_KEY",
+    }
+)
 
 # Real connectors live under ingestion; synthetic adapters will live under
 # ``personal_enigma.simulation.sources`` (D4).
@@ -107,14 +119,35 @@ def assert_source_allowed_for_mode(mode: EnvironmentMode, source: object) -> Non
 
 
 @dataclass
+class SecretNamespace:
+    """Isolated secret bag per environment — Demo never holds private credentials."""
+
+    _values: dict[str, str] = field(default_factory=dict, repr=False)
+
+    def get(self, key: str) -> str | None:
+        return self._values.get(key)
+
+    def set(self, key: str, value: str) -> None:
+        self._values[key] = value
+
+    def keys(self) -> frozenset[str]:
+        return frozenset(self._values)
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and key in self._values
+
+
+@dataclass
 class DemoEnvironment:
-    """Demo runtime stub: no real credentials, separate storage, source guard.
+    """Demo runtime: synthetic sources only, separate storage, injectable clock.
 
     Full lifecycle (load / reset / advance) lands in later D* tickets.
     """
 
     scenario: str
     mode: EnvironmentMode = EnvironmentMode.DEMO
+    clock: Clock = field(default_factory=SimulationClock)
+    secrets: SecretNamespace = field(default_factory=SecretNamespace)
     gmail_credentials: None = None
     apple_bridge: None = None
     _sources: list[Any] = field(default_factory=list, repr=False)
@@ -122,6 +155,11 @@ class DemoEnvironment:
     def __post_init__(self) -> None:
         if self.mode is not EnvironmentMode.DEMO:
             raise ValueError("DemoEnvironment requires EnvironmentMode.DEMO")
+        leaked = PRIVATE_CREDENTIAL_KEYS.intersection(self.secrets.keys())
+        if leaked:
+            raise RealSourceAccessError(
+                f"Demo secret namespace must not contain private credentials: {sorted(leaked)}"
+            )
 
     @property
     def storage_root(self) -> Path:
@@ -139,3 +177,46 @@ class DemoEnvironment:
     @property
     def sources(self) -> tuple[Any, ...]:
         return tuple(self._sources)
+
+
+@dataclass
+class PrivateEnvironment:
+    """Private runtime: real connectors, wall clock, private secret namespace."""
+
+    mode: EnvironmentMode = EnvironmentMode.PRIVATE
+    clock: Clock = field(default_factory=SystemClock)
+    secrets: SecretNamespace = field(default_factory=SecretNamespace)
+    _sources: list[Any] = field(default_factory=list, repr=False)
+
+    def __post_init__(self) -> None:
+        if self.mode is not EnvironmentMode.PRIVATE:
+            raise ValueError("PrivateEnvironment requires EnvironmentMode.PRIVATE")
+
+    @property
+    def storage_root(self) -> Path:
+        return storage_root_for(self.mode)
+
+    def register_source(self, source: object) -> None:
+        self._sources.append(source)
+
+    @property
+    def sources(self) -> tuple[Any, ...]:
+        return tuple(self._sources)
+
+
+def build_environment(
+    mode: EnvironmentMode | None = None,
+    *,
+    scenario: str | None = None,
+    clock: Clock | None = None,
+) -> DemoEnvironment | PrivateEnvironment:
+    """Construct the active environment from mode (default: env var / private)."""
+    resolved = mode if mode is not None else environment_mode_from_env()
+    if resolved is EnvironmentMode.DEMO:
+        if not scenario:
+            scenario = os.environ.get("ENIGMA_DEMO_SCENARIO", "alex-v1")
+        return DemoEnvironment(
+            scenario=scenario,
+            clock=clock if clock is not None else SimulationClock(),
+        )
+    return PrivateEnvironment(clock=clock if clock is not None else SystemClock())
