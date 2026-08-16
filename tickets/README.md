@@ -53,7 +53,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-scenario | [demo-scenario/](./demo-scenario/) | `scenarios/**` |
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
-| demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md), [D15](./demo-ui/D15-attention-card-ux.md), [D16](./demo-ui/D16-demo-reset.md) operational reset) — **frozen** for new polish beyond claimed tickets |
+| demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md), [D10a](./demo-ui/D10a-demo-suppression-ui.md), [D15](./demo-ui/D15-attention-card-ux.md), [D16](./demo-ui/D16-demo-reset.md), [D17](./demo-ui/D17-attention-copy-groups.md) copy/empty/can-wait freeze) — **frozen** for new polish beyond claimed tickets |
 | shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval artefacts ([SE01](./shadow/SE01-action-vs-attention.md)–[SE03](./shadow/SE03-weekly-shadow-review.md)); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md). SE* must not edit `EnvironmentMode`. |
 
 ## Ingestion file ownership (do not cross)

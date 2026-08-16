@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` (PR #62) |
+| Status | `done` (PR #62) |
 | Branch | `ticket/D15-attention-card-ux` |
 | Domain | `demo-ui` |
 
