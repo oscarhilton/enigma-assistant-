@@ -6,7 +6,7 @@
 | Branch | `ticket/D08b-corpus-pipeline` |
 | Domain | `demo-scenario` / `demo-simulation` |
 | Parent | [D08](./D08-canonical-alex.md) |
-| PR | [#44](https://github.com/oscarhilton/enigma-assistant-/pull/44) |
+| PR | [#45](https://github.com/oscarhilton/enigma-assistant-/pull/45) |
 
 ## Package boundary (hard)
 

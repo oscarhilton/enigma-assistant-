@@ -110,7 +110,11 @@ def build_demo_safe_corpus(
         "sanitiser_version": SANITISER_VERSION,
         "seed": seed,
         "profile": profile,
-        "provenance": CorpusProvenance.SYNTHETIC_CONFIRMED.value,
+        "provenance": (
+            CorpusProvenance.SYNTHETIC_CONFIRMED.value
+            if require_synthetic
+            else manifest.provenance.value
+        ),
         "requested_count": count,
         "accepted_conversations": len(accepted),
         "rejected_conversations": len(rejected),

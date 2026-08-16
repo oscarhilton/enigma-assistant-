@@ -320,8 +320,10 @@ def sanitise_conversation_detailed(
                 recipient_names.append(
                     mapped.display_name if rewrite_domains else msg.recipient_names[i]
                 )
-            else:
+            elif rewrite_domains:
                 recipient_names.append(mapped.display_name)
+            else:
+                recipient_names.append(addr)
 
         company_index = _stable_int(sender.email) % 1_000
         body = _rewrite_urls(msg.body_text, company_index=company_index)

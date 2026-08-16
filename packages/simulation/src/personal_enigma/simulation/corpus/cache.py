@@ -44,6 +44,14 @@ class CorpusCache:
         return path.exists() and any(path.iterdir())
 
 
+def _safe_path_component(value: str, *, label: str) -> str:
+    """Reject path separators / traversal so cache keys stay under the root."""
+    cleaned = value.strip()
+    if not cleaned or cleaned in {".", ".."} or "/" in cleaned or "\\" in cleaned:
+        raise ValueError(f"invalid {label} for corpus cache path: {value!r}")
+    return cleaned
+
+
 class DerivedCorpusCache:
     """Demo-safe derived indexes keyed by corpus + revision + sanitiser + seed."""
 
@@ -59,13 +67,18 @@ class DerivedCorpusCache:
         seed: str,
         profile: str = "demo-safe-v1",
     ) -> Path:
+        safe_seed = _safe_path_component(seed, label="seed")
+        safe_profile = _safe_path_component(profile, label="profile")
+        safe_corpus = _safe_path_component(corpus_id, label="corpus_id")
+        safe_revision = _safe_path_component(revision, label="revision")
+        safe_version = _safe_path_component(sanitiser_version, label="sanitiser_version")
         return (
             self.root
-            / corpus_id
-            / revision
-            / f"sanitiser-{sanitiser_version}"
-            / f"seed-{seed}"
-            / profile
+            / safe_corpus
+            / safe_revision
+            / f"sanitiser-{safe_version}"
+            / f"seed-{safe_seed}"
+            / safe_profile
         )
 
     def ensure_profile_dir(
