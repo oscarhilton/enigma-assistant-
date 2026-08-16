@@ -41,7 +41,7 @@ class HeuristicAttentionEngine:
         self.remote_llm_enabled = remote_llm_enabled
 
     def rank(self, items: list[AttentionItem]) -> list[AttentionItem]:
-        """Return items ordered by what matters most (highest score first)."""
+        """Return copies ordered by effective score (kind priority + raw score, clamped).\n\n        Each returned item is a copy whose ``score`` is replaced by the computed\n        effective score used for ranking.\n        """
         ranked: list[AttentionItem] = []
         for item in items:
             ranked.append(item.model_copy(update={"score": effective_score(item)}))

@@ -128,11 +128,11 @@ def _pick_due_at(
     reminders: list[PrivateReminder],
     events: list[PrivateCalendarEvent],
 ) -> datetime | None:
-    for reminder in reminders:
-        if reminder.due_at is not None:
-            return reminder.due_at
+    due_dates = [r.due_at for r in reminders if r.due_at is not None]
+    if due_dates:
+        return min(due_dates)
     if events:
-        return events[0].start_at
+        return min(e.start_at for e in events)
     return None
 
 
