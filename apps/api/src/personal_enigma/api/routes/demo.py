@@ -435,7 +435,13 @@ def _assert_demo_reset_root(root: Path, *, scenario_id: str) -> None:
         (EnvironmentMode.SHADOW, "Shadow"),
     ):
         foreign = storage_root_for(mode).expanduser().resolve()
-        if resolved == foreign or foreign in resolved.parents:
+        # Refuse when Demo root is Private/Shadow, nested under them, or when
+        # Private/Shadow is nested under the Demo wipe target (misconfig).
+        if (
+            resolved == foreign
+            or foreign in resolved.parents
+            or resolved in foreign.parents
+        ):
             raise HTTPException(
                 status_code=409,
                 detail=(

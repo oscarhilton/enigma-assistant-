@@ -283,6 +283,20 @@ def test_demo_reset_refuses_private_and_shadow_roots(
     assert "shadow" in refused_shadow.json()["detail"].lower()
     assert (shadow_root / "keep.txt").read_text(encoding="utf-8") == "shadow"
 
+    # Private nested *inside* the Demo wipe target must also refuse.
+    demo_parent = tmp_path / "demo-parent"
+    nested_private = demo_parent / "alex-v1" / "private"
+    nested_private.mkdir(parents=True)
+    (nested_private / "keep.txt").write_text("nested-private", encoding="utf-8")
+    monkeypatch.setenv("ENIGMA_DEMO_STORAGE_ROOT", str(demo_parent))
+    monkeypatch.setenv("ENIGMA_PRIVATE_STORAGE_ROOT", str(nested_private))
+    monkeypatch.delenv("ENIGMA_SHADOW_STORAGE_ROOT", raising=False)
+    client = TestClient(create_app())
+    refused_nested = client.post("/demo/reset")
+    assert refused_nested.status_code == 409
+    assert "private" in refused_nested.json()["detail"].lower()
+    assert (nested_private / "keep.txt").read_text(encoding="utf-8") == "nested-private"
+
 
 def test_demo_reset_requires_demo_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ENIGMA_ENVIRONMENT_MODE", raising=False)
