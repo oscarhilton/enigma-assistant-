@@ -1,26 +1,32 @@
-/** Demo Mode API client + offline fixtures for UI (D10). */
+/** Demo Mode API client + offline fixtures for UI (D10 / D13). */
 
 import type {
+  DemoAttentionActionResult,
   DemoAttentionItem,
+  DemoAttentionPayload,
   DemoMemoryItem,
   DemoStatus,
   DemoWhyPayload,
 } from "./types";
 import {
   FIXTURE_ATTENTION,
+  FIXTURE_ATTENTION_PAYLOAD,
   FIXTURE_DEMO_STATUS,
   FIXTURE_MEMORY,
   FIXTURE_WHY_BY_ID,
 } from "./fixtures";
 
 export type {
+  DemoAttentionActionResult,
   DemoAttentionItem,
+  DemoAttentionPayload,
   DemoMemoryItem,
   DemoStatus,
   DemoWhyPayload,
 } from "./types";
 export {
   FIXTURE_ATTENTION,
+  FIXTURE_ATTENTION_PAYLOAD,
   FIXTURE_DEMO_STATUS,
   FIXTURE_MEMORY,
   FIXTURE_STATUS,
@@ -35,6 +41,10 @@ async function readJson<T>(response: Response): Promise<T> {
     throw new Error(`HTTP ${response.status}`);
   }
   return (await response.json()) as T;
+}
+
+function sortByAttentionRank(items: DemoAttentionItem[]): DemoAttentionItem[] {
+  return [...items].sort((a, b) => b.attention_rank - a.attention_rank);
 }
 
 export async function fetchDemoStatus(
@@ -101,14 +111,41 @@ export async function setDemoSpeed(
 
 export async function fetchDemoAttention(
   fetchImpl: typeof fetch = fetch,
-): Promise<DemoAttentionItem[]> {
+): Promise<DemoAttentionPayload> {
   try {
-    const body = await readJson<{ items: DemoAttentionItem[] }>(
+    const body = await readJson<DemoAttentionPayload>(
       await fetchImpl(`${API_BASE}/demo/attention`),
     );
-    return body.items;
+    return {
+      ...body,
+      items: sortByAttentionRank(body.items),
+    };
   } catch {
-    return structuredClone(FIXTURE_ATTENTION);
+    return structuredClone(FIXTURE_ATTENTION_PAYLOAD);
+  }
+}
+
+export async function postDemoAttentionAction(
+  itemId: string,
+  action: "done" | "snooze",
+  fetchImpl: typeof fetch = fetch,
+): Promise<DemoAttentionActionResult> {
+  try {
+    return await readJson<DemoAttentionActionResult>(
+      await fetchImpl(`${API_BASE}/demo/attention/${itemId}/${action}`, {
+        method: "POST",
+      }),
+    );
+  } catch {
+    const remaining = FIXTURE_ATTENTION.filter((item) => item.id !== itemId);
+    return {
+      ok: true,
+      item_id: itemId,
+      action,
+      items: sortByAttentionRank(remaining),
+      surfaced_count: remaining.length,
+      suppressed_count: FIXTURE_ATTENTION_PAYLOAD.suppressed_count,
+    };
   }
 }
 

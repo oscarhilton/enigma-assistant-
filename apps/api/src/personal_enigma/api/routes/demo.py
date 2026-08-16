@@ -1,11 +1,16 @@
-"""Demo Mode environment, timeline, and UI support routes (D1 + D10)."""
+"""Demo Mode environment, timeline, and UI support routes (D1 + D10 + D13).
+
+Attention stubs use PRIVATE UI names on the dashboard (Maya, Atlas). Why stubs
+may use MODEL VIEW pseudonyms (PERSON_A) so demos can contrast local vs remote.
+"""
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from threading import Lock
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -21,24 +26,40 @@ from personal_enigma.simulation import (
 # Fixed epoch so UI smoke tests are deterministic without D5 event engine.
 _DEMO_EPOCH = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
 
-_STUB_ATTENTION: list[dict[str, Any]] = [
+# Baseline catalog — private UI names; priority ≠ confidence; rank ≠ confidence.
+_STUB_ATTENTION_BASE: list[dict[str, Any]] = [
     {
         "id": "att-atlas-review",
         "title": "Review Atlas proposal before Friday",
-        "body": "Open loop from a prior commitment; deadline approaching.",
+        "when": "Before Friday",
+        "why_now_glance": "Deadline approaching",
+        "body": (
+            "You said you'd review this before Friday, and it still appears unfinished."
+        ),
         "kind": "commitment",
-        "score": 0.91,
-        "reason_codes": ["USER_COMMITMENT", "DEADLINE_APPROACHING"],
+        "priority": 4,
+        "confidence": 0.91,
+        # Rank blends urgency/importance/actionability/timing; confidence is a
+        # factor, not a substitute for priority (a high-confidence newsletter
+        # must not outrank a medium-confidence manager commitment).
+        "attention_rank": 0.86,
+        "evidence_ids": ["ev-mail-1", "ev-cal-1"],
     },
     {
-        "id": "att-follow-up",
-        "title": "Follow up with PERSON_A on scheduling",
-        "body": "Cross-source thread still unresolved.",
+        "id": "att-maya-scheduling",
+        "title": "Follow up with Maya on scheduling",
+        "when": None,
+        "why_now_glance": "Thread waiting on you",
+        "body": "This scheduling thread still appears to be waiting on you.",
         "kind": "follow_up",
-        "score": 0.72,
-        "reason_codes": ["FOLLOW_UP_RECEIVED"],
+        "priority": 3,
+        "confidence": 0.72,
+        "attention_rank": 0.61,
+        "evidence_ids": ["ev-mail-2"],
     },
 ]
+
+_DEFAULT_SUPPRESSED = 47
 
 _STUB_MEMORY: list[dict[str, Any]] = [
     {
@@ -78,23 +99,54 @@ _STUB_WHY: dict[str, dict[str, Any]] = {
         "evidence": [
             "Email: PERSON_A requested review.",
             "Email: USER said they would review before Friday.",
-            "Calendar: Review meeting Friday 15:00.",
+            "Calendar: Review meeting Friday at 15:00.",
         ],
-        "inference": ["An unresolved commitment exists."],
+        "inference": [
+            "USER made a commitment to PERSON_A.",
+            "No evidence of completion has been observed.",
+            "The commitment appears due before the Friday review.",
+        ],
         "decision": [
-            "Deadline approaching within useful action window.",
-            "Priority score: 0.91",
+            "The commitment remains unresolved.",
+            "Its deadline falls within the configured attention window.",
+            "Surface as a high-priority item.",
         ],
+        "why_now": [
+            "The deadline is approaching.",
+            "There is still enough time to act before the review.",
+        ],
+        "priority": 4,
+        "confidence": 0.91,
         "reason_codes": ["USER_COMMITMENT", "DEADLINE_APPROACHING"],
     },
-    "att-follow-up": {
-        "item_id": "att-follow-up",
-        "title": "Follow up with PERSON_A on scheduling",
+    "att-maya-scheduling": {
+        "item_id": "att-maya-scheduling",
+        "title": "Follow up with Maya on scheduling",
         "headline": "WHY ENIGMA THINKS THIS MATTERS",
-        "evidence": ["Cross-source thread still unresolved."],
-        "inference": ["A follow-up remains open."],
-        "decision": ["Surfaced at moderate priority."],
-        "reason_codes": ["FOLLOW_UP_RECEIVED"],
+        "evidence": [
+            "Email: PERSON_A proposed times that remain unanswered.",
+            "Calendar: No matching hold on USER's schedule.",
+        ],
+        "inference": [
+            "A scheduling follow-up with PERSON_A remains open.",
+            "No evidence USER closed the thread.",
+        ],
+        "decision": [
+            "The follow-up is unresolved.",
+            "It falls inside the configured attention window.",
+            "Surface as a medium-priority item.",
+        ],
+        "why_now": [
+            "The thread is still waiting on USER.",
+            "Surface now while the window to respond is open.",
+        ],
+        "priority": 3,
+        "confidence": 0.72,
+        "reason_codes": [
+            "CROSS_SOURCE_MATCH",
+            "FOLLOW_UP_REQUIRED",
+            "UNRESOLVED_THREAD",
+        ],
     },
 }
 
@@ -109,6 +161,9 @@ class DemoSession:
 
     scenario: str = "alex-v1"
     speed: float = 1.0
+    attention_items: list[dict[str, Any]] = field(default_factory=list)
+    suppressed_count: int = _DEFAULT_SUPPRESSED
+    action_log: list[dict[str, Any]] = field(default_factory=list)
     env: DemoEnvironment = field(init=False)
 
     def __post_init__(self) -> None:
@@ -118,6 +173,9 @@ class DemoSession:
         clock = SimulationClock(initial=_DEMO_EPOCH)
         self.env = DemoEnvironment(scenario=self.scenario, clock=clock)
         self.speed = 1.0
+        self.attention_items = deepcopy(_STUB_ATTENTION_BASE)
+        self.suppressed_count = _DEFAULT_SUPPRESSED
+        self.action_log = []
 
     @property
     def clock(self) -> SimulationClock:
@@ -139,6 +197,45 @@ class DemoSession:
             "paused": self.clock.paused if active else None,
             "storage_root": str(self.env.storage_root) if active else None,
             "ground_truth_visible": False,
+        }
+
+    def attention_payload(self) -> dict[str, Any]:
+        items = sorted(
+            self.attention_items,
+            key=lambda row: float(row["attention_rank"]),
+            reverse=True,
+        )
+        return {
+            "items": items,
+            "simulated_time": self.clock.now().isoformat(),
+            "surfaced_count": len(items),
+            "suppressed_count": self.suppressed_count,
+        }
+
+    def apply_attention_action(
+        self,
+        item_id: str,
+        action: Literal["done", "snooze"],
+    ) -> dict[str, Any]:
+        remaining = [row for row in self.attention_items if row["id"] != item_id]
+        if len(remaining) == len(self.attention_items):
+            raise HTTPException(status_code=404, detail=f"Unknown attention item {item_id}")
+        self.attention_items = remaining
+        self.action_log.append(
+            {
+                "item_id": item_id,
+                "action": action,
+                "at": self.clock.now().isoformat(),
+            }
+        )
+        payload = self.attention_payload()
+        return {
+            "ok": True,
+            "item_id": item_id,
+            "action": action,
+            "items": payload["items"],
+            "surfaced_count": payload["surfaced_count"],
+            "suppressed_count": payload["suppressed_count"],
         }
 
 
@@ -254,11 +351,19 @@ def install_demo_routes(application: FastAPI) -> None:
     def demo_attention() -> dict[str, Any]:
         _require_demo()
         with _lock_for(application):
-            simulated_time = _session_for(application).clock.now().isoformat()
-        return {
-            "items": list(_STUB_ATTENTION),
-            "simulated_time": simulated_time,
-        }
+            return _session_for(application).attention_payload()
+
+    @application.post("/demo/attention/{item_id}/done")
+    def demo_attention_done(item_id: str) -> dict[str, Any]:
+        _require_demo()
+        with _lock_for(application):
+            return _session_for(application).apply_attention_action(item_id, "done")
+
+    @application.post("/demo/attention/{item_id}/snooze")
+    def demo_attention_snooze(item_id: str) -> dict[str, Any]:
+        _require_demo()
+        with _lock_for(application):
+            return _session_for(application).apply_attention_action(item_id, "snooze")
 
     @application.get("/demo/memory")
     def demo_memory() -> dict[str, Any]:

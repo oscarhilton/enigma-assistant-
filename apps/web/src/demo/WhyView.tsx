@@ -8,6 +8,15 @@ export type WhyViewProps = {
   fetchImpl?: typeof fetch;
 };
 
+function formatReasonCodes(codes: string[]): string {
+  return codes.join(" · ");
+}
+
+/**
+ * Structured provenance panel — Evidence → Inference → Decision → Why now?
+ * Explains system evidence and policy, not model chain-of-thought.
+ * Copy may use MODEL VIEW pseudonyms; the Attention dashboard uses PRIVATE UI names.
+ */
 export function WhyView({ itemId: itemIdProp, fetchImpl = fetch }: WhyViewProps) {
   const params = useParams();
   const itemId = itemIdProp ?? params.itemId ?? "att-atlas-review";
@@ -72,7 +81,29 @@ export function WhyView({ itemId: itemIdProp, fetchImpl = fetch }: WhyViewProps)
         ))}
       </ul>
 
-      <p className="muted">Reason codes: {payload.reason_codes.join(", ")}</p>
+      <dl className="demo-why-metrics">
+        <div>
+          <dt>Priority</dt>
+          <dd>
+            {payload.priority}/5
+          </dd>
+        </div>
+        <div>
+          <dt>Confidence</dt>
+          <dd>{payload.confidence.toFixed(2)}</dd>
+        </div>
+      </dl>
+
+      <h3>Why now?</h3>
+      <ul>
+        {payload.why_now.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+
+      <p className="muted demo-reason-codes" aria-label="Reason codes">
+        Reason codes: {formatReasonCodes(payload.reason_codes)}
+      </p>
       <Link to="/demo/attention">Back to attention</Link>
     </section>
   );

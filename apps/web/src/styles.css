@@ -281,6 +281,89 @@ nav a.active {
   gap: 0.25rem;
 }
 
+.demo-attention-promise {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.demo-attention-scenario {
+  margin: 0 0 0.5rem;
+}
+
+.demo-attention-what {
+  font-size: 1.05rem;
+}
+
+.demo-attention-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  margin: 0.35rem 0 0.15rem;
+}
+
+.demo-attention-meta div {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.demo-attention-meta dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.demo-attention-meta dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.demo-attention-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+  align-items: center;
+}
+
+.demo-attention-actions a {
+  display: inline-block;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.demo-attention-footer {
+  margin-top: 1.25rem;
+}
+
+.demo-why-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.demo-why-metrics div {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.demo-why-metrics dt {
+  color: var(--muted);
+}
+
+.demo-why-metrics dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.demo-reason-codes {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+}
+
 button.active,
 button[aria-pressed="true"],
 button[aria-selected="true"] {
