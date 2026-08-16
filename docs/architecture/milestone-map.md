@@ -116,6 +116,7 @@ adversarial  UI     replay
 - **D08c** is the first scientific gate (A/B spine vs background + artefacts). **D08d** = machine noise / quiet-day. **D08e** = scale curves to ~5k.
 - Hold F-* tickets until D08c is green; then claim in the order documented in [tickets/README.md](../../tickets/README.md).
 - **Phase 2.5 exit** (PASS at `v0.2.0-demo`): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).
+- **Attention surface wind-tunnel** (alex-v1 dump → ~2 cards not 11): [attention-surface.md](./attention-surface.md).
 
 ---
 
@@ -169,3 +170,4 @@ S06 Exit criteria (before Private notifications)
 - No Demo→Shadow migration path exists.
 - The seven questions are evaluation goals ([shadow-mode-questions.md](./shadow-mode-questions.md)); detailed observables live in [shadow-evaluation.md](./shadow-evaluation.md).
 - SE* tickets soft-depend on S01–S05; they must not re-implement env/banner/storage.
+
