@@ -3,7 +3,8 @@
 **Status:** Design + tickets (SE01–SE03) — no full UI; no `EnvironmentMode` changes in this track  
 **Questions list:** [shadow-mode-questions.md](./shadow-mode-questions.md)  
 **Mode scaffold (soft):** S01+ under `tickets/shadow/` (env flag, storage, suppression, attention log) — **owned by the S01 track**  
-**Tickets:** [SE01](../../tickets/shadow/SE01-action-vs-attention.md) · [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) · [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md)
+**Tickets:** [SE01](../../tickets/shadow/SE01-action-vs-attention.md) · [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) · [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md)  
+**Minimal stubs:** [shadow-eval-stubs/](./shadow-eval-stubs/) (`user_action`, `attention_candidate`, `suppressed_notification`, weekly review Markdown)
 
 ## Why Demo cannot answer these
 

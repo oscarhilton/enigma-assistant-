@@ -1,58 +1,57 @@
-# SE01 — User action vs attention log
+# SE01 — User actions vs attention log
 
 | Field | Value |
 | --- | --- |
 | Status | `todo` |
 | Branch | `ticket/SE01-action-vs-attention` |
 | Domain | `shadow` |
-| Baseline | [shadow-evaluation.md](../../docs/architecture/shadow-evaluation.md) (Q1, Q2, Q5, Q6 joins) |
+| Baseline | [shadow-evaluation.md](../../docs/architecture/shadow-evaluation.md) |
 
 ## Package boundary (hard)
 
-- May edit: `packages/evaluation/**` (or thin `packages/shadow_eval/**` if created) for action / candidate schemas + join helpers
-- May edit: `apps/api/**` / `apps/worker/**` only for append-only local writers of the stub schemas
-- May edit: tests + fixtures under the same packages
-- Must not edit: `packages/simulation/**/environment.py` / `EnvironmentMode` (S01)
-- Must not edit: Demo scenario corpora, Demo ground-truth semantics, full product UI
+- May edit: Shadow eval stubs under `packages/evaluation/**` (preferred) **or** a thin `packages/shadow_eval/**` if evaluation package ownership conflicts — declare in PR
+- May edit: `apps/api/**` / `apps/worker/**` only for append-only local action / candidate log hooks
+- May edit: docs cross-links under `docs/architecture/shadow-evaluation.md`
+- Must **not** edit: `packages/simulation/**/environment.py` / `EnvironmentMode` (S01)
+- Must **not** edit: Demo ground-truth evaluators for Alex scenarios
+- Must **not** ship a full Shadow UI
 
 ## Hard depends
 
-- None for schema stubs / docs alignment
-- Implementation of live writers: S01 soft-landed (Shadow root exists)
+- None (design + stubs may land first)
 
 ## Soft depends (~)
 
-- S01 Shadow scaffold (mode + storage identity)
-- S03 Shadow attention log (candidate stream to join against)
-- SE02 (shared subject refs with suppress audit)
+- S01 (Shadow mode / storage root exists)
+- S03 (Shadow attention log) — reuse candidate rows if present; otherwise stub both sides
 
 ## Unlocks / enhances
 
-- Q1 act-on recognition, Q2 nearly-forgot, Q5 memory Δ, Q6 timing distributions
-- Feed for [SE03](./SE03-weekly-shadow-review.md)
+- Rubric questions 1, 2, 3, 6 (act-on, nearly-forgot, overestimate, timing)
+- Feeds SE03 weekly review scores
 
 ## Non-goals
 
-- Full UI for labelling actions
-- OS accessibility / keylogging — only explicit in-app or connector-derived actions
-- Remote telemetry of action streams
-- Changing attention ranking (M06)
+- Full product analytics dashboard
+- Training / fine-tuning on action logs
+- Changing attention ranking (measure only)
+- Reading Demo `ground_truth/*.yaml` as real-user labels
 
 ## Acceptance criteria
 
-- [ ] Documented stub schemas `shadow.user_action/v0` and join against `shadow.attention_candidate/v0` (see architecture doc)
-- [ ] Typed models or JSON-schema fixtures validating both shapes
-- [ ] Join helper stub: given actions + candidates → per-subject match records (empty OK)
-- [ ] Tests: schema round-trip; join does not read Demo ground truth
-- [ ] Privacy: no raw attendee emails / Notes bodies required in the action schema
+- [ ] Typed stub (or Pydantic/dataclass) for `UserAction` and join key to attention candidates
+- [ ] Comparator stub returns structured metrics (`act_on_hit`, `act_on_miss`, `late_hit`, `overestimate`, `timing_error_hours`) — empty/zero OK in tests
+- [ ] Documented window / top-K config fields snapshotted with results
+- [ ] Tests: API shape stable; comparator does not import Demo scenario ground truth by default
+- [ ] Ticket checklist updated when stubs land
 
 ## Test plan
 
-- Fixture: one acted mail with prior candidate → join hit
-- Fixture: acted item with no candidate → novel-miss candidate for Q7
-- Assert Demo eval packages still import cleanly
+- Unit: construct actions + candidates; join produces expected hit/miss fixture
+- Guard: importing comparator does not load `scenarios/**/ground_truth`
 
 ## Privacy constraints
 
-- Local Shadow root only
-- Prefer domain ids over provider payloads in persisted actions
+- Actions and joins stay on Shadow/Private storage roots
+- Prefer transformed `subject_ref` / PERSON_* over raw emails
+- No remote scoring of action logs without an ADR

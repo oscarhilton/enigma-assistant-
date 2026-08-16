@@ -14,4 +14,12 @@ Demo Mode can show that Enigma works on a coherent fictional life. It cannot yet
 6. **Timing** — Does attention arrive early enough to help, or too late / too early to matter?
 7. **Misses synthetic never taught** — What failure modes appear in real mail/calendar noise that Alex’s authored + corpus world never exercised?
 
+## How we will measure
+
+| Questions | Instrumentation ticket |
+| --- | --- |
+| 1, 2, 3, 6 | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) — user actions vs attention |
+| 3 (would-notify waste) | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) — suppressed notification audit |
+| 4, 5, 7 (+ weekly rollup) | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) — weekly review artefact |
+
 **Design vs implementation:** Rubric + SE* tickets may land as docs after Phase 2.5 PASS. Do **not** conflate that with S01 env/storage work — evaluation PRs must not edit `EnvironmentMode`. Full UI, live notification delivery, and Demo→Shadow migration remain out of scope until their owning tickets say otherwise.

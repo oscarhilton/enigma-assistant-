@@ -122,12 +122,13 @@ adversarial  UI     replay
 ## Phase 3 — Shadow Mode (eval design first)
 
 Architecture: [shadow-mode-questions.md](./shadow-mode-questions.md) · [shadow-evaluation.md](./shadow-evaluation.md).  
-Branches: `ticket/SExx-slug` (eval) or `ticket/Sxx-slug` (mode scaffold — S01 owns `EnvironmentMode`).
+Branches: `ticket/SExx-slug` (eval) or `ticket/Sxx-slug` (mode scaffold — S01 owns `EnvironmentMode`).  
+Mode scaffold (`EnvironmentMode.SHADOW`, storage, suppression) is a **separate PR track**; eval tickets must not edit the env enum.
 
 | # | Milestone | Status | Ticket |
 | --- | --- | --- | --- |
-| SE01 | User action vs attention log | `todo` | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) |
+| SE01 | User actions vs attention log | `todo` | [SE01](../../tickets/shadow/SE01-action-vs-attention.md) |
 | SE02 | Suppressed notifications audit | `todo` | [SE02](../../tickets/shadow/SE02-suppressed-notification-audit.md) |
-| SE03 | Weekly shadow review artefact | `todo` | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) |
+| SE03 | Weekly Shadow review artefact | `todo` | [SE03](../../tickets/shadow/SE03-weekly-shadow-review.md) |
 
-Eval tickets soft-depend on S01 mode/storage and S02/S03 logging when those land. Prefer soft deps; do not block rubric design on env enum PRs.
+Soft (~) deps on S01–S03 preferred. No full UI in SE*. Minimal JSON/Markdown stubs: [shadow-eval-stubs/](./shadow-eval-stubs/).

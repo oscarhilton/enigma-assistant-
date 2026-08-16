@@ -77,6 +77,7 @@ Shared protocol types (`packages/ingestion/.../protocol.py`) are owned by M01-er
 Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milestone-map.md).  
 Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).  
 Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; do not invent a top-level D13 for corpus).  
+Shadow evaluation rubric: [docs/architecture/shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) (seven post-Alex questions).  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).
 
 ## Phase 2 corpus extension (D08 subtasks)

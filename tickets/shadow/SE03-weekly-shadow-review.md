@@ -1,55 +1,58 @@
-# SE03 — Weekly shadow review artefact
+# SE03 — Weekly Shadow review artefact
 
 | Field | Value |
 | --- | --- |
 | Status | `todo` |
 | Branch | `ticket/SE03-weekly-shadow-review` |
 | Domain | `shadow` |
-| Baseline | [shadow-evaluation.md](../../docs/architecture/shadow-evaluation.md) (Q1–Q7 packaging) |
+| Baseline | [shadow-evaluation.md](../../docs/architecture/shadow-evaluation.md) |
 
 ## Package boundary (hard)
 
-- May edit: `packages/evaluation/**` (or `packages/shadow_eval/**`) CLI / report builder stubs
-- May add: Markdown + JSON templates under `docs/` or package `templates/`
-- May edit: tests that render an empty / fixture week report
-- Must not edit: `EnvironmentMode` (S01); full web dashboard / product UI
-- Must not edit: Demo Alex ground-truth reports as if they were Shadow reviews
+- May edit: review builder under `packages/evaluation/**` (or agreed shadow-eval package) + CLI entrypoint declared in PR
+- May edit: schema examples under `docs/` or package fixtures
+- May write review files only under the Shadow storage root (when S01/S06 root exists; tmp_path in tests otherwise)
+- Must **not** edit: `EnvironmentMode` / simulation environment module (S01)
+- Must **not** ship a full weekly-review UI (CLI / file artefact only)
+- Must **not** mix Demo scenario data into the review scores
 
 ## Hard depends
 
-- None for template + empty `metrics.json` stub
+- None for schema + empty-report fixture
 
 ## Soft depends (~)
 
-- [SE01](./SE01-action-vs-attention.md) (joins for Q1/Q2/Q5/Q6)
-- [SE02](./SE02-suppressed-notification-audit.md) (suppress volume for Q3)
-- S01/S03 (live logs when available)
+- SE01 (action vs attention metrics)
+- SE02 (suppression summary)
+- S01 / S06 (Shadow root path)
+- S03 (attention log volume)
 
 ## Unlocks / enhances
 
-- Single artefact answering “did real life behave like Alex?” week by week
-- Human labelling slot for Q4 relationships + Q7 novel misses
+- Rubric questions 4, 5, 7 (relationships sample, memory improvement curves, novel misses)
+- Honest Phase 3 exit discussion inputs
 
 ## Non-goals
 
-- Polished product UI or email digests
-- Automated statistical significance claims
-- Remote upload of weekly reviews
+- Emailing or uploading weekly reviews
+- Statistical significance claims
+- Auto-filing Demo corpus PRs from novel misses (human triage only)
 
 ## Acceptance criteria
 
-- [ ] Layout `reports/shadow/<week_id>/{review.md,metrics.json,novel_misses.json}` documented
-- [ ] `review.md` template with sections Q1–Q7 matching the architecture rubric
-- [ ] CLI stub (e.g. `enigma-shadow-review`) writes the skeleton from fixtures; metrics may be `null` / `unknown`
-- [ ] Fixture test: golden skeleton snapshot (no Private/Demo paths mixed in)
-- [ ] Explicit note: Demo ground truth ≠ Shadow behaviour labels
+- [ ] Weekly artefact schema: config snapshot, rubric scores, relationship sample slot, novel-miss log, suppression summary, privacy note
+- [ ] Builder produces JSON (optional Markdown) for a given ISO week from stub/empty inputs without crashing
+- [ ] Path convention documented (`reviews/YYYY-Www.json` under Shadow root)
+- [ ] Tests: golden/empty fixture; assert Demo ground truth not consulted
+- [ ] Cross-link from [shadow-mode-questions.md](../../docs/architecture/shadow-mode-questions.md) / evaluation doc
 
 ## Test plan
 
-- Run stub on tiny fixture → files exist; Q sections present
-- Refuse output path under `~/.enigma/demo/` when Shadow root helpers exist (soft if S01 not merged)
+- Build review from empty SE01/SE02 stubs → valid schema
+- Reject / ignore attempts to pass Demo scenario paths as score sources
 
 ## Privacy constraints
 
-- Reports local-only under Shadow root / developer `reports/shadow/`
-- Novel-miss catalogue stores ids + short labels — not raw mail
+- Relationship sample stays local; no raw contact dumps in shareable exports
+- Prefer PERSON_* and coarse reason codes
+- Remote model must not receive wholesale weekly logs without an ADR
