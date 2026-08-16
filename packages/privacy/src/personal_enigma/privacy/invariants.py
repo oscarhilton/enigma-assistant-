@@ -184,8 +184,16 @@ def assert_high_privacy_not_remote(
     meta = data.get("metadata") or {}
     raw_source = source_type or (meta.get("source_type") if isinstance(meta, Mapping) else None)
     if raw_source is None:
-        return
-    source = SourceType(raw_source) if not isinstance(raw_source, SourceType) else raw_source
+        raise PrivacyInvariantError(
+            "may_transmit_remotely requires metadata.source_type "
+            "(or an explicit source_type argument)"
+        )
+    try:
+        source = SourceType(raw_source) if not isinstance(raw_source, SourceType) else raw_source
+    except ValueError as exc:
+        raise PrivacyInvariantError(
+            f"Invalid source_type for remote payload: {raw_source!r}"
+        ) from exc
     level = default_level_for_source(source)
     if level not in {PrivacyLevel.HIGH, PrivacyLevel.VERY_HIGH}:
         return

@@ -7,6 +7,7 @@ import os
 from typing import Any
 from urllib import error, request
 
+from personal_enigma.privacy import REMOTE_METADATA_KEYS
 from personal_enigma.reasoning.logging import UsageRecord
 from personal_enigma.reasoning.modes import ReasoningMode
 from personal_enigma.reasoning.protocol import ReasoningResult
@@ -73,9 +74,14 @@ class OpenAIChatTransport:
                             "context": {
                                 "summary": context.summary,
                                 "entities": context.entities,
-                                "metadata": context.metadata,
+                                "metadata": {
+                                    key: value
+                                    for key, value in context.metadata.items()
+                                    if key in REMOTE_METADATA_KEYS
+                                },
                             },
-                        }
+                        },
+                        default=str,
                     ),
                 },
             ],

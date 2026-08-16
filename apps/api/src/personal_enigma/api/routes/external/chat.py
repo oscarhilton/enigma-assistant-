@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from personal_enigma.privacy import (
     InspectionResult,
+    REMOTE_METADATA_KEYS,
     RemoteInferenceConfig,
     inspect_transformed_context,
 )
@@ -56,10 +57,15 @@ def install_chat_routes(app: FastAPI) -> None:
         authorization: str | None = Header(default=None),
     ) -> ChatResponse:
         _require_local_auth(authorization)
+        safe_metadata = {
+            key: value
+            for key, value in body.metadata.items()
+            if key in REMOTE_METADATA_KEYS
+        }
         ctx = TransformedContext(
             summary=body.summary,
             entities=body.entities,
-            metadata=dict(body.metadata),
+            metadata=safe_metadata,
             may_transmit_remotely=body.may_transmit_remotely,
         )
         mode_env = os.environ.get("ENIGMA_REASONING_MODE", "disabled").lower()
