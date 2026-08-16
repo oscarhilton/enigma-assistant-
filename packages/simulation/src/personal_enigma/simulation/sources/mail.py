@@ -87,7 +87,6 @@ class SyntheticMailSource:
             source="mail",
             until=until,
         )
-        self._until = until
 
     async def get_changes(self, cursor: SyncCursor | None) -> ChangeBatch:
         items = [

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from personal_enigma.domain import PrivateCalendarEvent
 from personal_enigma.ingestion.protocol import ChangeBatch, SyncCursor
@@ -23,7 +23,8 @@ def event_from_scenario(event: ScenarioEvent) -> PrivateCalendarEvent | None:
     raw_id = str(payload.get("id") or event.id)
     if event.type == "calendar.cancel":
         # Represent cancellation as a zero-length tombstone window for consumers.
-        at = _aware(event.at) or datetime(2026, 1, 1, tzinfo=UTC)
+        at = _aware(event.at)
+        assert at is not None  # ScenarioEvent.at is required
         return PrivateCalendarEvent(
             id=stable_id("cal", raw_id),
             provider="apple_calendar",

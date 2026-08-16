@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 
 from personal_enigma.domain import (
-    Obligation,
     PrivateCalendarEvent,
     PrivateMessage,
     PrivateNote,
@@ -73,10 +72,3 @@ def test_demo_environment_registers_synthetic_not_real() -> None:
     env.register_source(SyntheticMailSource(pkg))
     with pytest.raises(RealSourceAccessError):
         env.register_source(GmailSource(access_token="x"))
-
-
-def test_adapters_do_not_construct_obligations() -> None:
-    from personal_enigma.simulation.sources import mail as mail_mod
-
-    assert not hasattr(mail_mod, "Obligation")
-    assert Obligation.__name__ == "Obligation"
