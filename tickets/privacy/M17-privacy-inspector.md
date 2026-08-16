@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/M17-privacy-inspector` |
 | Domain | `privacy` |
 
@@ -32,10 +32,10 @@
 
 ## Acceptance criteria
 
-- [ ] UI/API shows what would be sent remotely for a given attention action
-- [ ] Shows privacy level per source and redactions applied
-- [ ] Allows user to cancel remote send
-- [ ] Documents Apple permission revocation effects
+- [x] UI/API shows what would be sent remotely for a given attention action
+- [x] Shows privacy level per source and redactions applied
+- [x] Allows user to cancel remote send
+- [x] Documents Apple permission revocation effects
 
 ## Test plan
 

@@ -22,6 +22,7 @@ from personal_enigma.privacy.notes_policy import (
     notes_default_privacy_level,
     wholesale_note_body_remote_safe,
 )
+from personal_enigma.privacy.inspector import InspectionResult, inspect_transformed_context
 from personal_enigma.privacy.remote import RemoteInferenceConfig, may_send_remotely
 
 __all__ = [
@@ -32,6 +33,7 @@ __all__ = [
     "REMOTE_METADATA_KEYS",
     "REMOTE_PAYLOAD_ALLOWLIST_DOC",
     "REMOTE_PAYLOAD_TOP_LEVEL_KEYS",
+    "InspectionResult",
     "RemoteInferenceConfig",
     "assert_no_private_person_fields",
     "assert_notes_not_wholesale_remote_safe",
@@ -39,6 +41,7 @@ __all__ = [
     "assert_remote_payload_safe",
     "assert_transformed_corpus_safe",
     "default_level_for_source",
+    "inspect_transformed_context",
     "may_send_remotely",
     "notes_default_privacy_level",
     "payload_as_dict",
