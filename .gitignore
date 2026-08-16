@@ -51,6 +51,8 @@ coverage/
 htmlcov/
 .coverage
 *.lcov
+reports/
+reports/
 
 # Local data
 data/

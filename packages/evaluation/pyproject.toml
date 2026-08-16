@@ -1,11 +1,18 @@
 [project]
 name = "personal-enigma-evaluation"
 version = "0.1.0"
-description = "Demo Mode evaluation runner and metric placeholders"
+description = "Demo Mode evaluation runner, ground truth, and metrics"
 requires-python = ">=3.12"
 dependencies = [
   "personal-enigma-domain",
+  "personal-enigma-privacy",
+  "personal-enigma-attention",
+  "pydantic>=2.10.0",
+  "pyyaml>=6.0.0",
 ]
+
+[project.scripts]
+enigma-eval = "personal_enigma.evaluation.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -16,3 +23,5 @@ packages = ["src/personal_enigma"]
 
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
+personal-enigma-privacy = { workspace = true }
+personal-enigma-attention = { workspace = true }

@@ -1,4 +1,4 @@
-"""Metric modules — placeholders for D7."""
+"""Metric modules for Demo Mode evaluation."""
 
 from personal_enigma.evaluation.metrics import attention, cost, memory, privacy, retrieval
 

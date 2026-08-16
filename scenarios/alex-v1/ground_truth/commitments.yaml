@@ -1,6 +1,20 @@
 # Commitment truth for Alex v0.2.0 — evaluator-only.
 
 commitments:
+  - id: commitment_atlas_review
+    description: Review Atlas proposal for Maya
+    kind: inferred
+    created_at: "2026-03-17T11:14:00Z"
+    due_at: "2026-03-20T15:00:00Z"
+    obligation_id: obligation_atlas_review
+    evidence_ids:
+      - mail-atlas-ask
+    status_timeline:
+      - at: "2026-03-17T11:14:00Z"
+        status: open
+      - at: "2026-03-20T12:30:00Z"
+        status: completed
+
   - id: commitment_q1_roadmap
     description: Send Q1 design priorities to Maya
     kind: explicit_reminder
