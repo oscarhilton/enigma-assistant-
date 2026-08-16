@@ -44,7 +44,7 @@ export const FIXTURE_ATTENTION: DemoAttentionItem[] = [
     title: "Follow up with Maya on scheduling",
     when: null,
     why_now_glance: "Thread waiting on you",
-    body: "This scheduling thread still appears to be waiting on you.",
+    body: "Maya is still waiting for a scheduling response.",
     kind: "follow_up",
     priority: 3,
     confidence: 0.72,
@@ -53,12 +53,22 @@ export const FIXTURE_ATTENTION: DemoAttentionItem[] = [
   },
 ];
 
+/** Secondary can-wait buckets for alex-v1 Demo stubs (sum = suppressed_count). */
+export const FIXTURE_CAN_WAIT_GROUPS = [
+  { id: "upcoming_calendar" as const, label: "Upcoming calendar", count: 12 },
+  { id: "open_threads" as const, label: "Open threads", count: 8 },
+  { id: "informational" as const, label: "Informational", count: 15 },
+  { id: "automated_noise" as const, label: "Automated / noise", count: 12 },
+];
+
 export const FIXTURE_ATTENTION_PAYLOAD: DemoAttentionPayload = {
   items: FIXTURE_ATTENTION,
   signals_considered: 49,
   surfaced_count: 2,
   suppressed_count: 47,
+  can_wait_groups: FIXTURE_CAN_WAIT_GROUPS,
   simulated_time: FIXTURE_STATUS.simulated_time,
+  evaluated_at: "2026-01-01T08:58:00+00:00",
 };
 
 export const FIXTURE_SUPPRESSED: DemoSuppressedPayload = {
@@ -87,6 +97,7 @@ export const FIXTURE_SUPPRESSED: DemoSuppressedPayload = {
       relationship_relevance: "low",
       deadline: "none",
       decision: "suppressed",
+      can_wait_category: "informational",
       why_not: [
         "Message is a bulk newsletter with no personal ask.",
         "No open obligation or deadline tied to USER.",
@@ -101,6 +112,7 @@ export const FIXTURE_SUPPRESSED: DemoSuppressedPayload = {
       relationship_relevance: "none",
       deadline: "none",
       decision: "suppressed",
+      can_wait_category: "automated_noise",
       why_not: ["Matches unsolicited / phishing-like patterns."],
     },
   ],

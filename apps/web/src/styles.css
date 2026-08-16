@@ -315,11 +315,50 @@ nav a.active {
 
 .demo-attention-can-wait {
   margin: 0 0 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
 }
 
 .demo-attention-can-wait-note {
-  margin: 0.4rem 0 0;
+  margin: 0;
   max-width: 36rem;
+}
+
+.demo-attention-can-wait-groups {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.demo-attention-can-wait-group-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.demo-attention-can-wait-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.demo-attention-can-wait-group-detail {
+  margin: 0.15rem 0 0.35rem 0.1rem;
+  max-width: 28rem;
+  font-size: 0.85rem;
+}
+
+.demo-attention-evaluated {
+  margin: 0.85rem 0 0;
+  font-size: 0.85rem;
 }
 
 .demo-attention-what {
