@@ -53,6 +53,60 @@ _STOPWORDS = frozenset(
     }
 )
 
+# Shared machine-sludge tokens must not glue PrizeVault/BuildCloud/… into one
+# INFERRED_COMMITMENT. Distinctive topical tokens still allow human merges.
+_MACHINE_GENERIC_TOKENS = frozenset(
+    {
+        "account",
+        "notification",
+        "notifications",
+        "unsubscribe",
+        "update",
+        "updates",
+        "newsletter",
+        "digest",
+        "promo",
+        "promotion",
+        "claim",
+        "reward",
+        "weekly",
+        "security",
+        "notice",
+        "build",
+        "pipeline",
+        "succeeded",
+        "finished",
+        "receipt",
+        "order",
+        "delivery",
+        "shipped",
+        "confirm",
+        "confirmed",
+        "action",
+        "needed",
+        "view",
+        "logs",
+        "offer",
+        "off",
+        "percent",
+        "free",
+        "win",
+        "winner",
+        "click",
+        "now",
+        "today",
+        "this",
+        "week",
+        "from",
+        "with",
+        "for",
+        "and",
+        "any",
+        "time",
+        "anytime",
+    }
+)
+
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
@@ -73,6 +127,26 @@ def _related(a: frozenset[str], b: frozenset[str]) -> bool:
     if len(overlap) == 1 and min(len(a), len(b)) <= 3:
         return True
     return False
+
+
+def _related_email_pair(a: frozenset[str], b: frozenset[str]) -> bool:
+    """Email↔email relatedness ignores shared machine-sludge tokens."""
+    if not a or not b:
+        return False
+    distinctive = (a & b) - _MACHINE_GENERIC_TOKENS
+    if len(distinctive) >= 2:
+        return True
+    if len(distinctive) == 1 and min(len(a), len(b)) <= 3:
+        return True
+    return False
+
+
+def _message_thread_id(message: PrivateMessage) -> str | None:
+    thread = message.thread_id
+    if thread is None:
+        return None
+    cleaned = str(thread).strip()
+    return cleaned or None
 
 
 @dataclass
@@ -181,12 +255,32 @@ def _build_obligation(cluster: _Cluster) -> Obligation:
     )
 
 
+def _signals_related(left: _Signal, right: _Signal) -> bool:
+    """Decide whether two email signals belong together."""
+    left_thread = _message_thread_id(left.message) if left.message else None
+    right_thread = _message_thread_id(right.message) if right.message else None
+    if left_thread and right_thread and left_thread == right_thread:
+        return True
+    return _related_email_pair(left.tokens, right.tokens)
+
+
+def _should_join(signal: _Signal, cluster: _Cluster) -> bool:
+    """Join when related to any member; email↔email uses sludge-aware tokens."""
+    for member in cluster.signals:
+        if signal.message is not None and member.message is not None:
+            if _signals_related(signal, member):
+                return True
+        elif _related(signal.tokens, member.tokens):
+            return True
+    return False
+
+
 def _cluster_signals(signals: list[_Signal]) -> list[_Cluster]:
     clusters: list[_Cluster] = []
     for signal in signals:
         placed = False
         for cluster in clusters:
-            if _related(signal.tokens, cluster.tokens):
+            if _should_join(signal, cluster):
                 cluster.signals.append(signal)
                 placed = True
                 break

@@ -5,7 +5,11 @@ attention, memory, or the external sanitised surface.
 """
 
 from personal_enigma.evaluation.ab_eval import (
+    PollutionTrace,
     StorylineRecallAB,
+    attention_candidate_fingerprint,
+    commitment_merge_pollution_traces,
+    compare_machine_mail_merge_pollution,
     compare_storyline_ab,
     storyline_ab_report,
     storyline_recall_under_noise,
@@ -71,6 +75,7 @@ __all__ = [
     "MemoryCheckpoint",
     "MissedObligation",
     "ObligationTruth",
+    "PollutionTrace",
     "ReplayMismatchPolicy",
     "ReplayPaygTransport",
     "SCALE_LADDER",
@@ -80,7 +85,10 @@ __all__ = [
     "SignalTruth",
     "StorylineRecallAB",
     "SurfacedAlert",
+    "attention_candidate_fingerprint",
     "background_false_alerts_per_1000",
+    "commitment_merge_pollution_traces",
+    "compare_machine_mail_merge_pollution",
     "compare_storyline_ab",
     "corpus_fingerprint",
     "default_replay_fixture_path",

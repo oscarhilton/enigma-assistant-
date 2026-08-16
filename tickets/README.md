@@ -97,7 +97,7 @@ D03–D12 tickets carry **amendments** for background schema, multi-stream mail,
 Do not invent speculative F-* work during D08c. Once the merge gate is green, claim in this order:
 
 1. Correctness: `F-background-basic` → `F-background-threading` → `F-background-identity` → `F-background-canonical-isolation` → `F-background-no-alert`
-2. Quality: `F-background-volume-vs-importance` → `F-retrieval-keyword-pollution`
+2. Quality: `F-background-volume-vs-importance` → `F-retrieval-keyword-pollution` → `F-unrelated-machine-mail-not-merged`
 3. Import boundary: `F-corpus-real-domain-rewrite` → `F-corpus-live-url` → `F-corpus-secret-like-string` → `F-corpus-unexpected-real-entity`
 
 ## Ticket template fields

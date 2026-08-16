@@ -1,0 +1,4 @@
+# Evaluator-only: machine sludge must not surface as attention.
+# No genuine obligations in this fixture.
+
+obligations: []

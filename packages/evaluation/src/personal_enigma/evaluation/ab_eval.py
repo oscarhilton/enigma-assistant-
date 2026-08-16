@@ -2,11 +2,157 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from hashlib import sha256
 from typing import Any
 
 from personal_enigma.evaluation.fingerprint import corpus_fingerprint
 from personal_enigma.evaluation.regression import DEFAULT_THRESHOLDS, RegressionResult
+
+
+@dataclass(frozen=True, slots=True)
+class PollutionTrace:
+    """D08c retrieval / commitment-merge pollution artefact.
+
+    Emit one trace per decision (canonical miss, changed ranking, or suspected
+    cross-brand merge). ``polluted`` is True when unrelated evidence collapsed
+    into a single attention-candidate fingerprint.
+    """
+
+    decision_id: str
+    kind: str
+    polluted: bool
+    fingerprint: str
+    evidence_ids: tuple[str, ...]
+    labels: tuple[str, ...] = ()
+    note: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "decision_id": self.decision_id,
+            "kind": self.kind,
+            "polluted": self.polluted,
+            "fingerprint": self.fingerprint,
+            "evidence_ids": list(self.evidence_ids),
+            "labels": list(self.labels),
+            "note": self.note,
+        }
+
+
+def attention_candidate_fingerprint(
+    *,
+    kind: str,
+    evidence_ids: Sequence[str],
+) -> str:
+    """Stable fingerprint for one attention / commitment candidate."""
+    payload = f"{kind}|{'|'.join(sorted(evidence_ids))}"
+    return sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def commitment_merge_pollution_traces(
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    expected_singleton_evidence_ids: Sequence[str],
+    labels_by_evidence_id: Mapping[str, str] | None = None,
+    decision_id: str = "unrelated-machine-mail-merge",
+) -> list[PollutionTrace]:
+    """Trace whether unrelated evidence ids collapsed into one fingerprint.
+
+    ``candidates`` entries need ``kind`` and ``evidence_ids``. A candidate that
+    contains two or more of ``expected_singleton_evidence_ids`` is polluted.
+    """
+    labels = labels_by_evidence_id or {}
+    expected = list(expected_singleton_evidence_ids)
+    expected_set = set(expected)
+    traces: list[PollutionTrace] = []
+
+    for index, candidate in enumerate(candidates):
+        kind = str(candidate.get("kind") or "inferred_commitment")
+        evidence_ids = tuple(str(eid) for eid in candidate.get("evidence_ids") or ())
+        fp = attention_candidate_fingerprint(kind=kind, evidence_ids=evidence_ids)
+        hit = [eid for eid in evidence_ids if eid in expected_set]
+        hit_labels = tuple(labels.get(eid, eid) for eid in hit)
+        polluted = len(hit) >= 2
+        note = (
+            f"collapsed {len(hit)} unrelated machine mails into one candidate"
+            if polluted
+            else "candidate keeps disjoint machine-mail evidence"
+        )
+        traces.append(
+            PollutionTrace(
+                decision_id=f"{decision_id}:{index}",
+                kind="commitment_merge",
+                polluted=polluted,
+                fingerprint=fp,
+                evidence_ids=evidence_ids,
+                labels=hit_labels,
+                note=note,
+            )
+        )
+
+    covered = {
+        eid
+        for candidate in candidates
+        for eid in (candidate.get("evidence_ids") or ())
+        if eid in expected_set
+    }
+    missing = [eid for eid in expected if eid not in covered]
+    if missing:
+        traces.append(
+            PollutionTrace(
+                decision_id=f"{decision_id}:missing",
+                kind="commitment_merge",
+                polluted=True,
+                fingerprint="",
+                evidence_ids=tuple(missing),
+                labels=tuple(labels.get(eid, eid) for eid in missing),
+                note="expected machine-mail evidence absent from all candidates",
+            )
+        )
+
+    singleton_fps = [
+        attention_candidate_fingerprint(
+            kind=str(candidate.get("kind") or "inferred_commitment"),
+            evidence_ids=list(candidate.get("evidence_ids") or ()),
+        )
+        for candidate in candidates
+        if len(list(candidate.get("evidence_ids") or ())) == 1
+        and next(iter(candidate.get("evidence_ids") or ())) in expected_set
+    ]
+    if (
+        expected
+        and not any(t.polluted for t in traces)
+        and len(set(singleton_fps)) < len(expected)
+    ):
+        traces.append(
+            PollutionTrace(
+                decision_id=f"{decision_id}:fingerprint-collapse",
+                kind="attention_fingerprint",
+                polluted=True,
+                fingerprint="",
+                evidence_ids=tuple(expected),
+                labels=tuple(labels.get(eid, eid) for eid in expected),
+                note=(
+                    f"expected {len(expected)} distinct fingerprints, "
+                    f"observed {len(set(singleton_fps))}"
+                ),
+            )
+        )
+
+    return traces
+
+
+def compare_machine_mail_merge_pollution(
+    traces: Sequence[PollutionTrace],
+) -> RegressionResult:
+    """Regression gate: no commitment-merge / fingerprint pollution allowed."""
+    violations = [
+        f"{t.decision_id}: {t.note} (evidence={list(t.evidence_ids)})"
+        for t in traces
+        if t.polluted
+    ]
+    return RegressionResult(passed=not violations, violations=violations)
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,6 +299,7 @@ def storyline_ab_report(
     profile: str = "demo",
     n_messages: int = 0,
     git_commit: str | None = None,
+    pollution_traces: Sequence[PollutionTrace] | None = None,
 ) -> dict[str, Any]:
     """Immutable-ish A/B comparison artefact with corpus fingerprint (D08e)."""
     ab = storyline_recall_under_noise(
@@ -171,6 +318,7 @@ def storyline_ab_report(
         sanitiser_version=sanitiser_version,
         n_messages=n_messages,
     )
+    traces = [t.as_dict() for t in (pollution_traces or ())]
     return {
         "baseline": spine_metrics,
         "treatment": treatment_metrics,
@@ -179,11 +327,16 @@ def storyline_ab_report(
         "ab": ab.as_dict(),
         "git_commit": git_commit,
         "corpus_fingerprint": fp.as_dict(),
+        "pollution_traces": traces,
     }
 
 
 __all__ = [
+    "PollutionTrace",
     "StorylineRecallAB",
+    "attention_candidate_fingerprint",
+    "commitment_merge_pollution_traces",
+    "compare_machine_mail_merge_pollution",
     "compare_storyline_ab",
     "storyline_ab_report",
     "storyline_recall_under_noise",

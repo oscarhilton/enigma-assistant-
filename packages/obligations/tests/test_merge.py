@@ -8,6 +8,7 @@ from personal_enigma.attention import AttentionKind
 from personal_enigma.domain import (
     CalendarEvidence,
     EmailEvidence,
+    PrivateMessage,
     ReminderEvidence,
 )
 from personal_enigma.fixtures import build_calendar_event, review_proposal_scenario
@@ -126,3 +127,89 @@ def test_unrelated_sources_remain_separate() -> None:
     descriptions = {o.description for o in obligations}
     assert "Review proposal" in descriptions
     assert "Dentist appointment" in descriptions
+
+
+def test_unrelated_machine_mails_do_not_merge_on_sludge_phrasing() -> None:
+    """PrizeVault / BuildCloud / … sharing 'account notification' stay separate."""
+    brands = (
+        ("mail-prizevault", "PrizeVault"),
+        ("mail-buildcloud", "BuildCloud"),
+        ("mail-productpulse", "ProductPulse"),
+        ("mail-growthkit", "GrowthKit"),
+    )
+    messages = [
+        PrivateMessage(
+            id=mid,
+            provider="gmail",
+            provider_message_id=mid,
+            thread_id=f"thread-{brand.lower()}",
+            subject=f"Your account notification from {brand}",
+            snippet=f"Unsubscribe anytime. Your account notification from {brand}.",
+            body_text=(
+                f"{brand} sludge. Unsubscribe anytime. "
+                f"Your account notification from {brand}."
+            ),
+        )
+        for mid, brand in brands
+    ]
+    obligations = merge_sources(messages=messages)
+    items = merge_sources_to_attention(messages=messages)
+    assert len(obligations) == len(brands)
+    assert len(items) == len(brands)
+    assert all(item.kind == AttentionKind.INFERRED_COMMITMENT for item in items)
+    assert {tuple(item.evidence_ids) for item in items} == {
+        (mid,) for mid, _ in brands
+    }
+
+
+def test_unrelated_machine_brand_mails_remain_separate() -> None:
+    """Shared sludge tokens must not glue PrizeVault/BuildCloud into one obligation."""
+    from personal_enigma.fixtures import build_message, build_person_ref
+
+    mails = [
+        build_message(
+            id="mail-prizevault",
+            provider_message_id="mail-prizevault",
+            thread_id="thread-prizevault",
+            subject="Your account notification from PrizeVault",
+            snippet="Claim your PrizeVault reward — account notification.",
+            body_text="Claim your PrizeVault reward — account notification.",
+            from_person=build_person_ref(
+                display_name="PrizeVault",
+                email="noreply@prizevault.example",
+                provider_id="pv",
+            ),
+        ),
+        build_message(
+            id="mail-buildcloud",
+            provider_message_id="mail-buildcloud",
+            thread_id="thread-buildcloud",
+            subject="Your account notification from BuildCloud",
+            snippet="BuildCloud build succeeded — account notification.",
+            body_text="BuildCloud build succeeded — account notification.",
+            from_person=build_person_ref(
+                display_name="BuildCloud",
+                email="noreply@buildcloud.example",
+                provider_id="bc",
+            ),
+        ),
+        build_message(
+            id="mail-growthkit",
+            provider_message_id="mail-growthkit",
+            thread_id="thread-growthkit",
+            subject="Your account notification from GrowthKit",
+            snippet="GrowthKit promo — account notification.",
+            body_text="GrowthKit promo — account notification.",
+            from_person=build_person_ref(
+                display_name="GrowthKit",
+                email="marketing@growthkit.example",
+                provider_id="gk",
+            ),
+        ),
+    ]
+    obligations = merge_sources(messages=mails)
+    items = merge_sources_to_attention(messages=mails)
+    assert len(obligations) == 3
+    assert len(items) == 3
+    assert all(i.kind == AttentionKind.INFERRED_COMMITMENT for i in items)
+    assert all(len(i.evidence_ids) == 1 for i in items)

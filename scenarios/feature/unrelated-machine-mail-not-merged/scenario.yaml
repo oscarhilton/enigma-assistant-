@@ -1,0 +1,109 @@
+id: unrelated-machine-mail-not-merged
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-04-12T08:00:00Z"
+seed: unrelated-machine-mail-v1
+description: >
+  PrizeVault-style pollution: unrelated machine mails that share sludge phrasing
+  ("account notification") must not merge into one INFERRED_COMMITMENT or one
+  attention-candidate fingerprint.
+events:
+  - id: umm-contact-self
+    at: "2026-04-12T08:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      email: alex.morgan@northwind.example
+
+  - id: umm-mail-prizevault
+    at: "2026-04-12T09:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-prizevault
+      thread_id: thread-prizevault
+      subject: "Your account notification from PrizeVault — claim your reward"
+      from: noreply@prizevault.example
+      to: [alex.morgan@northwind.example]
+      snippet: Unsubscribe anytime. Your account notification from PrizeVault.
+      body_text: >
+        PrizeVault: claim your reward. Unsubscribe anytime.
+        Your account notification from PrizeVault.
+
+  - id: umm-mail-buildcloud
+    at: "2026-04-12T09:05:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-buildcloud
+      thread_id: thread-buildcloud
+      subject: "Your account notification from BuildCloud — build #8842"
+      from: noreply@buildcloud.example
+      to: [alex.morgan@northwind.example]
+      snippet: Build succeeded. Your account notification from BuildCloud.
+      body_text: >
+        BuildCloud pipeline finished. View logs.
+        Your account notification from BuildCloud.
+
+  - id: umm-mail-productpulse
+    at: "2026-04-12T09:10:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-productpulse
+      thread_id: thread-productpulse
+      subject: "Your account notification from ProductPulse — weekly digest"
+      from: news@productpulse.example
+      to: [alex.morgan@northwind.example]
+      snippet: This week in product. Your account notification from ProductPulse.
+      body_text: >
+        ProductPulse weekly digest. Unsubscribe anytime.
+        Your account notification from ProductPulse.
+
+  - id: umm-mail-growthkit
+    at: "2026-04-12T09:15:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-growthkit
+      thread_id: thread-growthkit
+      subject: "Your account notification from GrowthKit — 20% off"
+      from: marketing@growthkit.example
+      to: [alex.morgan@northwind.example]
+      snippet: Limited offer. Your account notification from GrowthKit.
+      body_text: >
+        GrowthKit promo: 20% off. Unsubscribe anytime.
+        Your account notification from GrowthKit.
+
+  - id: umm-mail-designledger
+    at: "2026-04-12T09:20:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-designledger
+      thread_id: thread-designledger
+      subject: "Your account notification from DesignLedger — newsletter"
+      from: news@designledger.example
+      to: [alex.morgan@northwind.example]
+      snippet: DesignLedger newsletter. Your account notification.
+      body_text: >
+        DesignLedger weekly newsletter. Unsubscribe anytime.
+        Your account notification from DesignLedger.
+
+  - id: umm-mail-parcelpost
+    at: "2026-04-12T09:25:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-parcelpost
+      thread_id: thread-parcelpost
+      subject: "Your account notification from ParcelPost — out for delivery"
+      from: shipments@parcelpost.example
+      to: [alex.morgan@northwind.example]
+      snippet: Package out for delivery. Your account notification from ParcelPost.
+      body_text: >
+        ParcelPost: your package is out for delivery.
+        Your account notification from ParcelPost.

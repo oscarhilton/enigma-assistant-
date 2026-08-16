@@ -1,0 +1,22 @@
+# Evaluator-only noise signal classifications (D08c / D08d).
+# Enigma payloads must never include these fields.
+
+signals:
+  - evidence_id: mail-prizevault
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: mail-buildcloud
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: mail-productpulse
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: mail-growthkit
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: mail-designledger
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: mail-parcelpost
+    signal_class: noise
+    expected_attention: false
