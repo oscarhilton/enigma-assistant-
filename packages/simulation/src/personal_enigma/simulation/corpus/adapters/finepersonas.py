@@ -43,8 +43,9 @@ class FinePersonasAdapter:
     async def iterate_conversations(self) -> AsyncIterator[CorpusConversation]:
         path = self._conversations_path()
         if not path.exists():
+            if False:  # pragma: no cover — keep AsyncIterator typing
+                yield CorpusConversation(id="", messages=[])
             return
-            yield  # pragma: no cover — makes this an async generator
         with path.open(encoding="utf-8") as handle:
             for line in handle:
                 if not line.strip():

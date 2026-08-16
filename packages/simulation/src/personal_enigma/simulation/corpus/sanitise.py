@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from hashlib import sha256
 from typing import Any
 
 from personal_enigma.simulation.corpus.models import CorpusConversation, CorpusMessage
@@ -27,6 +28,12 @@ def strip_generation_metadata(raw: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in raw.items() if k not in GENERATION_METADATA_KEYS}
 
 
+def _stable_index(value: str, *, modulus: int = 10_000) -> int:
+    """Deterministic index — never use built-in ``hash()`` (process-salted)."""
+    digest = sha256(value.encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) % modulus
+
+
 def _rewrite_email(email: str, *, index: int) -> str:
     local = email.split("@", 1)[0] if "@" in email else email or f"person-{index}"
     safe_local = (
@@ -50,12 +57,16 @@ def sanitise_conversation(
     messages: list[CorpusMessage] = []
     for msg in conversation.messages:
         sender_email = (
-            _rewrite_email(msg.sender_email, index=abs(hash(msg.sender_email)) % 10_000)
+            _rewrite_email(msg.sender_email, index=_stable_index(msg.sender_email))
             if rewrite_domains
             else msg.sender_email
         )
         recipient_emails = [
-            _rewrite_email(addr, index=abs(hash(addr)) % 10_000) if rewrite_domains else addr
+            (
+                _rewrite_email(addr, index=_stable_index(addr))
+                if rewrite_domains
+                else addr
+            )
             for addr in msg.recipient_emails
         ]
         messages.append(
@@ -75,6 +86,7 @@ def sanitise_raw_record(raw: dict[str, Any]) -> dict[str, Any]:
     emails = cleaned.get("emails")
     if isinstance(emails, list):
         cleaned["emails"] = [
-            strip_generation_metadata(item) if isinstance(item, dict) else item for item in emails
+            strip_generation_metadata(item) if isinstance(item, dict) else item
+            for item in emails
         ]
     return cleaned

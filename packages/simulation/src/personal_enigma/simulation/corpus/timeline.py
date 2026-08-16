@@ -18,7 +18,9 @@ def place_conversation_on_timeline(
 ) -> list[ScenarioEvent]:
     """Map conversation messages into scenario mail events inside ``[start, end]``.
 
-    Relative reply gaps are preserved (1h stub spacing) and clamped into the window.
+    Relative reply gaps are preserved (1h stub spacing). When the natural
+    schedule would exceed ``window_end``, timestamps stay strictly increasing
+    so merge sort by ``(at, id)`` cannot reorder replies within a thread.
     """
     if not conversation.messages:
         return []
@@ -29,14 +31,21 @@ def place_conversation_on_timeline(
 
     rng = Random(f"{seed}:{conversation.id}")
     span_seconds = max(1, int((window_end - window_start).total_seconds()))
-    offset = rng.randrange(span_seconds)
+    # Leave room for one-second gaps between messages when clamping.
+    reserve = max(0, len(conversation.messages) - 1)
+    usable = max(1, span_seconds - reserve)
+    offset = rng.randrange(usable)
     start = window_start + timedelta(seconds=offset)
 
     events: list[ScenarioEvent] = []
+    cursor: datetime | None = None
     for index, msg in enumerate(conversation.messages):
         at = start + timedelta(hours=index)
         if at > window_end:
             at = window_end
+        if cursor is not None and at <= cursor:
+            at = cursor + timedelta(seconds=1)
+        cursor = at
         events.append(
             ScenarioEvent(
                 id=f"corpus:{conversation.id}:{index}",

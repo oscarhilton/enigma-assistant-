@@ -43,7 +43,15 @@ class CorpusManifest(BaseModel):
 
 
 def load_manifest(path: Path | str) -> CorpusManifest:
-    raw: dict[str, Any] = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if loaded is None:
+        raw: dict[str, Any] = {}
+    elif isinstance(loaded, dict):
+        raw = loaded
+    else:
+        raise ValueError(
+            f"corpus manifest {path} must be a YAML mapping, got {type(loaded).__name__}"
+        )
     # Allow nested content.synthetic / format.adapter shapes from the plan.
     if "format" in raw and isinstance(raw["format"], dict):
         raw.setdefault("adapter", raw["format"].get("adapter"))
