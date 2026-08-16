@@ -1,0 +1,51 @@
+id: commitment-resolved
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-09T08:00:00Z"
+description: Reminder completed after the promised send — commitment closes.
+events:
+  - id: cr-rem-open
+    at: "2026-03-09T09:00:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-invoice
+      title: Send invoice to finance
+      due_at: "2026-03-10T12:00:00Z"
+      is_completed: false
+  - id: cr-mail-request
+    at: "2026-03-09T09:30:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-invoice-ask
+      subject: Invoice for March
+      from: finance@northwind.example
+      snippet: Please send the March invoice today.
+  - id: cr-mail-sent
+    at: "2026-03-10T10:00:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-invoice-sent
+      subject: "Re: Invoice for March"
+      to: [finance@northwind.example]
+      snippet: Attached — thanks.
+  - id: cr-rem-done
+    at: "2026-03-10T10:05:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-invoice
+      title: Send invoice to finance
+      is_completed: true
+      completed_at: "2026-03-10T10:05:00Z"
+  - id: cr-note-log
+    at: "2026-03-10T10:10:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-invoice-log
+      title: Invoice sent
+      body_text: Sent March invoice; reminder cleared.

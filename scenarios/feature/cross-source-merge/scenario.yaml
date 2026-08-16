@@ -1,0 +1,67 @@
+id: cross-source-merge
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-23T08:00:00Z"
+description: Same obligation evidenced via mail, calendar, and reminder.
+events:
+  - id: xm-contact-tom
+    at: "2026-03-23T08:10:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      email: tom@example.com
+  - id: xm-mail
+    at: "2026-03-23T09:00:00Z"
+    type: email.receive
+    source: mail
+    payload:
+      id: mail-dinner
+      subject: Dinner Thursday?
+      from: tom@example.com
+      to: [alex.morgan@example.com]
+      snippet: Let's do dinner Thursday 19:00 at Barrafina.
+  - id: xm-cal
+    at: "2026-03-23T09:30:00Z"
+    type: calendar.upsert
+    source: calendar
+    payload:
+      id: cal-dinner
+      title: Dinner with Tom
+      start_at: "2026-03-26T19:00:00Z"
+      end_at: "2026-03-26T21:00:00Z"
+      location: Barrafina
+  - id: xm-rem
+    at: "2026-03-23T09:35:00Z"
+    type: reminder.upsert
+    source: reminders
+    payload:
+      id: rem-book-table
+      title: Book Barrafina for Thursday
+      due_at: "2026-03-25T12:00:00Z"
+  - id: xm-note
+    at: "2026-03-24T07:30:00Z"
+    type: note.upsert
+    source: notes
+    payload:
+      id: note-dinner
+      title: Thursday dinner
+      body_text: Tom confirmed Barrafina; still need to book.
+  - id: xm-mail-confirm
+    at: "2026-03-24T12:00:00Z"
+    type: email.send
+    source: mail
+    payload:
+      id: mail-booked
+      subject: "Re: Dinner Thursday?"
+      to: [tom@example.com]
+      snippet: Booked for 19:00 — see you there.
+  - id: xm-rem-done
+    at: "2026-03-24T12:05:00Z"
+    type: reminder.complete
+    source: reminders
+    payload:
+      id: rem-book-table
+      is_completed: true
