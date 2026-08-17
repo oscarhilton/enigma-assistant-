@@ -999,7 +999,8 @@ def _must_not_passed(
             for phrase in ("should do", "next is", "still need", "get going on")
         )
         if "next_action.get" in names:
-            return TOKEN_AUDIT not in sources and TOKEN_AUDIT not in live, f"sources={sources or live}"
+            absent = TOKEN_AUDIT not in sources and TOKEN_AUDIT not in live
+            return absent, f"sources={sources or live}"
         return not recited and not (about and claims_next), blob[:80] or "no recited next"
     if flag == "invent_external_venues":
         hit = _invented_external_venues(blob)
