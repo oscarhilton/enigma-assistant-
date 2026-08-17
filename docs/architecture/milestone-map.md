@@ -129,10 +129,10 @@ Second benchmark dimension: **given what matters, did Enigma offer help that red
 
 | # | Milestone | Status | Ticket |
 | --- | --- | --- | --- |
-| V2-EF-01 | Support contract schema + v1 catalogue | `todo` | [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md) |
-| V2-EF-02 | Alex v2 EF arc authoring (~30 arcs / 12 mo) | `todo` | [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) |
-| EF-01 | Support fitness evaluator (D07 extension) | `todo` | [EF-01](../../tickets/demo-evaluation/EF-01-support-fitness-evaluator.md) |
-| D14 | LLM judge benchmark (structured attention + next_action) | `todo` | [D14](../../tickets/demo-evaluation/D14-llm-judge-benchmark.md) |
+| V2-EF-02 | Alex v2 longitudinal arcs (stretch: 3 arcs) | `todo` (after R07) | [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) |
+| V2-EF-01 | Support contract schema + v1 catalogue | `superseded` → R01 | [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md) |
+| EF-01 | Support fitness evaluator (D07 extension) | `superseded` → R04 | [EF-01](../../tickets/demo-evaluation/EF-01-support-fitness-evaluator.md) |
+| D14 | LLM judge benchmark (structured attention + next_action) | `superseded` → R03 | [D14](../../tickets/demo-evaluation/D14-llm-judge-benchmark.md) |
 
 ### Three squeezes (+ Contextual Next Action)
 
@@ -142,6 +142,56 @@ Second benchmark dimension: **given what matters, did Enigma offer help that red
 4. Contextual Next Action — support contracts + EF-01 before runtime product surface
 
 Claim order: **V2-EF-01** → **V2-EF-02** ∥ **EF-01** (after schema) → **D14** (after EF-01 scorer types). Do not edit `scenarios/alex-v1/` or `packages/attention/**` for this track.
+
+> **Superseded for active work:** [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md), [EF-01](../../tickets/demo-evaluation/EF-01-support-fitness-evaluator.md), and [D14](../../tickets/demo-evaluation/D14-llm-judge-benchmark.md) are consolidated into the **Reasoning Value Gate** track (R01–R04). Claim R* tickets instead.
+
+---
+
+## Reasoning Value Gate (R01–R07)
+
+Sprint to answer: **should a reasoning model become part of Enigma's brain?** Architecture: [reasoning-value-gate.md](../demo/reasoning-value-gate.md) · ADR: [012-reasoning-value-gate-decision.md](../adr/012-reasoning-value-gate-decision.md).
+
+| # | Milestone | Status | Ticket |
+| --- | --- | --- | --- |
+| R01 | Scenario truth catalogue (alex-v1 0.2.1) | `todo` | [R01](../../tickets/reasoning/R01-scenario-truth-catalogue.md) |
+| R02 | Freeze Arm A baselines | `todo` | [R02](../../tickets/reasoning/R02-freeze-arm-a.md) |
+| R03 | Arm B LLM judge | `todo` | [R03](../../tickets/reasoning/R03-llm-judge.md) |
+| R04 | Support fitness scoring | `todo` | [R04](../../tickets/reasoning/R04-support-fitness.md) |
+| R05 | Failure attribution | `todo` | [R05](../../tickets/reasoning/R05-failure-attribution.md) |
+| R06 | Privacy ablation | `todo` | [R06](../../tickets/reasoning/R06-privacy-ablation.md) |
+| R07 | Exit report + architecture decision | `todo` | [R07](../../tickets/reasoning/R07-reasoning-value-gate-report.md) |
+
+### R* waves
+
+```text
+R01 Fix truth catalogue (absorbs V2-EF-01)
+    │
+    ▼
+R02 Freeze Arm A snapshots (15–25 checkpoints)
+    │
+    ├──────────────┐
+    ▼              ▼
+R03 LLM judge   R04 Support fitness (absorbs EF-01; absorbs D14 scoring arm)
+    │              │
+    └──────┬───────┘
+           ▼
+    R05 Failure attribution
+           │
+    R03 ───┴──► R06 Privacy ablation
+           │
+           ▼
+    R07 Exit report → ADR-012 decision
+           │
+           ▼ (stretch, after gate)
+    V2-EF-02 three longitudinal arcs only
+```
+
+**Hard rules**
+
+- Claim order: **R01** → **R02** → **R03** ∥ **R04** → **R05**; **R06** after **R03**; **R07** after **R05** + **R06**.
+- Do not change `HeuristicAttentionEngine` ranking logic during the gate — observe, don't fix.
+- Support contracts and challenge tags are evaluator-only ([ADR-011](../adr/011-observable-support-challenges-only.md)).
+- Arm A baselines are immutable after R02 merge — R03/R06 consume identical inputs.
 
 ---
 

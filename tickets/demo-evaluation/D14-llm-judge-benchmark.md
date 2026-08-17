@@ -1,9 +1,12 @@
 # D14 — LLM judge benchmark (structured attention + next_action)
 
+> **Superseded by [R03](../reasoning/R03-llm-judge.md)** — Arm B LLM judge with
+> structured JSON and replay transport ships as part of the Reasoning Value Gate sprint.
+
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
-| Branch | `ticket/D14-llm-judge-benchmark` |
+| Status | `superseded` |
+| Branch | `ticket/R03-llm-judge` |
 | Domain | `demo-evaluation` |
 
 ## Package boundary (hard)

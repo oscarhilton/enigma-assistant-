@@ -24,7 +24,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field.
+3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
@@ -42,7 +42,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | fixtures | [fixtures/](./fixtures/) | `packages/fixtures` |
 | transformation | [transformation/](./transformation/) | `packages/transformation` |
 | privacy | [privacy/](./privacy/) | `packages/privacy`, `apps/web` inspector |
-| reasoning | [reasoning/](./reasoning/) | `packages/reasoning` |
+| reasoning | [reasoning/](./reasoning/) | `packages/reasoning`, `packages/evaluation` (R01–R07 gate) |
 | attention | [attention/](./attention/) | `packages/attention` |
 | next-action | [next-action/](./next-action/) | NextAction scorer / Something-else / preference ([N01](./next-action/N01-scorer-stub.md)–[N03](./next-action/N03-preference-learning.md)); schemas [M20](./domain-model/M20-next-action-schemas.md) · [next-action.md](../docs/architecture/next-action.md) |
 | apple-bridge | [apple-bridge/](./apple-bridge/) | `apps/apple-bridge` + pinned ingestion sources |
@@ -86,7 +86,9 @@ Shadow silence evaluation: [docs/architecture/shadow-silence-evaluation.md](../d
 Open-loop commitments: [docs/architecture/open-loop-commitments.md](../docs/architecture/open-loop-commitments.md) (SE11).  
 Attention surface (Phase 2.5 wind-tunnel / F-* naming): [docs/architecture/attention-surface.md](../docs/architecture/attention-surface.md).  
 Next Action (NEEDS YOU / WORTH DOING / CAN WAIT): [docs/architecture/next-action.md](../docs/architecture/next-action.md) · [ADR-010](../docs/adr/010-next-action-not-attention.md) · [M20](./domain-model/M20-next-action-schemas.md) · [N01](./next-action/N01-scorer-stub.md)–[N03](./next-action/N03-preference-learning.md).  
-Support fitness / Alex v2: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) (V2-EF-01, V2-EF-02, EF-01, D14).  
+Support fitness / Alex v2: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) (V2-EF-02 stretch after gate).  
+**Reasoning Value Gate:** [reasoning-value-gate.md](../docs/demo/reasoning-value-gate.md) (R01–R07); [ADR-012](../docs/adr/012-reasoning-value-gate-decision.md).  
+**Superseded by R01–R04:** [V2-EF-01](./demo-scenario/V2-EF-01-support-contract-design.md) → R01 · [EF-01](./demo-evaluation/EF-01-support-fitness-evaluator.md) → R04 · [D14](./demo-evaluation/D14-llm-judge-benchmark.md) → R03 — do not claim separately.  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
 
@@ -117,6 +119,19 @@ Do not invent speculative F-* work during D08c. Once the merge gate is green, cl
 Named failures from the Demo Attention “successful failure” — see [attention-surface.md](../docs/architecture/attention-surface.md):
 
 `F-calendar-existence-is-not-attention` · `F-past-calendar-event-resolves` · `F-automated-mail-is-not-commitment` · `F-newsletter-is-not-commitment` · `F-package-notification-is-not-commitment` · `F-social-question-is-pending-reply` · `F-unrelated-machine-mail-not-merged` · `F-distinct-social-plans-not-merged` · `F-low-priority-candidate-not-surfaced`
+
+### R* claim order (Reasoning Value Gate)
+
+Active sprint — see [reasoning-value-gate.md](../docs/demo/reasoning-value-gate.md):
+
+1. **R01** — Scenario truth catalogue (alex-v1 0.2.1; absorbs V2-EF-01)
+2. **R02** — Freeze Arm A baselines (after R01)
+3. **R03** ∥ **R04** — LLM judge (absorbs D14) ∥ Support fitness (absorbs EF-01)
+4. **R05** — Failure attribution (after R03 + R04)
+5. **R06** — Privacy ablation (after R03; may overlap late R05)
+6. **R07** — Exit report + architecture decision (after R05 + R06)
+
+Do not claim V2-EF-01, EF-01, or D14 — consolidated into R01–R04.
 
 ## Ticket template fields
 
