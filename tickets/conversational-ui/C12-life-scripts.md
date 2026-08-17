@@ -73,10 +73,11 @@ Pass rate: 5/5
 - [x] Script format: embarrassingly readable YAML
 - [x] Full Jan 19 morning episode (`packages/evaluation/scripts/alex_jan19_morning.script.yaml`)
 - [x] Basic conversational sanity (`packages/evaluation/scripts/alex_conversational_sanity.script.yaml`) — routing + response_meaning; sky/what go red on `"Okay."`
-- [x] Focus vs radar (`packages/evaluation/scripts/alex_jan19_focus_vs_radar.script.yaml`) — `objects_in_response[] ≠ conversation_focus`; horizon preserves TOKEN; named referent → Assist TOKEN; brunch-in-focus + `"I need help with the design tokens"` retargets TOKEN; `"help!"` is social; delayed Assist completion deferred (parent correlation missing). Contract for [C09b](./C09b-discourse-focus.md).
+- [x] Focus vs radar (`packages/evaluation/scripts/alex_jan19_focus_vs_radar.script.yaml`) — `objects_in_response[] ≠ conversation_focus`; horizon preserves TOKEN; named referent + explicit do → Assist TOKEN; brunch-in-focus + `"Can you help me do the design tokens"` retargets TOKEN; `"help!"` is social; delayed Assist completion deferred (parent correlation missing). Contract for [C09b](./C09b-discourse-focus.md). Ambiguous `"I need help with that"` is SUPPORT ([ADR-028](../../docs/adr/028-conversational-constitution-attestation-dialogue-support.md)).
 - [x] Week grounding (`packages/evaluation/scripts/alex_jan19_week_grounding.script.yaml`) — `"Whats on this week?"` must call `agenda.get`; no-tool invention from `referent_candidates` fails (`infer_unsourced_task_details`, `invent_deadline`, `invent_recommendation_strength`, `treat_context_as_calendar`). Contract for [C09](./C09-llm-conversational-boundary.md) invariant: conversation state is not world truth.
 - [x] Assist lifecycle (`packages/evaluation/scripts/alex_jan19_assist_lifecycle.script.yaml`) — draft Assist ADVANCES TOKEN; must_not `mark_cancelled_or_complete` / `nothing_worth_doing` / `invent_empty_universe`. Contract for [C07b](./C07b-assist-completed-not-task-completed.md): ASSIST COMPLETED ≠ TASK COMPLETED.
 - [x] Speech acts (`packages/evaluation/scripts/alex_jan19_speech_acts.script.yaml`) — exact Fireworks dump utterances. Consent does not upgrade; inspect/advise/external-search defer; referent correction is not an action; turn-local Shoreditch is not memory; must_not invent external venues.
+- [x] When / now (`packages/evaluation/scripts/alex_jan19_when_should_i.script.yaml`) — empty `agenda.get` preserves null subject; leftover `referent_candidates` are not focus; `"Saturday?"` is horizon refine (`must_not` duration-as-when); `"When should I do it?"` / `"Like... now?"` compose duration then `availability.check`; confidence challenge re-queries `attention.get_current`. Contract for [C09](./C09-llm-conversational-boundary.md) intermediate-fact continue + empty-horizon focus.
 - [x] Runner plays turns through the real C09 `DemoSession.handle_message` path
 - [x] SimulationClock + first-class clock / world-event steps (temporal spec, not fake user turns)
 - [x] Privacy + authority defaults inherited on every conversational turn
@@ -88,6 +89,9 @@ Pass rate: 5/5
 - [ ] UI player (`▶ Run Alex`, Conversation / LLM trace / Privacy / Assertions tabs) — **next UI work, not this slice**
 - [ ] Repeated Fireworks runs + reliability metrics — **[C13](./C13-life-script-reliability.md), not this slice**
 - [x] Week-overview grounding (`agenda.get` · `covers` via capability + `must_not` invention flags). Cardinality-honest week copy is still later.
+- [x] WhatsApp evidence episode (`packages/evaluation/scripts/alex_jan20_whatsapp.script.yaml`) — derived fact vs still-open brunch vs local `source.quote`; verbatim chat never on the remote wire.
+- [x] User attestation (`packages/evaluation/scripts/alex_jan19_user_attestation.script.yaml`) — reports write world evidence; focus may stay TOKEN; next-action must not; social follow-up does not mutate; superseding OPEN restores the obligation. Contract for [ADR-028](../../docs/adr/028-conversational-constitution-attestation-dialogue-support.md).
+- [x] Support funnel (`packages/evaluation/scripts/alex_jan19_support_funnel.script.yaml`) — overwhelm / `"I need help with that"` → `world.explain`; draft → `assist.propose`; `"Go on then."` is the approval ceremony. Distress may increase supportiveness, never authority.
 
 ## v1-runnable vs deferred
 
@@ -142,6 +146,7 @@ alex_jan19_focus_vs_radar
 alex_jan19_week_grounding
 alex_jan19_assist_lifecycle
 alex_jan19_speech_acts
+alex_jan19_when_should_i
 alex_jan19_afternoon
 alex_jan20_brunch_problem
 alex_jan22_running_late
@@ -174,6 +179,7 @@ uv run enigma-eval --life-script alex_jan19_focus_vs_radar
 uv run enigma-eval --life-script alex_jan19_week_grounding
 uv run enigma-eval --life-script alex_jan19_assist_lifecycle
 uv run enigma-eval --life-script alex_jan19_speech_acts
+uv run enigma-eval --life-script alex_jan19_when_should_i
 # live (not CI): ENIGMA_C09_LIVE=1 FIREWORKS_API_KEY=… uv run enigma-eval --life-script alex_conversational_sanity --live
 ```
 

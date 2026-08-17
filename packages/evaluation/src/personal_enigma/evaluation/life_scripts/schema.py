@@ -88,6 +88,8 @@ class TurnExpect(BaseModel):
     assist_target: str | None = None
     attributed_to_original_assist: str | None = None
     world_mutation: bool | None = None
+    evidence_source: str | None = None
+    current_next_action_excludes: str | list[str] | None = None
     alternative_returned: bool | None = None
     conversational_rejection: ConversationalRejection | None = None
     no_tool: bool | None = None

@@ -34,8 +34,12 @@ JAN19 = SCRIPTS / "alex_jan19_morning.script.yaml"
 SANITY = SCRIPTS / "alex_conversational_sanity.script.yaml"
 FOCUS = SCRIPTS / "alex_jan19_focus_vs_radar.script.yaml"
 WEEK = SCRIPTS / "alex_jan19_week_grounding.script.yaml"
+WHEN = SCRIPTS / "alex_jan19_when_should_i.script.yaml"
 LIFECYCLE = SCRIPTS / "alex_jan19_assist_lifecycle.script.yaml"
 SPEECH = SCRIPTS / "alex_jan19_speech_acts.script.yaml"
+ATTEST = SCRIPTS / "alex_jan19_user_attestation.script.yaml"
+SUPPORT = SCRIPTS / "alex_jan19_support_funnel.script.yaml"
+WHATSAPP = SCRIPTS / "alex_jan20_whatsapp.script.yaml"
 
 # Live Fireworks invented this shape from referent_candidates with no tool.
 INVENTED_WEEK_ANSWER = """
@@ -55,8 +59,12 @@ def test_script_path_resolves_by_name() -> None:
     assert resolve_script_path("alex_conversational_sanity") == SANITY.resolve()
     assert resolve_script_path("alex_jan19_focus_vs_radar") == FOCUS.resolve()
     assert resolve_script_path("alex_jan19_week_grounding") == WEEK.resolve()
+    assert resolve_script_path("alex_jan19_when_should_i") == WHEN.resolve()
     assert resolve_script_path("alex_jan19_assist_lifecycle") == LIFECYCLE.resolve()
     assert resolve_script_path("alex_jan19_speech_acts") == SPEECH.resolve()
+    assert resolve_script_path("alex_jan19_user_attestation") == ATTEST.resolve()
+    assert resolve_script_path("alex_jan19_support_funnel") == SUPPORT.resolve()
+    assert resolve_script_path("alex_jan20_whatsapp") == WHATSAPP.resolve()
 
 
 def test_jan19_script_speaks_like_alex() -> None:
@@ -276,8 +284,8 @@ def test_focus_vs_radar_script_speaks_like_alex() -> None:
         "what about the week after?",
         "What is the draft colour?",
         "Can you help me do that?",
-        "I need help with the token inventory",
-        "I need help with the design tokens",
+        "Can you help me do the token inventory",
+        "Can you help me do the design tokens",
         "Go on then.",
         "help!",
         "heeeelllppp!!",
@@ -301,13 +309,13 @@ def test_loader_accepts_focus_public_effect_keys() -> None:
     assert horizon.expect.preserve_subject == "TOKEN_AUDIT"
     assert horizon.expect.secondary_items_may_include == "BRUNCH"
     named = next(
-        step for step in script.turns if step.user == "I need help with the token inventory"
+        step for step in script.turns if step.user == "Can you help me do the token inventory"
     )
     assert named.expect is not None
     assert named.expect.assist_target == "TOKEN_AUDIT"
     assert named.expect.current_subject_id == "TOKEN_AUDIT"
     retarget = next(
-        step for step in script.turns if step.user == "I need help with the design tokens"
+        step for step in script.turns if step.user == "Can you help me do the design tokens"
     )
     assert retarget.inject is not None
     assert retarget.inject.wrong_subject_id == "BRUNCH"
@@ -340,10 +348,10 @@ def test_alex_jan19_focus_vs_radar_deterministic() -> None:
     that = _turn(report, "Can you help me do that?")
     assert that.passed
     assert any(row.name == "assist_target" and row.passed for row in that.checks)
-    named = _turn(report, "I need help with the token inventory")
+    named = _turn(report, "Can you help me do the token inventory")
     assert named.passed
     assert any(row.name == "assist_target" and row.passed for row in named.checks)
-    retarget = _turn(report, "I need help with the design tokens")
+    retarget = _turn(report, "Can you help me do the design tokens")
     assert retarget.passed, report.transcript
     assert any(row.name == "assist_target" and row.passed for row in retarget.checks)
     approve = _turn(report, "Go on then.")
@@ -485,7 +493,7 @@ def test_assist_lifecycle_script_speaks_like_alex() -> None:
     users = [step.user for step in script.turns if step.user]
     assert users == [
         "Alright, what's a good thing to get done then?",
-        "Can you help me with the token inventory?",
+        "Can you help me do the token inventory?",
         "Go on then.",
         "So what should I do next?",
     ]
@@ -552,7 +560,7 @@ def test_nothing_worth_doing_must_not_flags() -> None:
 def test_alex_jan19_assist_lifecycle_deterministic() -> None:
     report = run_life_script(LIFECYCLE, mode="deterministic")
     assert _turn(report, "Alright, what's a good thing to get done then?").passed
-    assert _turn(report, "Can you help me with the token inventory?").passed
+    assert _turn(report, "Can you help me do the token inventory?").passed
     approve = _turn(report, "Go on then.")
     assert approve.passed, report.transcript
     follow = _turn(report, "So what should I do next?")
@@ -686,6 +694,105 @@ def test_alex_jan19_speech_acts_live() -> None:
     skipped = [row for row in report.turns if row.kind == "skipped"]
     assert len(skipped) == 4
     assert report.ok, report.transcript
+
+
+def test_when_should_i_script_speaks_like_alex() -> None:
+    script = load_life_script(WHEN)
+    users = [step.user for step in script.turns if step.user]
+    assert users == [
+        "What's on next week?",
+        "Not the dinner with my girlfriend's parents?",
+        "Check my calendar for the dinner.",
+        "Saturday? I think?",
+        "When should I do it?",
+        "Like... now?",
+        "Are you sure there's nothing more important?",
+    ]
+    raw = WHEN.read_text(encoding="utf-8")
+    for key in SMELL_EXPECT_KEYS:
+        assert f"{key}:" not in raw
+    first = script.turns[0]
+    assert first.expect is not None
+    assert first.expect.tool == "agenda.get"
+    assert first.expect.current_subject_id is None
+    assert first.expect.preserve_subject is True
+    when = next(step for step in script.turns if step.user == "When should I do it?")
+    assert when.expect is not None
+    assert when.expect.tools == ["referent.get_duration", "availability.check"]
+    assert when.response is not None
+    assert "duration_as_when_answer" in when.response.must_not
+    assert "stop_after_intermediate_fact" in when.response.must_not
+    saturday = next(step for step in script.turns if step.user == "Saturday? I think?")
+    assert saturday.response is not None
+    assert "duration_as_when_answer" in saturday.response.must_not
+    sure = next(
+        step
+        for step in script.turns
+        if step.user == "Are you sure there's nothing more important?"
+    )
+    assert sure.expect is not None
+    assert sure.expect.tool == "attention.get_current"
+
+
+def test_alex_jan19_when_should_i_deterministic() -> None:
+    report = run_life_script(WHEN, mode="deterministic")
+    empty = _turn(report, "What's on next week?")
+    assert empty.passed, report.transcript
+    names = {row.name: row for row in empty.checks}
+    assert names["agenda.get"].passed
+    assert names["preserve_subject"].passed
+    assert names["subject"].passed
+    assert names["exclude BRUNCH"].passed
+    correction = _turn(report, "Not the dinner with my girlfriend's parents?")
+    assert correction.passed, report.transcript
+    when = _turn(report, "When should I do it?")
+    assert when.passed, report.transcript
+    assert any(row.name == "capabilities" and row.passed for row in when.checks)
+    assert any(
+        row.name == "must_not · duration_as_when_answer" and row.passed
+        for row in when.checks
+    )
+    now = _turn(report, "Like... now?")
+    assert now.passed, report.transcript
+    sure = _turn(report, "Are you sure there's nothing more important?")
+    assert sure.passed, report.transcript
+    assert report.ok, report.transcript
+    assert "Scenario: 7/7 active turns passed · 0 deferred" in report.transcript
+
+
+@pytest.mark.skipif(
+    not _c09_live_enabled(),
+    reason="Live Life Script proof requires ENIGMA_C09_LIVE=1 and FIREWORKS_API_KEY",
+)
+def test_alex_jan19_when_should_i_live() -> None:
+    report = run_life_script(WHEN, mode="live")
+    assert report.ok, report.transcript
+
+
+def test_alex_jan20_whatsapp_script_speaks_like_alex() -> None:
+    script = load_life_script(WHATSAPP)
+    users = [step.user for step in script.turns if step.user]
+    assert users == [
+        "Did Elena say whether her parents are definitely coming?",
+        "Do I need to sort anything because of that?",
+        "What exactly did she say?",
+    ]
+    raw = WHATSAPP.read_text(encoding="utf-8")
+    for key in SMELL_EXPECT_KEYS:
+        assert f"{key}:" not in raw
+
+
+def test_alex_jan20_whatsapp_deterministic() -> None:
+    report = run_life_script(WHATSAPP, mode="deterministic")
+    assert not [row for row in report.turns if row.kind == "skipped"]
+    assert report.ok, report.transcript
+    assert "Scenario: 3/3 active turns passed" in report.transcript
+    quote = _turn(report, "What exactly did she say?")
+    assert any(row.name == "source.quote" and row.passed for row in quote.checks)
+    fact = _turn(report, "Did Elena say whether her parents are definitely coming?")
+    assert any(row.name == "meaning · parents_confirmed" and row.passed for row in fact.checks)
+    assert any(row.name == "must_not · verbatim_chat_body" and row.passed for row in fact.checks)
+
 
 
 

@@ -1,0 +1,185 @@
+# Life Script — Alex, Monday 19 Jan 2026, 10:00.
+# Empty agenda must not steal focus from leftover referent_candidates.
+# Duration is an intermediate fact; "when" / "like now?" must continue.
+#
+# Frozen rules:
+#   1. Scripts speak like Alex, never like Enigma internals.
+#   2. Assertions observe public effects + structured boundaries.
+#   3. Model-specific behaviour is replaceable; world truth is not.
+#   4. Not falling back is not the same as understanding.
+#
+# Live finding:
+#   "What's on next week?" → agenda.get(next_week) empty, grounded.
+#   Next turn current_subject_id = BRUNCH even though brunch was not
+#   surfaced. A referent candidate must stay resolvable without becoming
+#   conversation focus.
+#   Later: "Saturday?" / "when should I do it?" / "like now?" answered
+#   duration-only. Duration estimates how long; it does not answer when.
+#   "Are you sure?" must re-query attention — not defend the last answer.
+#
+# Hard C09 invariants:
+#   Empty agenda.get → current_subject stays null. Not brunch.
+#   A tool result may be an intermediate fact. Continue until the user's
+#   actual question is answered.
+#   Confidence should come from demonstrated comprehension, not wording.
+#
+# Do NOT add regex to intent_router.
+# Do NOT cheat green: duration+availability must be composed, not planned
+# as a fake second personality or a prompt "if when then duration."
+
+scenario: alex_jan19_when_should_i
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  Empty next-week agenda must not make leftover referent_candidates the
+  conversation subject. Horizon refine is not a duration answer. "When
+  should I do it?" and "like now?" require duration then availability.
+  A confidence challenge re-queries attention.
+
+pass_rule: >
+  Judge preserve_subject, grounding, composition (duration is not a when
+  answer), and a fresh attention query. Do NOT require exact wording.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "What's on next week?"
+    v1: live
+    comment: >
+      Private-world next-week overview. Must call agenda.get. Empty
+      calendar is a grounded answer. Brunch may sit in referent_candidates
+      for later resolution — it must not become current_subject.
+    expect:
+      tool: agenda.get
+      arguments:
+        period: next_week
+      grounded_world_response: true
+      tool_required: true
+      current_subject_id: null
+      preserve_subject: true
+      current_subject_excludes: BRUNCH
+    response:
+      must_not:
+        - infer_unsourced_task_details
+        - invent_deadline
+        - invent_recommendation_strength
+        - treat_context_as_calendar
+        - invent_urgency
+
+  - user: "Not the dinner with my girlfriend's parents?"
+    v1: live
+    comment: >
+      Grounded correction / clarify. Naming the parents may bind brunch
+      for resolution. That is subject selection, not an action. Inspect /
+      discrepancy surface is not required to cheat via assist.propose.
+    expect:
+      no_tool: true
+      current_subject_id: BRUNCH
+      world_mutation: false
+    response:
+      must_not:
+        - resolve_referent_as_action
+        - treat_inspect_as_act
+        - execute_without_approval
+
+  - user: "Check my calendar for the dinner."
+    v1: live
+    comment: >
+      Calendar query about the dinner. Must ground through agenda.get —
+      not answer from conversation state.
+    expect:
+      tool: agenda.get
+      arguments:
+        period: saturday
+      grounded_world_response: true
+      tool_required: true
+      current_subject_id: BRUNCH
+    response:
+      must_not:
+        - infer_unsourced_task_details
+        - treat_context_as_calendar
+
+  - user: "Saturday? I think?"
+    v1: live
+    comment: >
+      Horizon refine. Sets temporal_constraint=saturday. Must not answer
+      with duration-only — that is how long, not when / whether Saturday.
+    expect:
+      tool: availability.check
+      arguments:
+        period: saturday
+      grounded_world_response: true
+      tool_required: true
+      current_subject_id: BRUNCH
+    response:
+      must_not:
+        - duration_as_when_answer
+        - stop_after_intermediate_fact
+
+  - user: "When should I do it?"
+    v1: live
+    comment: >
+      Schedule recommendation. Duration is an intermediate fact. C09 must
+      continue with availability.check (duration then suitable windows).
+      Do not treat duration copy as the answer.
+    expect:
+      tools:
+        - referent.get_duration
+        - availability.check
+      grounded_world_response: true
+      tool_required: true
+      current_subject_id: BRUNCH
+    response:
+      must_not:
+        - duration_as_when_answer
+        - stop_after_intermediate_fact
+        - invent_recommendation_strength
+
+  - user: "Like... now?"
+    v1: live
+    comment: >
+      Current availability. Duration then availability.check for now /
+      later today. Yes/no grounded in the calendar, not duration prose.
+    expect:
+      tools:
+        - referent.get_duration
+        - availability.check
+      grounded_world_response: true
+      tool_required: true
+      current_subject_id: BRUNCH
+    response:
+      must_not:
+        - duration_as_when_answer
+        - stop_after_intermediate_fact
+
+  - user: "Are you sure there's nothing more important?"
+    v1: live
+    comment: >
+      Confidence challenge. Do not defend the previous conversational
+      answer. Re-query the world via attention.get_current. Confidence
+      comes from demonstrated comprehension, not confident wording.
+    expect:
+      tool: attention.get_current
+      grounded_world_response: true
+      tool_required: true
+    response:
+      must_not:
+        - defend_previous_answer
+        - invent_urgency
+        - promote_token_to_needs_you
