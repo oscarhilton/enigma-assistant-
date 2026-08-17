@@ -13,9 +13,13 @@ from personal_enigma.reasoning.modes import ReasoningMode
 from personal_enigma.reasoning.protocol import ReasoningResult
 from personal_enigma.reasoning.structured_output import (
     JUDGE_V1_SYSTEM_PROMPT,
+    SEMANTIC_JUDGE_V1_SYSTEM_PROMPT,
     extract_judge_v1_json_text,
     judge_v1_response_format,
+    semantic_judge_v1_response_format,
 )
+
+JudgeArm = str  # "b1" | "b2" — evaluation benchmark arms only
 from personal_enigma.transformation import TransformedContext
 
 DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1"
@@ -79,11 +83,20 @@ def describe_message_shape(message: dict[str, Any]) -> str:
     return " ".join(bits)
 
 
+def resolve_judge_arm(context: TransformedContext) -> JudgeArm:
+    """Benchmark arm from context metadata; defaults to b1 (judge-v1)."""
+    arm = str(context.metadata.get("judge_arm", "b1")).lower()
+    return "b2" if arm == "b2" else "b1"
+
+
 def _parsed_message_json(message: dict[str, Any]) -> str | None:
     """Fireworks json_schema may populate ``message.parsed`` with the object."""
     parsed = message.get("parsed")
     if isinstance(parsed, dict) and (
-        parsed.get("schema_version") == "judge-v1" or "attention" in parsed
+        parsed.get("schema_version") == "judge-v1"
+        or parsed.get("schema_version") == "semantic-judge-v1"
+        or "attention" in parsed
+        or "obligation_strength" in parsed
     ):
         return json.dumps(parsed)
     return None
@@ -134,8 +147,18 @@ def _api_error_message(payload: dict[str, Any]) -> str | None:
     return None
 
 
-def _model_rejection_detail(message: dict[str, Any]) -> str | None:
-    """Detect Invalid placeholder in content when no judge-v1 exists in the message."""
+def _valid_judge_payload(payload: dict[str, Any], *, judge_arm: JudgeArm) -> bool:
+    if judge_arm == "b2":
+        return payload.get("schema_version") == "semantic-judge-v1" or (
+            "obligation_strength" in payload and "user_responsibility" in payload
+        )
+    return payload.get("schema_version") == "judge-v1" and "attention" in payload
+
+
+def _model_rejection_detail(
+    message: dict[str, Any], *, judge_arm: JudgeArm = "b1"
+) -> str | None:
+    """Detect Invalid placeholder in content when no valid judge JSON exists."""
     content = _stringify_message_part(message.get("content")).strip()
     if not content.startswith("{"):
         return None
@@ -152,11 +175,7 @@ def _model_rejection_detail(message: dict[str, Any]) -> str | None:
         payload = json.loads(json_text)
     except (json.JSONDecodeError, ValueError):
         payload = None
-    if (
-        isinstance(payload, dict)
-        and payload.get("schema_version") == "judge-v1"
-        and "attention" in payload
-    ):
+    if isinstance(payload, dict) and _valid_judge_payload(payload, judge_arm=judge_arm):
         return None
 
     detail = content_payload.get("reason") or content_payload.get("message") or "Invalid"
@@ -198,15 +217,22 @@ class FireworksChatTransport:
         prompt: str,
         max_tokens: int,
         seed: int | None,
+        judge_arm: JudgeArm = "b1",
     ) -> dict[str, Any]:
+        if judge_arm == "b2":
+            system_prompt = SEMANTIC_JUDGE_V1_SYSTEM_PROMPT
+            response_format = semantic_judge_v1_response_format()
+        else:
+            system_prompt = JUDGE_V1_SYSTEM_PROMPT
+            response_format = judge_v1_response_format()
         body: dict[str, Any] = {
             "model": model,
             "messages": [
-                {"role": "system", "content": JUDGE_V1_SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": max_tokens,
-            "response_format": judge_v1_response_format(),
+            "response_format": response_format,
             "reasoning_effort": DEFAULT_REASONING_EFFORT,
         }
         if seed is not None:
@@ -244,6 +270,7 @@ class FireworksChatTransport:
         resolved_max_tokens = (
             max_output_tokens if max_output_tokens is not None else self._max_output_tokens
         )
+        judge_arm = resolve_judge_arm(context)
 
         if not self._api_key:
             return ReasoningResult(
@@ -271,6 +298,7 @@ class FireworksChatTransport:
             prompt=prompt,
             max_tokens=resolved_max_tokens,
             seed=resolved_seed,
+            judge_arm=judge_arm,
         )
         seed_used = resolved_seed
         try:
@@ -285,6 +313,7 @@ class FireworksChatTransport:
                     prompt=prompt,
                     max_tokens=resolved_max_tokens,
                     seed=None,
+                    judge_arm=judge_arm,
                 )
                 seed_used = None
                 try:
@@ -359,7 +388,7 @@ class FireworksChatTransport:
         message = choice.get("message") or {}
         finish_reason = str(choice.get("finish_reason") or "")
         response_shape = describe_message_shape(message)
-        rejection = _model_rejection_detail(message)
+        rejection = _model_rejection_detail(message, judge_arm=judge_arm)
         if rejection is not None:
             return ReasoningResult(
                 text=f"[fireworks transport error: model rejection: {rejection}]",

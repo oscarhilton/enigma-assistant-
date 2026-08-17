@@ -209,8 +209,12 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
     replay = ReplayPaygTransport(replay_path, force_offline=True)
     client = PaygReasoningService(mode=ReasoningMode.ENABLED, transport=replay)
     first = snap.candidate_set[0]
+    base_ctx = snapshot_to_transformed_context(snap)
+    ctx = base_ctx.model_copy(
+        update={"metadata": {**base_ctx.metadata, "judge_arm": "b1"}}
+    )
     assert client.reason(
-        snapshot_to_transformed_context(snap),
+        ctx,
         prompt=build_judge_prompt(snap, first),
         model="payg-gate",
     ).text

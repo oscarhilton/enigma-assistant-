@@ -755,6 +755,9 @@ def score_arm_b(
     judge_arm: JudgeArm = "b2",
 ) -> CheckpointArmResult:
     ctx = context or snapshot_to_transformed_context(snapshot)
+    ctx = ctx.model_copy(
+        update={"metadata": {**ctx.metadata, "judge_arm": judge_arm}}
+    )
     start = time.perf_counter()
     judgements: list[CandidateJudgement] = []
     total_cost = 0.0
