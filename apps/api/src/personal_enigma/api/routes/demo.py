@@ -29,6 +29,8 @@ from personal_enigma.api.demo_assist import (
     execute_and_verify,
     overlay_session_world,
 )
+from personal_enigma.api.demo_attestation import UserAttestation
+from personal_enigma.api.demo_chat import DemoChatIndex, load_demo_chat_index
 from personal_enigma.api.demo_intents import build_intent_turn, format_attention_summary_text
 from personal_enigma.api.demo_orchestrator import (
     LlmTrace,
@@ -319,6 +321,7 @@ class DemoSession:
     action_log: list[dict[str, Any]] = field(default_factory=list)
     completed_item_ids: set[str] = field(default_factory=set)
     assist_advances: dict[str, NextActionView] = field(default_factory=dict)
+    attestations: list[UserAttestation] = field(default_factory=list)
     pending_assists: dict[str, AssistPlan] = field(default_factory=dict)
     executed_assists: dict[str, dict[str, Any]] = field(default_factory=dict)
     synthetic_services: SyntheticDemoServices = field(default_factory=SyntheticDemoServices)
@@ -344,6 +347,7 @@ class DemoSession:
         self.action_log = []
         self.completed_item_ids = set()
         self.assist_advances = {}
+        self.attestations = []
         self.pending_assists = {}
         self.executed_assists = {}
         self.synthetic_services = SyntheticDemoServices()
@@ -378,6 +382,7 @@ class DemoSession:
         self._wall_anchor = None
         self.completed_item_ids = set()
         self.assist_advances = {}
+        self.attestations = []
         self.pending_assists = {}
         self.executed_assists = {}
         self.synthetic_services.clear()
@@ -482,6 +487,10 @@ class DemoSession:
         if not isinstance(clock, SimulationClock):
             raise TypeError("Demo session requires SimulationClock")
         return clock
+
+    @property
+    def chat_index(self) -> DemoChatIndex:
+        return load_demo_chat_index(self.scenario, until=self.clock.now())
 
     def status_payload(self) -> dict[str, Any]:
         self.sync_realtime()
@@ -626,6 +635,8 @@ class DemoSession:
                 synthetic_services=self.synthetic_services,
                 user_message=text,
                 assist_advances=self.assist_advances,
+                attestations=self.attestations,
+                chat_index=self.chat_index,
             )
             orchestrated = run_orchestrator_turn(
                 user_message=text,

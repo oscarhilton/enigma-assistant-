@@ -13,9 +13,18 @@ from personal_enigma.api.conversation_context import (
     update_context_from_turn_items,
 )
 from personal_enigma.api.demo_assist import SyntheticDemoServices
-from personal_enigma.api.demo_orchestrator import run_orchestrator_turn
+from personal_enigma.api.demo_orchestrator import (
+    apply_speech_act_constitution,
+    run_orchestrator_turn,
+)
 from personal_enigma.api.demo_projection import project_checkpoint
 from personal_enigma.api.demo_tools import DemoToolSession, ToolCallRecord, execute_tool
+from personal_enigma.api.speech_acts import (
+    ASSIST_FUNNEL,
+    classify_speech_act,
+    is_support_not_authority,
+)
+from personal_enigma.privacy.egress.classification import RemoteSafeContext
 
 TOKEN_ID = "item-obligation_token_audit"
 BRUNCH_ID = "item-obligation_brunch_book"
@@ -57,7 +66,7 @@ def _seed_token(session: DemoToolSession) -> None:
     assert session.context.current_subject_id == TOKEN_ID
 
 
-def _propose(session: DemoToolSession, utterance: str = "help with that") -> str:
+def _propose(session: DemoToolSession, utterance: str = "Can you help me do that?") -> str:
     turn = run_orchestrator_turn(
         user_message=utterance,
         session=session,
@@ -237,3 +246,169 @@ def test_turn_local_constraint_is_never_durable() -> None:
     assert ctx.turn_local_recorded_this_turn is False
     assert ctx.turn_local_constraints[0].value == "Shoreditch"
     assert ctx.turn_local_constraints[0].durable is False
+
+
+def test_assist_funnel_order() -> None:
+    assert ASSIST_FUNNEL == (
+        "UNDERSTAND",
+        "SUPPORT",
+        "PREPARE",
+        "PROPOSE",
+        "APPROVE",
+        "EXECUTE",
+    )
+
+
+def test_overwhelmed_help_is_support_not_propose() -> None:
+    utterance = "help, I'm overwhelmed"
+    assert classify_speech_act(utterance) == "SUPPORT"
+    assert is_support_not_authority(utterance)
+    session = _tool_session()
+    _seed_token(session)
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="assist.propose")]}),
+    )
+    assert [call.name for call in turn.tool_calls] == ["world.explain"]
+    assert turn.tool_results[0].ok
+    assert turn.tool_results[0].data.get("assist_offered") is False
+    assert turn.tool_results[0].data.get("first_step")
+    assert session.pending_assists == {}
+    prose = " ".join(
+        str(item.get("text") or "") for item in turn.turn_items if item.get("kind") == "enigma_message"
+    )
+    assert prose.strip()
+    names = {call.name for call in turn.tool_calls}
+    assert "assist.propose" not in names
+    assert "assist.approve" not in names
+
+
+def test_draft_something_is_prepare_not_execute() -> None:
+    utterance = "can you draft something for me?"
+    assert classify_speech_act(utterance) == "PREPARE"
+    session = _tool_session()
+    _seed_token(session)
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="assist.approve")]}),
+    )
+    assert [call.name for call in turn.tool_calls] == ["assist.propose"]
+    assert turn.tool_results[0].ok
+    assert session.context.pending_dialogue_act == "APPROVE_CONFIRMATION"
+    assert not session.synthetic_services.notes
+
+
+def test_do_it_proposes_and_does_not_silently_execute() -> None:
+    utterance = "do it"
+    assert classify_speech_act(utterance) == "ACTION_REQUEST"
+    rewritten = apply_speech_act_constitution(
+        [ToolCallRecord(name="assist.approve")],
+        "ACTION_REQUEST",
+        utterance,
+    )
+    assert [call.name for call in rewritten] == ["assist.propose"]
+    session = _tool_session()
+    _seed_token(session)
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="assist.approve")]}),
+    )
+    assert [call.name for call in turn.tool_calls] == ["assist.propose"]
+    assert turn.tool_results[0].ok
+    assert session.context.pending_dialogue_act == "APPROVE_CONFIRMATION"
+    assert not session.synthetic_services.notes
+    assert not session.synthetic_services.calendar_events
+
+
+def test_ambiguous_help_defaults_to_least_authoritative() -> None:
+    utterance = "I need help with that"
+    assert classify_speech_act(utterance) == "SUPPORT"
+    session = _tool_session()
+    _seed_token(session)
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="assist.propose")]}),
+    )
+    assert [call.name for call in turn.tool_calls] == ["world.explain"]
+    assert session.pending_assists == {}
+    session.user_message = utterance
+    denied = execute_tool(session, "assist.propose", {})
+    assert not denied.ok
+    assert denied.data.get("reason") == "help_is_not_prepare"
+
+
+def test_discuss_first_returns_useful_support_payload() -> None:
+    utterance = "I want to discuss it first"
+    assert classify_speech_act(utterance) == "SUPPORT"
+    session = _tool_session()
+    _seed_token(session)
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: []}),
+    )
+    assert [call.name for call in turn.tool_calls] == ["world.explain"]
+    data = turn.tool_results[0].data
+    assert data.get("title")
+    assert data.get("first_step")
+    assert data.get("support_options")
+    assert data.get("assist_offered") is False
+    prose = " ".join(
+        str(item.get("text") or "") for item in turn.turn_items if item.get("kind") == "enigma_message"
+    )
+    assert "first step" in prose.casefold()
+    assert "prepare something if you ask" in prose.casefold()
+
+
+def test_distress_and_adhd_do_not_raise_authority_even_with_pending_assist() -> None:
+    session = _tool_session()
+    _seed_token(session)
+    _propose(session)
+    proposal_id = session.context.current_assist_proposal_id
+    assert proposal_id
+    utterance = "Yes help! I have ADHD and this is too much"
+    assert classify_speech_act(utterance) == "SUPPORT"
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="assist.approve")]}),
+    )
+    assert [call.name for call in turn.tool_calls] == ["world.explain"]
+    assert proposal_id in session.pending_assists
+    assert not session.synthetic_services.notes
+    session.user_message = utterance
+    denied = execute_tool(session, "assist.approve", {"proposal_id": proposal_id})
+    assert not denied.ok
+    assert denied.data.get("reason") == "difficulty_is_not_consent"
+
+
+def test_lone_help_stays_ordinary_social() -> None:
+    assert classify_speech_act("help!") == "ORDINARY_CONVERSATION"
+    session = _tool_session()
+    turn = run_orchestrator_turn(
+        user_message="help!",
+        session=session,
+        llm=_ScriptedLLM({"help!": []}),
+    )
+    assert turn.tool_calls == []
+    assert session.pending_assists == {}
+
+
+def test_prompt_contains_funnel_and_verbatim_invariants() -> None:
+    remote = RemoteSafeContext.for_conversation_orchestrator(
+        user_message="I need help with that",
+        context_summary={"current_subject_id": TOKEN_ID},
+        tools=[],
+        model="accounts/fireworks/models/gpt-oss-120b",
+    )
+    prompt = remote.wire_body["messages"][0]["content"]
+    assert "UNDERSTAND → SUPPORT → PREPARE → PROPOSE → APPROVE → EXECUTE" in prompt
+    assert "Distress may increase supportiveness, never authority." in prompt
+    assert (
+        "Ambiguous help requests default to the least-authoritative useful interpretation."
+        in prompt
+    )

@@ -33,12 +33,20 @@ from personal_enigma.api.demo_assist import (
     overlay_session_world,
     resolve_assist_target,
 )
+from personal_enigma.api.demo_attestation import (
+    ATTESTATION_TOOL,
+    AttestedState,
+    UserAttestation,
+    apply_user_attestation,
+    attestation_title,
+)
 from personal_enigma.api.demo_availability import (
     build_availability_turn,
     calendar_events_in_period,
     format_time_fit_message,
     period_bounds,
 )
+from personal_enigma.api.demo_chat import DemoChatIndex, find_chat_quote
 from personal_enigma.api.demo_intents import (
     build_alternate_task_turn,
     build_attention_horizon_turn,
@@ -47,10 +55,17 @@ from personal_enigma.api.demo_intents import (
     build_needs_me_turn,
     build_next_turn,
     build_reject_next_turn,
+    build_support_payload,
     build_waiting_turn,
     waiting_items,
 )
 from personal_enigma.api.intent_router import TimeExpression
+from personal_enigma.api.speech_acts import (
+    classify_speech_act,
+    infer_attestation_state,
+    is_support_not_authority,
+    signals_difficulty,
+)
 from personal_enigma.attention.projection import AttentionState, NextActionView
 
 ToolName = Literal[
@@ -64,6 +79,9 @@ ToolName = Literal[
     "world.get_changes",
     "world.get_blockers",
     "world.explain",
+    "world.record_user_attestation",
+    "source.recent",
+    "source.quote",
     "assist.propose",
     "assist.approve",
 ]
@@ -80,6 +98,9 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "world.get_changes",
         "world.get_blockers",
         "world.explain",
+        "world.record_user_attestation",
+        "source.recent",
+        "source.quote",
         "assist.propose",
         "assist.approve",
     )
@@ -89,6 +110,8 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
 DENIED_REMOTE_CAPABILITIES: tuple[str, ...] = (
     "gmail.search",
     "gmail.send",
+    "whatsapp.search",
+    "whatsapp.send",
     "arbitrary filesystem",
     "arbitrary network",
 )
@@ -144,6 +167,24 @@ class AssistApproveInput(BaseModel):
     )
 
 
+class SourceRecentInput(BaseModel):
+    channel: str | None = Field(
+        default=None,
+        description="email, whatsapp, or chat. Defaults to the channel named in the utterance.",
+    )
+
+
+class SourceQuoteInput(BaseModel):
+    source_id: str | None = Field(
+        default=None,
+        description=(
+            "Local source id to quote. Omit to resolve from the utterance "
+            "(e.g. Elena). The verbatim body is displayed locally and is never "
+            "returned on the tool wire."
+        ),
+    )
+
+
 class WorldExplainInput(BaseModel):
     recover: bool = Field(
         default=False,
@@ -155,6 +196,26 @@ class WorldExplainInput(BaseModel):
             "Attention-item id to explain, from referent_candidates. "
             "Set this when the user names or corrects the subject "
             "(e.g. 'the token thing') — never invent an id."
+        ),
+    )
+
+
+class WorldRecordUserAttestationInput(BaseModel):
+    target_id: str | None = Field(
+        default=None,
+        description=(
+            "Obligation / attention-item id the user is reporting about, from "
+            "referent_candidates. Omit for implicit 'it' / current_subject — "
+            "Enigma binds an explicit id before execution."
+        ),
+    )
+    state: AttestedState = Field(
+        default="COMPLETED",
+        description=(
+            "COMPLETED when the user reports they did it / sent it / paid it. "
+            "OPEN when they correct a prior report ('actually I haven't finished'). "
+            "CANCELLED when they no longer need to do it. "
+            "This records evidence; it does not execute an Assist or an external write."
         ),
     )
 
@@ -187,6 +248,8 @@ class DemoToolSession:
     synthetic_services: SyntheticDemoServices = field(default_factory=SyntheticDemoServices)
     user_message: str = ""
     assist_advances: dict[str, NextActionView] = field(default_factory=dict)
+    attestations: list[UserAttestation] = field(default_factory=list)
+    chat_index: DemoChatIndex = field(default_factory=DemoChatIndex)
 
 
 def tool_schemas() -> list[dict[str, Any]]:
@@ -285,9 +348,13 @@ def tool_schemas() -> list[dict[str, Any]]:
             "function": {
                 "name": "world.explain",
                 "description": (
-                    "Explain why a conversation subject matters — uses "
-                    "current_subject_id from structured turns, or an explicit "
-                    "target id from referent_candidates when the user corrects the subject."
+                    "SUPPORT: discuss, explain, break down, or name a first step "
+                    "for the current subject. Use for 'help, I'm overwhelmed', "
+                    "'I need help with that', 'I find this hard', or 'let's talk "
+                    "through it'. Distress may increase supportiveness, never "
+                    "authority. Ambiguous help requests default to the "
+                    "least-authoritative useful interpretation — this tool, not "
+                    "assist.propose. Does not prepare, propose, approve, or execute."
                 ),
                 "parameters": WorldExplainInput.model_json_schema(),
             },
@@ -295,11 +362,55 @@ def tool_schemas() -> list[dict[str, Any]]:
         {
             "type": "function",
             "function": {
+                "name": "world.record_user_attestation",
+                "description": (
+                    "Record that the user told Enigma the private world changed. "
+                    "Use when the user reports they did something, sent something, "
+                    "paid something, or that they have not actually finished. "
+                    "Reports are evidence — not Assist, not an approval ceremony, "
+                    "not an external mutation (no bank login, no manufactured payment). "
+                    "'I booked it' / 'I've done the draft colours' → this tool. "
+                    "'Book it' / 'Do the token inventory' → assist.propose. "
+                    "Conversation alone must never be the only place this change exists."
+                ),
+                "parameters": WorldRecordUserAttestationInput.model_json_schema(),
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "source.recent",
+                "description": (
+                    "Recent private sources (email or WhatsApp) as local summaries. "
+                    "Does not return wholesale bodies. Use for 'latest from my emails' "
+                    "or 'anything in WhatsApp'."
+                ),
+                "parameters": SourceRecentInput.model_json_schema(),
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "source.quote",
+                "description": (
+                    "Quote a private source locally. The verbatim body is shown in "
+                    "the conversation UI and is never returned to the model. "
+                    "Use when the user asks what someone exactly said."
+                ),
+                "parameters": SourceQuoteInput.model_json_schema(),
+            },
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "assist.propose",
                 "description": (
-                    "Structured assist proposal (PREPARE / ACT). Never auto-executes. "
-                    "Not inspect, advise, or answering a yes/no. "
-                    "A referent correction is not a proposal. "
+                    "PREPARE / PROPOSE only. Funnel: UNDERSTAND → SUPPORT → "
+                    "PREPARE → PROPOSE → APPROVE → EXECUTE. Never skip toward "
+                    "more authority. Use after an explicit prepare/do request "
+                    "('can you draft something', 'help me do that', 'do it'). "
+                    "Not for 'I need help', distress, or ADHD mentions. "
+                    "Never auto-executes. A referent correction is not a proposal. "
                     "Pass target_id from referent_candidates when the user names a "
                     "subject. Omit only for implicit 'that'."
                 ),
@@ -314,7 +425,9 @@ def tool_schemas() -> list[dict[str, Any]]:
                     "Explicit approval of a surfaced assist proposal — synthetic "
                     "execute + verify. Only valid when the previous Enigma turn "
                     "created an approval affordance (the proposal card). "
-                    "Yes after SHOW / EXPLAIN is not approval."
+                    "Yes after SHOW / EXPLAIN is not approval. "
+                    "Distress may increase supportiveness, never authority — "
+                    "ADHD or overwhelm never upgrades this even if a proposal is pending."
                 ),
                 "parameters": AssistApproveInput.model_json_schema(),
             },
@@ -524,6 +637,65 @@ def bind_assist_approve(
     )
 
 
+def bind_world_attestation(
+    session: DemoToolSession,
+    arguments: dict[str, Any],
+    *,
+    user_message: str = "",
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Resolve world.record_user_attestation to an explicit target_id."""
+    model_arguments = dict(arguments)
+    utterance = user_message or session.user_message
+    state_raw = model_arguments.get("state")
+    attested_state: AttestedState
+    if state_raw in {"COMPLETED", "OPEN", "CANCELLED"}:
+        attested_state = state_raw
+    else:
+        attested_state = infer_attestation_state(utterance)
+    explicit = model_arguments.get("target_id") or model_arguments.get("target")
+    if isinstance(explicit, str) and explicit.strip():
+        target_id = explicit.strip()
+        executed = {"target_id": target_id, "state": attested_state}
+        return executed, _resolution(
+            tool=ATTESTATION_TOOL,
+            source="explicit target_id",
+            bound_id=target_id,
+            summary=f"explicit target_id → {target_id}",
+            model_arguments=model_arguments,
+            executed_arguments=executed,
+        )
+    named = match_named_referent(utterance, referent_candidates(session.state))
+    if named:
+        executed = {"target_id": named, "state": attested_state}
+        return executed, _resolution(
+            tool=ATTESTATION_TOOL,
+            source="named_referent",
+            bound_id=named,
+            summary=f"named_referent → {named}",
+            model_arguments=model_arguments,
+            executed_arguments=executed,
+        )
+    subject = session.context.current_subject_id
+    if subject:
+        executed = {"target_id": subject, "state": attested_state}
+        return executed, _resolution(
+            tool=ATTESTATION_TOOL,
+            source="implicit current_subject",
+            bound_id=subject,
+            summary=f"implicit current_subject → {subject}",
+            model_arguments=model_arguments,
+            executed_arguments=executed,
+        )
+    return {"state": attested_state, **model_arguments}, _resolution(
+        tool=ATTESTATION_TOOL,
+        source="unresolved",
+        bound_id=None,
+        summary="unresolved — no explicit, named, or current_subject target",
+        model_arguments=model_arguments,
+        executed_arguments={"state": attested_state, **dict(model_arguments)},
+    )
+
+
 def bind_authority_arguments(
     session: DemoToolSession,
     name: str,
@@ -531,11 +703,13 @@ def bind_authority_arguments(
     *,
     user_message: str = "",
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    """Fill implicit authority args. Queries stay implicit; propose/approve bind."""
+    """Fill implicit authority args. Queries stay implicit; propose/approve/attest bind."""
     if name == "assist.propose":
         return bind_assist_propose(session, arguments, user_message=user_message)
     if name == "assist.approve":
         return bind_assist_approve(session, arguments)
+    if name == ATTESTATION_TOOL:
+        return bind_world_attestation(session, arguments, user_message=user_message)
     return dict(arguments), None
 
 
@@ -615,7 +789,7 @@ def execute_tool(
 
     if name == "availability.check":
         parsed = AvailabilityCheckInput.model_validate(arguments)
-        if parsed.duration_minutes is not None and parsed.period is None:
+        if parsed.duration_minutes is not None:
             action, title = resolve_referent(state, ctx)
             if action is None:
                 turn = [
@@ -630,17 +804,34 @@ def execute_tool(
             reference = datetime.fromisoformat(at.replace("Z", "+00:00"))
             if reference.tzinfo is None:
                 reference = reference.replace(tzinfo=UTC)
+            fit_period = parsed.period or "later_today"
             text = format_time_fit_message(
                 state=state,
                 checkpoint_id=session.checkpoint_id,
                 reference=reference,
                 task_minutes=minutes,
                 task_title=title,
+                period=fit_period,
             )
+            if parsed.period and parsed.period != "later_today":
+                occupancy = build_availability_turn(
+                    state,
+                    checkpoint_id=session.checkpoint_id,
+                    at=at,
+                    period=parsed.period,
+                )
+                occ_text = occupancy[0]["text"] if occupancy else ""
+                if occ_text:
+                    text = f"{occ_text} {text}"
             turn = [{"kind": "enigma_message", "text": text, "at": at}]
             return ToolExecutionResult(
                 name=name,
-                data={"time_fit": True, "task_minutes": minutes, "task_title": title},
+                data={
+                    "time_fit": True,
+                    "task_minutes": minutes,
+                    "task_title": title,
+                    "period": parsed.period,
+                },
                 turn_items=turn,
             )
         turn = build_availability_turn(
@@ -694,6 +885,10 @@ def execute_tool(
             for item in turn
             if item.get("kind") == "next_action" and isinstance(item.get("action"), dict)
         ]
+        empty_horizon = not events and not attention_rows and not action_rows
+        if empty_horizon:
+            # Candidates stay resolvable; they are not conversation focus.
+            turn = [item for item in turn if item.get("kind") == "enigma_message"]
         return ToolExecutionResult(
             name=name,
             data={
@@ -701,6 +896,7 @@ def execute_tool(
                 "calendar_items": events,
                 "attention": attention_rows,
                 "next_actions": action_rows,
+                "empty_horizon": empty_horizon,
             },
             turn_items=turn,
         )
@@ -714,9 +910,20 @@ def execute_tool(
     if name == "world.get_blockers":
         blockers = waiting_items(state)
         turn = build_waiting_turn(state, at)
+        chat_blockers = [
+            {
+                "id": blocker.evidence_ids[0] if blocker.evidence_ids else blocker.description,
+                "description": blocker.description,
+                "counterpart": blocker.counterpart,
+            }
+            for blocker in session.chat_index.world.blockers
+        ]
         return ToolExecutionResult(
             name=name,
-            data={"blockers": [row.model_dump(mode="json") for row in blockers]},
+            data={
+                "blockers": [row.model_dump(mode="json") for row in blockers],
+                "chat_blocker_ids": [row["id"] for row in chat_blockers],
+            },
             turn_items=turn,
         )
 
@@ -735,18 +942,52 @@ def execute_tool(
             at,
             recover=parsed.recover,
         )
+        hay = session.user_message.casefold()
+        facts = [fact.summary for fact in session.chat_index.world.facts]
+        if any(token in hay for token in ("elena", "parent", "coming", "say")):
+            for summary in facts:
+                turn.insert(
+                    0,
+                    {"kind": "enigma_message", "text": summary, "at": at},
+                )
         subject_id = ctx.current_subject_id
+        support = build_support_payload(state, ctx)
         return ToolExecutionResult(
             name=name,
             data={
                 "subject_id": subject_id,
                 "recover": parsed.recover,
                 "target": parsed.target,
+                "facts": facts,
+                "title": support["title"],
+                "why_it_matters": support["why_it_matters"],
+                "first_step": support["first_step"],
+                "estimated_minutes": support["estimated_minutes"],
+                "support_options": support["support_options"],
+                "assist_offered": False,
             },
             turn_items=turn,
         )
 
     if name == "assist.propose":
+        utterance = session.user_message
+        if is_support_not_authority(utterance):
+            return _denied_speech_act(
+                session,
+                name,
+                reason="help_is_not_prepare",
+                message=(
+                    "That's a request for support, not for me to prepare an action. "
+                    "We can talk it through first."
+                ),
+            )
+        if classify_speech_act(utterance) == "USER_ATTESTATION":
+            return _denied_speech_act(
+                session,
+                name,
+                reason="report_is_not_action",
+                message="That's a report about the world, not a request to act.",
+            )
         if not session.context.propose_authorized():
             return _denied_speech_act(
                 session,
@@ -792,6 +1033,17 @@ def execute_tool(
         )
 
     if name == "assist.approve":
+        utterance = session.user_message
+        if is_support_not_authority(utterance) or signals_difficulty(utterance):
+            return _denied_speech_act(
+                session,
+                name,
+                reason="difficulty_is_not_consent",
+                message=(
+                    "Distress may increase supportiveness, never authority. "
+                    "That isn't approval."
+                ),
+            )
         if not session.context.approval_authorized():
             return _denied_speech_act(
                 session,
@@ -836,6 +1088,182 @@ def execute_tool(
             name=name,
             data={"ok": ok, "message": message, "proposal_id": proposal_id, "effect": effect},
             turn_items=[result],
+        )
+
+    if name == ATTESTATION_TOOL:
+        parsed_attest = WorldRecordUserAttestationInput.model_validate(arguments)
+        target_id = parsed_attest.target_id
+        if not target_id:
+            turn = [
+                {
+                    "kind": "enigma_message",
+                    "text": "I'm not sure what you're referring to.",
+                    "at": at,
+                }
+            ]
+            return ToolExecutionResult(
+                name=name,
+                ok=False,
+                data={"reason": "unresolved_target"},
+                turn_items=turn,
+            )
+        title = attestation_title(state, target_id)
+        if ctx.current_subject_id != target_id:
+            ctx.current_subject_id = target_id
+            ctx.current_attention_item_id = target_id
+            ctx.current_subject_kind = ctx.current_subject_kind or "attention_item"
+        record = apply_user_attestation(
+            attestations=session.attestations,
+            completed_item_ids=session.completed_item_ids,
+            advances=session.assist_advances,
+            target_id=target_id,
+            state=parsed_attest.state,
+            at=at,
+            utterance=session.user_message,
+        )
+        session.state = overlay_session_world(
+            session.state,
+            session.completed_item_ids,
+            session.assist_advances,
+        )
+        reconcile_action_focus(ctx, session.state)
+        if parsed_attest.state == "COMPLETED":
+            text = f"Noted — I'll treat {title} as done."
+        elif parsed_attest.state == "OPEN":
+            text = f"Noted — I'll treat {title} as still open."
+        else:
+            text = f"Noted — you don't need to do {title} anymore."
+        turn = [{"kind": "enigma_message", "text": text, "at": at}]
+        return ToolExecutionResult(
+            name=name,
+            data={
+                "target_id": target_id,
+                "state": parsed_attest.state,
+                "evidence": record.evidence,
+                "attestation_id": record.id,
+                "supersedes": record.supersedes,
+                "source": "user_attestation",
+            },
+            turn_items=turn,
+        )
+
+    if name == "source.recent":
+        parsed_recent = SourceRecentInput.model_validate(arguments)
+        channel = (parsed_recent.channel or "").casefold()
+        if not channel:
+            hay = session.user_message.casefold()
+            if "whatsapp" in hay or "chat" in hay:
+                channel = "whatsapp"
+            else:
+                channel = "email"
+        if channel in {"whatsapp", "chat"}:
+            rows = [
+                {
+                    "id": message.provider_message_id,
+                    "from": (message.from_person.display_name if message.from_person else None),
+                    "at": message.sent_at.isoformat() if message.sent_at else None,
+                }
+                for message in session.chat_index.messages
+                if message.kind == "text"
+            ][-5:]
+            facts = [fact.summary for fact in session.chat_index.world.facts]
+            text = (
+                " ".join(facts)
+                if facts
+                else "Nothing recent in WhatsApp that I derived a fact from."
+            )
+            turn = [{"kind": "enigma_message", "text": text, "at": at}]
+            return ToolExecutionResult(
+                name=name,
+                data={"channel": "whatsapp", "recent_ids": [row["id"] for row in rows]},
+                turn_items=turn,
+            )
+        rows = []
+        for message in session.chat_index.mail[-5:]:
+            stamped = message.received_at or message.sent_at
+            rows.append(
+                {
+                    "id": message.provider_message_id,
+                    "subject": message.subject,
+                    "at": stamped.isoformat() if stamped is not None else None,
+                }
+            )
+        if not rows:
+            text = "I don't know."
+        else:
+            subjects = [row["subject"] or row["id"] for row in rows]
+            text = "Latest email: " + "; ".join(str(item) for item in subjects) + "."
+        turn = [{"kind": "enigma_message", "text": text, "at": at}]
+        return ToolExecutionResult(
+            name=name,
+            data={"channel": "email", "recent_ids": [row["id"] for row in rows]},
+            turn_items=turn,
+        )
+
+    if name == "source.quote":
+        parsed_quote = SourceQuoteInput.model_validate(arguments)
+        message = find_chat_quote(
+            session.chat_index,
+            source_id=parsed_quote.source_id,
+            user_message=session.user_message,
+            conversation=session.conversation,
+        )
+        if message is None:
+            turn = [
+                {
+                    "kind": "enigma_message",
+                    "text": "I don't have that original message.",
+                    "at": at,
+                }
+            ]
+            return ToolExecutionResult(
+                name=name,
+                ok=False,
+                data={"quoted_locally": False, "source_id": parsed_quote.source_id},
+                turn_items=turn,
+            )
+        if session.chat_index.is_expired(message):
+            turn = [
+                {
+                    "kind": "enigma_message",
+                    "text": (
+                        "That original message is no longer stored. "
+                        "I still have the derived fact."
+                    ),
+                    "at": at,
+                }
+            ]
+            return ToolExecutionResult(
+                name=name,
+                data={
+                    "quoted_locally": False,
+                    "expired": True,
+                    "source_id": message.provider_message_id,
+                },
+                turn_items=turn,
+            )
+        speaker = (
+            message.from_person.display_name if message.from_person else "Someone"
+        )
+        body = message.body_text or ""
+        turn = [
+            {
+                "kind": "source_quote",
+                "text": f'{speaker}: "{body}"',
+                "source_id": message.provider_message_id,
+                "at": at,
+                "local_only": True,
+                "privacy_level": "very_high",
+                "egress_classification": "local_only",
+            }
+        ]
+        return ToolExecutionResult(
+            name=name,
+            data={
+                "quoted_locally": True,
+                "source_id": message.provider_message_id,
+            },
+            turn_items=turn,
         )
 
     return denied_tool_result(session, name, reason="unknown_tool")

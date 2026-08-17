@@ -18,7 +18,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from personal_enigma.api import create_app
-from personal_enigma.api.conversation_context import ConversationContext, referent_candidates
+from personal_enigma.api.conversation_context import (
+    ConversationContext,
+    referent_candidates,
+    update_context_from_turn_items,
+)
 from personal_enigma.api.demo_assist import SyntheticDemoServices
 from personal_enigma.api.demo_orchestrator import (
     EgressConversationLLM,
@@ -501,4 +505,182 @@ def test_disabled_llm_keeps_honest_router_fallback(demo_client: TestClient) -> N
     assert trace["router_fallback"] is True
     assert trace["remote_context_sent"] is None
     assert turn["items"][0]["text"] == "I'm not sure I follow."
+
+
+class _ScriptedLLM:
+    def __init__(self, script: dict[str, list[ToolCallRecord]]) -> None:
+        self._script = script
+
+    def select_tools(
+        self,
+        *,
+        user_message: str,
+        context_summary: dict[str, Any],
+        tools: list[dict[str, Any]],
+        correlation_id: str | None = None,
+    ) -> list[ToolCallRecord]:
+        del context_summary, tools, correlation_id
+        return [call.model_copy(deep=True) for call in self._script[user_message]]
+
+
+def test_empty_agenda_does_not_set_subject_from_referent_candidates() -> None:
+    """A leftover candidate may stay resolvable without becoming focus."""
+    session = _tool_session(JAN19)
+    ids = {row["id"] for row in referent_candidates(session.state)}
+    assert BRUNCH_ID in ids
+    assert session.context.current_subject_id is None
+    utterance = "What's on next week?"
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM(
+            {
+                utterance: [
+                    ToolCallRecord(name="agenda.get", arguments={"period": "next_week"})
+                ]
+            }
+        ),
+    )
+    assert turn.tool_results[0].data.get("empty_horizon") is True
+    kinds = {item["kind"] for item in turn.turn_items}
+    assert "attention_item" not in kinds
+    assert "next_action" not in kinds
+    assert session.context.current_subject_id is None
+    assert session.context.focus_reason == "empty_horizon"
+    assert BRUNCH_ID in {row["id"] for row in referent_candidates(session.state)}
+
+
+def test_leftover_radar_card_does_not_become_current_subject() -> None:
+    ctx = ConversationContext()
+    update_context_from_turn_items(
+        ctx,
+        [
+            {
+                "kind": "enigma_message",
+                "text": "I don't see anything on the calendar next week.",
+            },
+            {
+                "kind": "attention_item",
+                "item": {"id": BRUNCH_ID, "title": "Book brunch with Elena's parents"},
+            },
+        ],
+    )
+    assert ctx.current_subject_id is None
+
+
+def test_horizon_radar_does_not_steal_token_focus() -> None:
+    ctx = ConversationContext(
+        current_subject_id=TOKEN_ID,
+        current_subject_kind="next_action",
+        focus_reason="primary_answer",
+    )
+    update_context_from_turn_items(
+        ctx,
+        [
+            {
+                "kind": "next_action",
+                "action": {
+                    "id": "next-item-obligation_token_audit",
+                    "source_candidate_id": TOKEN_ID,
+                    "title": "Draft colour + spacing token inventory",
+                },
+            },
+            {
+                "kind": "attention_item",
+                "item": {"id": BRUNCH_ID, "title": "Book brunch with Elena's parents"},
+            },
+        ],
+    )
+    assert ctx.current_subject_id == TOKEN_ID
+
+
+def test_when_should_i_continues_from_duration_to_availability() -> None:
+    """Duration is an intermediate fact. C09 continues until 'when' is answered."""
+    session = _tool_session(JAN19)
+    session.context.current_subject_id = BRUNCH_ID
+    session.context.current_attention_item_id = BRUNCH_ID
+    session.context.temporal_constraint = "saturday"
+    utterance = "When should I do it?"
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="referent.get_duration")]}),
+    )
+    names = [result.name for result in turn.tool_results]
+    assert names == ["referent.get_duration", "availability.check"]
+    assert turn.tool_results[1].data.get("task_minutes") == 15
+    assert turn.tool_results[1].data.get("period") == "saturday"
+
+
+def test_like_now_continues_from_duration_to_current_availability() -> None:
+    session = _tool_session(JAN19)
+    session.context.current_subject_id = BRUNCH_ID
+    session.context.current_attention_item_id = BRUNCH_ID
+    utterance = "Like... now?"
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="referent.get_duration")]}),
+    )
+    names = [result.name for result in turn.tool_results]
+    assert names == ["referent.get_duration", "availability.check"]
+    assert turn.tool_results[1].data.get("period") is None
+    assert turn.tool_results[1].data.get("task_minutes") == 15
+
+
+def test_how_long_does_not_compose_availability() -> None:
+    session = _tool_session(JAN19)
+    session.context.current_subject_id = BRUNCH_ID
+    session.context.current_attention_item_id = BRUNCH_ID
+    utterance = "How long will that take?"
+    turn = run_orchestrator_turn(
+        user_message=utterance,
+        session=session,
+        llm=_ScriptedLLM({utterance: [ToolCallRecord(name="referent.get_duration")]}),
+    )
+    assert [result.name for result in turn.tool_results] == ["referent.get_duration"]
+
+
+def test_context_summary_keeps_oracle_intent_and_exposes_temporal_constraint() -> None:
+    from personal_enigma.api.intent_router import (
+        ConversationIntent,
+        ConversationIntentKind,
+        TimeExpression,
+    )
+
+    ctx = ConversationContext(
+        current_subject_id=TOKEN_ID,
+        temporal_constraint="saturday",
+        last_intent=ConversationIntent(
+            kind=ConversationIntentKind.AVAILABILITY_QUERY,
+            period=TimeExpression.SATURDAY,
+        ),
+    )
+    summary = context_summary(ctx)
+    assert summary["temporal_constraint"] == "saturday"
+    assert summary["last_intent_kind"] == "availability_query"
+    assert summary["last_period"] == "saturday"
+
+
+def test_remote_conversation_payload_omits_stale_classifier_label() -> None:
+    from personal_enigma.privacy.egress.classification import RemoteSafeContext
+
+    remote = RemoteSafeContext.for_conversation_orchestrator(
+        user_message="When should I do it?",
+        context_summary={
+            "current_subject_id": BRUNCH_ID,
+            "last_intent_kind": "availability_query",
+            "last_period": "saturday",
+            "temporal_constraint": "saturday",
+            "pending_dialogue_act": None,
+        },
+        tools=[],
+        model="accounts/fireworks/models/gpt-oss-120b",
+        provider="fireworks",
+    )
+    user_content = json.loads(remote.wire_body["messages"][1]["content"])
+    conversation = user_content["conversation"]
+    assert "last_intent_kind" not in conversation
+    assert "last_period" not in conversation
+    assert conversation["temporal_constraint"] == "saturday"
 
