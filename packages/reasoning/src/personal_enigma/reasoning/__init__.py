@@ -28,11 +28,8 @@ from personal_enigma.reasoning.replay_transport import (
     ReplayPaygTransport,
 )
 from personal_enigma.reasoning.structured_output import (
-    InvalidEvidenceIdsError,
-    JudgeV1Output,
     LlmJudgeOutput,
     LlmJudgeParseError,
-    parse_judge_v1_output,
     parse_llm_judge_output,
 )
 from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
@@ -41,8 +38,6 @@ __all__ = [
     "DEFAULT_FIREWORKS_MODEL",
     "FireworksChatTransport",
     "InMemoryUsageLogger",
-    "InvalidEvidenceIdsError",
-    "JudgeV1Output",
     "LlmJudgeOutput",
     "LlmJudgeParseError",
     "MockPaygTransport",
@@ -65,6 +60,5 @@ __all__ = [
     "build_reasoning_client",
     "default_fireworks_model",
     "fireworks_seed",
-    "parse_judge_v1_output",
     "parse_llm_judge_output",
 ]
