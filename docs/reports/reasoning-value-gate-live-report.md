@@ -1,6 +1,6 @@
 # Reasoning Value Gate — Live Report
 
-- Generated: 2026-08-17 (updated R-L09 Step 7)
+- Generated: 2026-08-17 (R-L10 Phase 1 **closed** — Outcome C)
 - Git freeze: `50198fc` / tag `r-l09-step6-prompt-wiring`
 - Scenario: `alex-v1` v0.2.1
 - Arm B path: semantic judge + deterministic interruption policy (B2)
@@ -92,15 +92,75 @@ Historical v1 comparator: `main-benchmark.json` arm B (`evaluation_transformed_v
 
 **Jan 19:** partial rep-level rescue — not checkpoint majority PASS. **Jan 20:** no rescue.
 
-#### Regression attribution (Jan 19/20 persistent failures)
+#### Regression attribution (Jan 19/20 persistent failures) — corrected post R-L10
 
-No checkpoint worsened vs historical v1. Both persistent failures classified **bucket 1 — semantic improvement, ranking displacement (Top-N budget)**:
+No checkpoint worsened vs historical v1. Initial R-L09.5.1 label “ranking displacement” was **too broad**. R-L10 Phase 1 reclassified as **semantic improvement + qualification failure**:
 
 - Token-audit semantics improved (`actionability_now` 0.5–0.7 → 0.9; reason codes upgraded) once `BLOCKED_BY`/`state=resolved` reached the prompt.
-- `time_sensitivity` stayed ~0.3 (Jan 20 brunch 0.6–0.88), so `composite_surface_score` (weight 0.25 on time sensitivity) still ranks brunch Top-1.
-- Jan 19 rep2 proves both can surface when brunch score is closer — variance across reps contributes but pattern is coherent (not bucket 3).
+- Composite stays below 0.72 on **5/6** reps despite high actionability — qualification formula weights `time_sensitivity` (0.25) over `actionability_now` (0.15).
+- Jan 19 rep2 proves downstream works: token qualifies (0.7475, rank 2) → Top-3 eval **passes**. Ranking and presentation are **not** implicated.
 
 Do not tune.
+
+---
+
+## Pipeline mental model (post R-L10 Phase 1 closure)
+
+```
+WORLD MODEL
+    ↓
+LLM semantic interpretation       ✅ working better (R-L09)
+    ↓
+ATTENTION QUALIFICATION           ⚠️ current bottleneck (R-L10 Outcome C)
+    ↓
+RANKING                            ✅ not implicated
+    ↓
+PRESENTATION                       ✅ not implicated
+```
+
+| Stage | Jan 19/20 evidence |
+| --- | --- |
+| Transform + relations in prompt | `BLOCKED_BY`, `state=resolved`, causal text in stored `context_json` |
+| Semantic features | `actionability_now` 0.5–0.7 → **0.9**; reason codes upgraded |
+| Qualification | Composite **< 0.72 on 5/6** token reps despite actionability 0.9 |
+| Ranking | Jan 19 rep2 rank 2 still Top-3 **pass** — exonerated |
+| Not hard model failure | Jan 19 rep2: token qualifies → downstream works |
+| vs historical v1 | 8 agree, 0 regressions, 2 shared_fail |
+
+**Product model (three layers):** qualification (NEEDS YOU — attention-eligible?) → ranking (critical recall@K) → presentation (presented-slot recall / interrupt channel). Production policy emits N surface decisions (no slot cap in `interruption_policy.py`).
+
+**Reasoning freeze:** R-L10 Phase 1 **complete** (Outcome C). Still no judge rubric changes, no policy weight tuning, no model spend, no `support_contracts.yaml` edits until user explicitly unfrozen. Phase 2 = design research (urgency vs opportunity) — no weight tuning yet.
+
+**Follow-up:** [R-L10 ticket](../../tickets/reasoning/R-L10-attention-set-vs-interruption.md) — Phase 2 architectural/design research deferred.
+
+## R-L10 Phase 1 closure — Outcome C (2026-08-17)
+
+**Genuine qualification failure.** Privacy-safe causal relations materially improve semantic understanding of newly unblocked work, but the current deterministic qualification formula does not reliably translate increased actionability into NEEDS YOU eligibility. Five of six Jan 19/20 token-audit reps remain below the 0.72 surface threshold. Ranking, Top-3 evaluation, confidence gates, noise suppression, and presentation cardinality are **not** responsible for the misses.
+
+**Jan 19 rep2 proof:** composite 0.7475, rank 2, Top-3 eval passes — downstream pipeline works when qualification succeeds.
+
+**Formula insight (document only):** Model says “very doable now” (`actionability_now=0.9`); policy composite 0.65–0.70 when `time_sensitivity` ~0.3 — “not urgent enough” despite newly unblocked work.
+
+**Metric reporting note:** The gate aggregate labelled **`critical_recall`** (sometimes written “MUST_SURFACE recall (critical)”) is implemented as **`top3_critical_recall`** in `llm_benchmark.py` / `support_fitness.py` — not top-1. This label conflation should be corrected in a future eval-harness pass; it did not affect Phase 1 conclusions.
+
+Frozen Step 7 v2 features replayed through production `composite_surface_score` / `decide_interruption`. **No model spend. No weight/prompt/truth changes.** Stored policy scores match recomputed composites on every surfaced row.
+
+**Formula:** `0.25*obligation_strength + 0.20*user_responsibility + 0.15*importance + 0.25*time_sensitivity + 0.15*actionability_now` + overdue(+0.12) + near-term(+0.10×(1−h/36) if h≤36) + calendar(+0.05 if cal≤2h); ×0.30 if noise evidence. Surface if ≥0.72. Confidence / restful-weekend / noise gates did not block token-audit (weekdays, confidence ≥0.9).
+
+**Finding:** LLM marks token-audit actionable (`actionability_now=0.9` all 6 reps). Qualification still fails on **5/6** reps because `time_sensitivity` (weight 0.25) stays 0.3–0.4 and brunch gets a +0.05 calendar boost token does not. Token is **not** already ≥0.72 except Jan 19 rep2 (0.7475, rank 2, Top-3 **pass**). Slot budget 2 would not rescue the other five reps.
+
+| checkpoint | rep | brunch composite | token composite | token layer |
+| --- | ---: | ---: | ---: | --- |
+| Jan 19 | 0 | 0.685 context | 0.673 context | qualification failure |
+| Jan 19 | 1 | 0.888 surface #1 | 0.665 context | qualification failure |
+| Jan 19 | 2 | 0.817 surface #1 | 0.748 surface #2 | surfaced in Top-3 (contract pass) |
+| Jan 20 | 0 | 0.785 surface #1 | 0.657 context | qualification failure |
+| Jan 20 | 1 | 0.923 surface #1 | 0.669 context | qualification failure |
+| Jan 20 | 2 | 0.953 surface #1 | 0.697 context | qualification failure |
+
+**Outcome: C** (genuine qualification failure). Ranking and presentation **exonerated**. **B** is the mechanism (single composite; ts-heavy weights + brunch calendar boost). **D** (MUST_SURFACE vs interrupt-now) remains documented ambiguity — no truth rewrite.
+
+Jan 19/20 three-layer: attention-eligibility recall **0.44** (4/9); critical recall@1/@2/@3 = 0.25 / 0.42 / 0.42; presented-slot N=1/N=2 = 0.25 / 0.42. Full table: ticket R-L10 / `reports/reasoning-gate-live/rl10-jan19-20-decomposition.json`.
 
 **Audit proof** (`reports/reasoning-gate-live/prompt-audit.jsonl`, v2 `item-obligation_token_audit`):
 
@@ -117,7 +177,7 @@ Do not tune.
 
 Present on both `cp-2026-01-19T10:00` and `cp-2026-01-20T11:00` stored `context_json`.
 
-**Not A** (recall not 0.95–1.00). **Not C** (semantics moved; relations demonstrably in prompt). Main not eligible.
+**R-L09 A/B/C (not R-L10):** **Not A** (recall not 0.95–1.00). **Not C** (semantics moved; relations demonstrably in prompt). Main not eligible.
 
 ---
 
@@ -129,9 +189,11 @@ Present on both `cp-2026-01-19T10:00` and `cp-2026-01-20T11:00` stored `context_
 
 ### Exit gate metrics
 
+> **Label note:** “Critical recall” in this table is the gate aggregate implemented as **`top3_critical_recall`** (obligation in top-3 alerts), not top-1 or a separate “MUST_SURFACE recall (critical)” metric.
+
 | Metric | Arm A | LLM B | Delta |
 | --- | --- | --- | --- |
-| MUST_SURFACE recall (critical) | 0.925 | 0.850 | -0.075 |
+| Critical recall (Top-3 aggregate) | 0.925 | 0.850 | -0.075 |
 | MUST_SUPPRESS accuracy | 0.975 | 1.000 | +0.025 |
 | Top-3 critical recall | 0.925 | 0.850 | -0.075 |
 | Next-action fit | 1.000 | 0.950 | -0.050 |

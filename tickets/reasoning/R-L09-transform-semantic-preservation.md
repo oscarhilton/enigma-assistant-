@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` (Step 7 recorded — **decision B**) |
+| Status | `done` — **decision B**; frozen (reasoning programme paused) |
 | Branch | `ticket/R-L09-transform-semantic-preservation` |
 | Domain | `reasoning` + `transformation` + `evaluation` |
 
@@ -46,7 +46,9 @@ Jan 19/20 v2 semantics unchanged: `time_sensitivity` ~0.3, `LOW_URGENCY` / `CONT
 
 Jan 19/20 v2 token-audit: `actionability_now` **0.9**, reason codes mostly `USER_OWNS_ACTION` / `NEAR_TERM_COMMITMENT` / `EXPLICIT_REQUEST`, `time_sensitivity` still ~0.3. Audit: `BLOCKED_BY` + `state=resolved` + causal text in stored `context_json`.
 
-**Decision B.** Displacement: still Jan 19/20 (brunch outranks token-audit); no new checkpoint failure. Do not tune. Do not run main.
+**Decision B.** Displacement: still Jan 19/20 (token below qualification threshold on 5/6 reps); no new checkpoint failure. Do not tune. Do not run main.
+
+> **Attribution correction (post R-L10 Phase 1):** replace “ranking displacement” with **semantic improvement + qualification failure**. Jan 19 rep2 proves downstream works when token qualifies (0.7475, rank 2, Top-3 pass).
 
 ---
 
@@ -351,9 +353,25 @@ CLI: `uv run enigma-eval --reasoning-gate-live --live --phase hardest-10-v2`
 
 **Jan 19/20:** Jan 19 rep2 only rescue (brunch + token surfaced); Jan 20 3/3 brunch-only. Not checkpoint-level FAIL→PASS.
 
-**Attribution:** Bucket **1** (semantic improvement + Top-1 ranking displacement). Token `actionability_now`↑ to 0.9; `time_sensitivity` stuck ~0.3; brunch wins composite score.
+**Attribution:** Bucket **1** (semantic improvement + **qualification failure**). Token `actionability_now`↑ to 0.9; `time_sensitivity` stuck ~0.3; composite stays below 0.72 on 5/6 reps. Jan 19 rep2 (0.7475, rank 2) proves Top-3 eval passes when token qualifies — ranking not implicated.
 
-**Next (no implementation):** policy-input trace for composite components; Top-N surface budget probe; `time_sensitivity` rubric research.
+### Pipeline diagnosis (frozen conclusion — attribution corrected post R-L10)
+
+```
+WORLD MODEL
+    ↓
+LLM semantic interpretation       ✅ improved (Step 7)
+    ↓
+ATTENTION QUALIFICATION           ⚠️ bottleneck (R-L10 Outcome C)
+    ↓
+RANKING                            ✅ not implicated
+    ↓
+PRESENTATION                       ✅ not implicated
+```
+
+**Reasoning freeze:** No judge rubric changes, no policy weight tuning, no model spend until user explicitly unfrozen (R-L10 Phase 1 complete; Phase 2 = design research only).
+
+**Follow-up:** [R-L10 — Attention qualification vs ranking vs presentation](./R-L10-attention-set-vs-interruption.md) — Phase 1 **complete**, Outcome **C**.
 
 ---
 
