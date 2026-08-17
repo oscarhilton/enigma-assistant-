@@ -49,6 +49,7 @@ def test_run_gmail_sync_with_remote_llm_disabled() -> None:
         result = await run_gmail_sync(
             GmailSyncRequest(access_token="test-token", remote_llm_enabled=False),
             source=source,
+            skip_persistence_guard=True,
         )
         assert result.message_count == 2
         assert result.next_cursor == "9001"
