@@ -10,9 +10,11 @@ Mixing “what” and “where” (e.g. `AppleCalendarEvent` as a core type) for
 
 ## Decision
 
-- `SourceType` describes the kind of thing: email, calendar_event, reminder, note, contact.
-- `Provider` describes origin: google, apple, local.
-- Canonical models (`PrivateCalendarEvent`, etc.) are provider-tagged only at the edge; reasoning uses domain concepts (`CalendarEvent` / obligation / attention).
+- `SourceType` describes the kind of thing: email, calendar_event, reminder, note, contact, chat_message.
+- `Provider` describes origin: google, apple, local, whatsapp.
+- Canonical models (`PrivateCalendarEvent`, `PrivateChatMessage`, etc.) are provider-tagged only at the edge; reasoning uses domain concepts (`CalendarEvent` / obligation / attention).
+
+Chat messages (synthetic WhatsApp first) are a **source type**, not a mail subtype. `PrivateMessage` remains Gmail-shaped; `PrivateChatMessage` is the canonical chat record. Raw chat is PRIVATE_RAW / VERY_HIGH and is never the world model.
 
 ## Consequences
 

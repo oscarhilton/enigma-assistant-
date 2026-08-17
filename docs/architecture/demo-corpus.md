@@ -153,8 +153,92 @@ Top-level milestones stay D01–D12. Corpus work is D08 subtasks:
 | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) | Scientific gate: merge + A/B artefacts |
 | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) | Machine noise + quiet-day |
 | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) | Scale ladder + curve shapes |
+| [D08f](../../tickets/demo-scenario/D08f-alex-six-month.md) | Six-month ordinary life (version bump of alex-v1, not a fork) |
 
 Related amendments: D03 (background/profile schema), D04 (multi-stream mail), D05 (timeline merge), D06 (`ScenarioSignalClass`), D07 (noise metrics), D09–D12 (developer corpora, UI suppression stats, scale replay, compression demo).
+
+## Six-month ordinary life (D08f)
+
+**Status:** layout + tickets (this slice) — do not author six months of content here  
+**Home:** [`scenarios/alex-v1/`](../../scenarios/alex-v1/) — same package id; version bump. **Do not** create `scenarios/alex-v2/` as a second Alex.  
+**Tickets:** [D08f](../../tickets/demo-scenario/D08f-alex-six-month.md) · [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) amended (EF threads inside this life, not a third corpus)
+
+January 0.2.1 is currently both the **demo week** and Alex’s **entire existence**. That overload is the problem. Six months gives change over time — memory, obligations, relationships, tone, tasks, retention, attention — without turning Demo Mode into a novel.
+
+### Governing rule
+
+> **Don’t write six months of biography. Write six months of ordinary events.**
+
+Discover Alex the same way as now: only as much as the next episode requires. No `ALEX_BIOGRAPHY.md`. No dramatic breakup, medical crisis, promotion, or secret project just to make a synthetic character interesting. Mostly boring is good. [ADR-023](../adr/023-persistent-shadow-abstract-state-not-biography.md) / [north-star.md](./north-star.md): Enigma indexes what still matters; it does not compile a life.
+
+D08 already named this as a **future version bump** of alex-v1 (not a new package). V2-EF-02’s planned `scenarios/alex-v2/` 3–6 month arcs are **revived here**, not forked: the three EF patterns (recurring admin, long-running work, social commitment) are **threads inside** Jan–Jun ordinary events. Support-contract overlay stays [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) after R07 — evaluator truth, not a second mailbox.
+
+### Layout
+
+Episodic months, not one monster fixture:
+
+```text
+scenarios/alex-v1/timeline/
+  week-01.yaml … week-03.yaml   # 0.2.1 January (immutable until 0.3.0)
+  2026-01/                      # pointer README — do not duplicate week files
+  2026-02/ … 2026-06/           # source events only; not loaded until 0.3.0
+```
+
+Each month folder holds **source events only** (calendar, email, notes/reminders, contacts). Chat-shaped evidence uses existing types (`email.receive` from a personal contact, or `note.upsert`) until a synthetic message source is ticketed under D04 — do **not** invent WhatsApp ingestion from Demo tickets. Synthetic Demo sources stay under `packages/simulation/.../sources/`; do not edit `packages/ingestion/.../sources/*`.
+
+The 0.2.1 loader globs `timeline/*.yaml` only (non-recursive). Nested month YAML is scaffold — **not** part of the released January benchmark. 0.3.0 (D08f-02) recurses `timeline/YYYY-MM/**/*.yaml` and bumps `scenario.yaml`.
+
+### Month shape (ordinary, not cinematic)
+
+These are density targets, not a plot outline. Author only the next month’s events.
+
+| Month | Ordinary change |
+| --- | --- |
+| **JAN** | Establish the world (brunch, token, Atlas, expenses, dentist, social). **Exists** as 0.2.1. |
+| **FEB** | Some Jan threads resolve; a new work dependency; mundane messages; one forget; a recurring preference starts to be visible |
+| **MAR** | Busier; a calendar conflict; waiting-on; something rescheduled twice; a weak intention must **not** become a task |
+| **APR** | Quiet; old info decaying; a dormant project is relevant again |
+| **MAY** | A new commitment intersects old relationship/context; enough history to help without replaying history |
+| **JUN** | [SEC-06](../../tickets/security/SEC-06-retention-memory-decay-forget.md) / [SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md) payoff: what Enigma still knows / has disappeared / remaining shadow is useful / can an attacker reconstruct six months? |
+
+### Life Scripts (vertical + horizontal)
+
+[C12](../../tickets/conversational-ui/C12-life-scripts.md) episodes dip into significant days. They do **not** live in the timeline folders — they live under `packages/evaluation/scripts/`. Timeline = source events; scripts = Alex speaking.
+
+| Episode | Role |
+| --- | --- |
+| `alex_jan19_morning` | Exists — messy Monday (vertical depth) |
+| `alex_feb12_running_late` | [D08f-scripts](../../tickets/demo-scenario/D08f-scripts.md) |
+| `alex_mar03_waiting_on_reply` | D08f-scripts |
+| `alex_apr18_quiet_day` | D08f-scripts |
+| `alex_may07_old_thread_returns` | D08f-scripts |
+| `alex_jun30_what_do_you_remember` | D08f-scripts — SEC-06/07 inspect |
+
+`alex_week_03.yaml` (an entire fictional week) remains a later C12 episode, not this layout slice.
+
+### Tone memory (corpus test, not C11 runtime)
+
+The six months are the **fixture** for [ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) / [C11](../../tickets/conversational-ui/C11-tone-memory.md): Jan signal → Feb repeat → Mar stable → Apr used → May/Jun decay. **Do not implement the tone store from D08f.** C11 stays parked on C09 LLM proof.
+
+### SEC-06 / SEC-07 payoff
+
+June 30 is the reconstructability question with enough time depth:
+
+1. Live Jan–Jun ordinary events through ingest + [SEC-06](../../tickets/security/SEC-06-retention-memory-decay-forget.md) decay.
+2. Steal the June 30 shadow snapshot (keys / mappings / PRIVATE_RAW stripped).
+3. Attacker reconstructs vs Enigma still useful on June 30.
+
+Thesis: **biography decays faster than utility** ([data-retention.md](./data-retention.md#shadow-alex-vs-source-alex) · [ADR-023](../adr/023-persistent-shadow-abstract-state-not-biography.md)). D08f authors the source events. SEC-07 owns the attacker/runner — do not implement it from this track.
+
+Conversational memory is not a parallel six-month transcript. By June 30, **prompt continuity** Jan–Jun should be almost none; **world continuity** is selectively preserved ([ADR-029](../adr/029-context-compilation-request-shaped-memory.md) · [data-retention.md](./data-retention.md#prompt-continuity-vs-world-continuity)). “What exact words did Maya use in February?” may be impossible — successful forgetting, not memory failure. D08f may later score three curves (raw recoverability ↓, dialogue recoverability ↓, world utility ↑). Do not author that corpus from C09.
+
+### What this slice is not
+
+- Six months of authored content
+- C11 tone store / learner / C09 payload
+- SEC-07 attacker or reconstruction scorer
+- Expanding `intent_router`
+- A second Alex under `scenarios/alex-v2/` or `packages/fixtures/alex/`
 
 ## Phase 2.5 exit → Shadow Mode
 
