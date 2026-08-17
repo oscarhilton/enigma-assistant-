@@ -304,12 +304,15 @@ def score_arm_b(
         truth, alerts=alerts, next_action=next_action, at=snapshot.at
     )
     usage = result.usage
+    cost = 0.0
+    if usage and usage.estimated_cost_usd is not None:
+        cost = usage.estimated_cost_usd
     return CheckpointArmResult(
         checkpoint_id=snapshot.checkpoint_id,
         arm="B",
         metrics=metrics,
         latency_ms=latency_ms,
-        cost_usd=usage.estimated_cost_usd if usage else 0.0,
+        cost_usd=cost,
         llm_output=output,
     )
 
