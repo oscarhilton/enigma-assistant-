@@ -1,0 +1,144 @@
+# Life Script — Alex, basic conversational sanity (C09 miniature).
+#
+# Frozen rules:
+#   1. Scripts speak like Alex, never like Enigma internals.
+#   2. Assertions observe public effects + structured boundaries.
+#   3. Model-specific behaviour is replaceable; world truth is not.
+#   4. Not falling back is not the same as understanding.
+#
+# Same YAML, two interpreters (execution mode, not per-turn v1):
+#   deterministic  — meaning class → C09 capability (CI)
+#   live · Fireworks — different ordinary English → same operation
+#
+# This is the torture transcript that proved the live UI was still on
+# intent_router. Do not add regexes for these phrases.
+
+scenario: alex_conversational_sanity
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  Prove ordinary English reaches C09 orchestration: personal-world paraphrases
+  share a meaning class, and chitchat is conversation that actually answers —
+  not merely "I'm not sure I follow" and not a generic "Okay."
+
+pass_rule: >
+  Judge capability family, constraints, and response meaning.
+  Do NOT require exact assistant wording. "Okay." is not an answer
+  to a general question. Source-scoped attention is deferred, not faked.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "Hey! Hows my week looking?"
+    v1: live
+    comment: >
+      Later (not this squeeze): covers requested horizon, cardinality honest —
+      "Pretty clear. The only thing I see this week is brunch on Saturday."
+      vs dumping the first item as if it were the week.
+    expect:
+      meaning: week_overview
+      grounded_world_response: true
+      tool_required: true
+    response:
+      must_not:
+        - invent_urgency
+        - infer_unsourced_task_details
+        - invent_deadline
+        - invent_recommendation_strength
+        - treat_context_as_calendar
+
+  - user: "Whats on for today?"
+    v1: live
+    expect:
+      meaning: today_schedule
+
+  - user: "Urgent?"
+    v1: live
+    expect:
+      meaning: current_attention
+    response:
+      meaning:
+        - nothing_needs_attention
+      must_not:
+        - promote_token_to_needs_you
+        - invent_urgency
+
+  - user: "Anything important in my emails?"
+    v1: deferred
+    deferred_reason: >
+      source-scoped attention is not on the C09 v1 surface (source_scope: email).
+      Do not treat as equivalent to "Urgent?".
+    comment: >
+      "important" + "in my emails" is a constrained attention question.
+      Same shape later: anything urgent from Joe / from work / in WhatsApp.
+    expect:
+      meaning: current_attention
+      source_scope: email
+
+  - user: "wait"
+    v1: live
+    expect:
+      tool: none
+      no_tool: true
+      conversational_response: true
+      fallback_not_allowed: true
+      response_meaning:
+        - acknowledgement
+
+  - user: "what"
+    v1: live
+    expect:
+      tool: none
+      no_tool: true
+      conversational_response: true
+      fallback_not_allowed: true
+      response_meaning:
+        - confusion_or_clarification
+    response:
+      must_not:
+        - generic_acknowledgement
+
+  - user: ":)"
+    v1: live
+    expect:
+      tool: none
+      no_tool: true
+      conversational_response: true
+      fallback_not_allowed: true
+      response_meaning:
+        - social_acknowledgement
+
+  - user: "whats the colour of the sky"
+    v1: live
+    expect:
+      tool: none
+      no_tool: true
+      conversational_response: true
+      fallback_not_allowed: true
+      response_meaning:
+        - answers_general_question
+    response:
+      must_not:
+        - generic_acknowledgement
+        - enigma_fallback
+
+  - user: "What do I have on today?"
+    v1: live
+    expect:
+      meaning: today_schedule

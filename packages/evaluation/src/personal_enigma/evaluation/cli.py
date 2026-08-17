@@ -87,6 +87,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Compute metrics without writing reports/",
     )
     parser.add_argument(
+        "--life-script",
+        default=None,
+        help=(
+            "Run a Life Script (name or path to .script.yaml). "
+            "Deterministic by default; pass --live for Fireworks."
+        ),
+    )
+    parser.add_argument(
         "--reasoning-gate",
         action="store_true",
         help="Run Reasoning Value Gate harness (R07) instead of scenario eval",
@@ -183,8 +191,24 @@ def _run_reasoning_gate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_life_script(args: argparse.Namespace) -> int:
+    from personal_enigma.evaluation.life_scripts import (
+        format_episode_transcript,
+        resolve_script_path,
+        run_life_script,
+    )
+
+    path = resolve_script_path(args.life_script)
+    mode = "live" if args.live else "deterministic"
+    report = run_life_script(path, mode=mode)
+    print(format_episode_transcript(report))
+    return 0 if report.ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.life_script:
+        return _run_life_script(args)
     if args.reasoning_gate_live:
         return _run_live_gate(args)
     if args.scenario == "reasoning-gate" or args.reasoning_gate:

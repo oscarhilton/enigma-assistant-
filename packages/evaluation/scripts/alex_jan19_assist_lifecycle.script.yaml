@@ -1,0 +1,98 @@
+# Life Script — Alex, Monday 19 Jan 2026, 10:00.
+# Assist completed ≠ task completed.
+#
+# Frozen rules:
+#   1. Scripts speak like Alex, never like Enigma internals.
+#   2. Assertions observe public effects + structured boundaries.
+#   3. Model-specific behaviour is replaceable; world truth is not.
+#   4. Not falling back is not the same as understanding.
+#
+# Live finding (Fireworks correct; Enigma world semantics wrong):
+#   After verified Assist "I recorded a synthetic draft for Draft colour
+#   + spacing token inventory", TOKEN vanished, next_action.get → [],
+#   copy "Nothing worth doing right now." Brunch and Atlas were still
+#   in context. C09 used the tool for truth. The bug was SATISFYING
+#   TOKEN because a draft Assist completed.
+#
+# Closed loop: understand → help → verify → update world → derive new
+# state → derive new next action. Not: help → task vanishes.
+#
+# Do NOT add regex to intent_router.
+
+scenario: alex_jan19_assist_lifecycle
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  A draft Assist ADVANCES TOKEN; it does not SATISFY the obligation.
+  Empty next_action is not "nothing worth doing" while brunch and Atlas
+  remain in context.
+
+pass_rule: >
+  Judge capability, subject survival, and must_not empty-universe claims.
+  Do NOT require exact assistant wording.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "Alright, what's a good thing to get done then?"
+    v1: live
+    expect:
+      tool: next_action.get
+      current_subject_id: item-obligation_token_audit
+    response:
+      must_not:
+        - claim_urgent
+
+  - user: "Can you help me with the token inventory?"
+    v1: live
+    expect:
+      tool: assist.propose
+      assist_target: TOKEN_AUDIT
+      current_subject_id: item-obligation_token_audit
+      world_mutation: false
+    response:
+      must_not:
+        - execute_without_approval
+
+  - user: "Go on then."
+    v1: live
+    comment: >
+      Verified draft write. TOKEN stays open. ASSIST COMPLETED ≠ TASK COMPLETED.
+    expect:
+      tool: assist.approve
+      verified_external_effect: true
+      current_subject_id: item-obligation_token_audit
+    response:
+      must_not:
+        - mark_cancelled_or_complete
+
+  - user: "So what should I do next?"
+    v1: live
+    comment: >
+      Draft Assist ADVANCES TOKEN. Next action is review the draft, not
+      an empty universe. Brunch and Atlas remain in context. Empty
+      next_action_ids must not claim nothing_worth_doing.
+    expect:
+      tool: next_action.get
+      current_subject_id: item-obligation_token_audit
+    response:
+      must_not:
+        - mark_cancelled_or_complete
+        - nothing_worth_doing
+        - invent_empty_universe
