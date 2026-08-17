@@ -218,17 +218,11 @@ def snapshot_to_transformed_context(snapshot: CheckpointSnapshot) -> Transformed
     parts = [f"Checkpoint {snapshot.checkpoint_id} at {snapshot.at.isoformat()}"]
     for cand in candidates:
         parts.append(f"Candidate {cand.id}: {cand.title} score={cand.score:.2f}")
-    entities = [
-        f"OBLIGATION_{oid.replace('obligation_', '').upper()}"
-        for cand in candidates
-        for oid in cand.obligation_ids
-    ]
     return TransformedContext(
         summary=" | ".join(parts),
-        entities=sorted(set(entities)),
+        entities=[],
         metadata={
             "source_type": "evaluation_checkpoint",
-            "checkpoint_id": snapshot.checkpoint_id,
             "record_id": snapshot.checkpoint_id,
         },
         may_transmit_remotely=True,
@@ -768,9 +762,6 @@ def score_arm_b(
     judge_arm: JudgeArm = "b2",
 ) -> CheckpointArmResult:
     ctx = context or snapshot_to_transformed_context(snapshot)
-    ctx = ctx.model_copy(
-        update={"metadata": {**ctx.metadata, "judge_arm": judge_arm}}
-    )
     start = time.perf_counter()
     judgements: list[CandidateJudgement] = []
     total_cost = 0.0
