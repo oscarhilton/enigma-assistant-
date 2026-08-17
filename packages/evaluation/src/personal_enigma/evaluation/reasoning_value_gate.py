@@ -26,69 +26,10 @@ from personal_enigma.evaluation.metrics.cost import compute_cost_metrics
 from personal_enigma.evaluation.privacy_ablation import run_privacy_ablation
 
 ArchitectureDecision = Literal["adopt", "hybrid", "keep_deterministic"]
-LiveGateArchitectureDecision = Literal["clear_win", "small_win", "no_win"]
 REPORT_PATH = Path("docs/reports/reasoning-value-gate-report.md")
-LIVE_REPORT_PATH = Path("docs/reports/reasoning-value-gate-live-report.md")
 ADR_PATH = Path("docs/adr/012-reasoning-value-gate-decision.md")
 ADOPT_MIN_DELTA = 0.05
 HYBRID_MIN_DELTA = 0.02
-CLEAR_WIN_RECALL_DELTA = 0.05
-CLEAR_WIN_SUPPRESS_FLOOR = -0.01
-SMALL_WIN_RECALL_DELTA = 0.02
-
-
-@dataclass
-class LiveGateEvidence:
-    git_commit: str
-    scenario: str
-    scenario_version: str
-    generated_at: str
-    live: bool
-    arm_a: dict[str, float]
-    arm_b: dict[str, float]
-    deltas: dict[str, float]
-    ablation_attention_delta: dict[str, float]
-    ablation_next_action_delta: dict[str, float]
-    arm_b_stability_pct: float
-    schema_failure_rate: float
-    privacy_failure_rate: float
-    critical_regressions: int
-    total_cost_usd: float
-    median_latency_ms_arm_b: float
-    median_input_tokens: int
-    median_output_tokens: int
-    architecture_decision: LiveGateArchitectureDecision
-    architecture_rationale: str
-    attributions: list[dict[str, Any]] = field(default_factory=list)
-    benchmark: dict[str, Any] = field(default_factory=dict)
-    ablation: dict[str, Any] = field(default_factory=dict)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "git_commit": self.git_commit,
-            "scenario": self.scenario,
-            "scenario_version": self.scenario_version,
-            "generated_at": self.generated_at,
-            "live": self.live,
-            "arm_a": self.arm_a,
-            "arm_b": self.arm_b,
-            "deltas": self.deltas,
-            "ablation_attention_delta": self.ablation_attention_delta,
-            "ablation_next_action_delta": self.ablation_next_action_delta,
-            "arm_b_stability_pct": self.arm_b_stability_pct,
-            "schema_failure_rate": self.schema_failure_rate,
-            "privacy_failure_rate": self.privacy_failure_rate,
-            "critical_regressions": self.critical_regressions,
-            "total_cost_usd": self.total_cost_usd,
-            "median_latency_ms_arm_b": self.median_latency_ms_arm_b,
-            "median_input_tokens": self.median_input_tokens,
-            "median_output_tokens": self.median_output_tokens,
-            "architecture_decision": self.architecture_decision,
-            "architecture_rationale": self.architecture_rationale,
-            "attributions": self.attributions,
-            "benchmark": self.benchmark,
-            "ablation": self.ablation,
-        }
 
 
 @dataclass
@@ -169,199 +110,6 @@ def decide_architecture(
         "keep_deterministic",
         f"Heuristic matches or beats LLM (mean Δ={mean_delta:.3f}).",
     )
-
-
-def decide_live_architecture(
-    arm_a: dict[str, float],
-    arm_b: dict[str, float],
-    *,
-    critical_regressions: int,
-    schema_failure_rate: float,
-    privacy_failure_rate: float,
-) -> tuple[LiveGateArchitectureDecision, str]:
-    recall_delta = arm_b.get("critical_recall", 0.0) - arm_a.get("critical_recall", 0.0)
-    suppress_delta = (
-        arm_b.get("must_suppress_accuracy", 0.0) - arm_a.get("must_suppress_accuracy", 0.0)
-    )
-    schema_ok = schema_failure_rate <= 0.0
-    privacy_ok = privacy_failure_rate <= 0.0
-    if (
-        recall_delta >= CLEAR_WIN_RECALL_DELTA
-        and suppress_delta >= CLEAR_WIN_SUPPRESS_FLOOR
-        and critical_regressions == 0
-        and schema_ok
-        and privacy_ok
-    ):
-        return (
-            "clear_win",
-            f"LLM clear win: recall Δ={recall_delta:+.3f}, suppress Δ={suppress_delta:+.3f}, "
-            f"0 regressions, schema/privacy clean.",
-        )
-    if (
-        recall_delta >= SMALL_WIN_RECALL_DELTA
-        and suppress_delta >= CLEAR_WIN_SUPPRESS_FLOOR
-        and critical_regressions <= 1
-        and schema_failure_rate <= 0.05
-        and privacy_ok
-    ):
-        return (
-            "small_win",
-            f"Hybrid threshold: recall Δ={recall_delta:+.3f}, suppress Δ={suppress_delta:+.3f}.",
-        )
-    return (
-        "no_win",
-        f"No win — keep deterministic (recall Δ={recall_delta:+.3f}, "
-        f"regressions={critical_regressions}, schema_fail={schema_failure_rate:.1%}).",
-    )
-
-
-def collect_live_gate_evidence(
-    truth: EvaluationTruth,
-    *,
-    main: object,
-    ablation: dict[str, Any],
-    attributions: list[dict[str, Any]],
-    ledger: object,
-    live: bool,
-    repo: Path | None = None,
-) -> LiveGateEvidence:
-    repo = repo or Path.cwd()
-    arm_a = getattr(main, "arm_a_aggregate", {})
-    arm_b = getattr(main, "arm_b_aggregate", {})
-    deltas = {k: arm_b.get(k, 0.0) - arm_a.get(k, 0.0) for k in set(arm_a) | set(arm_b)}
-    outcomes = getattr(main, "outcome_counts", None)
-    critical_regressions = outcomes.regressions if outcomes else 0
-    decision, rationale = decide_live_architecture(
-        arm_a,
-        arm_b,
-        critical_regressions=critical_regressions,
-        schema_failure_rate=float(getattr(main, "schema_failure_rate", 0.0)),
-        privacy_failure_rate=float(getattr(main, "privacy_failure_rate", 0.0)),
-    )
-    return LiveGateEvidence(
-        git_commit=_git_commit(repo),
-        scenario=str(getattr(main, "scenario", "alex-v1")),
-        scenario_version=truth.scenario_version,
-        generated_at=datetime.now(tz=UTC).isoformat(),
-        live=live,
-        arm_a=arm_a,
-        arm_b=arm_b,
-        deltas=deltas,
-        ablation_attention_delta=ablation.get("attention_delta", {}),
-        ablation_next_action_delta=ablation.get("next_action_delta", {}),
-        arm_b_stability_pct=float(getattr(main, "arm_b_stability_pct", 1.0)),
-        schema_failure_rate=float(getattr(main, "schema_failure_rate", 0.0)),
-        privacy_failure_rate=float(getattr(main, "privacy_failure_rate", 0.0)),
-        critical_regressions=critical_regressions,
-        total_cost_usd=float(getattr(ledger, "cumulative_usd", 0.0)),
-        median_latency_ms_arm_b=float(getattr(main, "median_latency_ms", 0.0)),
-        median_input_tokens=int(getattr(main, "median_input_tokens", 0)),
-        median_output_tokens=int(getattr(main, "median_output_tokens", 0)),
-        architecture_decision=decision,
-        architecture_rationale=rationale,
-        attributions=attributions,
-        benchmark=getattr(main, "as_dict", lambda: {})(),
-        ablation=ablation,
-    )
-
-
-def render_live_gate_report_markdown(evidence: LiveGateEvidence) -> str:
-    a, b, d = evidence.arm_a, evidence.arm_b, evidence.deltas
-    lines = [
-        "# Reasoning Value Gate — Live Report",
-        "",
-        f"- Generated: {evidence.generated_at}",
-        f"- Git: `{evidence.git_commit}`",
-        f"- Scenario: `{evidence.scenario}` v{evidence.scenario_version}",
-        f"- Live Fireworks: `{evidence.live}`",
-        f"- Total cost: ${evidence.total_cost_usd:.4f}",
-        "",
-        "## Exit gate metrics",
-        "",
-        "| Metric | Arm A | LLM B | Delta |",
-        "| --- | --- | --- | --- |",
-        f"| MUST_SURFACE recall (critical) | {a.get('critical_recall', 0):.3f} | {b.get('critical_recall', 0):.3f} | {d.get('critical_recall', 0):+.3f} |",
-        f"| MUST_SUPPRESS accuracy | {a.get('must_suppress_accuracy', 0):.3f} | {b.get('must_suppress_accuracy', 0):.3f} | {d.get('must_suppress_accuracy', 0):+.3f} |",
-        f"| Top-3 critical recall | {a.get('top3_critical_recall', 0):.3f} | {b.get('top3_critical_recall', 0):.3f} | {d.get('top3_critical_recall', 0):+.3f} |",
-        f"| Next-action fit | {a.get('next_action_fit', 0):.3f} | {b.get('next_action_fit', 0):.3f} | {d.get('next_action_fit', 0):+.3f} |",
-        f"| Stable decisions (B) | n/a | {evidence.arm_b_stability_pct:.1%} | — |",
-        f"| Schema failures | — | {evidence.schema_failure_rate:.1%} | — |",
-        f"| Privacy failures | — | {evidence.privacy_failure_rate:.1%} | — |",
-        f"| Critical regressions | — | {evidence.critical_regressions} | — |",
-        f"| Median latency | ~ms | {evidence.median_latency_ms_arm_b:.1f} ms | — |",
-        f"| Median input tokens | — | {evidence.median_input_tokens} | — |",
-        f"| Median output tokens | — | {evidence.median_output_tokens} | — |",
-        "",
-        "## Privacy ablation (10 hardest)",
-        "",
-        f"- Attention delta: `{evidence.ablation_attention_delta}`",
-        f"- Next-action delta: `{evidence.ablation_next_action_delta}`",
-        "",
-        "## Architecture decision",
-        "",
-        f"**Decision:** `{evidence.architecture_decision}`",
-        "",
-        evidence.architecture_rationale,
-        "",
-    ]
-    if evidence.attributions:
-        lines.extend(["## Failure attributions", ""])
-        for att in evidence.attributions[:20]:
-            lines.append(
-                f"- `{att.get('checkpoint_id')}` [{att.get('cause')}]: {att.get('narrative')}"
-            )
-    lines.append("")
-    return "\n".join(lines)
-
-
-def write_live_gate_report(
-    evidence: LiveGateEvidence,
-    *,
-    report_path: str | Path = LIVE_REPORT_PATH,
-    adr_path: str | Path = ADR_PATH,
-) -> Path:
-    report_path = Path(report_path)
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(render_live_gate_report_markdown(evidence), encoding="utf-8")
-    adr = Path(adr_path)
-    a, b, d = evidence.arm_a, evidence.arm_b, evidence.deltas
-    adr.write_text(
-        f"""# ADR-012: Reasoning Value Gate architecture decision
-
-**Status:** Accepted (live gate evidence — placeholders filled when live run completes)
-**Date:** {evidence.generated_at[:10]}
-**Git:** `{evidence.git_commit}`
-
-## Live evidence
-
-| Metric | Arm A | LLM B | Delta |
-| --- | --- | --- | --- |
-| Critical recall | {a.get("critical_recall", 0):.3f} | {b.get("critical_recall", 0):.3f} | {d.get("critical_recall", 0):+.3f} |
-| Must-suppress accuracy | {a.get("must_suppress_accuracy", 0):.3f} | {b.get("must_suppress_accuracy", 0):.3f} | {d.get("must_suppress_accuracy", 0):+.3f} |
-| Top-3 critical recall | {a.get("top3_critical_recall", 0):.3f} | {b.get("top3_critical_recall", 0):.3f} | {d.get("top3_critical_recall", 0):+.3f} |
-| Next-action fit | {a.get("next_action_fit", 0):.3f} | {b.get("next_action_fit", 0):.3f} | {d.get("next_action_fit", 0):+.3f} |
-| Total live cost | ~$0 | ${evidence.total_cost_usd:.4f} | — |
-| B stability | n/a | {evidence.arm_b_stability_pct:.1%} | — |
-| Critical regressions | — | {evidence.critical_regressions} | — |
-| Schema failure rate | — | {evidence.schema_failure_rate:.1%} | — |
-| Privacy ablation (attention) | — | — | {evidence.ablation_attention_delta} |
-| Privacy ablation (next-action) | — | — | {evidence.ablation_next_action_delta} |
-
-## Multi-axis decision
-
-**{evidence.architecture_decision}** — {evidence.architecture_rationale}
-
-| Outcome | Criteria |
-| --- | --- |
-| CLEAR WIN | recall Δ≥+5pp AND suppress Δ≥-1pp AND regressions=0 AND schema/privacy=100% |
-| SMALL WIN | hybrid threshold (recall Δ≥+2pp, suppress Δ≥-1pp, ≤1 regression) |
-| NO WIN | keep deterministic |
-
-See [reasoning-value-gate-live-report.md](../reports/reasoning-value-gate-live-report.md).
-""",
-        encoding="utf-8",
-    )
-    return report_path
 
 
 def collect_reasoning_value_gate_evidence(
@@ -557,18 +305,11 @@ def run_reasoning_value_gate(
 
 __all__ = [
     "ADR_PATH",
-    "LIVE_REPORT_PATH",
     "REPORT_PATH",
-    "LiveGateArchitectureDecision",
-    "LiveGateEvidence",
     "ReasoningValueGateEvidence",
-    "collect_live_gate_evidence",
     "collect_reasoning_value_gate_evidence",
     "decide_architecture",
-    "decide_live_architecture",
     "render_gate_report_markdown",
-    "render_live_gate_report_markdown",
     "run_reasoning_value_gate",
-    "write_live_gate_report",
     "write_reasoning_value_gate_report",
 ]

@@ -32,7 +32,7 @@ from personal_enigma.evaluation.evaluation_truth import EvaluationTruth
 from personal_enigma.evaluation.metrics.support_fitness import (
     RescueRegressionCase,
     SupportFitnessMetrics,
-    compute_rescue_regression_metrics,
+    compute_benchmark_rescue_regression,
     compute_support_fitness_metrics,
 )
 from personal_enigma.evaluation.observations import (
@@ -45,6 +45,7 @@ from personal_enigma.evaluation.observations import (
 from personal_enigma.reasoning import PaygReasoningService, ReasoningMode, ReplayPaygTransport
 from personal_enigma.reasoning.structured_output import (
     InvalidEvidenceIdsError,
+    JudgeV1Attention,
     JudgeV1Output,
     JudgeV1ParseError,
     parse_judge_v1_output,
@@ -53,6 +54,7 @@ from personal_enigma.reasoning.structured_output import (
 from personal_enigma.transformation import TransformedContext
 
 PROMPT_VERSION = "judge-v1"
+SURFACE_CONFIDENCE_MIN = 0.5
 FORBIDDEN_PROMPT_MARKERS = (
     "support_challenges",
     "poor_actions",
@@ -186,7 +188,10 @@ def build_judge_prompt(
     next_action_schema = (
         "null"
         if attention_only
-        else '{ "title": "<micro-step>", "action_type": "admin", "estimated_minutes": <int>, "confidence": 0.0-1.0 }'
+        else (
+            '{ "title": "<micro-step>", "action_type": "admin", '
+            '"estimated_minutes": <int>, "confidence": 0.0-1.0 }'
+        )
     )
     prompt = _JUDGE_PROMPT.format(
         next_action_schema=next_action_schema,
@@ -195,6 +200,19 @@ def build_judge_prompt(
     )
     assert_prompt_safe(prompt)
     return prompt
+
+
+@dataclass(frozen=True, slots=True)
+class PolicyJudgement:
+    decision: Literal["surface", "suppress", "context"]
+    reason: str | None = None
+
+
+def apply_attention_policy(attention: JudgeV1Attention) -> PolicyJudgement:
+    """Deterministic post-model policy (confidence gate before ranking)."""
+    if attention.decision == "surface" and attention.confidence < SURFACE_CONFIDENCE_MIN:
+        return PolicyJudgement(decision="suppress", reason="surface_threshold")
+    return PolicyJudgement(decision=attention.decision)
 
 
 @dataclass(frozen=True, slots=True)
@@ -220,7 +238,8 @@ def rank_candidate_judgements(
     for judgement in judgements:
         if judgement.output is None:
             continue
-        if judgement.output.attention.decision != "surface":
+        policy = apply_attention_policy(judgement.output.attention)
+        if policy.decision != "surface":
             continue
         candidate = by_id.get(judgement.candidate_id)
         if candidate is None:
@@ -240,7 +259,7 @@ def rank_candidate_judgements(
     return [(c, o) for c, o, _ in ranked]
 
 
-def apply_attention_policy(
+def filter_snapshot_attention_policy(
     snapshot: CheckpointSnapshot,
     ranked_surfaces: list[tuple[AttentionCandidateObservation, JudgeV1Output]],
 ) -> list[SurfacedAlert]:
@@ -471,7 +490,7 @@ def score_arm_b(
 
     ranked = rank_candidate_judgements(snapshot, judgements)
     model_alerts = ranked_surfaces_to_alerts(snapshot, ranked)
-    policy_alerts = apply_attention_policy(snapshot, ranked)
+    policy_alerts = filter_snapshot_attention_policy(snapshot, ranked)
     next_action = None if attention_only else pick_next_action(ranked)
 
     metrics = compute_support_fitness_metrics(
@@ -545,7 +564,7 @@ def run_llm_benchmark(
 
     report.arm_a_aggregate = aggregate_support_fitness([r.metrics for r in report.arm_a])
     report.arm_b_aggregate = aggregate_support_fitness([r.metrics for r in report.arm_b])
-    cases, counts = compute_rescue_regression_metrics(report.arm_a, report.arm_b)
+    cases, counts = compute_benchmark_rescue_regression(report.arm_a, report.arm_b)
     report.rescue_regression_cases = cases
     report.rescue_regression_counts = counts
     return report
@@ -569,12 +588,15 @@ __all__ = [
     "CandidateJudgement",
     "CheckpointArmResult",
     "LlmBenchmarkReport",
+    "PolicyJudgement",
     "PROMPT_VERSION",
+    "SURFACE_CONFIDENCE_MIN",
     "aggregate_support_fitness",
     "apply_attention_policy",
     "assert_prompt_safe",
     "benchmark_cost_events",
     "build_judge_prompt",
+    "filter_snapshot_attention_policy",
     "pick_next_action",
     "rank_candidate_judgements",
     "run_llm_benchmark",

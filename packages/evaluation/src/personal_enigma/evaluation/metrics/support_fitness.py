@@ -169,6 +169,16 @@ def _top1_obligation_ids(alerts: Sequence[SurfacedAlert]) -> set[str]:
     return _top_obligation_ids(alerts, n=1)
 
 
+def top1_critical_recall(
+    truth: EvaluationTruth,
+    *,
+    alerts: Sequence[SurfacedAlert],
+    at: datetime,
+) -> float:
+    """Fraction of MUST_SURFACE critical obligations present in the top-1 alert."""
+    return compute_attention_fitness_metrics(truth, alerts=alerts, at=at).top1_critical_recall
+
+
 def _alert_evidence_ids(alerts: Sequence[SurfacedAlert]) -> set[str]:
     return {eid for alert in alerts for eid in alert.evidence_ids}
 
@@ -461,6 +471,27 @@ def summarize_rescue_regression(cases: Sequence[RescueRegressionCase]) -> dict[s
     return summary
 
 
+def compute_benchmark_rescue_regression(
+    arm_a_results: Sequence[Any],
+    arm_b_results: Sequence[Any],
+) -> tuple[list[RescueRegressionCase], dict[str, int]]:
+    by_a = {r.checkpoint_id: r for r in arm_a_results}
+    by_b = {r.checkpoint_id: r for r in arm_b_results}
+    cases: list[RescueRegressionCase] = []
+    for cp_id, a_result in by_a.items():
+        b_result = by_b.get(cp_id)
+        if b_result is None:
+            continue
+        cases.extend(
+            compute_rescue_regression_metrics(
+                checkpoint_id=cp_id,
+                arm_a=a_result.metrics,
+                arm_b=b_result.metrics,
+            )
+        )
+    return cases, summarize_rescue_regression(cases)
+
+
 __all__ = [
     "AttentionFitnessMetrics",
     "ContractCheckpointScore",
@@ -471,8 +502,10 @@ __all__ = [
     "classify_arm_outcome",
     "compute_attention_fitness_metrics",
     "compute_next_action_fitness_metrics",
+    "compute_benchmark_rescue_regression",
     "compute_rescue_regression_metrics",
     "compute_support_fitness_metrics",
     "score_next_action_for_contract",
     "summarize_rescue_regression",
+    "top1_critical_recall",
 ]

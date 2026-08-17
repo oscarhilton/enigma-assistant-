@@ -7,12 +7,16 @@ from pathlib import Path
 
 import pytest
 
+from personal_enigma.evaluation._testing.judge_mock import (
+    PerCandidateJudgeMockTransport,
+    surface_expenses_json,
+)
 from personal_enigma.evaluation.evaluation_truth import load_evaluation_truth
 from personal_enigma.evaluation.llm_benchmark import (
     FORBIDDEN_PROMPT_MARKERS,
     apply_attention_policy,
-    build_candidate_judge_prompt,
     build_judge_prompt,
+    filter_snapshot_attention_policy,
     run_llm_benchmark,
 )
 from personal_enigma.evaluation.metrics.support_fitness import (
@@ -36,12 +40,6 @@ REPO = Path(__file__).resolve().parents[3]
 GT = REPO / "scenarios" / "alex-v1" / "ground_truth"
 BASELINES = Path(__file__).resolve().parents[1] / "fixtures" / "baselines" / "arm-a"
 MINI_CPS = ["cp-2026-01-14T10:00", "cp-2026-01-21T13:30", "cp-2026-01-11T11:00"]
-
-
-from personal_enigma.evaluation._testing.judge_mock import (
-    PerCandidateJudgeMockTransport,
-    surface_expenses_json,
-)
 
 
 def test_parse_judge_v1_output_valid() -> None:
@@ -78,11 +76,22 @@ def test_apply_attention_policy_surface_threshold() -> None:
     assert policy.reason == "surface_threshold"
 
 
+def test_filter_snapshot_attention_policy_skips_suppressed() -> None:
+    from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
+
+    snap = load_checkpoint_snapshot(BASELINES / f"{MINI_CPS[0]}.json")
+    suppressed = next(c for c in snap.candidate_set if c.suppressed)
+    output = parse_judge_v1_output(surface_expenses_json())
+    ranked = [(suppressed, output)]
+    alerts = filter_snapshot_attention_policy(snap, ranked)
+    assert alerts == []
+
+
 def test_prompt_excludes_contract_markers() -> None:
     from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
 
     snap = load_checkpoint_snapshot(BASELINES / f"{MINI_CPS[0]}.json")
-    prompt = build_judge_prompt(snap)
+    prompt = build_judge_prompt(snap, snap.candidate_set[0])
     for marker in FORBIDDEN_PROMPT_MARKERS:
         assert marker.lower() not in prompt.lower()
 
@@ -115,8 +124,11 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
         service=service,
         context=snapshot_to_transformed_context(snap),
     )
-    assert result.judgements
-    assert any(j.policy_judgement.decision == "surface" for j in result.judgements)
+    assert result.candidate_judgements
+    assert any(
+        j.output and j.output.attention.decision == "surface"
+        for j in result.candidate_judgements
+    )
 
     replay_path = tmp_path / "gate.json"
     recorder.save(replay_path)
@@ -129,8 +141,8 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
     )
     assert report.arm_a
     assert report.arm_b
-    assert report.arm_b[0].judgements
-    assert report.rescue_regression_summary
+    assert report.arm_b[0].candidate_judgements
+    assert report.rescue_regression_counts
 
     rescue = compute_rescue_regression_metrics(
         checkpoint_id=MINI_CPS[0],
@@ -144,7 +156,7 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
     first = snap.candidate_set[0]
     assert client.reason(
         snapshot_to_transformed_context(snap),
-        prompt=build_candidate_judge_prompt(snap, first),
+        prompt=build_judge_prompt(snap, first),
         model="payg-gate",
     ).text
 
