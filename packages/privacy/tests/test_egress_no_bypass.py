@@ -14,7 +14,9 @@ SCAN_ROOTS = (
     REPO_ROOT / "packages" / "reasoning" / "src",
 )
 
-EGRESS_GATE_DIR = REPO_ROOT / "packages" / "privacy" / "src" / "personal_enigma" / "privacy" / "egress"
+EGRESS_GATE_DIR = (
+    REPO_ROOT / "packages" / "privacy" / "src" / "personal_enigma" / "privacy" / "egress"
+)
 
 FORBIDDEN_PATTERNS = (
     re.compile(r"request\.urlopen\s*\("),
