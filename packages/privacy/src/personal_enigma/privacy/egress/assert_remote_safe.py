@@ -8,7 +8,7 @@ from typing import Any
 from personal_enigma.privacy.egress.classification import PrivateDerived, PrivateRaw
 from personal_enigma.privacy.egress.errors import EgressBlockedError
 from personal_enigma.privacy.invariants import PrivacyInvariantError, assert_remote_payload_safe
-from personal_enigma.transformation import TransformedContext
+from personal_enigma.transformation.protocol import TransformedContext
 
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _PHONE_RE = re.compile(

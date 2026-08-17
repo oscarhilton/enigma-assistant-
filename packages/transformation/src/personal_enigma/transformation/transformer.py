@@ -18,7 +18,7 @@ from personal_enigma.domain import (
     SourceType,
 )
 from personal_enigma.identity import EntityResolver
-from personal_enigma.privacy import PrivacyLevel, default_level_for_source
+from personal_enigma.privacy.levels import PrivacyLevel, default_level_for_source
 from personal_enigma.transformation.passages import extract_minimal_passage
 from personal_enigma.transformation.protocol import TransformedContext
 from personal_enigma.transformation.stub_resolver import StubHmacResolver
