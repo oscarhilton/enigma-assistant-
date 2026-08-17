@@ -9,12 +9,12 @@ from personal_enigma.privacy.egress.classification import PrivateDerived, Privat
 from personal_enigma.privacy.egress.errors import EgressBlockedError
 from personal_enigma.privacy.invariants import PrivacyInvariantError, assert_remote_payload_safe
 from personal_enigma.transformation import TransformedContext
-from personal_enigma.transformation.title_sanitisation import assert_no_raw_identity_in_text
 
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _PHONE_RE = re.compile(
     r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}(?!\w)"
 )
+_RAW_POSSESSIVE_LEAK = re.compile(r"\b[A-Z][a-z]+'s\b")
 _FORBIDDEN_TYPE_MARKERS = (
     "PrivatePerson",
     "PrivateNote",
@@ -106,7 +106,7 @@ def _reject_raw_phones(context: TransformedContext) -> None:
 
 def _reject_raw_identity(context: TransformedContext) -> None:
     blob = _flatten_text(context)
-    try:
-        assert_no_raw_identity_in_text(blob)
-    except ValueError as exc:
-        raise EgressBlockedError(str(exc)) from exc
+    if _RAW_POSSESSIVE_LEAK.search(blob):
+        raise EgressBlockedError(
+            "privacy gate refused raw possessive identity in TransformedContext"
+        )

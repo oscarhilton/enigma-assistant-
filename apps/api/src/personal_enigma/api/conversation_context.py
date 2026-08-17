@@ -2,6 +2,9 @@
 
 Conversation context resolves "it", "that", and "this" from structured turns
 Enigma already presented. It never mutates AttentionState or checkpoints.
+
+Recent dialogue is interpretive working memory (2–6 turns). It is not world
+truth. Chat history remembers the conversation; world state remembers the world.
 """
 
 from __future__ import annotations
@@ -16,6 +19,16 @@ from personal_enigma.api.intent_router import (
     compose_follow_up_intent,
 )
 from personal_enigma.attention.projection import AttentionState, NextActionView
+
+# 2–6 recent turns — enough to understand meaning, not enough to recreate a life.
+RECENT_DIALOGUE_LIMIT = 6
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+
+DialogueRole = Literal["user", "assistant"]
+DialogueEgressClassification = Literal["remote_safe", "local_only"]
+_LOCAL_QUOTATION_KINDS = frozenset(
+    {"source_quotation", "source_quote", "quoted_message", "note_excerpt"}
+)
 
 _REMEMBERED_INTENT_KINDS = frozenset(
     {
@@ -131,6 +144,23 @@ class TurnLocalConstraint:
 
 
 @dataclass
+class DialogueTurn:
+    """One bounded conversational turn. Visible locally; egress-filtered remotely.
+
+    ``text`` is what the user saw. Remote working memory uses ``remote_safe_text``
+    or ``summary`` when ``egress_classification`` is ``local_only``.
+    """
+
+    role: DialogueRole
+    text: str
+    act: str | None = None
+    subject_id: str | None = None
+    egress_classification: DialogueEgressClassification = "remote_safe"
+    summary: str | None = None
+    remote_safe_text: str | None = None
+
+
+@dataclass
 class ConversationContext:
     current_attention_item_id: str | None = None
     current_next_action_id: str | None = None
@@ -139,11 +169,17 @@ class ConversationContext:
     # Invisible discourse subject — populated from structured Enigma turns (C09).
     current_subject_id: str | None = None
     current_subject_kind: str | None = None
+    # Why focus last changed. Not a classifier label for the next turn.
+    focus_reason: str | None = None
+    # Useful period constraint ("saturday") — not last_intent_kind.
+    temporal_constraint: str | None = None
     pending_confirmation: PendingConfirmation | None = None
     pending_dialogue_act: DialogueActKind | None = None
     turn_local_constraints: list[TurnLocalConstraint] = field(default_factory=list)
     suppressed_next_action_ids: list[str] = field(default_factory=list)
     last_intent: ConversationIntent | None = None
+    # Interpretive working memory — not world truth, not tone memory, not a biography.
+    recent_dialogue: list[DialogueTurn] = field(default_factory=list)
     # Set for this user turn only; never a durable trait.
     named_referent_changed_this_turn: bool = False
     turn_local_recorded_this_turn: bool = False
@@ -165,6 +201,13 @@ class ConversationContext:
         self.named_referent_changed_this_turn = False
         self.turn_local_recorded_this_turn = False
 
+    def remember_dialogue_turn(self, turn: DialogueTurn) -> None:
+        """Append a turn and drop anything older than ``RECENT_DIALOGUE_LIMIT``."""
+        self.recent_dialogue.append(turn)
+        overflow = len(self.recent_dialogue) - RECENT_DIALOGUE_LIMIT
+        if overflow > 0:
+            self.recent_dialogue = self.recent_dialogue[overflow:]
+
     def approval_authorized(self) -> bool:
         pending = self.pending_confirmation
         return pending is not None and pending.kind == "APPROVE_CONFIRMATION"
@@ -181,6 +224,8 @@ class ConversationContext:
             self.suppressed_next_action_ids.append(action_id)
 
     def remember_intent(self, intent: ConversationIntent) -> None:
+        if intent.period is not None:
+            self.temporal_constraint = intent.period.value
         if intent.kind in _REMEMBERED_INTENT_KINDS:
             self.last_intent = intent
 
@@ -270,15 +315,27 @@ def update_context_from_turn_items(
     context: ConversationContext,
     turn_items: list[dict[str, Any]],
 ) -> None:
-    """Refresh referents from structured items Enigma just presented."""
+    """Refresh referents from structured items Enigma just presented.
+
+    A referent candidate may be available for resolution without becoming
+    the current subject. Empty horizon results and secondary radar cards
+    must not write ``current_subject_id``.
+    """
+    kinds = [str(item.get("kind") or "") for item in turn_items]
+    structured = any(kind in _STRUCTURED_SUBJECT_KINDS for kind in kinds)
+    if not structured:
+        context.focus_reason = (
+            "empty_horizon" if context.current_subject_id is None else "preserved"
+        )
+        update_pending_dialogue_act(context, turn_items)
+        return
+
     for item in turn_items:
         kind = item.get("kind")
         if kind == "attention_item":
-            item_id = item.get("item", {}).get("id")
-            if item_id:
-                context.current_attention_item_id = item_id
-                context.current_subject_id = item_id
-                context.current_subject_kind = "attention_item"
+            # objects_in_response ≠ conversation_focus. Radar / leftover
+            # referent_candidates stay resolvable without becoming the subject.
+            continue
         elif kind == "next_action":
             action = item.get("action", {})
             action_id = action.get("id")
@@ -289,9 +346,11 @@ def update_context_from_turn_items(
                 context.current_attention_item_id = source_id
                 context.current_subject_id = source_id
                 context.current_subject_kind = "next_action"
+                context.focus_reason = "primary_answer"
             elif action_id:
                 context.current_subject_id = action_id
                 context.current_subject_kind = "next_action"
+                context.focus_reason = "primary_answer"
         elif kind == "assist_proposal":
             proposal = item.get("proposal") or {}
             plan = item.get("plan") or {}
@@ -315,9 +374,11 @@ def update_context_from_turn_items(
                     context.current_attention_item_id = source_id
                     context.current_subject_id = source_id
                     context.current_subject_kind = "next_action"
+                    context.focus_reason = "primary_answer"
                 elif action_id:
                     context.current_subject_id = action_id
                     context.current_subject_kind = "next_action"
+                    context.focus_reason = "primary_answer"
     update_pending_dialogue_act(context, turn_items)
 
 
@@ -503,6 +564,7 @@ def apply_named_referent_focus(
         context.current_subject_id = bound
         context.current_attention_item_id = bound
         context.current_subject_kind = context.current_subject_kind or "attention_item"
+        context.focus_reason = "user_selected"
     return bound
 
 
@@ -588,18 +650,86 @@ def resolve_referent(
     return None, None
 
 
+def assistant_visible_text(turn_items: list[dict[str, Any]]) -> str:
+    """Local visible copy from this Enigma turn — not a world fact."""
+    parts: list[str] = []
+    for item in turn_items:
+        text = item.get("text") or item.get("message")
+        if isinstance(text, str) and text.strip():
+            parts.append(text.strip())
+            continue
+        if item.get("kind") == "next_action":
+            title = (item.get("action") or {}).get("title")
+            if isinstance(title, str) and title.strip():
+                parts.append(title.strip())
+        elif item.get("kind") == "assist_proposal":
+            title = (item.get("proposal") or {}).get("title")
+            if isinstance(title, str) and title.strip():
+                parts.append(title.strip())
+    return " ".join(parts)
+
+
+def classify_assistant_dialogue_egress(
+    turn_items: list[dict[str, Any]],
+    text: str,
+) -> tuple[DialogueEgressClassification, str | None]:
+    """Assistant copy that rendered local HIGH/private content must not be replayed raw."""
+    local = False
+    for item in turn_items:
+        if item.get("local_only") or item.get("egress_classification") == "local_only":
+            local = True
+            break
+        level = str(item.get("privacy_level") or "").lower()
+        if level in {"high", "very_high"}:
+            local = True
+            break
+        if str(item.get("kind") or "") in _LOCAL_QUOTATION_KINDS:
+            local = True
+            break
+    if _EMAIL_RE.search(text):
+        local = True
+    if not local:
+        return "remote_safe", None
+    return "local_only", "Displayed a local quotation about the current subject"
+
+
+def project_recent_dialogue_for_egress(turns: list[DialogueTurn]) -> list[dict[str, Any]]:
+    """Remote working memory: acts + ids + remote-safe text or summary. Never raw local quotes."""
+    rows: list[dict[str, Any]] = []
+    for turn in turns:
+        row: dict[str, Any] = {"role": turn.role}
+        if turn.act:
+            row["act"] = turn.act
+        if turn.subject_id:
+            row["subject_id"] = turn.subject_id
+        if turn.role == "assistant" and turn.egress_classification == "local_only":
+            row["summary"] = (
+                turn.summary or "Displayed a local quotation about the current subject"
+            )
+        else:
+            text = turn.remote_safe_text or turn.text
+            row["text"] = text
+        rows.append(row)
+    return rows
+
+
 __all__ = [
+    "RECENT_DIALOGUE_LIMIT",
     "ConversationContext",
+    "DialogueTurn",
     "PendingConfirmation",
     "TurnLocalConstraint",
     "apply_named_referent_focus",
+    "assistant_visible_text",
     "available_next_actions",
     "capture_turn_local_location",
+    "classify_assistant_dialogue_egress",
     "context_derived_alternates",
     "estimated_minutes_for_action",
     "find_next_action_by_id",
     "match_named_referent",
     "pick_alternate_next_action",
+    "project_recent_dialogue_for_egress",
     "reconcile_action_focus",
     "referent_candidates",
     "remember_turn_local_constraint",

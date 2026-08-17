@@ -27,13 +27,16 @@ Forensic Demo session at Jan 19 10:00 was entirely `PATH=intent_router` with `RE
 
 - 🔴 **UI still on intent_router, not real C09.** This session never entered the orchestrator. Provider key / `ENIGMA_DEMO_LLM_CONVERSATION` gating still left a live Demo on the frozen router. C09 is not speaking until path is `llm` / `fireworks` with a real remote context (or an honest local scripted planner). Do not declare the UI on C09 from a debug label.
 - 🟠 **Conversation focus is changed by secondary rendered objects.** `objects_in_response[] ≠ conversation_focus`. “Also on radar: brunch” must not steal `current_subject_id` from TOKEN. Horizon modifiers preserve focus. See [discourse focus](../../docs/architecture/conversational-ui.md#discourse-focus--objects-in-the-response). `focus_reason` is C09-owned on `ConversationContext` — do not teach the router English.
-- 🟠 **Explicit / named referent recovery needs the LLM path.** `"What is the draft colour?"` and `"I need help with the token inventory"` recover TOKEN. That is C09, not a regex. `"Can you help me do that?"` targeting BRUNCH after radar stole focus is the bug, not a new phrase family.
+- 🟠 **Explicit / named referent recovery needs the LLM path.** `"What is the draft colour?"` and `"Can you help me do the token inventory"` recover TOKEN. That is C09, not a regex. `"Can you help me do that?"` targeting BRUNCH after radar stole focus is the bug, not a new phrase family. Ambiguous `"I need help with that"` is SUPPORT ([ADR-028](../../docs/adr/028-conversational-constitution-attestation-dialogue-support.md)).
 - 🟠 **Asynchronous Assist completion is not attributed to its originating action.** Delayed `"Done — Saturday brunch is booked"` after `"help!"` must use parent correlation, update the original Assist card, and `must_not` `appear_as_reply_to_current_user_turn`.
 - ✅ Forensic LLM trace (path / remote context / tool request) made all of this visible — keep path derived from the actual planner.
 - 🔴 Demo still ran `intent_router` for natural speech because `POST /demo/conversation/message` required `ENIGMA_DEMO_LLM_CONVERSATION=1` — even with Fireworks configured. **Partial:** provider key is enough to *select* C09; this session still ran the router (`REMOTE CONTEXT SENT=none`). Flag / `LLM_DISABLED` still force the router off.
 - 🔴 Semantically equivalent phrases diverged (`What do I have on today?` vs `Whats on for today?`) — router freeze stands; C09 must interpret.
 - 🟡 Generic conversation was only tiny canned mappings (`hi` → "Hey. What's up?"). Ordinary chat (sky colour, `:)` ) must not tool-call and must not hit canned unknown. **Respond is still a stub:** no-tool turns emit `"Okay."` — Life Scripts now fail `what` / sky on `response_meaning`. Same C09 model must speak; do not add a polish LLM.
-- 🔴 **Week overview invented from conversation state.** `"Whats on this week?"` (Fireworks) requested no tool and answered from `available_subjects` / `referent_candidates`: venue/menu/guest list, “you'll host on Saturday”, finish mid-week, Atlas “best tackled early…”, context framed as scheduled. **Invariant:** private-world questions require an Enigma capability (`agenda.get`). Context may help understand the question; it may not answer it. Life Script: `alex_jan19_week_grounding`.
+- 🔴 **Empty agenda wrote leftover referent_candidates as conversation focus.** `"What's on next week?"` → `agenda.get(next_week)` empty, grounded — then `current_subject_id = BRUNCH` though brunch was never surfaced. **Invariant:** a referent candidate may be available for resolution without becoming the current subject. Empty `agenda.get` → `current_subject` stays null. Life Script: `alex_jan19_when_should_i`.
+- 🔴 **Orchestrator stopped after an intermediate fact.** `"When should I do it?"` / `"Like... now?"` answered `referent.get_duration` only. Duration is how long, not when. C09 must continue: duration then `availability.check`. `"Saturday? I think?"` is horizon refine, not duration. `"Are you sure there's nothing more important?"` re-queries `attention.get_current` — do not defend the previous answer. **Confidence should come from demonstrated comprehension, not confident wording.**
+- 🟠 **Stale `last_intent_kind` / `last_period` steered later speech acts.** Preserve subject, useful constraints (`temporal_constraint`), and unresolved dialogue act — not a classifier label. `"Saturday?"` may set `temporal_constraint=saturday`; `"when should I do it?"` is a new speech act. Remote payload omits `last_intent_kind`.
+
 - 🔴 **Consent upgrade + proposal-id mismatch (Fireworks dump).** `"Lets see it"` → SHOW question → `"yes"` called `assist.approve` for an id in `current_assist_proposal_id` that `pending_assists` could not retrieve. **Invariant:** yes inherits the speech act; SHOW? → yes → SHOW, never APPROVE. Proposal surfaced → id stored authoritatively → approval resolves the same id. Core guard: `pending_dialogue_act` / `pending_confirmation`. Life Script: `alex_jan19_speech_acts`.
 - 🔴 **Speech acts collapsed into `assist.propose`.** Inspect (`Can I see the Draft Colour?`), advise (`What would you recommend?`), referent correction (`No, the parents im meeting saturday`), and a turn-local location (`we will be in Shoreditch`) were mapped to PREPARE/ACT. Inspect/advise/external-search defer on v1. Referent ≠ action. Five lanes in [ADR-020](../../docs/adr/020-llm-conversational-boundary-not-truth.md).
 
@@ -141,6 +144,8 @@ Compare LLM path against `intent_router` oracle where both are enabled.
 
 - [x] Personal-world question, no tool evidence → response admits ignorance; never invented world facts
 - [x] Private-world answers must be grounded through an Enigma capability — not `referent_candidates` / conversation state alone (`agenda.get` for week overview; Life Script `alex_jan19_week_grounding`)
+- [x] Empty horizon / `agenda.get` must not write `current_subject` from leftover `referent_candidates` (`alex_jan19_when_should_i`)
+- [x] A tool result may be an intermediate fact — duration then `availability.check` for when/now (`alex_jan19_when_should_i`)
 - [ ] Ordinary conversation (no Enigma capability) → natural answer, not `"Okay."` and not canned unknown — **unmet** (respond phase stub)
 - [x] Assist propose → approve → verified ack unchanged (C07)
 - [x] Yes inherits the speech act; never SHOW? → yes → `assist.approve` (core `pending_dialogue_act`, not a router phrase)
@@ -164,7 +169,9 @@ state:    current_subject_id = item-obligation_token_audit
 
 Conversation may resolve references; it may **not** establish facts ([C05d fence](./C05d-conversation-continuity.md) stops at horizon modifiers).
 
-**`objects_in_response[] ≠ conversation_focus`.** Secondary radar cards must not write `current_subject_id`. Horizon modifiers preserve focus. Named lexical recovery (`"the draft colour"`, `"the token inventory"`, `"I need help with the design tokens"`) is C09. Vague `"help!"` is ordinary conversation — do not add it to `intent_router`. Assist completion uses parent correlation ([C09b](./C09b-discourse-focus.md)).
+**`objects_in_response[] ≠ conversation_focus`.** Secondary radar cards must not write `current_subject_id`. Horizon modifiers preserve focus. Empty `agenda.get` / empty horizon must not promote leftover `referent_candidates` into focus — candidates stay resolvable without becoming the subject. Named lexical recovery (`"the draft colour"`, `"the token inventory"`, `"Can you help me do the design tokens"`) is C09. Ambiguous `"I need help with that"` is SUPPORT. Vague `"help!"` is ordinary conversation — do not add it to `intent_router`. Assist completion uses parent correlation ([C09b](./C09b-discourse-focus.md)).
+
+**A tool result may be an intermediate fact.** `referent.get_duration` answers “how long”, not “when should I do it?” / “like now?”. The orchestrator continues (duration then `availability.check`) until it has answered the user’s actual question. No second personality LLM. Life Script: `alex_jan19_when_should_i`.
 
 **Conversational references may be implicit; approvals must resolve to an explicit capability object before execution.** The model may send `assist.propose({})` / `assist.approve({})`. Enigma binds `target_id` / `proposal_id` before execution and records `referent_resolution` + `executed_tool_request` on the LLM trace. Named help with brunch in focus must retarget TOKEN — never execute BRUNCH from an empty propose.
 
@@ -211,6 +218,20 @@ Wiring: `apps/api/tests/test_c09_llm_paraphrase_invariance.py` (`ScriptedConvers
 Live model: `test_c09_live_fireworks_paraphrase` — skip unless `ENIGMA_C09_LIVE=1` **and** `FIREWORKS_API_KEY`; oracle fallback disabled so a pass is the model, not magic phrases. Provider-neutral `EgressConversationLLM` uses Fireworks via `AuditedEgressGate`.
 
 Prior C05d horizon composition (`this week?` after urgent / `what needs me`) remains green — do not patch referent failures in C05d. Further discourse (`next week?`, `what about Friday?`) is C09.
+
+## Conversational constitution ([ADR-028](../../docs/adr/028-conversational-constitution-attestation-dialogue-support.md))
+
+```
+UNDERSTAND → SUPPORT → PREPARE → PROPOSE → APPROVE → EXECUTE
+```
+
+**Distress may increase supportiveness, never authority.** Ambiguous help requests default to the least-authoritative useful interpretation.
+
+- User reports write `world.record_user_attestation`. Conversation alone must never be the only place that change exists.
+- `recent_dialogue` is 2–6 egress-filtered turns. Recent chat helps interpret; it does not establish world truth.
+- `"help, I'm overwhelmed"` / `"I need help with that"` → SUPPORT (`world.explain`). `"can you draft something for me?"` → PREPARE. `"do it"` → proposal + explicit approval.
+
+Do not expand `intent_router`. Guards live in `speech_acts`, orchestrator constitution, and `execute_tool`.
 
 ## Out of scope
 

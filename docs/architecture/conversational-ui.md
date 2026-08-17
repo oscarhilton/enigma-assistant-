@@ -135,7 +135,15 @@ Referent resolution sits under all five. It is not an action.
 
 **The model may possess general knowledge. It may not manufacture current-world evidence.**
 
-Speech acts (UNDERSTAND / ADVISE / PREPARE / ACT / INSPECT / APPROVE) do not collapse into `assist.propose`.
+Speech acts do not collapse into `assist.propose`. Funnel ([ADR-028](../adr/028-conversational-constitution-attestation-dialogue-support.md)):
+
+```
+UNDERSTAND → SUPPORT → PREPARE → PROPOSE → APPROVE → EXECUTE
+```
+
+**Distress may increase supportiveness, never authority.** Ambiguous help requests default to the least-authoritative useful interpretation. `"help, I'm overwhelmed"` / `"I need help with that"` → SUPPORT. `"can you draft something for me?"` → PREPARE. `"do it"` → proposal + explicit approval, never silent execute.
+
+User reports (`I've done the draft colours`) are evidence (`world.record_user_attestation`). Commands grant authority. Recent dialogue is 2–6 egress-filtered turns: recent chat helps interpret; it does not establish world truth.
 
 **Yes inherits the speech act of the question it answers. It never upgrades that act.** SHOW? → yes → SHOW. Never SHOW? → yes → `assist.approve`. Core guard: `pending_dialogue_act` / `pending_confirmation`. Approval only if the previous Enigma turn created an explicit approval affordance.
 
@@ -174,6 +182,13 @@ Rendering “also on radar: brunch” must **not** steal focus from TOKEN. Focus
 | HORIZON MODIFIER (`"this week?"`, `"what about the week after?"`) | **preserve** unless the response clearly replaces the subject |
 | SECONDARY CARD RENDERED (radar / “also on radar”) | **do not** change |
 | FAILED / UNKNOWN TURN | **do not** change |
+| EMPTY HORIZON (`agenda.get` next week with nothing on it) | **do not** change — leftover `referent_candidates` stay resolvable, not focus |
+
+`referent_candidates` may bind “the dinner” / “the parents” to an id. They must not become `current_subject` merely by existing after an empty agenda.
+
+**A tool result may be an intermediate fact.** Duration answers “how long”, not “when should I do it?” or “like now?”. The orchestrator continues with `availability.check` until the question is answered. `"Saturday? I think?"` is a horizon / `temporal_constraint`, not a duration query. `"Are you sure there's nothing more important?"` re-queries `attention.get_current` — confidence from comprehension, not wording.
+
+Life Script: `packages/evaluation/scripts/alex_jan19_when_should_i.script.yaml`.
 
 Jan 19 10:00 shape this protects:
 
@@ -182,10 +197,11 @@ Jan 19 10:00 shape this protects:
 3. `"what about the week after?"` → another horizon; focus stays TOKEN
 4. `"What is the draft colour?"` → lexical recovery to TOKEN (C09, not regex)
 5. `"Can you help me do that?"` → Assist TOKEN. If brunch stole focus, this is the bug.
-6. `"I need help with the token inventory"` → named referent → Assist TOKEN
-7. `"I need help with the design tokens"` with brunch in focus → Assist TOKEN, not brunch
-8. `"help!"` / `"heeeelllppp!!"` → ordinary social conversation, **no** Assist. Do not add these to `intent_router`.
-9. Delayed `"Done — Saturday brunch is booked"` → attributed to the originating Assist via parent correlation; must not appear as a reply to the current user turn. Update the Assist card, not conversational prose.
+6. `"Can you help me do the token inventory"` → named referent + explicit do → Assist TOKEN
+7. `"Can you help me do the design tokens"` with brunch in focus → Assist TOKEN, not brunch
+8. `"I need help with that"` / `"help, I'm overwhelmed"` → SUPPORT (`world.explain`), not Assist. Ambiguous help requests default to the least-authoritative useful interpretation.
+9. `"help!"` / `"heeeelllppp!!"` → ordinary social conversation, **no** Assist. Do not add these to `intent_router`.
+10. Delayed `"Done — Saturday brunch is booked"` → attributed to the originating Assist via parent correlation; must not appear as a reply to the current user turn. Update the Assist card, not conversational prose.
 
 Life Script: `packages/evaluation/scripts/alex_jan19_focus_vs_radar.script.yaml` ([C12](../../tickets/conversational-ui/C12-life-scripts.md) · [C09b](../../tickets/conversational-ui/C09b-discourse-focus.md)). Public-effect keys: `preserve_subject`, `secondary_items` / `secondary_items_may_include`, `assist_target`, `attributed_to_original_assist`. No router intents, handler names, or regex.
 
@@ -197,7 +213,7 @@ REFERENT RESOLUTION named_referent → item-obligation_token_audit
 EXECUTED TOOL REQUEST assist.propose({target_id: item-obligation_token_audit})
 ```
 
-Empty propose must not blindly execute `current_subject` when the user named a different referent (brunch in focus + `"I need help with the design tokens"` → TOKEN, not brunch). `assist.approve({})` binds `current_assist_proposal_id` or fails — the executed request always carries `proposal_id`.
+Empty propose must not blindly execute `current_subject` when the user named a different referent (brunch in focus + `"Can you help me do the design tokens"` → TOKEN, not brunch). `assist.approve({})` binds `current_assist_proposal_id` or fails — the executed request always carries `proposal_id`.
 
 `focus_reason` and parent-correlation Assist completion are C09 work — not taught to the frozen router, not a polish LLM.
 

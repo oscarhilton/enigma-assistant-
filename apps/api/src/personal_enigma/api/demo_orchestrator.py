@@ -12,13 +12,18 @@ from pydantic import BaseModel, Field
 
 from personal_enigma.api.conversation_context import (
     ConversationContext,
+    DialogueTurn,
     apply_named_referent_focus,
+    assistant_visible_text,
     capture_turn_local_location,
+    classify_assistant_dialogue_egress,
+    project_recent_dialogue_for_egress,
     referent_candidates,
     remember_turn_local_constraint,
     update_context_from_turn_items,
 )
 from personal_enigma.api.demo_assist import AssistPlan
+from personal_enigma.api.demo_attestation import ATTESTATION_TOOL
 from personal_enigma.api.demo_intents import (
     build_intent_turn,
     format_attention_summary_text,
@@ -38,6 +43,12 @@ from personal_enigma.api.intent_router import (
     TimeExpression,
     compose_follow_up_intent,
     normalize_utterance,
+)
+from personal_enigma.api.speech_acts import (
+    SpeechAct,
+    classify_speech_act,
+    dialogue_act_for_speech,
+    signals_difficulty,
 )
 from personal_enigma.attention.projection import AttentionState
 from personal_enigma.privacy.egress import (
@@ -155,6 +166,8 @@ def _subject_state(context: ConversationContext) -> dict[str, Any]:
     return {
         "current_subject_id": context.current_subject_id,
         "current_subject_kind": context.current_subject_kind,
+        "focus_reason": context.focus_reason,
+        "temporal_constraint": context.temporal_constraint,
     }
 
 
@@ -162,6 +175,9 @@ def _response_preview(turn_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for item in turn_items:
         kind = str(item.get("kind") or "")
+        if kind in {"source_quote", "source_quotation", "quoted_message", "note_excerpt"}:
+            rows.append({"kind": kind, "text": "[quoted locally]"})
+            continue
         text = item.get("text") or item.get("message")
         if text is None and kind == "next_action":
             text = (item.get("action") or {}).get("title")
@@ -203,6 +219,12 @@ def _compact_tool_data(data: dict[str, Any]) -> dict[str, Any]:
             "alternate",
             "calendar_items",
             "attention",
+            "body_text",
+            "body",
+            "text",
+            "snippet",
+            "quote",
+            "raw",
         }
     }
     if "subject_id" in data:
@@ -246,10 +268,16 @@ def _compact_tool_data(data: dict[str, Any]) -> dict[str, Any]:
         compact["calendar_evidence_ids"] = [
             row.get("evidence_id") for row in data["calendar_items"] if isinstance(row, dict)
         ]
-    if isinstance(data.get("attention"), list):
-        compact["attention_ids"] = [
-            row.get("id") for row in data["attention"] if isinstance(row, dict)
-        ]
+    if data.get("quoted_locally") is not None:
+        compact["quoted_locally"] = data["quoted_locally"]
+    if data.get("source_id"):
+        compact["source_id"] = data["source_id"]
+    if data.get("expired") is not None:
+        compact["expired"] = data["expired"]
+    if data.get("recent_ids"):
+        compact["recent_ids"] = data["recent_ids"]
+    if data.get("channel"):
+        compact["channel"] = data["channel"]
     return compact
 
 
@@ -342,6 +370,8 @@ def context_summary(
         "current_next_action_id": context.current_next_action_id,
         "current_subject_id": context.current_subject_id,
         "current_subject_kind": context.current_subject_kind,
+        "focus_reason": context.focus_reason,
+        "temporal_constraint": context.temporal_constraint,
         "current_assist_proposal_id": context.current_assist_proposal_id,
         "pending_dialogue_act": context.pending_dialogue_act,
         "pending_confirmation": (
@@ -363,6 +393,7 @@ def context_summary(
         "suppressed_next_action_ids": list(context.suppressed_next_action_ids),
         "last_intent_kind": last.kind.value if last is not None else None,
         "last_period": last.period.value if last is not None and last.period else None,
+        "recent_dialogue": project_recent_dialogue_for_egress(context.recent_dialogue),
     }
     if state is not None:
         summary["referent_candidates"] = referent_candidates(state)
@@ -411,6 +442,13 @@ def tool_calls_from_intent(
     last_intent: ConversationIntent | None = None,
 ) -> list[ToolCallRecord]:
     """Map utterance → tools using frozen intent_router plus orchestrator paraphrases."""
+    if classify_speech_act(text) == "USER_ATTESTATION":
+        return [ToolCallRecord(name=ATTESTATION_TOOL)]
+    act = classify_speech_act(text)
+    if act == "SUPPORT":
+        return [ToolCallRecord(name="world.explain")]
+    if act in {"PREPARE", "ACTION_REQUEST"}:
+        return [ToolCallRecord(name="assist.propose")]
     normalized = normalize_utterance(text)
 
     # C09 subject-referent phrases — orchestrator only; intent_router stays frozen.
@@ -772,6 +810,64 @@ def _ordinary_conversation_turn(at: str, text: str | None) -> list[dict[str, Any
     return _no_tool_turn(at, body)
 
 
+def _duration_is_the_answer(normalized: str) -> bool:
+    return "how long" in normalized or "how much time" in normalized
+
+
+def _schedule_utterance_kind(normalized: str) -> str | None:
+    """when / now — duration is evidence, not the answer. None = do not compose."""
+    compact = normalized.replace("...", " ").replace("…", " ")
+    compact = " ".join(compact.split())
+    if _duration_is_the_answer(compact):
+        return None
+    if compact in {"like now", "like now?", "now", "now?"} or "like now" in compact:
+        return "now"
+    if "when should" in compact or "when can" in compact or "when do i" in compact:
+        return "when"
+    return None
+
+
+def compose_follow_up_tools(
+    user_message: str,
+    context: ConversationContext,
+    results: list[ToolExecutionResult],
+) -> list[ToolCallRecord]:
+    """Continue after an intermediate fact until the user's question is answered.
+
+    Duration estimates how long; they asked when / whether now. Enigma composes
+    availability.check — not a second LLM personality, not a prompt hint.
+    """
+    if any(result.name == "availability.check" for result in results):
+        return []
+    duration = next(
+        (result for result in results if result.name == "referent.get_duration" and result.ok),
+        None,
+    )
+    if duration is None:
+        return []
+    minutes = duration.data.get("estimated_minutes")
+    if not isinstance(minutes, int) or minutes <= 0:
+        return []
+    kind = _schedule_utterance_kind(normalize_utterance(user_message))
+    if kind is None:
+        return []
+    arguments: dict[str, Any] = {"duration_minutes": minutes}
+    if kind == "when" and context.temporal_constraint:
+        arguments["period"] = context.temporal_constraint
+    return [ToolCallRecord(name="availability.check", arguments=arguments)]
+
+
+def _empty_horizon_result(result: ToolExecutionResult) -> bool:
+    if result.name != "agenda.get":
+        return False
+    data = result.data
+    return bool(data.get("empty_horizon")) or (
+        not data.get("calendar_items")
+        and not data.get("attention")
+        and not data.get("next_actions")
+    )
+
+
 def _stamp_correlation(items: list[dict[str, Any]], correlation_id: str) -> list[dict[str, Any]]:
     stamped: list[dict[str, Any]] = []
     for item in items:
@@ -797,7 +893,7 @@ def _enigma_actions(results: list[ToolExecutionResult]) -> list[dict[str, Any]]:
                 }
             )
             continue
-        side_effect = result.name == "assist.approve" and result.ok
+        side_effect = result.ok and result.name in {ATTESTATION_TOOL, "assist.approve"}
         rows.append(
             {
                 "name": result.name,
@@ -847,6 +943,108 @@ def _attach_turn_outcome(
                 break
 
 
+def apply_speech_act_constitution(
+    calls: list[ToolCallRecord],
+    speech_act: SpeechAct,
+    utterance: str,
+) -> list[ToolCallRecord]:
+    """Enforce the Assist funnel. Never skip toward more authority.
+
+    UNDERSTAND → SUPPORT → PREPARE → PROPOSE → APPROVE → EXECUTE
+
+    Distress may increase supportiveness, never authority.
+    Ambiguous help requests default to the least-authoritative useful
+    interpretation.
+    """
+    if speech_act == "USER_ATTESTATION":
+        attest = [call for call in calls if call.name == ATTESTATION_TOOL]
+        return attest or [ToolCallRecord(name=ATTESTATION_TOOL)]
+
+    propose_approve = frozenset({"assist.propose", "assist.approve"})
+    if speech_act == "SUPPORT" or (
+        signals_difficulty(utterance) and speech_act not in {"PREPARE", "ACTION_REQUEST"}
+    ):
+        remaining = [call for call in calls if call.name not in propose_approve]
+        return remaining or [ToolCallRecord(name="world.explain")]
+
+    if speech_act == "PREPARE":
+        remaining = [call for call in calls if call.name != "assist.approve"]
+        if any(call.name == "assist.propose" for call in remaining):
+            return remaining
+        return [ToolCallRecord(name="assist.propose")]
+
+    if speech_act == "ACTION_REQUEST":
+        remaining = [call for call in calls if call.name != "assist.approve"]
+        if any(call.name == "assist.propose" for call in remaining):
+            return remaining
+        return remaining or [ToolCallRecord(name="assist.propose")]
+
+    return calls
+
+
+def apply_attestation_constitution(
+    calls: list[ToolCallRecord],
+    speech_act: SpeechAct,
+    utterance: str = "",
+) -> list[ToolCallRecord]:
+    """Back-compat wrapper — full funnel lives in ``apply_speech_act_constitution``."""
+    return apply_speech_act_constitution(calls, speech_act, utterance)
+
+
+def _assistant_dialogue_act(tool_names: list[str], speech_act: SpeechAct) -> str:
+    if ATTESTATION_TOOL in tool_names:
+        return "acknowledgement"
+    if "assist.propose" in tool_names:
+        return "prepare"
+    if "assist.approve" in tool_names:
+        return "approval"
+    if any(
+        name.startswith(("next_action.", "attention.", "agenda.", "availability.", "world."))
+        for name in tool_names
+    ):
+        return "world_answer"
+    if speech_act == "QUESTION":
+        return "answer"
+    return "ordinary_conversation"
+
+
+def record_turn_dialogue(
+    session: DemoToolSession,
+    *,
+    user_message: str,
+    turn_items: list[dict[str, Any]],
+    speech_act: SpeechAct,
+    tool_names: list[str],
+) -> None:
+    """Append this exchange to bounded recent_dialogue after the turn is done.
+
+    The current user_message is sent separately; recent_dialogue is *prior* working
+    memory on the next turn.
+    """
+    subject = session.context.current_subject_id
+    session.context.remember_dialogue_turn(
+        DialogueTurn(
+            role="user",
+            text=user_message,
+            act=dialogue_act_for_speech(speech_act),
+            subject_id=subject,
+            egress_classification="remote_safe",
+        )
+    )
+    visible = assistant_visible_text(turn_items)
+    classification, summary = classify_assistant_dialogue_egress(turn_items, visible)
+    session.context.remember_dialogue_turn(
+        DialogueTurn(
+            role="assistant",
+            text=visible,
+            act=_assistant_dialogue_act(tool_names, speech_act),
+            subject_id=subject,
+            egress_classification=classification,
+            summary=summary,
+        )
+    )
+
+
 def run_orchestrator_turn(
     *,
     user_message: str,
@@ -875,9 +1073,19 @@ def run_orchestrator_turn(
     normalized = normalize_utterance(user_message)
     conversation_state = _subject_state(session.context)
     resolved = compose_follow_up_intent(user_message, session.context.last_intent)
+    if resolved.period is not None:
+        session.context.temporal_constraint = resolved.period.value
+    speech_act = classify_speech_act(user_message)
 
     if normalized in {"hey", "hi", "hello"}:
         turn_items = _stamp_correlation(_no_tool_turn(at, "Hey. What's up?"), corr)
+        record_turn_dialogue(
+            session,
+            user_message=user_message,
+            turn_items=turn_items,
+            speech_act=speech_act,
+            tool_names=[],
+        )
         return OrchestratorTurn(
             turn_items=turn_items,
             tool_calls=[],
@@ -901,6 +1109,7 @@ def run_orchestrator_turn(
         tools=tool_schemas(),
         correlation_id=corr,
     )
+    calls = apply_speech_act_constitution(calls, speech_act, user_message)
     egress = _planner_egress(planner)
 
     if not calls:
@@ -926,6 +1135,13 @@ def run_orchestrator_turn(
             router_fallback = False
         turn_items = _stamp_correlation(turn_items, corr)
         update_context_from_turn_items(session.context, turn_items)
+        record_turn_dialogue(
+            session,
+            user_message=user_message,
+            turn_items=turn_items,
+            speech_act=speech_act,
+            tool_names=[],
+        )
         _attach_turn_outcome(
             planner,
             disclosure_id=egress.get("disclosure_id"),
@@ -976,9 +1192,39 @@ def run_orchestrator_turn(
         if result.name == "assist.approve" and result.ok:
             break
 
+    composed = compose_follow_up_tools(user_message, session.context, results)
+    for call in composed:
+        executed_args, resolution = bind_authority_arguments(
+            session, call.name, call.arguments, user_message=user_message
+        )
+        if resolution is not None:
+            resolutions.append(resolution)
+        executed_call = call.model_copy(update={"arguments": executed_args})
+        executed_calls.append(executed_call)
+        result = execute_tool(session, executed_call.name, executed_call.arguments)  # type: ignore[arg-type]
+        results.append(result)
+        turn_items.extend(result.turn_items)
+        if result.assist_plan is not None:
+            proposal_id = result.assist_plan["proposal_id"]
+            assist_plan = session.pending_assists.get(proposal_id)
+
+    if any(_empty_horizon_result(result) for result in results):
+        turn_items = [
+            item
+            for item in turn_items
+            if item.get("kind") not in {"attention_item", "next_action", "attention_summary"}
+        ]
+
     turn_items = _stamp_correlation(turn_items, corr)
     session.context.remember_intent(resolved)
     update_context_from_turn_items(session.context, turn_items)
+    record_turn_dialogue(
+        session,
+        user_message=user_message,
+        turn_items=turn_items,
+        speech_act=speech_act,
+        tool_names=[call.name for call in executed_calls],
+    )
     _attach_turn_outcome(
         planner,
         disclosure_id=egress.get("disclosure_id"),
@@ -988,7 +1234,7 @@ def run_orchestrator_turn(
     egress = _planner_egress(planner)
     return OrchestratorTurn(
         turn_items=turn_items,
-        tool_calls=calls,
+        tool_calls=calls + composed,
         tool_results=results,
         assist_plan=assist_plan,
         llm_trace=build_llm_trace(
@@ -997,7 +1243,7 @@ def run_orchestrator_turn(
             user_message=user_message,
             conversation_state=conversation_state,
             turn_items=turn_items,
-            tool_calls=calls,
+            tool_calls=calls + composed,
             tool_results=results,
             intent_name=resolved.kind.value,
             remote_context_sent=egress.get("remote_context_sent"),
@@ -1018,8 +1264,11 @@ __all__ = [
     "LlmTrace",
     "OpenAIConversationLLM",
     "OrchestratorTurn",
+    "apply_attestation_constitution",
+    "apply_speech_act_constitution",
     "build_intent_router_trace",
     "build_llm_trace",
+    "compose_follow_up_tools",
     "configured_conversation_provider",
     "context_summary",
     "demo_llm_conversation_enabled",

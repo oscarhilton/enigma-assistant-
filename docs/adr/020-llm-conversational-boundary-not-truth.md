@@ -114,13 +114,16 @@ When the LLM needs a referent, it calls a context-resolution tool backed by `Con
 - Context may help the model understand the question. It may not answer the question.
 - `CONVERSATION STATE` → interpretation authority; `TOOL RESULT` → factual authority.
 
-`referent_candidates` (formerly `available_subjects`) are `{id, label, kind}` only. They exist so the model can bind “that” / “the token thing” to an id. They are not a schedule.
+`referent_candidates` (formerly `available_subjects`) are `{id, label, kind}` only. They exist so the model can bind “that” / “the token thing” to an id. They are not a schedule. **A referent candidate may be available for resolution without becoming the current subject.** Empty `agenda.get` must leave `current_subject` null — leftover candidates are not focus.
+
+- A tool result may be an intermediate fact. C09 continues until it has answered the user's actual question (duration is how long, not when).
+- Confidence should come from demonstrated comprehension, not confident wording. A challenge (“are you sure?”) re-queries the world.
 
 ### Hard guardrails
 
 1. **Personal-world question, no tool evidence → admit ignorance.** Keys, email recency, availability, obligation status — `"I don't know."` (or equivalent), never a plausible guess. **Ordinary conversation is not this case.** Sky colour, `:)` , `wait`, `what` need no Enigma capability; the interpret phase must leave that lane open. The respond phase must actually answer — a generic `"Okay."` is not understanding ([C12](../../tickets/conversational-ui/C12-life-scripts.md) frozen rule 4).
 2. **No invented world facts.** Keys location, email recency, availability windows, and obligation status must trace to a tool output or fixture evidence.
-3. **Assist never auto-executes.** Propose → explicit user approval → verified result (C07 invariant preserved). Conversational references may be implicit; approvals must resolve to an explicit capability object before execution. `assist.propose({})` and `assist.approve({})` may appear on the model tool request; the executed request must bind `target_id` / `proposal_id` and the LLM trace must show that fill (`referent_resolution` → `executed_tool_request`). Queries can stay implicit. Authority transitions cannot. Named lexical help must not blindly execute `current_subject` when the utterance names a different referent.
+3. **Assist never auto-executes.** Propose → explicit user approval → verified result (C07 invariant preserved). Conversational references may be implicit; approvals must resolve to an explicit capability object before execution. `assist.propose({})` and `assist.approve({})` may appear on the model tool request; the executed request must bind `target_id` / `proposal_id` and the LLM trace must show that fill (`referent_resolution` → `executed_tool_request`). Queries can stay implicit. Authority transitions cannot. Named lexical **do** requests must not blindly execute `current_subject` when the utterance names a different referent. Ambiguous “I need help with that” is SUPPORT, not PREPARE.
 4. **Silence stays silence.** Proactive silence is a presentation/event-log primitive, not an LLM-generated chat turn ([conversational-ui.md](../architecture/conversational-ui.md)).
 
 5. **Jan 19 regression preserved.** At `cp-2026-01-19T10:00`, token-audit stays in `context` with next-action support — never promoted to `needs_you` by conversational routing.
@@ -129,6 +132,9 @@ When the LLM needs a referent, it calls a context-resolution tool backed by `Con
 8. **Yes inherits the speech act. It never upgrades it.** SHOW? → yes → SHOW. EXPLAIN? → yes → EXPLAIN. APPROVE THIS ACTION? → yes → APPROVE. Never SHOW? → yes → `assist.approve`. Approval is authorized only when the previous Enigma turn created an **explicit approval affordance** (the Assist proposal card). The guard lives in Enigma core — reject `assist.approve` when `pending_dialogue_act` is not `APPROVE_CONFIRMATION`. Do not teach `intent_router` the word “yes”.
 9. **A conversational correction may change what Enigma is talking about; it may never by itself authorize Enigma to do something.** Resolving a referent is not an action. SUBJECT SELECTION ≠ CAPABILITY SELECTION. `assist.propose` is PREPARE, not the answer to a clarifying question.
 10. **The model may possess general knowledge. It may not manufacture current-world evidence.** Specific external claims (venues, addresses, prices) require external evidence just as specific personal claims require world-model evidence.
+11. **A referent candidate may be available for resolution without becoming the current subject.** Empty `agenda.get` / empty horizon → `current_subject` stays null. Secondary radar cards do not write focus. Preserve subject, useful constraints (`temporal_constraint`), and unresolved dialogue act — not a stale `last_intent_kind` classifier label. `"Saturday?"` may set a period constraint; `"when should I do it?"` is a new speech act.
+12. **A tool result may be an intermediate fact.** C09 must continue until it has answered the user's actual question. `referent.get_duration` then `availability.check` for when / like-now. Do not add a second personality LLM. Do not treat duration copy as a schedule recommendation.
+13. **Confidence should come from demonstrated comprehension, not confident wording.** “Are you sure?” re-queries the world (`attention.get_current`). Do not defend the previous conversational answer.
 
 ### Five lanes
 
@@ -142,7 +148,9 @@ Referent resolution sits under all five. It is not itself an action.
 | **4. EXTERNAL-WORLD QUERY** | sushi places in Shoreditch? | Search capability required. **Must not invent venues, addresses, or prices.** If the capability is not on v1, defer honestly — do not fake a restaurant table. |
 | **5. ACTION** | book one | `assist.propose` → explicit approval → verified write. |
 
-Speech acts — UNDERSTAND / ADVISE / PREPARE / ACT / INSPECT / APPROVE — cannot all collapse into `assist.propose`. Inspect and advise that are not on v1 must defer, not cheat via PREPARE.
+Speech acts — UNDERSTAND / SUPPORT / PREPARE / PROPOSE / APPROVE / EXECUTE — cannot all collapse into `assist.propose`. Inspect and advise that are not on v1 must defer, not cheat via PREPARE.
+
+**Distress may increase supportiveness, never authority.** Ambiguous help requests default to the least-authoritative useful interpretation. Full constitution: [ADR-028](./028-conversational-constitution-attestation-dialogue-support.md).
 
 **Turn-local constraints** follow the same philosophy as turn-local tone ([ADR-025](./025-tone-memory-how-to-speak-not-who-you-are.md)): “we will be in Shoreditch” is `{location=Shoreditch, applies_to=Saturday brunch}` for this session. It evaporates. It is not “Alex lives in Shoreditch,” not durable user memory, and not an action.
 
@@ -184,4 +192,4 @@ Implementation: [C09](../../tickets/conversational-ui/C09-llm-conversational-bou
 - [conversational-ui.md](../architecture/conversational-ui.md)
 - [C05d — Conversation continuity](../../tickets/conversational-ui/C05d-conversation-continuity.md)
 - [C09 — LLM conversational boundary](../../tickets/conversational-ui/C09-llm-conversational-boundary.md)
-- [C12 — Life Scripts](../../tickets/conversational-ui/C12-life-scripts.md) — tests interpret *and* respond (`response_meaning`)
+- [ADR-028 — Conversational constitution](./028-conversational-constitution-attestation-dialogue-support.md) — attestation, bounded recent dialogue, support-before-Assist
