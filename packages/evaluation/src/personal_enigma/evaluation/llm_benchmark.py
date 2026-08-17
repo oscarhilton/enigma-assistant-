@@ -21,6 +21,7 @@ import json
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -68,6 +69,18 @@ FORBIDDEN_PROMPT_MARKERS = (
 _JUDGE_PROMPT = """You are Enigma's reasoning judge for Demo Mode evaluation.
 
 Judge the single candidate below against the sanitised checkpoint context.
+Do not rely on any prior heuristic policy — evaluate evidence independently.
+
+Attention decision semantics:
+- surface: this candidate warrants the user's attention **now** (action or decision needed at this checkpoint instant)
+- suppress: no useful intervention at this instant
+- context: genuine but non-urgent information; use when relevant but no current intervention is useful
+
+Important distinctions:
+- An open obligation alone does not justify surface
+- Important ≠ needs attention now; open ≠ urgent; candidate ≠ alert
+- It is valid and often desirable for every candidate to receive suppress or context (zero surfaces is ok)
+
 Return JSON only (no markdown, no chain-of-thought) using schema judge-v1:
 
 {{
@@ -99,10 +112,31 @@ def assert_prompt_safe(prompt: str) -> None:
             )
 
 
+def checkpoint_temporal_facts(at: datetime) -> dict[str, Any]:
+    """Deterministic calendar facts for judge context (not ground-truth labels)."""
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=UTC)
+    utc = at.astimezone(UTC).replace(microsecond=0)
+    day_names = (
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    )
+    return {
+        "now": utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "day_of_week": day_names[utc.weekday()],
+        "is_weekend": utc.weekday() >= 5,
+    }
+
+
 def snapshot_to_context_dict(snapshot: CheckpointSnapshot) -> dict[str, Any]:
     return {
         "checkpoint_id": snapshot.checkpoint_id,
-        "at": snapshot.at.isoformat(),
+        **checkpoint_temporal_facts(snapshot.at),
         "candidates": [
             {
                 "id": c.id,
@@ -110,13 +144,8 @@ def snapshot_to_context_dict(snapshot: CheckpointSnapshot) -> dict[str, Any]:
                 "obligation_ids": c.obligation_ids,
                 "evidence_ids": c.evidence_ids,
                 "score": c.score,
-                "suppressed": c.suppressed,
             }
             for c in snapshot.candidate_set
-        ],
-        "surfaced": [
-            {"id": a.id, "title": a.title, "obligation_ids": a.obligation_ids}
-            for a in snapshot.alerts
         ],
         "memory": (
             {"open_obligation_ids": list(snapshot.memory_state.open_obligation_ids)}
@@ -136,7 +165,6 @@ def candidate_to_dict(candidate: AttentionCandidateObservation) -> dict[str, Any
         "obligation_ids": candidate.obligation_ids,
         "evidence_ids": candidate.evidence_ids,
         "score": candidate.score,
-        "suppressed": candidate.suppressed,
     }
 
 
@@ -433,15 +461,27 @@ def _judge_candidate(
     attention_only: bool,
 ) -> CandidateJudgement:
     prompt = build_judge_prompt(snapshot, candidate, attention_only=attention_only)
+    result = None
     try:
         result = service.reason(context, prompt=prompt, model=model)
         output = parse_judge_v1_output(result.text)
         validate_evidence_ids(output, set(candidate.evidence_ids))
         return CandidateJudgement(candidate_id=candidate.id, output=output)
     except (JudgeV1ParseError, InvalidEvidenceIdsError, ValueError) as exc:
+        detail = str(exc)
+        if result is not None:
+            debug_bits: list[str] = []
+            finish_reason = result.metadata.get("finish_reason")
+            response_shape = result.metadata.get("response_shape")
+            if finish_reason:
+                debug_bits.append(f"finish_reason={finish_reason}")
+            if response_shape:
+                debug_bits.append(str(response_shape))
+            if debug_bits:
+                detail = f"{detail} [{' '.join(debug_bits)}]"
         return CandidateJudgement(
             candidate_id=candidate.id,
-            parse_error=str(exc),
+            parse_error=detail,
         )
 
 
@@ -596,6 +636,7 @@ __all__ = [
     "assert_prompt_safe",
     "benchmark_cost_events",
     "build_judge_prompt",
+    "checkpoint_temporal_facts",
     "filter_snapshot_attention_policy",
     "pick_next_action",
     "rank_candidate_judgements",

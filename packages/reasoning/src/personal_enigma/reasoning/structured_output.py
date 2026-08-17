@@ -86,6 +86,12 @@ JUDGE_V1_EXAMPLE_JSON = json.dumps(JUDGE_V1_EXAMPLE, indent=2)
 JUDGE_V1_SYSTEM_PROMPT = (
     "You are Enigma's reasoning judge. Reason only over the sanitised context "
     "in the user message. Do not invent private identifiers.\n"
+    "Attention semantics: surface = warrants the user's attention now; "
+    "suppress = no useful intervention at this instant; context = genuine but "
+    "non-urgent info when no current intervention is useful. "
+    "Open obligation alone is not sufficient for surface. "
+    "Important ≠ needs attention now; open ≠ urgent; candidate ≠ alert. "
+    "Zero surfaced items across all candidates is valid.\n"
     "Return exactly one JSON object matching schema judge-v1 — no markdown "
     "fences, no chain-of-thought, no error placeholders.\n"
     f"Example shape:\n{JUDGE_V1_EXAMPLE_JSON}\n"

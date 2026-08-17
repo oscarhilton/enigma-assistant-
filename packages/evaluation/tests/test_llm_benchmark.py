@@ -16,8 +16,10 @@ from personal_enigma.evaluation.llm_benchmark import (
     FORBIDDEN_PROMPT_MARKERS,
     apply_attention_policy,
     build_judge_prompt,
+    checkpoint_temporal_facts,
     filter_snapshot_attention_policy,
     run_llm_benchmark,
+    snapshot_to_context_dict,
 )
 from personal_enigma.evaluation.metrics.support_fitness import (
     RescueRegressionOutcome,
@@ -31,6 +33,7 @@ from personal_enigma.reasoning import (
     ReplayPaygTransport,
 )
 from personal_enigma.reasoning.structured_output import (
+    JUDGE_V1_SYSTEM_PROMPT,
     JudgeV1ParseError,
     ReasonCode,
     parse_judge_v1_output,
@@ -94,6 +97,56 @@ def test_prompt_excludes_contract_markers() -> None:
     prompt = build_judge_prompt(snap, snap.candidate_set[0])
     for marker in FORBIDDEN_PROMPT_MARKERS:
         assert marker.lower() not in prompt.lower()
+
+
+def test_judge_context_excludes_arm_a_surfaced_state() -> None:
+    from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
+
+    snap = load_checkpoint_snapshot(BASELINES / f"{MINI_CPS[0]}.json")
+    assert snap.alerts
+    context = snapshot_to_context_dict(snap)
+    assert "surfaced" not in context
+    for candidate in context["candidates"]:
+        assert "suppressed" not in candidate
+
+
+def test_judge_context_includes_temporal_facts() -> None:
+    from datetime import UTC, datetime
+
+    at = datetime(2026, 1, 11, 11, 0, tzinfo=UTC)
+    facts = checkpoint_temporal_facts(at)
+    assert facts == {
+        "now": "2026-01-11T11:00:00Z",
+        "day_of_week": "Sunday",
+        "is_weekend": True,
+    }
+
+    from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
+
+    snap = load_checkpoint_snapshot(BASELINES / "cp-2026-01-11T11:00.json")
+    context = snapshot_to_context_dict(snap)
+    assert context["now"] == "2026-01-11T11:00:00Z"
+    assert context["day_of_week"] == "Sunday"
+    assert context["is_weekend"] is True
+
+
+def test_judge_prompt_surface_semantics() -> None:
+    from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
+
+    snap = load_checkpoint_snapshot(BASELINES / f"{MINI_CPS[0]}.json")
+    prompt = build_judge_prompt(snap, snap.candidate_set[0])
+    lowered = prompt.lower()
+    for phrase in (
+        "warrants the user's attention **now**",
+        "open obligation alone does not justify surface",
+        "zero surfaces is ok",
+        "evaluate evidence independently",
+    ):
+        assert phrase in lowered or phrase.replace("**", "") in lowered
+    assert "on weekends" not in lowered
+    assert "suppress work" not in lowered
+    assert "warrants the user's attention now" in JUDGE_V1_SYSTEM_PROMPT.lower()
+    assert "zero surfaced items" in JUDGE_V1_SYSTEM_PROMPT.lower()
 
 
 def test_classify_rescue_regression() -> None:
