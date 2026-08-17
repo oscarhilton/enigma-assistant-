@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from personal_enigma.evaluation.ab_eval import storyline_recall_under_noise
+from personal_enigma.evaluation.evaluation_truth import EvaluationTruth, load_evaluation_truth
 from personal_enigma.evaluation.ground_truth import (
     GroundTruthCorpus,
     load_ground_truth,
@@ -20,6 +21,7 @@ from personal_enigma.evaluation.metrics import (
     privacy,
     retrieval,
     scale,
+    support_fitness,
     suppression,
 )
 from personal_enigma.evaluation.observations import EvaluationObservations
@@ -62,13 +64,9 @@ class EvaluationRunner:
         write: bool = True,
         scenario_version: str = "0.0.0",
     ) -> EvaluationReport:
-        """Evaluate a scenario against ground truth + run observations.
-
-        When ``ground_truth`` / observations are omitted, loads truth from
-        ``ground_truth_path`` (or ``scenarios/<scenario>/ground_truth``) and
-        uses empty observations (missed-critical detection still runs).
-        """
+        """Evaluate a scenario against ground truth + run observations."""
         obs = observations or EvaluationObservations()
+        eval_truth: EvaluationTruth | None = None
         truth = ground_truth
         if truth is None:
             path = (
@@ -76,7 +74,15 @@ class EvaluationRunner:
                 if ground_truth_path is not None
                 else Path("scenarios") / scenario / "ground_truth"
             )
-            truth = load_ground_truth(path) if path.exists() else GroundTruthCorpus()
+            if path.exists() and (path / "support_contracts.yaml").is_file():
+                eval_truth = load_evaluation_truth(path)
+                truth = eval_truth.ground_truth
+            else:
+                truth = load_ground_truth(path) if path.exists() else GroundTruthCorpus()
+        elif ground_truth_path is not None:
+            contract_path = Path(ground_truth_path) / "support_contracts.yaml"
+            if contract_path.is_file():
+                eval_truth = load_evaluation_truth(ground_truth_path)
 
         at = obs.evaluated_at or datetime.now(tz=UTC)
         run = run_id or _new_run_id(scenario)
@@ -138,6 +144,16 @@ class EvaluationRunner:
             ab = storyline_recall_under_noise(obs.spine_metrics, metrics)
             metrics["storyline_recall_under_noise"] = ab.as_dict()
 
+        support_fitness_m: support_fitness.SupportFitnessMetrics | None = None
+        if eval_truth is not None and eval_truth.support_contracts.contracts:
+            support_fitness_m = support_fitness.compute_support_fitness_metrics(
+                eval_truth,
+                alerts=obs.alerts,
+                next_action=obs.next_action,
+                at=at,
+            )
+            metrics["support_fitness"] = support_fitness_m.as_dict()
+
         failures: dict[str, Any] = {
             "missed_obligations": [
                 {
@@ -156,8 +172,15 @@ class EvaluationRunner:
                 f"{suppression_m.background_false_alerts_per_1000:.3f} exceeds "
                 f"{suppression_m.max_per_1000:.3f}"
             ]
+        if support_fitness_m is not None and not support_fitness_m.passed:
+            failures["support_fitness_failures"] = list(
+                support_fitness_m.poor_action_failures
+            ) or [
+                f"attention_accuracy={support_fitness_m.attention_accuracy:.3f}",
+                f"next_action_accuracy={support_fitness_m.next_action_accuracy:.3f}",
+            ]
 
-        status = _status(attention_m, privacy_m, suppression_m)
+        status = _status(attention_m, privacy_m, suppression_m, support_fitness_m)
         summary = {
             "run_id": run,
             "scenario": scenario,
@@ -201,6 +224,7 @@ class EvaluationRunner:
                 suppression=metrics["suppression"],
                 scale=metrics["scale"],
                 storyline=metrics.get("storyline_recall_under_noise"),
+                support_fitness=metrics.get("support_fitness"),
             )
             write_report(
                 report_dir,
@@ -231,6 +255,7 @@ def _status(
     attention_m: attention.AttentionMetrics,
     privacy_m: privacy.PrivacyMetrics,
     suppression_m: suppression.NoiseSuppressionMetrics,
+    support_fitness_m: support_fitness.SupportFitnessMetrics | None = None,
 ) -> str:
     if (
         privacy_m.direct_identifier_leaks > 0
@@ -243,6 +268,8 @@ def _status(
         return "attention_miss"
     if not suppression_m.passed:
         return "suppression_fail"
+    if support_fitness_m is not None and not support_fitness_m.passed:
+        return "support_fitness_fail"
     return "pass"
 
 

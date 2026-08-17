@@ -52,11 +52,35 @@ class PrivacyProbe(BaseModel):
 
 
 class MemoryObservation(BaseModel):
-    """Observed memory state at a checkpoint (stub-friendly)."""
+    """Observed memory state at a checkpoint."""
 
     at: datetime | None = None
     memory_ids: list[str] = Field(default_factory=list)
     texts: list[str] = Field(default_factory=list)
+    open_obligation_ids: list[str] = Field(default_factory=list)
+
+
+class AttentionCandidateObservation(BaseModel):
+    """One attention candidate before ranking/policy."""
+
+    id: str
+    title: str = ""
+    kind: str = ""
+    score: float = 0.0
+    obligation_ids: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    suppressed: bool = False
+    suppress_reason: str | None = None
+
+
+class NextActionObservation(BaseModel):
+    """Observed optional next action (WORTH DOING)."""
+
+    title: str
+    action_id: str | None = None
+    estimated_minutes: int | None = None
+    effort: str | None = None
+    why_this_now: str | None = None
 
 
 class CostEvent(BaseModel):
@@ -85,6 +109,37 @@ class RetrievalObservation(BaseModel):
     k: int = 5
 
 
+class CheckpointSnapshot(BaseModel):
+    """Frozen Arm A state at one evaluation instant (R02)."""
+
+    checkpoint_id: str
+    at: datetime
+    scenario: str = "alex-v1"
+    scenario_version: str = "0.2.1"
+    alerts: list[SurfacedAlert] = Field(default_factory=list)
+    suppressed_candidates: list[AttentionCandidateObservation] = Field(
+        default_factory=list
+    )
+    candidate_set: list[AttentionCandidateObservation] = Field(default_factory=list)
+    next_action: NextActionObservation | None = None
+    memory_state: MemoryObservation | None = None
+    retrieval: list[RetrievalObservation] = Field(default_factory=list)
+    git_commit: str | None = None
+
+    @field_validator("at", mode="before")
+    @classmethod
+    def _parse_at(cls, value: object) -> object:
+        if isinstance(value, str):
+            text = value.strip()
+            if text.endswith("Z"):
+                text = text[:-1] + "+00:00"
+            parsed = datetime.fromisoformat(text)
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=UTC)
+            return parsed
+        return value
+
+
 class EvaluationObservations(BaseModel):
     """Everything the runner needs besides ground truth."""
 
@@ -93,13 +148,13 @@ class EvaluationObservations(BaseModel):
     memories: list[MemoryObservation] = Field(default_factory=list)
     cost_events: list[CostEvent] = Field(default_factory=list)
     retrieval: list[RetrievalObservation] = Field(default_factory=list)
+    next_action: NextActionObservation | None = None
     evaluated_at: datetime | None = None
     provider: str | None = None
     model: str | None = None
     prompt_versions: dict[str, str] = Field(default_factory=dict)
     privacy_policy_version: str = "v1"
     git_commit: str | None = None
-    # Optional D08e scale / fingerprint context (Demo Mode only).
     corpus_fingerprint: dict[str, Any] | None = None
     message_count: int | None = None
     background_count: int | None = None
@@ -110,7 +165,6 @@ class EvaluationObservations(BaseModel):
     index_size_bytes: int | None = None
     ingest_time_ms: float | None = None
     retrieval_latency_ms: float | None = None
-    # Optional A-arm (spine-only) metrics for storyline recall under noise (§41).
     spine_metrics: dict[str, Any] | None = None
 
     @field_validator("evaluated_at", mode="before")
@@ -128,9 +182,12 @@ class EvaluationObservations(BaseModel):
 
 
 __all__ = [
+    "AttentionCandidateObservation",
+    "CheckpointSnapshot",
     "CostEvent",
     "EvaluationObservations",
     "MemoryObservation",
+    "NextActionObservation",
     "PrivacyProbe",
     "RetrievalObservation",
     "SurfacedAlert",

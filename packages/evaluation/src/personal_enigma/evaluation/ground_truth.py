@@ -467,10 +467,17 @@ def _ingest_raw(corpus: GroundTruthCorpus, raw: Any, *, path: str) -> None:
     )
 
 
+_GROUND_TRUTH_SKIP_FILES = frozenset(
+    {"support_contracts.yaml", "canonical_noise_signals.yaml"}
+)
+
+
 def load_ground_truth(path: str | Path) -> GroundTruthCorpus:
     """Load and validate all ``*.yaml`` files under a ``ground_truth/`` directory.
 
     Also accepts a single YAML file path. Empty directories yield an empty corpus.
+    Evaluator-only ``support_contracts.yaml`` and ``canonical_noise_signals.yaml``
+    are loaded via :func:`load_evaluation_truth`.
     """
     root = Path(path)
     corpus = GroundTruthCorpus()
@@ -478,7 +485,11 @@ def load_ground_truth(path: str | Path) -> GroundTruthCorpus:
     if root.is_file():
         files = [root]
     elif root.is_dir():
-        files = sorted(p for p in root.glob("*.yaml") if p.is_file())
+        files = sorted(
+            p
+            for p in root.glob("*.yaml")
+            if p.is_file() and p.name not in _GROUND_TRUTH_SKIP_FILES
+        )
     else:
         raise GroundTruthValidationError([f"ground truth path not found: {root}"])
 

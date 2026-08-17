@@ -1,0 +1,30 @@
+# Alex v0.2.1 evaluator correction — additive attention windows.
+
+attention_windows:
+  - id: window_december_expenses
+    obligation_id: obligation_december_expenses
+    earliest: "2026-01-14T09:00:00Z"
+    ideal: "2026-01-15T10:00:00Z"
+    latest: "2026-01-16T10:00:00Z"
+    minimum_priority: 3
+
+  - id: window_brunch_book
+    obligation_id: obligation_brunch_book
+    earliest: "2026-01-20T08:00:00Z"
+    ideal: "2026-01-21T09:00:00Z"
+    latest: "2026-01-22T12:00:00Z"
+    minimum_priority: 5
+
+  - id: window_elena_dinner_wine
+    obligation_id: obligation_elena_dinner_wine
+    earliest: "2026-01-08T12:00:00Z"
+    ideal: "2026-01-08T15:00:00Z"
+    latest: "2026-01-08T17:00:00Z"
+    minimum_priority: 3
+
+  - id: window_token_audit
+    obligation_id: obligation_token_audit
+    earliest: "2026-01-19T09:00:00Z"
+    ideal: "2026-01-20T10:00:00Z"
+    latest: "2026-01-21T13:00:00Z"
+    minimum_priority: 4

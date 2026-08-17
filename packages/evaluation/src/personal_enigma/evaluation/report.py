@@ -77,6 +77,7 @@ def render_summary_markdown(
     suppression: dict[str, Any] | None = None,
     scale: dict[str, Any] | None = None,
     storyline: dict[str, Any] | None = None,
+    support_fitness: dict[str, Any] | None = None,
 ) -> str:
     lines = [
         f"# Evaluation report `{run_id}`",
@@ -136,6 +137,22 @@ def render_summary_markdown(
                 f"- With background: {storyline.get('with_background_critical_recall', 0):.3f}",
                 f"- Drop: {storyline.get('drop', 0):.3f} (max {storyline.get('max_drop', 0):.3f})",
                 f"- Passed: {storyline.get('passed', False)}",
+                "",
+            ]
+        )
+    if support_fitness:
+        lines.extend(
+            [
+                "## Support fitness",
+                f"- Actionability: {support_fitness.get('actionability', 0):.3f}",
+                f"- Task size fit: {support_fitness.get('task_size_fit', 0):.3f}",
+                f"- Friction reduction: {support_fitness.get('friction_reduction', 0):.3f}",
+                f"- Timing fit: {support_fitness.get('timing_fit', 0):.3f}",
+                f"- Suppression accuracy: {support_fitness.get('suppression_accuracy', 0):.3f}",
+                f"- Top-3 critical recall: {support_fitness.get('top3_critical_recall', 0):.3f}",
+                f"- Attention accuracy: {support_fitness.get('attention_accuracy', 0):.3f}",
+                f"- Next action accuracy: {support_fitness.get('next_action_accuracy', 0):.3f}",
+                f"- Passed: {support_fitness.get('passed', False)}",
                 "",
             ]
         )

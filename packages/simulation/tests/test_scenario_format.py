@@ -43,7 +43,7 @@ def test_alex_benchmark_loads_deterministically() -> None:
     second = load_scenario(ALEX)
     assert first.manifest.id == "alex-v1"
     assert first.manifest.status == "benchmark"
-    assert first.manifest.version == "0.2.0"
+    assert first.manifest.version == "0.2.1"
     assert first.persona
     assert first.effective_seed == "alex-v1"
     assert [e.model_dump(mode="json") for e in first.events] == [

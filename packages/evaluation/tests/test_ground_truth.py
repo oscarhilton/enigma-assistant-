@@ -7,11 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from personal_enigma.evaluation.evaluation_truth import load_evaluation_truth
 from personal_enigma.evaluation.ground_truth import (
     GroundTruthValidationError,
+    ScenarioSignalClass,
     detect_missed_obligations,
     load_ground_truth,
 )
+from personal_enigma.evaluation.support_contract import AttentionBehaviour
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ALEX_GROUND_TRUTH = REPO_ROOT / "scenarios" / "alex-v1" / "ground_truth"
@@ -27,6 +30,32 @@ def test_load_alex_schema_example() -> None:
     assert corpus.window_for("obligation_atlas_review") is not None
     assert any(c.id == "commitment_atlas_review" for c in corpus.commitments)
     assert any(m.id == "checkpoint-2026-03-31" for m in corpus.memory_checkpoints)
+
+
+def test_load_alex_brunch_obligation_extended() -> None:
+    corpus = load_ground_truth(ALEX_GROUND_TRUTH)
+    brunch = corpus.obligation_by_id("obligation_brunch_book")
+    assert brunch is not None
+    assert brunch.importance == "critical"
+    assert brunch.beneficiary == "elena"
+    window = corpus.window_for("obligation_brunch_book")
+    assert window is not None
+    assert window.minimum_priority == 5
+
+
+def test_load_evaluation_truth_merges_contracts_and_ground_truth() -> None:
+    truth = load_evaluation_truth(ALEX_GROUND_TRUTH)
+    assert truth.scenario_version == "0.2.1"
+    assert truth.ground_truth.obligation_by_id("obligation_december_expenses") is not None
+    assert len(truth.support_contracts.contracts) >= 12
+    suppress = [
+        c
+        for c in truth.support_contracts.contracts
+        if c.attention.behaviour == AttentionBehaviour.MUST_SUPPRESS
+    ]
+    assert len(suppress) >= 3
+    noise = truth.ground_truth.signals_for_class(ScenarioSignalClass.NOISE)
+    assert any(s.evidence_id == "mail-noise-prizvault" for s in noise)
 
 
 def test_missed_critical_obligation_is_detected(tmp_path: Path) -> None:

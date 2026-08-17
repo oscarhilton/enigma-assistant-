@@ -14,7 +14,7 @@ def test_alex_v1_loads_three_weeks() -> None:
     pkg = load_scenario(ALEX)
     assert pkg.manifest.id == "alex-v1"
     assert pkg.manifest.status == "benchmark"
-    assert pkg.manifest.version == "0.2.0"
+    assert pkg.manifest.version == "0.2.1"
     assert len(pkg.events) >= 40
     sources = {e.source for e in pkg.events}
     assert sources >= {"mail", "calendar", "reminders", "notes", "contacts"}
