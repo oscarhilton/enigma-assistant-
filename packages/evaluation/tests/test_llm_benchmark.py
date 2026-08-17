@@ -176,6 +176,7 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
         truth,
         service=service,
         context=snapshot_to_transformed_context(snap),
+        judge_arm="b1",
     )
     assert result.candidate_judgements
     assert any(
@@ -191,6 +192,7 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
         baseline_dir=BASELINES,
         replay_fixture=replay_path,
         checkpoint_ids=MINI_CPS[:1],
+        judge_arm="b1",
     )
     assert report.arm_a
     assert report.arm_b
@@ -232,6 +234,7 @@ def test_attention_only_skips_next_action_scoring() -> None:
         service=service,
         context=snapshot_to_transformed_context(snap),
         attention_only=True,
+        judge_arm="b1",
     )
     assert result.metrics.next_action_checkpoints_scored == 0
     assert result.metrics.next_action_accuracy == 1.0

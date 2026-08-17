@@ -30,6 +30,7 @@ from personal_enigma.evaluation.live_benchmark import (
     run_live_benchmark,
     score_live_rep,
 )
+from personal_enigma.evaluation.llm_benchmark import JudgeArm
 from personal_enigma.evaluation.privacy_ablation import run_live_privacy_ablation
 from personal_enigma.evaluation.reasoning_value_gate import (
     collect_live_gate_evidence,
@@ -122,6 +123,7 @@ def run_smoke_gate(
     baseline_dir: str | Path,
     live: bool,
     ledger: BenchmarkBudgetLedger | None = None,
+    judge_arm: JudgeArm = "b2",
 ) -> SmokeGateReport:
     ledger = ledger or BenchmarkBudgetLedger(
         hard_cap_usd=SMOKE_BUDGET_CAP, audit_dir=LIVE_REPORT_DIR, audit_filename="smoke-audit.jsonl"
@@ -134,11 +136,17 @@ def run_smoke_gate(
         case_passes = 0
         for rep in range(SMOKE_REPS):
             transport = build_live_transport(
-                live=live, ledger=ledger, phase="smoke", checkpoint_id=checkpoint_id
+                live=live,
+                ledger=ledger,
+                phase="smoke",
+                checkpoint_id=checkpoint_id,
+                judge_arm=judge_arm,
             )
             service = PaygReasoningService(mode=ReasoningMode.ENABLED, transport=transport)
             try:
-                result = score_live_rep(snapshot, truth, service=service, rep=rep)
+                result = score_live_rep(
+                    snapshot, truth, service=service, rep=rep, judge_arm=judge_arm
+                )
             except BudgetCapExceededError as exc:
                 report.passed = False
                 report.stop_reason = str(exc)
@@ -247,6 +255,7 @@ def run_disagreement_deep_dive(
     main_benchmark: LiveBenchmarkReport,
     live: bool,
     ledger: BenchmarkBudgetLedger,
+    judge_arm: JudgeArm = "b2",
 ) -> dict[str, Any]:
     checkpoint_ids = select_disagreement_checkpoints(main_benchmark)
     if not checkpoint_ids:
@@ -254,7 +263,9 @@ def run_disagreement_deep_dive(
         _write_json(LIVE_REPORT_DIR / "disagreements.json", payload)
         return payload
 
-    transport = build_live_transport(live=live, ledger=ledger, phase="disagreements")
+    transport = build_live_transport(
+        live=live, ledger=ledger, phase="disagreements", judge_arm=judge_arm
+    )
     report = run_live_benchmark(
         truth,
         baseline_dir=baseline_dir,
@@ -263,6 +274,7 @@ def run_disagreement_deep_dive(
         phase="disagreements",
         reps=DISAGREEMENT_REPS,
         ledger=ledger,
+        judge_arm=judge_arm,
     )
     root = Path(baseline_dir)
     snapshots = {
@@ -383,6 +395,7 @@ def run_live_gate(
     smoke_only: bool = False,
     live: bool = False,
     write_report: bool = True,
+    judge_arm: JudgeArm = "b2",
 ) -> LiveGateRunResult:
     truth = load_evaluation_truth(ground_truth_path)
     live_enabled = _is_live_enabled(live)
@@ -395,7 +408,11 @@ def run_live_gate(
 
     if phase in {"smoke", "all"} or smoke_only:
         result.smoke = run_smoke_gate(
-            truth, baseline_dir=baseline_dir, live=live_enabled, ledger=ledger
+            truth,
+            baseline_dir=baseline_dir,
+            live=live_enabled,
+            ledger=ledger,
+            judge_arm=judge_arm,
         )
         _write_json(LIVE_REPORT_DIR / "smoke.json", result.smoke.as_dict())
         if not result.smoke.passed:
@@ -409,7 +426,9 @@ def run_live_gate(
 
     if phase in {"main", "all"} and not result.blocked:
         cp_ids = checkpoint_ids_from_manifest(baseline_dir)
-        transport = build_live_transport(live=live_enabled, ledger=ledger, phase="main")
+        transport = build_live_transport(
+            live=live_enabled, ledger=ledger, phase="main", judge_arm=judge_arm
+        )
         try:
             result.main = run_live_benchmark(
                 truth,
@@ -419,6 +438,7 @@ def run_live_gate(
                 phase="main",
                 reps=MAIN_REPS,
                 ledger=ledger,
+                judge_arm=judge_arm,
             )
         except BudgetCapExceededError as exc:
             result.blocked = True
@@ -435,6 +455,7 @@ def run_live_gate(
             main_benchmark=result.main,
             live=live_enabled,
             ledger=ledger,
+            judge_arm=judge_arm,
         )
 
     if phase in {"ablation", "all"} and result.main and not result.blocked:

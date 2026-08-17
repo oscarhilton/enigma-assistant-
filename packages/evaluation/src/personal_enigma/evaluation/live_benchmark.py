@@ -20,6 +20,7 @@ from personal_enigma.evaluation.checkpoint_runner import (
 from personal_enigma.evaluation.evaluation_truth import EvaluationTruth
 from personal_enigma.evaluation.llm_benchmark import (
     CheckpointArmResult,
+    JudgeArm,
     aggregate_support_fitness,
     score_arm_a,
     score_arm_b,
@@ -180,11 +181,41 @@ def _judge_v1_json(
     return json.dumps(payload)
 
 
-class SmokeMockTransport:
-    """Per-candidate judge-v1 mock for smoke / CI (no network)."""
+def _semantic_judge_json(
+    *,
+    obligation_strength: float = 0.2,
+    user_responsibility: float = 0.2,
+    importance: float = 0.2,
+    time_sensitivity: float = 0.2,
+    actionability_now: float = 0.2,
+    confidence: float = 0.9,
+    reason_codes: list[str] | None = None,
+    next_action: dict[str, object] | None = None,
+) -> str:
+    payload: dict[str, object] = {
+        "schema_version": "semantic-judge-v1",
+        "obligation_strength": obligation_strength,
+        "user_responsibility": user_responsibility,
+        "importance": importance,
+        "time_sensitivity": time_sensitivity,
+        "actionability_now": actionability_now,
+        "confidence": confidence,
+        "reason_codes": reason_codes or ["LOW_URGENCY"],
+        "next_action": next_action,
+    }
+    return json.dumps(payload)
 
-    def __init__(self, checkpoint_id: str) -> None:
+
+class SmokeOracleTransport:
+    """Plumbing-only smoke oracle — validates schema, policy, orchestration.
+
+    Does NOT validate live prompt semantics. For prompt/regression coverage, record
+    replay fixtures from real Fireworks responses and run via ``ReplayPaygTransport``.
+    """
+
+    def __init__(self, checkpoint_id: str, *, judge_arm: JudgeArm = "b2") -> None:
         self._checkpoint_id = checkpoint_id
+        self._judge_arm = judge_arm
 
     @staticmethod
     def _candidate_section(prompt: str) -> str:
@@ -197,17 +228,124 @@ class SmokeMockTransport:
 
     @staticmethod
     def _candidate_id(prompt: str) -> str:
-        section = SmokeMockTransport._candidate_section(prompt)
+        section = SmokeOracleTransport._candidate_section(prompt)
         match = re.search(r'"id":\s*"([^"]+)"', section)
         return match.group(1) if match else ""
 
     @staticmethod
     def _candidate_evidence(prompt: str) -> list[str]:
-        section = SmokeMockTransport._candidate_section(prompt)
+        section = SmokeOracleTransport._candidate_section(prompt)
         match = re.search(r'"evidence_ids":\s*\[(.*?)\]', section, re.DOTALL)
         if not match:
             return []
         return re.findall(r'"([^"]+)"', match.group(1))
+
+    def _complete_b1(self, *, candidate_id: str, evidence: list[str]) -> str:
+        if self._checkpoint_id == "cp-2026-01-21T13:30":
+            if candidate_id == "item-obligation_brunch_book":
+                return _judge_v1_json(
+                    decision="surface",
+                    evidence_ids=evidence[:2] or ["rem-brunch-book"],
+                )
+            return _judge_v1_json(decision="suppress", evidence_ids=evidence[:1])
+        if self._checkpoint_id == "cp-prizevault-smoke":
+            if candidate_id == "item-noise-prizvault":
+                return _judge_v1_json(decision="suppress", evidence_ids=[])
+            return _judge_v1_json(decision="suppress", evidence_ids=evidence[:1])
+        if self._checkpoint_id == "cp-2026-01-11T11:00":
+            return _judge_v1_json(
+                decision="suppress",
+                evidence_ids=evidence[:1] if evidence else [],
+            )
+        if candidate_id == "item-obligation_december_expenses":
+            return _judge_v1_json(
+                decision="surface",
+                evidence_ids=evidence,
+                next_action={
+                    "title": "Gather receipts",
+                    "action_type": "admin",
+                    "estimated_minutes": 5,
+                    "confidence": 0.85,
+                },
+            )
+        return _judge_v1_json(decision="suppress", evidence_ids=evidence[:1])
+
+    def _complete_b2(self, *, candidate_id: str) -> str:
+        if self._checkpoint_id == "cp-2026-01-21T13:30":
+            if candidate_id == "item-obligation_brunch_book":
+                return _semantic_judge_json(
+                    obligation_strength=0.96,
+                    user_responsibility=0.98,
+                    importance=0.82,
+                    time_sensitivity=0.88,
+                    actionability_now=0.91,
+                    confidence=0.95,
+                    reason_codes=[
+                        "EXPLICIT_REQUEST",
+                        "USER_OWNS_ACTION",
+                        "NEAR_TERM_COMMITMENT",
+                    ],
+                    next_action={"title": "Book the brunch", "estimated_minutes": 10},
+                )
+            return _semantic_judge_json(
+                obligation_strength=0.45,
+                user_responsibility=0.40,
+                importance=0.35,
+                time_sensitivity=0.30,
+                actionability_now=0.25,
+                confidence=0.90,
+                reason_codes=["LOW_URGENCY"],
+            )
+        if self._checkpoint_id == "cp-prizevault-smoke":
+            if candidate_id == "item-noise-prizvault":
+                return _semantic_judge_json(
+                    obligation_strength=0.05,
+                    user_responsibility=0.05,
+                    importance=0.05,
+                    time_sensitivity=0.05,
+                    actionability_now=0.05,
+                    confidence=0.95,
+                    reason_codes=["LOW_VALUE_NOISE"],
+                )
+            return _semantic_judge_json(
+                obligation_strength=0.55,
+                user_responsibility=0.50,
+                importance=0.45,
+                time_sensitivity=0.35,
+                actionability_now=0.30,
+                confidence=0.90,
+                reason_codes=["ADMIN_FRICTION"],
+            )
+        if self._checkpoint_id == "cp-2026-01-11T11:00":
+            return _semantic_judge_json(
+                obligation_strength=0.50,
+                user_responsibility=0.45,
+                importance=0.40,
+                time_sensitivity=0.20,
+                actionability_now=0.15,
+                confidence=0.92,
+                reason_codes=["LOW_URGENCY", "CONTEXT_ONLY"],
+            )
+        if candidate_id == "item-obligation_december_expenses":
+            return _semantic_judge_json(
+                obligation_strength=0.85,
+                user_responsibility=0.90,
+                importance=0.80,
+                time_sensitivity=0.75,
+                actionability_now=0.70,
+                confidence=0.93,
+                reason_codes=["USER_OWNS_ACTION", "NEAR_TERM_COMMITMENT"],
+                next_action={"title": "Gather receipts", "estimated_minutes": 5},
+            )
+        return _semantic_judge_json(
+            obligation_strength=0.25,
+            user_responsibility=0.20,
+            importance=0.20,
+            time_sensitivity=0.15,
+            actionability_now=0.10,
+            confidence=0.90,
+            reason_codes=["LOW_URGENCY"],
+        )
 
     def complete(
         self,
@@ -218,43 +356,18 @@ class SmokeMockTransport:
     ) -> ReasoningResult:
         candidate_id = self._candidate_id(prompt)
         evidence = self._candidate_evidence(prompt)
-
-        if self._checkpoint_id == "cp-2026-01-21T13:30":
-            if candidate_id == "item-obligation_brunch_book":
-                text = _judge_v1_json(
-                    decision="surface",
-                    evidence_ids=evidence[:2] or ["rem-brunch-book"],
-                )
-            else:
-                text = _judge_v1_json(decision="suppress", evidence_ids=evidence[:1])
-        elif self._checkpoint_id == "cp-prizevault-smoke":
-            if candidate_id == "item-noise-prizvault":
-                text = _judge_v1_json(decision="suppress", evidence_ids=[])
-            else:
-                text = _judge_v1_json(decision="suppress", evidence_ids=evidence[:1])
-        elif self._checkpoint_id == "cp-2026-01-11T11:00":
-            text = _judge_v1_json(
-                decision="suppress",
-                evidence_ids=evidence[:1] if evidence else [],
-            )
-        else:
-            if candidate_id == "item-obligation_december_expenses":
-                text = _judge_v1_json(
-                    decision="surface",
-                    evidence_ids=evidence,
-                    next_action={
-                        "title": "Gather receipts",
-                        "action_type": "admin",
-                        "estimated_minutes": 5,
-                        "confidence": 0.85,
-                    },
-                )
-            else:
-                text = _judge_v1_json(decision="suppress", evidence_ids=evidence[:1])
-
+        text = (
+            self._complete_b1(candidate_id=candidate_id, evidence=evidence)
+            if self._judge_arm == "b1"
+            else self._complete_b2(candidate_id=candidate_id)
+        )
         return MockPaygTransport(response_text=text).complete(
             model=model, prompt=prompt, context=context
         )
+
+
+# Back-compat alias — prefer SmokeOracleTransport (plumbing-only, not semantic ground truth).
+SmokeMockTransport = SmokeOracleTransport
 
 
 def build_live_transport(
@@ -263,6 +376,7 @@ def build_live_transport(
     ledger: BenchmarkBudgetLedger,
     phase: str,
     checkpoint_id: str | None = None,
+    judge_arm: JudgeArm = "b2",
 ) -> PaygTransport:
     if live:
         inner = FireworksChatTransport()
@@ -271,8 +385,8 @@ def build_live_transport(
         )
         return RepAwareTransport(gated)
     if checkpoint_id:
-        return SmokeMockTransport(checkpoint_id)
-    return SmokeMockTransport("cp-default")
+        return SmokeOracleTransport(checkpoint_id, judge_arm=judge_arm)
+    return SmokeOracleTransport("cp-default", judge_arm=judge_arm)
 
 
 def _attention_pass(metrics: SupportFitnessMetrics) -> bool:
@@ -345,6 +459,7 @@ def score_live_rep(
     rep: int,
     context_mode: Literal["transformed", "full_synthetic"] = "transformed",
     model: str = LIVE_MODEL,
+    judge_arm: JudgeArm = "b2",
 ) -> LiveRepResult:
     ctx = (
         snapshot_to_full_synthetic_context(snapshot)
@@ -353,7 +468,12 @@ def score_live_rep(
     )
     ctx = ctx.model_copy(update={"metadata": {**ctx.metadata, "rep": str(rep)}})
     arm_result = score_arm_b(
-        snapshot, truth, service=service, context=ctx, model=model
+        snapshot,
+        truth,
+        service=service,
+        context=ctx,
+        model=model,
+        judge_arm=judge_arm,
     )
     return LiveRepResult(
         checkpoint_id=snapshot.checkpoint_id, rep=rep, arm_result=arm_result
@@ -370,6 +490,7 @@ def run_live_benchmark(
     reps: int = MAIN_REPS,
     context_mode: Literal["transformed", "full_synthetic"] = "transformed",
     ledger: BenchmarkBudgetLedger | None = None,
+    judge_arm: JudgeArm = "b2",
 ) -> LiveBenchmarkReport:
     root = Path(baseline_dir)
     mismatches = verify_arm_a_integrity(root)
@@ -396,6 +517,7 @@ def run_live_benchmark(
                     service=service,
                     rep=rep,
                     context_mode=context_mode,
+                    judge_arm=judge_arm,
                 )
             )
         report.arm_b_reps[cp_id] = rep_results
@@ -456,6 +578,7 @@ __all__ = [
     "OutcomeCounts",
     "RepAwareTransport",
     "SmokeMockTransport",
+    "SmokeOracleTransport",
     "aggregate_b_reps",
     "build_live_transport",
     "checkpoint_ids_from_manifest",

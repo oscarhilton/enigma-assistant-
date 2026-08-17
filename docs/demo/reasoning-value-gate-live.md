@@ -44,8 +44,15 @@ Pricing constants (GPT-OSS-120B serverless) live in `benchmark_budget.py`:
 
 | Module | Role |
 | --- | --- |
+| `packages/reasoning/.../structured_output.py` | judge-v1 (B1 legacy) + **semantic-judge-v1** (B2) schemas |
+| `packages/attention/.../interruption_policy.py` | Deterministic surface/context/suppress from semantic features + facts |
 | `packages/reasoning/.../fireworks_transport.py` | OpenAI-compatible Chat Completions to `https://api.fireworks.ai/inference/v1` |
 | `packages/evaluation/.../benchmark_budget.py` | Budget ledger, pessimistic pre-call refusal, JSONL audit |
+| `packages/evaluation/.../live_benchmark.py` | `SmokeOracleTransport` — plumbing-only mock (not semantic ground truth) |
+
+**Arm B2 (default):** Fireworks → semantic judge → interruption policy → metrics on `policy_judgement`.
+
+**Arm B1 (legacy):** Fireworks → judge-v1 direct decision — retained for comparison only; live smoke showed unreliable calibration.
 
 Deterministic **seed** per checkpoint + rep (`fireworks_seed`) keeps live reps reproducible.
 
@@ -61,10 +68,20 @@ uv run pytest packages/reasoning/tests/test_fireworks_transport.py
 uv run pytest packages/evaluation/tests/test_benchmark_budget.py
 uv run enigma-eval --reasoning-gate   # existing offline harness
 
-# Live lane (after R-L04+ CLI lands — manual orchestration until then):
+# Live lane (R-L04+ CLI):
 export FIREWORKS_API_KEY=...
-# Smoke ($0.05 cap) → main A/B → disagreements → ablation → report
-# See parent sprint plan in docs/demo/reasoning-value-gate.md
+
+# Mock smoke (CI / no network) — Arm B2 default, 9/9 oracle:
+uv run enigma-eval --reasoning-gate-live --smoke-only
+
+# Live B2 smoke (~$0.02, 3 cases × 3 reps):
+uv run enigma-eval --reasoning-gate-live --smoke-only --live --arm b2
+
+# Compare legacy B1 direct-decision path (not recommended for spend):
+uv run enigma-eval --reasoning-gate-live --smoke-only --live --arm b1
+
+# Full live gate (smoke → main → disagreements → ablation → report):
+uv run enigma-eval --reasoning-gate-live --live --arm b2
 ```
 
 Audit log default path:
