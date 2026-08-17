@@ -1,9 +1,12 @@
 # EF-01 — Support fitness evaluator (D07 extension)
 
+> **Superseded by [R04](../reasoning/R04-support-fitness.md)** — support fitness metrics
+> and dual checkpoint scoring ship as part of the Reasoning Value Gate sprint.
+
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
-| Branch | `ticket/EF-01-support-fitness-evaluator` |
+| Status | `superseded` |
+| Branch | `ticket/R04-support-fitness` |
 | Domain | `demo-evaluation` |
 
 ## Package boundary (hard)
