@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+from email.message import Message
 from typing import Any
 from urllib.error import HTTPError
 
@@ -115,7 +116,9 @@ def test_fireworks_transport_mock_no_network() -> None:
 
 def test_fireworks_transport_network_error() -> None:
     def _fail(_req: Any, timeout: float = 0) -> _FakeResponse:
-        raise HTTPError("https://api.fireworks.ai", 503, "unavailable", hdrs=None, fp=io.BytesIO())
+        raise HTTPError(
+            "https://api.fireworks.ai", 503, "unavailable", Message(), io.BytesIO()
+        )
 
     transport = FireworksChatTransport(api_key="test-key", urlopen=_fail)
     result = transport.complete(

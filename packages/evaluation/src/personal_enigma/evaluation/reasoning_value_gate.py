@@ -265,6 +265,19 @@ def collect_live_gate_evidence(
     )
 
 
+def _metric_table_row(
+    label: str,
+    key: str,
+    arm_a: dict[str, float],
+    arm_b: dict[str, float],
+    deltas: dict[str, float],
+) -> str:
+    return (
+        f"| {label} | {arm_a.get(key, 0):.3f} | {arm_b.get(key, 0):.3f} "
+        f"| {deltas.get(key, 0):+.3f} |"
+    )
+
+
 def render_live_gate_report_markdown(evidence: LiveGateEvidence) -> str:
     a, b, d = evidence.arm_a, evidence.arm_b, evidence.deltas
     lines = [
@@ -280,10 +293,10 @@ def render_live_gate_report_markdown(evidence: LiveGateEvidence) -> str:
         "",
         "| Metric | Arm A | LLM B | Delta |",
         "| --- | --- | --- | --- |",
-        f"| MUST_SURFACE recall (critical) | {a.get('critical_recall', 0):.3f} | {b.get('critical_recall', 0):.3f} | {d.get('critical_recall', 0):+.3f} |",
-        f"| MUST_SUPPRESS accuracy | {a.get('must_suppress_accuracy', 0):.3f} | {b.get('must_suppress_accuracy', 0):.3f} | {d.get('must_suppress_accuracy', 0):+.3f} |",
-        f"| Top-3 critical recall | {a.get('top3_critical_recall', 0):.3f} | {b.get('top3_critical_recall', 0):.3f} | {d.get('top3_critical_recall', 0):+.3f} |",
-        f"| Next-action fit | {a.get('next_action_fit', 0):.3f} | {b.get('next_action_fit', 0):.3f} | {d.get('next_action_fit', 0):+.3f} |",
+        _metric_table_row("MUST_SURFACE recall (critical)", "critical_recall", a, b, d),
+        _metric_table_row("MUST_SUPPRESS accuracy", "must_suppress_accuracy", a, b, d),
+        _metric_table_row("Top-3 critical recall", "top3_critical_recall", a, b, d),
+        _metric_table_row("Next-action fit", "next_action_fit", a, b, d),
         f"| Stable decisions (B) | n/a | {evidence.arm_b_stability_pct:.1%} | — |",
         f"| Schema failures | — | {evidence.schema_failure_rate:.1%} | — |",
         f"| Privacy failures | — | {evidence.privacy_failure_rate:.1%} | — |",
@@ -325,6 +338,18 @@ def write_live_gate_report(
     report_path.write_text(render_live_gate_report_markdown(evidence), encoding="utf-8")
     adr = Path(adr_path)
     a, b, d = evidence.arm_a, evidence.arm_b, evidence.deltas
+    metric_rows = "\n".join(
+        [
+            _metric_table_row("Critical recall", "critical_recall", a, b, d),
+            _metric_table_row(
+                "Must-suppress accuracy", "must_suppress_accuracy", a, b, d
+            ),
+            _metric_table_row(
+                "Top-3 critical recall", "top3_critical_recall", a, b, d
+            ),
+            _metric_table_row("Next-action fit", "next_action_fit", a, b, d),
+        ]
+    )
     adr.write_text(
         f"""# ADR-012: Reasoning Value Gate architecture decision
 
@@ -336,10 +361,7 @@ def write_live_gate_report(
 
 | Metric | Arm A | LLM B | Delta |
 | --- | --- | --- | --- |
-| Critical recall | {a.get("critical_recall", 0):.3f} | {b.get("critical_recall", 0):.3f} | {d.get("critical_recall", 0):+.3f} |
-| Must-suppress accuracy | {a.get("must_suppress_accuracy", 0):.3f} | {b.get("must_suppress_accuracy", 0):.3f} | {d.get("must_suppress_accuracy", 0):+.3f} |
-| Top-3 critical recall | {a.get("top3_critical_recall", 0):.3f} | {b.get("top3_critical_recall", 0):.3f} | {d.get("top3_critical_recall", 0):+.3f} |
-| Next-action fit | {a.get("next_action_fit", 0):.3f} | {b.get("next_action_fit", 0):.3f} | {d.get("next_action_fit", 0):+.3f} |
+{metric_rows}
 | Total live cost | ~$0 | ${evidence.total_cost_usd:.4f} | — |
 | B stability | n/a | {evidence.arm_b_stability_pct:.1%} | — |
 | Critical regressions | — | {evidence.critical_regressions} | — |

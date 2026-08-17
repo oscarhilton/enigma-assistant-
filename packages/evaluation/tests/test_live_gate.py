@@ -49,7 +49,6 @@ def test_decide_live_architecture_no_win() -> None:
 
 def test_live_gate_mock_main_phase(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
-    truth = load_evaluation_truth(GT)
     result = run_live_gate(
         ground_truth_path=GT,
         baseline_dir=BASELINES,
