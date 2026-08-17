@@ -1,0 +1,57 @@
+id: whatsapp-soft-intention
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-11T19:00:00Z"
+description: Soft intention in chat must not become a dated task.
+events:
+  - id: wa-si-contact-alex
+    at: "2026-03-11T19:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-si-contact-tom
+    at: "2026-03-11T19:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      phone: "+447700900014"
+  - id: wa-si-maybe
+    at: "2026-03-11T19:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-maybe-dinner
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      from_phone: "+447700900014"
+      to: [alex]
+      body_text: Maybe we should grab dinner next week?
+  - id: wa-si-alex
+    at: "2026-03-11T19:11:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-yeah-maybe
+      chat_id: chat-tom
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: yeah maybe
+  - id: wa-si-norush
+    at: "2026-03-11T19:12:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-no-rush
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: no rush

@@ -1,0 +1,210 @@
+# Climbing group chat — mostly noise; one line is for Alex.
+
+events:
+  - id: w3-wa-g01
+    at: "2026-01-22T19:01:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-01
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Priya
+      body_text: that video though
+  - id: w3-wa-g02
+    at: "2026-01-22T19:02:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-02
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      body_text: lol
+  - id: w3-wa-g03
+    at: "2026-01-22T19:03:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-03
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Priya
+      body_text: raining again
+  - id: w3-wa-g04
+    at: "2026-01-22T19:04:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-04
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Dan
+      body_text: who ate the last flapjack
+  - id: w3-wa-g05
+    at: "2026-01-22T19:05:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-05
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      body_text: not me
+  - id: w3-wa-g06
+    at: "2026-01-22T19:06:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-06
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Dan
+      body_text: 😂
+  - id: w3-wa-g07
+    at: "2026-01-22T19:07:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-07
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Priya
+      body_text: parking was grim
+  - id: w3-wa-g08
+    at: "2026-01-22T19:08:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-08
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Dan
+      body_text: same
+  - id: w3-wa-g09
+    at: "2026-01-22T19:09:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-09
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      body_text: 👍
+  - id: w3-wa-g10
+    at: "2026-01-22T19:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-10
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Priya
+      body_text: anyone seen my chalk bag
+  - id: w3-wa-g11
+    at: "2026-01-22T19:11:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-11
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Dan
+      body_text: under the bench
+  - id: w3-wa-g12
+    at: "2026-01-22T19:12:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-12
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Priya
+      body_text: legend
+  - id: w3-wa-g13
+    at: "2026-01-22T19:13:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-13
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      body_text: coffee after?
+  - id: w3-wa-g14
+    at: "2026-01-22T19:14:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-14
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Dan
+      body_text: nah I'm cooked
+  - id: w3-wa-g-relevant
+    at: "2026-01-22T19:15:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-alex-guidebook
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      from_phone: "+447700900014"
+      to: [alex]
+      body_text: Alex can you bring the guidebook Saturday
+  - id: w3-wa-g15
+    at: "2026-01-22T19:16:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-15
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Priya
+      body_text: 🔥
+  - id: w3-wa-g-alex
+    at: "2026-01-22T19:17:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-group-alex-yes
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: Yeah, I'll bring it Saturday.
+  - id: w3-wa-g16
+    at: "2026-01-22T19:18:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-16
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from_name: Dan
+      body_text: night

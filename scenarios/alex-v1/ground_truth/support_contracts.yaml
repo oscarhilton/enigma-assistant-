@@ -114,7 +114,7 @@ support_contracts:
   - scenario: elena-parents-brunch
     obligation_id: obligation_brunch_book
     challenge: [prospective_memory, social_coordination]
-    evidence_ids: [mail-elena-weekend, rem-brunch-book, cal-brunch-parents]
+    evidence_ids: [mail-elena-weekend, rem-brunch-book, cal-brunch-parents, wa-elena-parents-coming, wa-alex-sort-brunch]
     valid_from: "2026-01-20T08:00:00Z"
     valid_until: "2026-01-22T12:00:00Z"
     resolution_event: w3-rem-brunch-done

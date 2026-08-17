@@ -1,0 +1,6 @@
+must: []
+
+must_not:
+  - obligation_from: wa-alex-heart
+  - obligation_from: wa-elena-thumb
+  - obligation_from: wa-elena-home

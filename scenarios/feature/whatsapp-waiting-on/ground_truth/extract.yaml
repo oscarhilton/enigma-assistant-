@@ -1,0 +1,10 @@
+must:
+  - kind: waiting_on
+    actor: other
+    message_id: wa-elena-address-tomorrow
+    write_obligation: false
+    write_blocker: true
+
+must_not:
+  - alex_owned_task_from: wa-elena-address-tomorrow
+  - biography_of: elena

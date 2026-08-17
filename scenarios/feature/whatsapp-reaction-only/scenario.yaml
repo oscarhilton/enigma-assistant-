@@ -1,0 +1,60 @@
+id: whatsapp-reaction-only
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-16T20:00:00Z"
+description: Reaction-only messages must not invent an obligation.
+events:
+  - id: wa-ro-contact-alex
+    at: "2026-03-16T20:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-ro-contact-elena
+    at: "2026-03-16T20:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: elena
+      display_name: Elena Vargas
+      phone: "+447700900011"
+  - id: wa-ro-text
+    at: "2026-03-16T20:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-elena-home
+      chat_id: chat-elena
+      from: elena
+      from_name: Elena Vargas
+      to: [alex]
+      body_text: Home now
+  - id: wa-ro-heart
+    at: "2026-03-16T20:11:00Z"
+    type: whatsapp.reaction
+    source: whatsapp
+    payload:
+      id: wa-alex-heart
+      chat_id: chat-elena
+      from: alex
+      from_name: Alex Morgan
+      to: [elena]
+      kind: reaction
+      reaction_emoji: "❤️"
+      reply_to_id: wa-elena-home
+  - id: wa-ro-thumb
+    at: "2026-03-16T20:12:00Z"
+    type: whatsapp.reaction
+    source: whatsapp
+    payload:
+      id: wa-elena-thumb
+      chat_id: chat-elena
+      from: elena
+      from_name: Elena Vargas
+      to: [alex]
+      kind: reaction
+      reaction_emoji: "👍"
+      reply_to_id: wa-elena-home

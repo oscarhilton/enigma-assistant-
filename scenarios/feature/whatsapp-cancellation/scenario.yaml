@@ -1,0 +1,56 @@
+id: whatsapp-cancellation
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-13T17:00:00Z"
+description: Open chat plan is cancelled — leftover attention must not remain.
+events:
+  - id: wa-ca-contact-alex
+    at: "2026-03-13T17:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-ca-contact-tom
+    at: "2026-03-13T17:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      phone: "+447700900014"
+  - id: wa-ca-ask
+    at: "2026-03-13T17:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-drinks-sat
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Drinks Saturday?
+  - id: wa-ca-commit
+    at: "2026-03-13T17:11:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-book-table
+      chat_id: chat-tom
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: Yeah, I'll book a table tonight.
+  - id: wa-ca-off
+    at: "2026-03-13T18:40:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-saturday-off
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Actually Saturday's off.

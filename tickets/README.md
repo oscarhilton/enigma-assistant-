@@ -10,6 +10,7 @@ Executable work units for **personal-enigma**, grouped by architecture domain so
 | `in_progress` | Claimed; branch open |
 | `blocked` | Waiting on dependency or decision |
 | `done` | Merged; acceptance criteria met |
+| `future` | Design captured; **do not claim** until hard deps in the ticket are met |
 
 ## Dependency legend
 
@@ -24,7 +25,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field.
+3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), `ticket/Cxx-slug` (Conversational UI), `ticket/COxx-slug` (Coordination), `ticket/SECxx-slug` (Personal-data security), `ticket/RECxx-slug` (Shareable recipes — **not** Reasoning `Rxx`), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field. Do not claim `future` tickets.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
@@ -32,6 +33,27 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 8. **Merge gate:** CI green + agent self code-review before merge; do not block on Copilot when credits unavailable.
 9. **Demo Mode never shares Private storage roots or HMAC / PERSON_\* keys** ([ADR-005](../docs/adr/005-demo-private-storage-roots.md)). Do not point `ENIGMA_DATABASE_URL` for Demo at the Private DB.
 10. **Shadow Mode never shares Demo or Private roots** ([ADR-008](../docs/adr/008-shadow-storage-roots.md)). Demo→Shadow migration is impossible. Demo Mode is frozen for polish — prefer `tickets/shadow/` over new F-*/Demo UI work.
+
+## Isolated worktrees (parallel agents)
+
+One ticket → one branch → one worktree. Do not run a second agent in the primary checkout while uncommitted programme work is sitting there.
+
+From the primary clone (`adhd-personal-assistant`, currently `ticket/R-L03-docs-only` or whatever HEAD is):
+
+```bash
+git worktree add ../enigma-wt-<ticket> -b ticket/<prefix>-<slug>
+```
+
+Examples: `ticket/C09-llm-live-proof`, `ticket/SEC07-shadow-reconstruction`, `ticket/SECxx-slug`. Directory name is `enigma-wt-<ticket>` as a sibling of the primary clone (not inside it). A dirty index is fine — `git worktree add -b` checks out **HEAD only**; uncommitted files stay in the primary working tree. Do **not** copy, stash-pop, or split dirty files into the new worktree automatically.
+
+| Rule | Detail |
+| --- | --- |
+| One ticket per worktree | Do not reuse a worktree for a second ticket. |
+| Storage roots | Each worktree uses its own Private/Demo/Shadow data dirs. Never share `ENIGMA_DATABASE_URL`, HMAC keys, or vault paths across worktrees ([ADR-005](../docs/adr/005-demo-private-storage-roots.md), [ADR-008](../docs/adr/008-shadow-storage-roots.md)). |
+| Launch | Point the agent (Cursor workspace / CLI cwd) at the worktree path, not the primary clone. |
+| Remove when done | `git worktree remove ../enigma-wt-<ticket>` after the PR is submitted (or abandon). |
+
+Existing in-repo `.worktrees/` checkouts are legacy; prefer sibling `../enigma-wt-*` going forward.
 
 ## Domains
 
@@ -55,6 +77,10 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
 | demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md)–[D18](./demo-ui/D18-demo-next-action.md)) — **frozen** for new polish beyond claimed tickets |
+| conversational-ui | [conversational-ui/](./conversational-ui/) | Conversational home + EnigmaClient ([C00](./conversational-ui/C00-demo-attention-projection.md)–[C08](./conversational-ui/C08-live-enigma-client.md)); [C11](./conversational-ui/C11-tone-memory.md) tone memory (`future`, after C09 LLM proof); [C12](./conversational-ui/C12-life-scripts.md) Life Scripts (`landed` · [#89](https://github.com/oscarhilton/enigma-assistant-/pull/89) CI red); [C13](./conversational-ui/C13-life-script-reliability.md) reliability (`todo`); [C14](./conversational-ui/C14-conversation-activity-stream.md) activity stream (`done` v0 · [#90](https://github.com/oscarhilton/enigma-assistant-/pull/90)); [C09c](./conversational-ui/C09c-conversation-capsule.md) conversation capsule (`landed` · frozen); [C15](./conversational-ui/C15-semantic-bootstrap-capsule.md) semantic bootstrap (`in_progress` · local AC, not in [#92](https://github.com/oscarhilton/enigma-assistant-/pull/92)); **C16–C23 Conversation Continuity and Action Integrity** (`todo`/`future` — **before more assists**; [ADR-032](../docs/adr/032-action-ledger-execution-receipts-verification.md)); [C24](./conversational-ui/C24-read-only-evidence-worker.md) evidence worker (`future` after P0; [ADR-033](../docs/adr/033-bounded-subtask-workers.md)); [architecture doc](../docs/architecture/conversational-ui.md) · [conversational-stream.md](../docs/architecture/conversational-stream.md) · [tone-memory.md](../docs/architecture/tone-memory.md) · [ADR-025](../docs/adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [ADR-027](../docs/adr/027-streaming-presentation-adapter.md) · [ADR-029](../docs/adr/029-context-compilation-request-shaped-memory.md) · [ADR-030](../docs/adr/030-conversation-capsule.md) · [ADR-031](../docs/adr/031-semantic-bootstrap-compiler-grants-context.md) · [ADR-032](../docs/adr/032-action-ledger-execution-receipts-verification.md) · [ADR-033](../docs/adr/033-bounded-subtask-workers.md) |
+| coordination | [coordination/](./coordination/) | Inter-Enigma trust protocol ([CO00](./coordination/CO00-adr-programme.md)–[CO01+](./coordination/CO01-dinner-proposal-proof.md)); [enigma-coordination-protocol.md](../docs/architecture/enigma-coordination-protocol.md) · [ADR-013](../docs/adr/013-inter-enigma-coordination-trust-boundary.md)–[019](../docs/adr/019-delegated-authority-and-execution-ladder.md) |
+| recipes | [recipes/](./recipes/) | Shareable EF procedures ([REC00](./recipes/REC00-shareable-recipes-north-star.md) `future`); [shareable-recipes.md](../docs/architecture/shareable-recipes.md) · [ADR-024](../docs/adr/024-shareable-recipes-procedure-never-personal-state.md). Declarative, not code, not a prompt bundle. **Do not claim** until C09 LLM proof + [SEC-05](./security/SEC-05-personal-data-pilot-gate.md) PASS. Ticket prefix `REC*` — not Reasoning `R*`. |
+| security | [security/](./security/) | Personal-data pilot before live Gmail ([SEC-00](./security/SEC-00-personal-data-threat-model.md)–[SEC-07](./security/SEC-07-shadow-reconstruction-benchmark.md) → [SEC-05](./security/SEC-05-personal-data-pilot-gate.md)); [personal-data-security.md](../docs/architecture/personal-data-security.md) · [data-retention.md](../docs/architecture/data-retention.md) · [ADR-021](../docs/adr/021-personal-data-security-boundary.md) · [ADR-023](../docs/adr/023-persistent-shadow-abstract-state-not-biography.md). **Hard prerequisite for Oscar's inbox** after [C09](./conversational-ui/C09-llm-conversational-boundary.md). |
 | shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval (SE01–SE03) + silence track (SE04–SE10) + open-loop dues (SE11); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) · [shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) · [ADR-009](../docs/adr/009-silence-as-prediction.md). SE* must not edit `EnvironmentMode`. |
 
 ## Ingestion file ownership (do not cross)
@@ -74,20 +100,25 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | Ticket | Owned path |
 | --- | --- |
 | D04 | `packages/simulation/src/personal_enigma/simulation/sources/{mail,calendar,reminders,notes,contacts}.py` |
+| D19 | `packages/simulation/src/personal_enigma/simulation/sources/whatsapp.py` |
 
 Shared protocol types (`packages/ingestion/.../protocol.py`) are owned by M01-era scaffold; later tickets may only *import* them unless a dedicated ticket claims a protocol change.
 
 Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milestone-map.md).  
 Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).  
-Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; do not invent a top-level D13 for corpus).  
+Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; six-month ordinary Alex is [D08f](./demo-scenario/D08f-alex-six-month.md) — version bump of `alex-v1`, not a top-level D13 and not `alex-v2`).  
 Shadow Mode: [docs/architecture/shadow-mode.md](../docs/architecture/shadow-mode.md) (S01–S06 after `v0.2.0-demo`).  
 Shadow evaluation rubric: [docs/architecture/shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) (seven post-Alex questions · SE01–SE03).  
 Shadow silence evaluation: [docs/architecture/shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) (SUPPRESS as prediction · SE04–SE10 · [ADR-009](../docs/adr/009-silence-as-prediction.md)).  
 Open-loop commitments: [docs/architecture/open-loop-commitments.md](../docs/architecture/open-loop-commitments.md) (SE11).  
 Attention surface (Phase 2.5 wind-tunnel / F-* naming): [docs/architecture/attention-surface.md](../docs/architecture/attention-surface.md).  
 Next Action (NEEDS YOU / WORTH DOING / CAN WAIT): [docs/architecture/next-action.md](../docs/architecture/next-action.md) · [ADR-010](../docs/adr/010-next-action-not-attention.md) · [M20](./domain-model/M20-next-action-schemas.md) · [N01](./next-action/N01-scorer-stub.md)–[N03](./next-action/N03-preference-learning.md).  
-Support fitness / Alex v2: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) (V2-EF-02 stretch after gate).  
+Support fitness overlay: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) ([V2-EF-02](./demo-scenario/V2-EF-02-ef-arc-authoring.md) stretch after gate — contracts on D08f threads, **not** a second Alex package).  
 **Reasoning Value Gate:** [reasoning-value-gate.md](../docs/demo/reasoning-value-gate.md) (R01–R07); [ADR-012](../docs/adr/012-reasoning-value-gate-decision.md).  
+**Inter-Enigma coordination:** [enigma-coordination-protocol.md](../docs/architecture/enigma-coordination-protocol.md) (CO00–CO01+); [ADR-013](../docs/adr/013-inter-enigma-coordination-trust-boundary.md)–[019](../docs/adr/019-delegated-authority-and-execution-ladder.md).  
+**Shareable recipes (future):** [shareable-recipes.md](../docs/architecture/shareable-recipes.md) ([REC00](./recipes/REC00-shareable-recipes-north-star.md)); [ADR-024](../docs/adr/024-shareable-recipes-procedure-never-personal-state.md). Declarative procedure, never personal state, never executable code, never a prompt bundle. After C09 LLM proof + SEC-05; do not implement now.  
+**Tone memory (future):** [tone-memory.md](../docs/architecture/tone-memory.md) ([C11](./conversational-ui/C11-tone-memory.md)); [ADR-025](../docs/adr/025-tone-memory-how-to-speak-not-who-you-are.md). Style preferences, not a personality dossier, not conversation logs. After C09 LLM proof; do not implement now. Distinct from [N03](./next-action/N03-preference-learning.md) Next Action fitness.  
+**Personal-data security (before live Gmail):** [personal-data-security.md](../docs/architecture/personal-data-security.md) · [data-retention.md](../docs/architecture/data-retention.md) (SEC-00–SEC-06 → SEC-05); [ADR-021](../docs/adr/021-personal-data-security-boundary.md). Claim after C09; SEC-05 PASS (Q1–Q15) required before Oscar's inbox. M11 Gmail scaffold alone is insufficient.  
 **Superseded by R01–R04:** [V2-EF-01](./demo-scenario/V2-EF-01-support-contract-design.md) → R01 · [EF-01](./demo-evaluation/EF-01-support-fitness-evaluator.md) → R04 · [D14](./demo-evaluation/D14-llm-judge-benchmark.md) → R03 — do not claim separately.  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
@@ -101,6 +132,7 @@ Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
 | [D08c](./demo-scenario/D08c-background-integration.md) | `done` | Canonical+background merge; A/B recall hook |
 | [D08d](./demo-scenario/D08d-noise-layer.md) | `done` | Machine sludge + quiet-day (≠ D08c) |
 | [D08e](./demo-scenario/D08e-canonical-scale.md) | `done` | Scale ladder + curve shapes → Phase 2.5 |
+| [D08f](./demo-scenario/D08f-alex-six-month.md) | `done` | Programme slice merged [#91](https://github.com/oscarhilton/enigma-assistant-/pull/91); 0.2.1 still January-only. Months: [D08f-02](./demo-scenario/D08f-02-february.md)…[D08f-06](./demo-scenario/D08f-06-june.md) · scripts [D08f-scripts](./demo-scenario/D08f-scripts.md) |
 
 Architecture freeze preferred at `f404597` unless D08c proves a structural failure.
 

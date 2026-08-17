@@ -1,0 +1,11 @@
+must:
+  - kind: explicit_commitment
+    message_id: wa-alex-climb-ok
+    write_obligation: true
+  - kind: correction
+    message_id: wa-tom-meant-sunday
+    amends: wa-alex-climb-ok
+    due_weekday: sunday
+
+must_not:
+  - duplicate_obligation_from: wa-tom-meant-sunday

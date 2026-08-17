@@ -1,0 +1,56 @@
+id: whatsapp-ambiguous-chatter
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-14T21:00:00Z"
+description: Ambiguous chatter must not become a hard task with a deadline.
+events:
+  - id: wa-ac-contact-alex
+    at: "2026-03-14T21:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-ac-contact-tom
+    at: "2026-03-14T21:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      phone: "+447700900014"
+  - id: wa-ac-sometime
+    at: "2026-03-14T21:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-sometime
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: We really need to do that sometime 😂
+  - id: wa-ac-haha
+    at: "2026-03-14T21:11:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-haha
+      chat_id: chat-tom
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: haha yeah
+  - id: wa-ac-later
+    at: "2026-03-14T21:12:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-later
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: one day

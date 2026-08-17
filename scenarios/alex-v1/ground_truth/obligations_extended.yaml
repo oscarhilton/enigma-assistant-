@@ -33,6 +33,8 @@ obligations:
       - mail-elena-weekend
       - rem-brunch-book
       - cal-brunch-parents
+      - wa-elena-parents-coming
+      - wa-alex-sort-brunch
 
   - id: obligation_elena_dinner_wine
     actor: alex

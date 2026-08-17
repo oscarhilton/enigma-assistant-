@@ -1,0 +1,101 @@
+id: whatsapp-group-noise
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-15T09:00:00Z"
+description: Group chat noise — only one message is relevant to Alex.
+events:
+  - id: wa-gn-contact-alex
+    at: "2026-03-15T09:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-gn-contact-tom
+    at: "2026-03-15T09:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      phone: "+447700900014"
+  - id: wa-gn-noise-1
+    at: "2026-03-15T09:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-gif
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: that video though
+  - id: wa-gn-noise-2
+    at: "2026-03-15T09:11:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-lol
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: lol
+  - id: wa-gn-noise-3
+    at: "2026-03-15T09:12:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-weather
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: raining again
+  - id: wa-gn-relevant
+    at: "2026-03-15T09:13:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-alex-guidebook
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Alex can you bring the guidebook Saturday
+  - id: wa-gn-noise-4
+    at: "2026-03-15T09:14:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-group-thumbs
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: 👍
+  - id: wa-gn-alex
+    at: "2026-03-15T09:15:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-group-alex-yes
+      chat_id: chat-climb-group
+      is_group: true
+      chat_title: North Face lot
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: Yeah, I'll bring it Saturday.

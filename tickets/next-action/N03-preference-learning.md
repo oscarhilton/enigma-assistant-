@@ -27,6 +27,7 @@
 ## Non-goals
 
 - Personality diagnosis
+- Communication-style / tone memory ([ADR-025](../../docs/adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [C11](../conversational-ui/C11-tone-memory.md) — different object)
 - Cross-user collaborative filtering
 - Sending reject transcripts to hosted models
 - Permanent category bans from a single reject

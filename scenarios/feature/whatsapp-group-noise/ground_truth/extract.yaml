@@ -1,0 +1,11 @@
+must:
+  - kind: explicit_commitment
+    message_id: wa-group-alex-yes
+    write_obligation: true
+
+must_not:
+  - obligation_from: wa-group-gif
+  - obligation_from: wa-group-lol
+  - obligation_from: wa-group-weather
+  - obligation_from: wa-group-thumbs
+  - obligation_from: wa-group-alex-guidebook

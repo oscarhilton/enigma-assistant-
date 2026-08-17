@@ -1,0 +1,154 @@
+# Week 3 WhatsApp overlay — additive evidence, not a biography.
+# Brunch Saturday 24 Jan is unchanged; chat only confirms parents are coming.
+
+events:
+  - id: w3-wa-elena-parents
+    at: "2026-01-19T18:30:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-elena-parents-coming
+      chat_id: chat-elena
+      from: elena
+      from_name: Elena Vargas
+      from_phone: "+447700900011"
+      to: [alex]
+      body_text: Mum and Dad are definitely coming Saturday btw
+
+  - id: w3-wa-alex-brunch
+    at: "2026-01-19T18:32:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-sort-brunch
+      chat_id: chat-elena
+      from: alex
+      from_name: Alex Morgan
+      from_phone: "+447700900001"
+      to: [elena]
+      body_text: Ah okay — I'll sort brunch
+
+  - id: w3-wa-elena-heart
+    at: "2026-01-19T18:33:00Z"
+    type: whatsapp.reaction
+    source: whatsapp
+    payload:
+      id: wa-elena-brunch-heart
+      chat_id: chat-elena
+      from: elena
+      from_name: Elena Vargas
+      from_phone: "+447700900011"
+      to: [alex]
+      kind: reaction
+      reaction_emoji: "❤️"
+      reply_to_id: wa-alex-sort-brunch
+
+  - id: w3-wa-elena-address
+    at: "2026-01-20T09:15:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-elena-address-tomorrow
+      chat_id: chat-elena
+      from: elena
+      from_name: Elena Vargas
+      from_phone: "+447700900011"
+      to: [alex]
+      body_text: I'll send you the address tomorrow.
+
+  - id: w3-wa-tom-drinks
+    at: "2026-01-21T17:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-drinks-friday
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      from_phone: "+447700900014"
+      to: [alex]
+      body_text: Pints after work Friday?
+
+  - id: w3-wa-alex-table
+    at: "2026-01-21T17:12:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-book-table
+      chat_id: chat-tom
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: Yeah, I'll book a table tonight.
+
+  - id: w3-wa-tom-friday-off
+    at: "2026-01-21T19:40:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-friday-off
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Actually Friday's off.
+
+  - id: w3-wa-tom-climb
+    at: "2026-01-21T20:05:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-climb-thursday
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Climb Thursday 18:00?
+
+  - id: w3-wa-alex-wall
+    at: "2026-01-21T20:06:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-book-wall
+      chat_id: chat-tom
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: Yeah, I'll book the wall tonight.
+
+  - id: w3-wa-tom-meant-friday
+    at: "2026-01-21T20:20:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-meant-friday
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Sorry, I meant Friday, not Thursday.
+
+  - id: w3-wa-tom-maybe-dinner
+    at: "2026-01-21T21:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-maybe-dinner
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Maybe we should grab dinner next week?
+
+  - id: w3-wa-tom-sometime
+    at: "2026-01-21T21:14:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-sometime
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: We really need to do that sometime 😂

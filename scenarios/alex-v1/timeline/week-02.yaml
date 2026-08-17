@@ -9,6 +9,7 @@ events:
       id: jordan
       display_name: Jordan Lee
       email: jordan.lee@northwind.example
+      phone: "+447700900004"
 
   - id: w2-mail-maya-checkout
     at: "2026-01-12T09:40:00Z"

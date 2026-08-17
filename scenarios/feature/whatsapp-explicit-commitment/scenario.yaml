@@ -1,0 +1,61 @@
+id: whatsapp-explicit-commitment
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-10T18:00:00Z"
+description: >
+  Alex explicitly commits in WhatsApp ("I'll book it tonight").
+  Source layer only — Enigma must discover the obligation downstream.
+events:
+  - id: wa-ec-contact-alex
+    at: "2026-03-10T18:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-ec-contact-tom
+    at: "2026-03-10T18:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      phone: "+447700900014"
+  - id: wa-ec-tom-ask
+    at: "2026-03-10T18:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-wall-ask
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      from_phone: "+447700900014"
+      to: [alex]
+      body_text: Wall's free Saturday if you can book
+  - id: wa-ec-alex-commit
+    at: "2026-03-10T18:12:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-book-tonight
+      chat_id: chat-tom
+      from: alex
+      from_name: Alex Morgan
+      from_phone: "+447700900001"
+      to: [tom]
+      body_text: Yeah, I'll book it tonight.
+  - id: wa-ec-tom-ack
+    at: "2026-03-10T18:13:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-ack
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      from_phone: "+447700900014"
+      to: [alex]
+      body_text: Legend

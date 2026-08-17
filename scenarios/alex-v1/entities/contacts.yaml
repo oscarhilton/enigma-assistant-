@@ -4,26 +4,32 @@ contacts:
   alex:
     display_name: Alex Morgan
     email: alex.morgan@northwind.example
+    phone: "+447700900001"
     role: self
   maya:
     display_name: Maya Chen
     email: maya.chen@northwind.example
+    phone: "+447700900002"
     role: manager
   elena:
     display_name: Elena Vargas
     email: elena@example.com
+    phone: "+447700900011"
     role: partner
   sam:
     display_name: Sam Okonkwo
     email: sam.okonkwo@northwind.example
+    phone: "+447700900003"
     role: colleague
   tom:
     display_name: Tom Rivera
     email: tom@example.com
+    phone: "+447700900014"
     role: friend
   jordan:
     display_name: Jordan Lee
     email: jordan.lee@northwind.example
+    phone: "+447700900004"
     role: design-ops
   finance:
     display_name: Northwind Finance

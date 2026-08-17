@@ -1,0 +1,56 @@
+id: whatsapp-correction
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-17T16:00:00Z"
+description: Correction amends the plan date — must not duplicate the obligation.
+events:
+  - id: wa-co-contact-alex
+    at: "2026-03-17T16:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-co-contact-tom
+    at: "2026-03-17T16:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: tom
+      display_name: Tom Rivera
+      phone: "+447700900014"
+  - id: wa-co-sat
+    at: "2026-03-17T16:10:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-climb-sat
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Climb Saturday 10am?
+  - id: wa-co-ok
+    at: "2026-03-17T16:11:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-climb-ok
+      chat_id: chat-tom
+      from: alex
+      from_name: Alex Morgan
+      to: [tom]
+      body_text: Yeah, I'll book the wall tonight.
+  - id: wa-co-sunday
+    at: "2026-03-17T16:40:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-tom-meant-sunday
+      chat_id: chat-tom
+      from: tom
+      from_name: Tom Rivera
+      to: [alex]
+      body_text: Sorry, I meant Sunday, not Saturday.

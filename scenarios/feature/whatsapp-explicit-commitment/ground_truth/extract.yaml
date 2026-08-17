@@ -1,0 +1,13 @@
+# Ground truth for OBL-WA — not ingested.
+
+must:
+  - kind: explicit_commitment
+    actor: self
+    message_id: wa-alex-book-tonight
+    due_bucket: TONIGHT
+    write_obligation: true
+
+must_not:
+  - biography_of: tom
+  - obligation_from: wa-tom-wall-ask
+  - obligation_from: wa-tom-ack

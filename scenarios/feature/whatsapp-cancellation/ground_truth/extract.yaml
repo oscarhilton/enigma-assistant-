@@ -1,0 +1,10 @@
+must:
+  - kind: explicit_commitment
+    message_id: wa-alex-book-table
+    write_obligation: true
+  - kind: cancellation
+    message_id: wa-tom-saturday-off
+    closes: wa-alex-book-table
+
+must_not:
+  - leftover_open_obligation_after: wa-tom-saturday-off

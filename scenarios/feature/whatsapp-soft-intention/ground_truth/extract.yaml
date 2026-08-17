@@ -1,0 +1,6 @@
+must: []
+
+must_not:
+  - hard_obligation_from: wa-tom-maybe-dinner
+  - due_date_from: wa-tom-maybe-dinner
+  - obligation_from: wa-alex-yeah-maybe

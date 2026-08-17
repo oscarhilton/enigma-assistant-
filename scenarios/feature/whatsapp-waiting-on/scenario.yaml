@@ -1,0 +1,57 @@
+id: whatsapp-waiting-on
+version: "0.1.0"
+status: feature
+timezone: Europe/London
+start_at: "2026-03-12T12:00:00Z"
+description: Counterpart will send the address — waiting-on, not an Alex task.
+events:
+  - id: wa-wo-contact-alex
+    at: "2026-03-12T12:00:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: alex
+      display_name: Alex Morgan
+      phone: "+447700900001"
+  - id: wa-wo-contact-elena
+    at: "2026-03-12T12:01:00Z"
+    type: contact.upsert
+    source: contacts
+    payload:
+      id: elena
+      display_name: Elena Vargas
+      phone: "+447700900011"
+  - id: wa-wo-ask
+    at: "2026-03-12T12:10:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-address
+      chat_id: chat-elena
+      from: alex
+      from_name: Alex Morgan
+      to: [elena]
+      body_text: What's the address again?
+  - id: wa-wo-promise
+    at: "2026-03-12T12:11:00Z"
+    type: whatsapp.receive
+    source: whatsapp
+    payload:
+      id: wa-elena-address-tomorrow
+      chat_id: chat-elena
+      from: elena
+      from_name: Elena Vargas
+      from_phone: "+447700900011"
+      to: [alex]
+      body_text: I'll send you the address tomorrow.
+  - id: wa-wo-thanks
+    at: "2026-03-12T12:12:00Z"
+    type: whatsapp.send
+    source: whatsapp
+    payload:
+      id: wa-alex-cheers
+      chat_id: chat-elena
+      from: alex
+      from_name: Alex Morgan
+      to: [elena]
+      body_text: cheers

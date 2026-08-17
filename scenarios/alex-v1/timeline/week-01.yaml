@@ -9,6 +9,7 @@ events:
       id: alex
       display_name: Alex Morgan
       email: alex.morgan@northwind.example
+      phone: "+447700900001"
 
   - id: w1-contact-maya
     at: "2026-01-05T08:10:00Z"
@@ -18,6 +19,7 @@ events:
       id: maya
       display_name: Maya Chen
       email: maya.chen@northwind.example
+      phone: "+447700900002"
 
   - id: w1-contact-elena
     at: "2026-01-05T08:11:00Z"
@@ -27,6 +29,7 @@ events:
       id: elena
       display_name: Elena Vargas
       email: elena@example.com
+      phone: "+447700900011"
 
   - id: w1-contact-sam
     at: "2026-01-05T08:12:00Z"
@@ -36,6 +39,7 @@ events:
       id: sam
       display_name: Sam Okonkwo
       email: sam.okonkwo@northwind.example
+      phone: "+447700900003"
 
   - id: w1-contact-tom
     at: "2026-01-05T08:13:00Z"
@@ -45,6 +49,7 @@ events:
       id: tom
       display_name: Tom Rivera
       email: tom@example.com
+      phone: "+447700900014"
 
   - id: w1-cal-standup
     at: "2026-01-05T08:30:00Z"
