@@ -14,8 +14,10 @@ from personal_enigma.reasoning.protocol import ReasoningResult
 from personal_enigma.reasoning.structured_output import (
     JUDGE_V1_SYSTEM_PROMPT,
     SEMANTIC_JUDGE_V1_SYSTEM_PROMPT,
+    SemanticJudgeV1ParseError,
     extract_judge_v1_json_text,
     judge_v1_response_format,
+    parse_semantic_judge_v1_output,
     semantic_judge_v1_response_format,
 )
 
@@ -25,6 +27,9 @@ from personal_enigma.transformation import TransformedContext
 DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1"
 DEFAULT_FIREWORKS_MODEL = "accounts/fireworks/models/gpt-oss-120b"
 DEFAULT_MAX_OUTPUT_TOKENS = 512
+# B2 semantic-judge-v1 emits more fields than judge-v1; 512 caused finish_reason=length.
+DEFAULT_SEMANTIC_MAX_OUTPUT_TOKENS = 1024
+SEMANTIC_LENGTH_RETRY_MAX_TOKENS = 1536
 # gpt-oss defaults to medium CoT; judge-v1 needs completion budget for JSON in content.
 DEFAULT_REASONING_EFFORT = "low"
 
@@ -182,6 +187,27 @@ def _model_rejection_detail(
     return str(detail)
 
 
+def _semantic_output_valid(text: str) -> bool:
+    try:
+        parse_semantic_judge_v1_output(text)
+    except SemanticJudgeV1ParseError:
+        return False
+    return True
+
+
+def _resolve_max_output_tokens(
+    *,
+    judge_arm: JudgeArm,
+    max_output_tokens: int | None,
+    transport_default: int,
+) -> int:
+    if max_output_tokens is not None:
+        return max_output_tokens
+    if judge_arm == "b2":
+        return DEFAULT_SEMANTIC_MAX_OUTPUT_TOKENS
+    return transport_default
+
+
 class FireworksChatTransport:
     """HTTP transport for Fireworks serverless Chat Completions.
 
@@ -267,10 +293,12 @@ class FireworksChatTransport:
         resolved_seed = seed if seed is not None else fireworks_seed(
             checkpoint_id=checkpoint_id, rep=rep
         )
-        resolved_max_tokens = (
-            max_output_tokens if max_output_tokens is not None else self._max_output_tokens
-        )
         judge_arm = resolve_judge_arm(context)
+        resolved_max_tokens = _resolve_max_output_tokens(
+            judge_arm=judge_arm,
+            max_output_tokens=max_output_tokens,
+            transport_default=self._max_output_tokens,
+        )
 
         if not self._api_key:
             return ReasoningResult(
@@ -404,6 +432,38 @@ class FireworksChatTransport:
                 },
             )
         text = _extract_message_content(message)
+        retried_for_length = False
+        if (
+            judge_arm == "b2"
+            and finish_reason == "length"
+            and not _semantic_output_valid(text)
+            and resolved_max_tokens < SEMANTIC_LENGTH_RETRY_MAX_TOKENS
+        ):
+            retry_body = self._build_request_body(
+                model=resolved_model,
+                prompt=prompt,
+                max_tokens=SEMANTIC_LENGTH_RETRY_MAX_TOKENS,
+                seed=seed_used,
+                judge_arm=judge_arm,
+            )
+            try:
+                retry_payload = self._post_chat_completion(retry_body)
+            except (error.HTTPError, error.URLError):
+                retry_payload = None
+            if retry_payload is not None:
+                retry_choices = retry_payload.get("choices") or []
+                if retry_choices:
+                    retry_choice = retry_choices[0]
+                    retry_message = retry_choice.get("message") or {}
+                    retry_text = _extract_message_content(retry_message)
+                    if _semantic_output_valid(retry_text):
+                        payload = retry_payload
+                        choice = retry_choice
+                        message = retry_message
+                        finish_reason = str(retry_choice.get("finish_reason") or "")
+                        response_shape = describe_message_shape(message)
+                        text = retry_text
+                        retried_for_length = True
         usage_raw = payload.get("usage") or {}
         prompt_tokens = int(usage_raw.get("prompt_tokens", 0))
         completion_tokens = int(usage_raw.get("completion_tokens", 0))
@@ -433,5 +493,6 @@ class FireworksChatTransport:
                 "seed": str(seed_used) if seed_used is not None else "",
                 "finish_reason": finish_reason,
                 "response_shape": response_shape,
+                "retried_for_length": "true" if retried_for_length else "false",
             },
         )

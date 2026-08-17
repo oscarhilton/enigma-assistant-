@@ -318,9 +318,9 @@ SEMANTIC_JUDGE_V1_SYSTEM_PROMPT = (
     "Return exactly one JSON object matching schema semantic-judge-v1 — no markdown "
     "fences, no chain-of-thought.\n"
     f"Example shape:\n{SEMANTIC_JUDGE_V1_EXAMPLE_JSON}\n"
-    "Required keys: schema_version, obligation_strength, user_responsibility, "
-    "importance, time_sensitivity, actionability_now, confidence, reason_codes. "
-    "next_action may be null."
+    "Required keys (emit in this order): schema_version, obligation_strength, "
+    "user_responsibility, importance, time_sensitivity, actionability_now, confidence, "
+    "reason_codes. Optional next_action comes last and may be null."
 )
 
 
@@ -336,6 +336,28 @@ def semantic_judge_v1_response_format() -> dict[str, Any]:
 
 class SemanticJudgeV1ParseError(ValueError):
     """Structured semantic-judge-v1 output could not be parsed or validated."""
+
+
+_SEMANTIC_REQUIRED_SCORE_KEYS = (
+    "obligation_strength",
+    "user_responsibility",
+    "importance",
+    "time_sensitivity",
+    "actionability_now",
+    "confidence",
+)
+
+
+def _is_next_action_only_payload(payload: dict[str, Any]) -> bool:
+    """Detect truncated output where only a bare next_action fragment survived."""
+    if any(key in payload for key in _SEMANTIC_REQUIRED_SCORE_KEYS):
+        return False
+    if payload.get("schema_version") == "semantic-judge-v1":
+        return False
+    keys = set(payload.keys())
+    if keys <= {"title", "estimated_minutes"}:
+        return True
+    return "title" in payload and isinstance(payload.get("title"), str)
 
 
 def _is_semantic_rejection_payload(payload: dict[str, Any]) -> bool:
@@ -376,10 +398,21 @@ def parse_semantic_judge_v1_output(text: str) -> SemanticJudgeV1Output:
         raise SemanticJudgeV1ParseError(
             f"unsupported schema_version: {payload.get('schema_version')!r}"
         )
+    if _is_next_action_only_payload(payload):
+        raise SemanticJudgeV1ParseError(
+            "truncated semantic output: payload contains only next_action fields "
+            "(required score fields missing — likely max_tokens exhausted)"
+        )
     try:
         return SemanticJudgeV1Output.model_validate(payload)
     except ValidationError as exc:
-        raise SemanticJudgeV1ParseError(f"schema validation failed: {exc}") from exc
+        detail = str(exc)
+        if _is_next_action_only_payload(payload):
+            detail = (
+                "truncated semantic output: payload contains only next_action fields "
+                "(required score fields missing — likely max_tokens exhausted)"
+            )
+        raise SemanticJudgeV1ParseError(f"schema validation failed: {detail}") from exc
 
 
 __all__ = [

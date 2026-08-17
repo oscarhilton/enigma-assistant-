@@ -122,7 +122,8 @@ Do NOT decide surface/suppress/context — return semantic feature scores only.
 Enigma applies deterministic interruption policy locally using your scores plus
 observable facts (now, due dates, open obligations, calendar proximity).
 
-Return JSON only (no markdown, no chain-of-thought) using schema semantic-judge-v1:
+Return JSON only (no markdown, no chain-of-thought) using schema semantic-judge-v1.
+Emit required score fields first; optional next_action comes last and may be null.
 
 {{
   "schema_version": "semantic-judge-v1",
@@ -738,9 +739,18 @@ def _judge_candidate_semantic(
     except (SemanticJudgeV1ParseError, ValueError) as exc:
         detail = str(exc)
         if result is not None:
+            debug_bits: list[str] = []
             finish_reason = result.metadata.get("finish_reason")
+            response_shape = result.metadata.get("response_shape")
+            retried = result.metadata.get("retried_for_length")
             if finish_reason:
-                detail = f"{detail} [finish_reason={finish_reason}]"
+                debug_bits.append(f"finish_reason={finish_reason}")
+            if retried == "true":
+                debug_bits.append("retried_for_length=true")
+            if response_shape:
+                debug_bits.append(str(response_shape))
+            if debug_bits:
+                detail = f"{detail} [{' '.join(debug_bits)}]"
         return CandidateJudgement(candidate_id=candidate.id, parse_error=detail)
 
 

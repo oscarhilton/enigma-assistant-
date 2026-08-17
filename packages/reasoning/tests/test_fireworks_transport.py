@@ -13,14 +13,15 @@ import pytest
 from personal_enigma.reasoning.fireworks_transport import (
     DEFAULT_FIREWORKS_MODEL,
     DEFAULT_REASONING_EFFORT,
+    DEFAULT_SEMANTIC_MAX_OUTPUT_TOKENS,
     FireworksChatTransport,
     describe_message_shape,
     fireworks_seed,
 )
 from personal_enigma.reasoning.structured_output import (
     JudgeV1ParseError,
-    judge_v1_response_format,
     parse_judge_v1_output,
+    parse_semantic_judge_v1_output,
 )
 from personal_enigma.transformation import TransformedContext
 
@@ -400,3 +401,83 @@ def test_fireworks_transport_parses_judge_with_trailing_extra_json() -> None:
     assert result.metadata["status"] == "ok"
     out = parse_judge_v1_output(result.text)
     assert out.attention.decision == "surface"
+
+
+_SEMANTIC_JSON = json.dumps(
+    {
+        "schema_version": "semantic-judge-v1",
+        "obligation_strength": 0.96,
+        "user_responsibility": 0.98,
+        "importance": 0.82,
+        "time_sensitivity": 0.88,
+        "actionability_now": 0.91,
+        "confidence": 0.95,
+        "reason_codes": ["EXPLICIT_REQUEST"],
+        "next_action": None,
+    }
+)
+
+
+def test_fireworks_transport_b2_uses_higher_max_tokens() -> None:
+    calls: list[dict[str, Any]] = []
+
+    def _urlopen(req: Any, timeout: float = 0) -> _FakeResponse:
+        body = json.loads(req.data.decode("utf-8"))
+        calls.append(body)
+        return _FakeResponse(_success_payload(_SEMANTIC_JSON))
+
+    transport = FireworksChatTransport(api_key="test-key", urlopen=_urlopen)
+    result = transport.complete(
+        prompt="Return JSON only",
+        context=TransformedContext(
+            summary="Checkpoint snapshot",
+            entities=["OBLIGATION_A"],
+            metadata={"checkpoint_id": "cp-test", "record_id": "cp-test", "judge_arm": "b2"},
+            may_transmit_remotely=True,
+        ),
+        rep=0,
+    )
+    assert result.metadata["status"] == "ok"
+    assert calls[0]["max_tokens"] == DEFAULT_SEMANTIC_MAX_OUTPUT_TOKENS
+    out = parse_semantic_judge_v1_output(result.text)
+    assert out.schema_version == "semantic-judge-v1"
+
+
+def test_fireworks_transport_b2_retries_on_length_truncation() -> None:
+    truncated = json.dumps({"title": "Open expense spreadsheet", "estimated_minutes": 5})
+    calls: list[dict[str, Any]] = []
+
+    def _urlopen(req: Any, timeout: float = 0) -> _FakeResponse:
+        body = json.loads(req.data.decode("utf-8"))
+        calls.append(body)
+        if len(calls) == 1:
+            payload = json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {"content": truncated},
+                            "finish_reason": "length",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 512},
+                }
+            ).encode("utf-8")
+            return _FakeResponse(payload)
+        return _FakeResponse(_success_payload(_SEMANTIC_JSON))
+
+    transport = FireworksChatTransport(api_key="test-key", urlopen=_urlopen)
+    result = transport.complete(
+        prompt="Return JSON only",
+        context=TransformedContext(
+            summary="Checkpoint snapshot",
+            entities=["OBLIGATION_A"],
+            metadata={"checkpoint_id": "cp-test", "record_id": "cp-test", "judge_arm": "b2"},
+            may_transmit_remotely=True,
+        ),
+        rep=1,
+    )
+    assert len(calls) == 2
+    assert calls[1]["max_tokens"] > calls[0]["max_tokens"]
+    assert result.metadata["retried_for_length"] == "true"
+    out = parse_semantic_judge_v1_output(result.text)
+    assert out.obligation_strength == 0.96
