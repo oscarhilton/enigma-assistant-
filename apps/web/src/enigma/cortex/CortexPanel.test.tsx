@@ -36,6 +36,10 @@ function mockClient(options?: {
         } satisfies DemoEvent,
       ],
     ),
+    getDemoStatus: vi.fn(),
+    advanceDemoDay: vi.fn(),
+    advanceDemoStep: vi.fn(),
+    setDemoSpeed: vi.fn(),
     getRecentDisclosures: vi.fn().mockResolvedValue(MOCK_DISCLOSURES),
     subscribe: vi.fn((handler) => {
       handlers.add(handler);

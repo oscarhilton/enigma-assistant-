@@ -1695,6 +1695,73 @@ def _judge_user_turn(
             ok, observed = _clause_covered(clause, blob=blob, names=names)
             checks.append(_check(f"covers · {clause}", clause, observed, ok))
 
+    bundle = trace.get("evidence_bundle") if isinstance(trace, dict) else None
+    if isinstance(bundle, dict):
+        if "coverage_adequate" in fields:
+            observed = bool(bundle.get("coverage_adequate"))
+            checks.append(
+                _check(
+                    "coverage_adequate",
+                    str(expect.coverage_adequate),
+                    str(observed),
+                    observed == expect.coverage_adequate,
+                )
+            )
+        if "request_kind" in fields:
+            mission = bundle.get("mission") or {}
+            observed = mission.get("request_kind")
+            checks.append(
+                _check(
+                    "request_kind",
+                    str(expect.request_kind),
+                    str(observed),
+                    observed == expect.request_kind,
+                )
+            )
+        if "scope" in fields:
+            mission = bundle.get("mission") or {}
+            observed = mission.get("scope")
+            checks.append(
+                _check(
+                    "scope",
+                    str(expect.scope),
+                    str(observed),
+                    observed == expect.scope,
+                )
+            )
+        if "courier_state" in fields:
+            observed = bundle.get("courier_state")
+            checks.append(
+                _check(
+                    "courier_state",
+                    str(expect.courier_state),
+                    str(observed),
+                    observed == expect.courier_state,
+                )
+            )
+        if expect.unsearched_sources_includes:
+            unsearched = list(bundle.get("unsearched_sources") or [])
+            for source in expect.unsearched_sources_includes:
+                checks.append(
+                    _check(
+                        f"unsearched · {source}",
+                        f"includes {source}",
+                        str(unsearched),
+                        source in unsearched,
+                    )
+                )
+        if "unresolved_referent" in fields:
+            unresolved = list(bundle.get("unresolved_referents") or [])
+            needle = str(expect.unresolved_referent or "")
+            checks.append(
+                _check(
+                    "unresolved_referent",
+                    needle,
+                    str(unresolved),
+                    any(needle in row for row in unresolved),
+                )
+            )
+
     if expect.source_scope:
         # v1 attention/availability tools have no source filter. Preserve the
         # constraint by deferring — do not quietly treat as unscoped attention.

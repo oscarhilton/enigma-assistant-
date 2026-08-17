@@ -93,6 +93,39 @@ export class MockEnigmaClient implements EnigmaClient {
     return [];
   }
 
+  async getDemoStatus(): Promise<import("./client").DemoStatus> {
+    return {
+      simulated_time: this.state.simulated_time,
+      speed: 1,
+      paused: false,
+      checkpoint_id: this.state.checkpoint_id,
+    };
+  }
+
+  async advanceDemoDay(): Promise<void> {
+    const current = new Date(this.state.simulated_time);
+    current.setUTCDate(current.getUTCDate() + 1);
+    this.state = {
+      ...this.state,
+      simulated_time: current.toISOString().replace(".000Z", "+00:00"),
+    };
+    this.emit({ type: "status_changed" });
+  }
+
+  async advanceDemoStep(): Promise<void> {
+    const current = new Date(this.state.simulated_time);
+    current.setUTCHours(current.getUTCHours() + 1);
+    this.state = {
+      ...this.state,
+      simulated_time: current.toISOString().replace(".000Z", "+00:00"),
+    };
+    this.emit({ type: "status_changed" });
+  }
+
+  async setDemoSpeed(_speed: number): Promise<void> {
+    return;
+  }
+
   async getRecentDisclosures(_limit?: number): Promise<EgressDisclosure[]> {
     return structuredClone(MOCK_DISCLOSURES);
   }

@@ -1,0 +1,80 @@
+# Life Script — Jan 17 coverage regression (14-turn dump specimen).
+#
+# Asserts EvidenceBundle coverage metadata on key turns from the coverage session.
+
+scenario: alex_jan17_coverage_regression
+clock: 2026-01-17T16:00:00
+checkpoint: cp-2026-01-17T16:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe bundle coverage, not exact assistant wording.
+
+purpose: >
+  Calendar-only fetches must not claim adequate coverage for catch-up /
+  next-work questions. News must be blocked, not historical fiction.
+
+pass_rule: >
+  Judge evidence_bundle.coverage_adequate, request_kind, and courier_state.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "what should i be doing?"
+    comment: Dump turn 2 — compile next_work, not unsupported lecture.
+    expect:
+      request_kind: next_work
+      coverage_adequate: false
+
+  - user: "work"
+    comment: Dump turn 5 — calendar-only is inadequate for scoped catch-up.
+    expect:
+      tool: agenda.get
+      coverage_adequate: false
+      unsearched_sources_includes:
+        - attention
+
+  - user: "what about personal life"
+    comment: Dump turn 6 — scope flip must not repeat work-only calendar answer blindly.
+    expect:
+      scope: personal
+      coverage_adequate: false
+
+  - user: "what about the weather?"
+    comment: Dump turn 8 — honest blocked capability.
+    expect:
+      courier_state: blocked
+
+  - user: "the news?"
+    comment: Dump turn 9 — blocked, not historical fiction.
+    expect:
+      courier_state: blocked
+
+  - user: "what have i missed?"
+    comment: Dump turn 11 — catch_up private world, not GENERAL_KNOWLEDGE.
+    expect:
+      request_kind: catch_up
+      coverage_adequate: false
+
+  - user: "something at work"
+    comment: Dump turn 12 — catch_up mission with work scope.
+    expect:
+      request_kind: catch_up
+      scope: work
+      coverage_adequate: false
+
+  - user: "what about the brunch"
+    comment: Dump turn 13 — subject_details + personal, not work agenda.
+    expect:
+      request_kind: subject_details
+      scope: personal
+      unresolved_referent: brunch

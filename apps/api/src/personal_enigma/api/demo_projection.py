@@ -13,13 +13,13 @@ from personal_enigma.attention.projection import (
 )
 from personal_enigma.fixtures.demo_checkpoints import (
     load_checkpoint_snapshot,
-    load_semantic_inputs,
+    resolve_semantic_inputs,
 )
 
 
 def project_checkpoint(checkpoint_id: str) -> ProjectionArtifacts:
     snapshot = load_checkpoint_snapshot(checkpoint_id)
-    semantics = load_semantic_inputs(checkpoint_id)
+    semantics = resolve_semantic_inputs(checkpoint_id, snapshot)
     return project_attention_state(snapshot, semantics)
 
 

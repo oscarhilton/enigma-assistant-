@@ -104,6 +104,39 @@ export type LlmTraceDisclosure = {
 };
 
 /** Deterministic turn trace — input → context → tool → result → response. Not chain-of-thought. */
+export type BuildIdentity = {
+  name: string;
+  app_version: string;
+  git_sha?: string | null;
+  branch?: string | null;
+  dirty?: boolean;
+  patch_hash?: string | null;
+  build_fingerprint?: string | null;
+};
+
+export type ForensicContracts = {
+  trace_schema: number;
+  compiler: string;
+  capsule: string;
+  prompt_bundle?: string | null;
+  tool_registry?: string | null;
+  feature_flags?: string[];
+};
+
+export type ForensicRuntime = {
+  environment?: string | null;
+  session_started?: string | null;
+  model?: string | null;
+  world_checkpoint?: string | null;
+  fixture?: string | null;
+};
+
+export type ForensicProvenance = {
+  build: BuildIdentity;
+  contracts: ForensicContracts;
+  runtime: ForensicRuntime;
+};
+
 export type LlmTrace = {
   path: LlmTracePath;
   planner: string;
@@ -133,6 +166,127 @@ export type LlmTrace = {
   included?: string[];
   excluded?: string[];
   correlation_id?: string | null;
+  evidence_bundle?: EvidenceBundle | null;
+  forensic_provenance?: ForensicProvenance | null;
+};
+
+export type SourceName =
+  | "calendar"
+  | "attention"
+  | "next_actions"
+  | "world_changes"
+  | "world_blockers"
+  | "sources_email"
+  | "sources_chat"
+  | "weather"
+  | "news"
+  | "general_knowledge";
+
+export type CourierState =
+  | "resting"
+  | "fetching"
+  | "returned"
+  | "empty_pawed"
+  | "partially_returned"
+  | "confused"
+  | "blocked";
+
+export type GooseState =
+  | "idle"
+  | "leaving"
+  | "searching"
+  | "waiting"
+  | "returning"
+  | "presenting"
+  | "huffing"
+  | "empty_beaked"
+  | "verifying"
+  | "pleased";
+
+export type FetchMission = {
+  question: string;
+  request_kind?: string | null;
+  scope?: "work" | "personal" | null;
+  time_range?: string | null;
+  authority?: string;
+  planned_tools?: string[];
+};
+
+export type EvidenceItem = {
+  source: SourceName;
+  evidence_ids: string[];
+  summary?: string | null;
+};
+
+export type GroundedAssertion = {
+  id: string;
+  kind: "fact" | "hypothesis" | "pattern" | "preference" | "delegation";
+  subject: string;
+  predicate: string;
+  value: unknown;
+  epistemic_status:
+    | "user_reported"
+    | "user_confirmed"
+    | "source_observed"
+    | "externally_verified"
+    | "system_verified"
+    | "deterministically_derived"
+    | "user_uncertain"
+    | "model_inferred"
+    | "conflicted"
+    | "stale"
+    | "unknown";
+  confidence?: number | null;
+  evidence_refs: string[];
+  observed_at?: string | null;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  sensitivity: "low" | "personal" | "high";
+  purpose_tags: string[];
+  retention_class:
+    | "active_until_resolved"
+    | "ephemeral_answer_only"
+    | "expire_with_source"
+    | "durable_shadow";
+  egress_class: "remote_safe" | "local_only";
+  derived_from: string[];
+  supersedes: string[];
+};
+
+export type EvidenceUnknown = {
+  subject: string;
+  predicate: string;
+  reason:
+    | "missing_evidence"
+    | "conflicting_evidence"
+    | "unresolved_referent"
+    | "unavailable_capability"
+    | "stale";
+  missing_sources: string[];
+};
+
+export type AssertionChallenge = {
+  subject: string;
+  predicate: string;
+  disposition: "confirms" | "qualifies" | "conflicts" | "does_not_address";
+  summary: string;
+  evidence_refs: string[];
+};
+
+export type EvidenceBundle = {
+  mission: FetchMission;
+  searched_sources: SourceName[];
+  empty_sources: SourceName[];
+  unsearched_sources: SourceName[];
+  unavailable_sources: SourceName[];
+  evidence: EvidenceItem[];
+  grounded_assertions: GroundedAssertion[];
+  unknowns: EvidenceUnknown[];
+  unresolved_referents: string[];
+  conflicts: { field: string; values: string[]; source_ids: string[] }[];
+  challenges: AssertionChallenge[];
+  coverage_adequate: boolean;
+  courier_state: CourierState;
 };
 
 type ConversationStamp = {
@@ -194,6 +348,7 @@ export type ConversationTurn = {
   conversation: { items: ConversationItem[] };
   llm_trace?: LlmTrace;
   debug?: LlmTrace;
+  forensic_provenance?: ForensicProvenance;
 };
 
 export type Unsubscribe = () => void;

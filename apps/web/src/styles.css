@@ -644,6 +644,43 @@ button:disabled {
   gap: 0.2rem;
 }
 
+.evidence-courier {
+  margin: 0.15rem 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  display: flex;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.evidence-courier--partially-returned,
+.evidence-courier--confused,
+.evidence-courier--blocked {
+  color: var(--text);
+}
+
+.evidence-courier-icon {
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+
+.evidence-courier-satchel {
+  margin: 0.35rem 0 0 1.25rem;
+  padding: 0;
+  list-style: disc;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.evidence-courier > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.evidence-courier > summary::-webkit-details-marker {
+  display: none;
+}
+
 .turn-debug {
   display: flex;
   flex-direction: column;
@@ -912,6 +949,12 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  max-height: 8rem;
+  overflow-y: auto;
+}
+
+.demo-controls-timeline {
   margin-bottom: 0.5rem;
 }
 

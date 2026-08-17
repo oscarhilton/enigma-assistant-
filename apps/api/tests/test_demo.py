@@ -349,6 +349,47 @@ def test_demo_reset_refuses_private_and_shadow_roots(
     assert (nested_private / "keep.txt").read_text(encoding="utf-8") == "nested-private"
 
 
+def test_demo_checkpoints_lists_full_alex_span(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    client = TestClient(create_app())
+    body = client.get("/demo/checkpoints").json()
+    ids = [row["id"] for row in body["checkpoints"]]
+    assert len(ids) >= 18
+    assert ids[0].startswith("cp-2026-01-")
+    assert "cp-2026-01-25T17:00" in ids
+
+
+def test_attention_state_reflects_advancing_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    client = TestClient(create_app())
+    before = client.get("/demo/attention/state").json()["simulated_time"]
+    client.post("/demo/timeline/day")
+    after = client.get("/demo/attention/state").json()["simulated_time"]
+    assert after > before
+
+
+def test_checkpoint_jump_beyond_milestones(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    client = TestClient(create_app())
+    response = client.post("/demo/timeline/checkpoint/cp-2026-01-25T17:00")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["checkpoint_id"] == "cp-2026-01-25T17:00"
+    attention = client.get("/demo/attention/state").json()
+    assert attention["checkpoint_id"] == "cp-2026-01-25T17:00"
+    assert attention["needs_you"] or attention["context"]
+
+
+def test_checkpoint_jump_early_january(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
+    client = TestClient(create_app())
+    response = client.post("/demo/timeline/checkpoint/cp-2026-01-08T15:00")
+    assert response.status_code == 200
+    attention = response.json()["attention"]
+    titles = {row["title"] for row in attention["needs_you"] + attention["context"]}
+    assert "Book Saturday brunch for Elena's parents" in titles
+
+
 def test_demo_reset_requires_demo_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ENIGMA_ENVIRONMENT_MODE", raising=False)
     client = TestClient(create_app())

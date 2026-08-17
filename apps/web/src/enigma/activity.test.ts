@@ -68,7 +68,13 @@ describe("projectActivityFromTrace", () => {
         { name: "context.resolve_referent", ok: true, data: {} },
       ]),
     );
-    it("maps world.record_user_attestation to Noted a change you told me", () => {
+    expect(events.map((event) => event.label)).toEqual([
+      "Checked what needs you",
+      "Matched this to the token inventory",
+    ]);
+  });
+
+  it("maps world.record_user_attestation to Noted a change you told me", () => {
     const events = threadActivityFromTrace(
       traceWithTools([{ name: "world.record_user_attestation", ok: true, data: {} }]),
     );

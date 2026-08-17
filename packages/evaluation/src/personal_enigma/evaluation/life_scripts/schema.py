@@ -97,6 +97,12 @@ class TurnExpect(BaseModel):
     grounded_world_response: bool | None = None
     tool_required: bool | None = None
     covers: list[str] | None = None
+    coverage_adequate: bool | None = None
+    request_kind: str | None = None
+    scope: str | None = None
+    courier_state: str | None = None
+    unsearched_sources_includes: list[str] | None = None
+    unresolved_referent: str | None = None
 
     @field_validator("tool", mode="before")
     @classmethod

@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { ActivityStrip } from "./ActivityStrip";
+import { EvidenceCourier } from "./EvidenceCourier";
 import { threadActivityFromTrace } from "./activity";
 import { AssistProposalView } from "./items/AssistProposalView";
 import { AttentionItemView } from "./items/AttentionItemView";
@@ -162,11 +163,16 @@ export function ConversationViewport({
         const runEnded = isRunEnd(items, index);
         const runTrace = runEnded ? traceForRunEndingAt(items, index) : undefined;
         const activities = runTrace ? threadActivityFromTrace(runTrace, { at: item.at }) : [];
+        const bundle = runTrace?.evidence_bundle ?? null;
         const forensicTrace = underBonnet ? runTrace : undefined;
         return (
           <Fragment key={key}>
             {renderItem(item)}
-            {activities.length > 0 ? <ActivityStrip events={activities} /> : null}
+            {bundle ? (
+              <EvidenceCourier bundle={bundle} />
+            ) : activities.length > 0 ? (
+              <ActivityStrip events={activities} />
+            ) : null}
             {forensicTrace ? <TurnTracePanel trace={forensicTrace} /> : null}
           </Fragment>
         );

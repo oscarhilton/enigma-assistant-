@@ -8,6 +8,17 @@ from personal_enigma.domain.enums import (
     SourceType,
     Urgency,
 )
+from personal_enigma.domain.grounding import (
+    AssertionChallenge,
+    AssertionEgressClass,
+    AssertionKind,
+    AssertionSensitivity,
+    ChallengeDisposition,
+    EpistemicStatus,
+    EvidenceUnknown,
+    GroundedAssertion,
+    UnknownReason,
+)
 from personal_enigma.domain.models import (
     CalendarEvidence,
     ChatEvidence,
@@ -39,14 +50,22 @@ from personal_enigma.domain.retention import (
 
 __all__ = [
     "ActionCategory",
+    "AssertionChallenge",
+    "AssertionEgressClass",
+    "AssertionKind",
+    "AssertionSensitivity",
     "ActionContext",
     "CalendarEvidence",
     "ChatEvidence",
+    "ChallengeDisposition",
     "DerivedRecord",
     "DerivedRecordType",
     "Effort",
     "EmailEvidence",
+    "EpistemicStatus",
+    "EvidenceUnknown",
     "ForgetAuditEntry",
+    "GroundedAssertion",
     "LineageMetadata",
     "MemoryLayer",
     "NextAction",
@@ -67,5 +86,6 @@ __all__ = [
     "RetentionPurpose",
     "SensitiveInferenceClass",
     "SourceType",
+    "UnknownReason",
     "Urgency",
 ]

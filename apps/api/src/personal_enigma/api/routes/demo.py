@@ -16,11 +16,16 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from personal_enigma.api.build_identity import (
+    attach_forensic_provenance,
+    session_forensic_provenance,
+)
 from personal_enigma.api.conversation_context import (
     ConversationContext,
     reconcile_action_focus,
     update_context_from_turn_items,
 )
+from personal_enigma.api.db.demo import drop_demo_database
 from personal_enigma.api.demo_assist import (
     AssistPlan,
     SyntheticDemoServices,
@@ -329,6 +334,7 @@ class DemoSession:
     _wall_anchor: datetime | None = field(default=None, init=False, repr=False)
     _last_attention_fingerprint: str | None = field(default=None, init=False, repr=False)
     _prior_checkpoint_id: str | None = field(default=None, init=False, repr=False)
+    session_started: datetime = field(default_factory=lambda: datetime.now(tz=UTC))
 
     def __post_init__(self) -> None:
         self._reseed_session()
@@ -354,6 +360,7 @@ class DemoSession:
         self._wall_anchor = None
         self._last_attention_fingerprint = None
         self._prior_checkpoint_id = None
+        self.session_started = datetime.now(tz=UTC)
         self._record_evaluation_event("checkpoint_loaded")
 
     def _attention_state(self):
@@ -454,11 +461,13 @@ class DemoSession:
         self.sync_realtime()
         self.clock.advance(timedelta(hours=1))
         self._wall_anchor = _demo_wall_now()
+        self._maybe_emit_attention_changed(proactive=False)
 
     def advance_day(self) -> None:
         self.sync_realtime()
         self.clock.advance_days(1)
         self._wall_anchor = _demo_wall_now()
+        self._maybe_emit_attention_changed(proactive=False)
 
     def wipe_and_bootstrap_storage(self) -> Path:
         """Wipe the active scenario Demo root and write a fresh checkpoint.
@@ -468,6 +477,7 @@ class DemoSession:
         """
         root = storage_root_for(EnvironmentMode.DEMO, scenario=self.scenario)
         _assert_demo_reset_root(root, scenario_id=self.scenario)
+        drop_demo_database(scenario=self.scenario)
         reset_demo_storage(root)
         return bootstrap_demo_storage(
             root,
@@ -531,7 +541,9 @@ class DemoSession:
 
     def attention_state_payload(self) -> dict[str, Any]:
         self.sync_realtime()
-        return self._attention_state().model_dump(mode="json")
+        payload = self._attention_state().model_dump(mode="json")
+        payload["simulated_time"] = self.clock.now().isoformat()
+        return payload
 
     def attention_payload(self) -> dict[str, Any]:
         self.sync_realtime()
@@ -602,12 +614,22 @@ class DemoSession:
             "suppressed_count": payload["suppressed_count"],
         }
 
+    def _forensic_provenance_payload(self) -> dict[str, Any]:
+        mode = environment_mode_from_env()
+        return session_forensic_provenance(
+            environment=mode.value,
+            session_started=self.session_started.isoformat(),
+            scenario=self.scenario,
+            checkpoint_id=self.checkpoint_id,
+        )
+
     def conversation_payload(self) -> dict[str, Any]:
         self.sync_realtime()
         return {
             "items": list(self.conversation),
             "simulated_time": self.clock.now().isoformat(),
             "checkpoint_id": self.checkpoint_id,
+            "forensic_provenance": self._forensic_provenance_payload(),
         }
 
     def events_payload(self) -> dict[str, Any]:
@@ -686,6 +708,14 @@ class DemoSession:
         if plan is not None:
             self.pending_assists[plan.proposal_id] = plan
 
+        mode = environment_mode_from_env()
+        trace = attach_forensic_provenance(
+            trace,
+            environment=mode.value,
+            session_started=self.session_started.isoformat(),
+            scenario=self.scenario,
+            checkpoint_id=self.checkpoint_id,
+        )
         payload = trace.model_dump(mode="json") if isinstance(trace, LlmTrace) else trace
         if turn_items:
             turn_items[0] = {**turn_items[0], "llm_trace": payload}
@@ -698,6 +728,7 @@ class DemoSession:
             "conversation": self.conversation_payload(),
             "llm_trace": payload,
             "debug": payload,
+            "forensic_provenance": self._forensic_provenance_payload(),
         }
 
     def approve_assist(self, proposal_id: str) -> dict[str, Any]:
@@ -768,6 +799,13 @@ def _assert_demo_reset_root(root: Path, *, scenario_id: str) -> None:
                     f"(ADR-005); got {resolved}"
                 ),
             )
+
+
+def _dispose_demo_db_engine(application: FastAPI) -> None:
+    engine = getattr(application.state, "demo_db_engine", None)
+    if engine is not None:
+        engine.dispose()
+        application.state.demo_db_engine = None
 
 
 def _session_for(application: FastAPI) -> DemoSession:
@@ -860,6 +898,7 @@ def install_demo_routes(application: FastAPI) -> None:
         """Wipe Demo storage for the active scenario and reseed a fresh run."""
         _require_demo()
         with _lock_for(application):
+            _dispose_demo_db_engine(application)
             return _session_for(application).reset()
 
     @application.post("/demo/timeline/reset")
@@ -867,6 +906,7 @@ def install_demo_routes(application: FastAPI) -> None:
         """Alias of ``POST /demo/reset`` (clock + Demo storage wipe + bootstrap)."""
         _require_demo()
         with _lock_for(application):
+            _dispose_demo_db_engine(application)
             return _session_for(application).reset()
 
     @application.get("/demo/attention/state")

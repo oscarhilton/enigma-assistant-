@@ -27,6 +27,11 @@ _EPISTEMIC_HEDGE = re.compile(
     r"i need to check|not verified|supporting email|haven't checked)\b",
     re.IGNORECASE,
 )
+_HISTORICAL_NEWS_FICTION = re.compile(
+    r"\b(presidential election|re-elected|digital green pass|generative ai became mainstream|"
+    r"global highlights|key developments|knowledge cutoff)\b",
+    re.IGNORECASE,
+)
 _BROCHURE_TONE = re.compile(
     r"(\*\*menu|\*\*pricing|\*\*reservation|\*\*restaurant|\*\*address|"
     r"---\n\n\*\*next step)",
@@ -156,9 +161,24 @@ def apply_respond_grounding_fence(
     authority: str,
     tool_names: list[str] | tuple[str, ...] | None = None,
     tool_results: list[Any] | None = None,
+    evidence_bundle: Any | None = None,
 ) -> str:
     """Replace tier-3 invention with an evidence-seeking fallback."""
     names = tool_names or ()
+    if evidence_bundle is not None:
+        from personal_enigma.api.evidence_bundle import (
+            EvidenceBundle,
+            bundle_aware_fallback,
+        )
+
+        if isinstance(evidence_bundle, dict):
+            bundle = EvidenceBundle.model_validate(evidence_bundle)
+        else:
+            bundle = evidence_bundle
+        if bundle.courier_state == "blocked" and _HISTORICAL_NEWS_FICTION.search(text):
+            fallback = bundle_aware_fallback(bundle)
+            if fallback:
+                return fallback
     if not needs_grounding_fence(
         evidence_domain=evidence_domain,
         authority=authority,

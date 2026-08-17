@@ -1,3 +1,9 @@
+import {
+  formatForensicHeader,
+  formatTurnBuildLine,
+  resolveForensicProvenance,
+  type ForensicProvenance,
+} from "./buildIdentity";
 import type { ConversationItem, LlmTrace } from "./types";
 
 function formatJson(value: unknown): string {
@@ -79,6 +85,10 @@ function formatPrivacyDisclosure(trace: LlmTrace): string {
   return parts.join("\n\n");
 }
 
+export type ForensicDumpOptions = {
+  provenance?: ForensicProvenance | null;
+};
+
 export function formatForensicTurn(
   trace: LlmTrace,
   turnNumber?: number,
@@ -88,6 +98,10 @@ export function formatForensicTurn(
   if (turnNumber !== undefined) {
     const suffix = turnCount !== undefined ? ` of ${turnCount}` : "";
     lines.push(`======== Turn ${turnNumber}${suffix} ========`);
+  }
+  const buildLine = formatTurnBuildLine(trace.forensic_provenance);
+  if (buildLine) {
+    lines.push(buildLine);
   }
   lines.push(section("PATH", trace.path));
   if (trace.correlation_id) {
@@ -146,22 +160,26 @@ export function formatForensicTurn(
 
 const EMPTY_DUMP = "No LLM traces in this conversation yet.";
 
-export function formatSessionDump(traces: LlmTrace[]): string {
+export function formatSessionDump(traces: LlmTrace[], options?: ForensicDumpOptions): string {
   if (traces.length === 0) {
     return EMPTY_DUMP;
   }
+  const provenance = resolveForensicProvenance(traces, options?.provenance);
+  const header = formatForensicHeader(provenance);
   const body = traces
     .map((trace, index) => formatForensicTurn(trace, index + 1, traces.length))
     .join("\n\n");
-  return `# Enigma forensic dump\nTurns: ${traces.length}\n\n${body}\n`;
+  return `# Enigma forensic dump\nTurns: ${traces.length}\n\n${header}\n\n${body}\n`;
 }
 
-export function formatLastTurnDump(traces: LlmTrace[]): string {
+export function formatLastTurnDump(traces: LlmTrace[], options?: ForensicDumpOptions): string {
   const last = traces.at(-1);
   if (!last) {
     return EMPTY_DUMP;
   }
-  return `# Enigma forensic dump (last turn)\n\n${formatForensicTurn(last, traces.length, traces.length)}\n`;
+  const provenance = resolveForensicProvenance(traces, options?.provenance);
+  const header = formatForensicHeader(provenance);
+  return `# Enigma forensic dump (last turn)\n\n${header}\n\n${formatForensicTurn(last, traces.length, traces.length)}\n`;
 }
 
 /** Local UI memory — attach a turn's llm_trace if GET conversation dropped it. */

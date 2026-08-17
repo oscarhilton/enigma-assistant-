@@ -43,6 +43,7 @@ from personal_enigma.api.conversation_context import (
 )
 from personal_enigma.api.demo_intents import build_support_payload
 from personal_enigma.api.demo_tools import DENIED_REMOTE_CAPABILITIES, tool_schemas
+from personal_enigma.api.evidence_bundle import planned_tools_for_kind
 from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
 from personal_enigma.api.speech_acts import (
     SpeechAct,
@@ -165,9 +166,26 @@ _AGENDA_CUE = re.compile(
     re.IGNORECASE,
 )
 _NEXT_WORK_CUE = re.compile(
-    r"\b(free time|what should i do|working on next|any other tasks?|what else)\b",
+    r"\b("
+    r"free time|what should i do|what should i be doing|"
+    r"working on next|any other tasks?|what else"
+    r")\b",
     re.IGNORECASE,
 )
+_CATCH_UP_CUE = re.compile(
+    r"\b("
+    r"what have i missed|what did i miss|catch up|"
+    r"missed at work|need more data|something at work"
+    r")\b",
+    re.IGNORECASE,
+)
+_SHOULD_BE_DOING = re.compile(r"\bwhat should i be doing\b", re.IGNORECASE)
+_PERSONAL_SCOPE = re.compile(
+    r"\b(personal(?:\s+life)?|at home|home life|social life|relationships?)\b",
+    re.IGNORECASE,
+)
+_SCOPE_WORK_ONLY = re.compile(r"^\s*work\s*$", re.IGNORECASE)
+_SCOPE_PERSONAL_ONLY = re.compile(r"^\s*personal(?:\s+life)?\s*$", re.IGNORECASE)
 _IMPORTANT_CUE = re.compile(r"\bimportant\b", re.IGNORECASE)
 _PHATIC = re.compile(
     r"^\s*(hey|hi|hello|wait|:\)|thanks|thank you|ok|okay|cool|lol)\s*[!.]*\s*$",
@@ -624,6 +642,8 @@ def _has_private_world_cues(utterance: str, session: _SessionLike | None) -> boo
         return True
     if _FOLLOW_UP.search(utterance) and _prior_turn_was_private(session):
         return True
+    if _CATCH_UP_CUE.search(utterance):
+        return True
     if _FOCUS_NOW.search(utterance):
         return True
     return False
@@ -637,8 +657,10 @@ def _infer_period(utterance: str) -> str | None:
 
 
 def _infer_scope(utterance: str) -> str | None:
-    if _WORK_SCOPE.search(utterance):
+    if _WORK_SCOPE.search(utterance) or _SCOPE_WORK_ONLY.match(utterance):
         return "work"
+    if _PERSONAL_SCOPE.search(utterance) or _SCOPE_PERSONAL_ONLY.match(utterance):
+        return "personal"
     return None
 
 
@@ -672,6 +694,8 @@ def _infer_evidence_domain(
     act: SpeechAct,
 ) -> EvidenceDomain:
     # Do not default every sentence to PRIVATE_WORLD "just in case."
+    if _CATCH_UP_CUE.search(utterance):
+        return "PRIVATE_WORLD"
     if act in {"USER_ATTESTATION", "SUPPORT", "PREPARE", "ACTION_REQUEST", "CORRECTION"}:
         return "PRIVATE_WORLD"
     if act == "APPROVAL":
@@ -713,6 +737,10 @@ def _infer_authority(
         return "APPROVE" if _live_approve_authorized(session) else "NONE"
     if act == "ACTION_REQUEST":
         return "APPROVE"
+    if domain == "PRIVATE_WORLD" and (
+        _CATCH_UP_CUE.search(utterance) or _SHOULD_BE_DOING.search(utterance)
+    ):
+        return "READ"
     if act == "SUPPORT" or is_support_not_authority(utterance) or _FOCUS_NOW.search(utterance):
         return "SUPPORT"
     if domain == "PRIVATE_WORLD":
@@ -814,6 +842,8 @@ def _request_kind_from_user_text(text: str) -> RequestKind | None:
         or "whats important" in hay
     ):
         return "important_from_source"
+    if _CATCH_UP_CUE.search(text):
+        return "catch_up"
     if constraints.period or _AGENDA_CUE.search(text):
         if _NEXT_WORK_CUE.search(text) and not _AGENDA_CUE.search(text):
             return "next_work"
@@ -905,9 +935,17 @@ def _infer_request_kind(
         return "attest"
     if domain == "PRIVATE_WORLD" and is_attribute_request(utterance):
         return "subject_details"
+    if domain == "PRIVATE_WORLD" and re.search(r"\bbrunch\b", utterance, re.IGNORECASE):
+        return "subject_details"
     unresolved = frame.unresolved_request if frame is not None else None
     if inherited and unresolved is not None:
         return unresolved.kind
+    if _CATCH_UP_CUE.search(utterance):
+        return "catch_up"
+    if _FOCUS_NOW.search(utterance) or (
+        _NEXT_WORK_CUE.search(utterance) and not _HELP_CUE.search(utterance)
+    ):
+        return "next_work"
     if constraints.source or "source" in families or _IMPORTANT_CUE.search(utterance):
         if constraints.source or _IMPORTANT_CUE.search(utterance):
             return "important_from_source"
@@ -986,6 +1024,18 @@ def interpret_request(
         authority = "READ"
         if frame is not None:
             constraints = _inherit_constraints(constraints, frame)
+    if (
+        session is not None
+        and re.search(r"\bbrunch\b", utterance, re.IGNORECASE)
+        and not _is_generic_knowledge(utterance)
+    ):
+        domain = "PRIVATE_WORLD"
+        authority = "READ"
+        constraints = RequestConstraints(
+            period=constraints.period,
+            scope="personal",
+            source=constraints.source,
+        )
     families = list(
         _infer_capability_families(
             domain=domain,
@@ -1393,6 +1443,9 @@ def compile_remote_context(
         "source": interp.constraints.source,
         "capsule": capsule_view,
         "capability_contract": build_capability_contract(tool_names),
+        "fetch_mission": {
+            "planned_tools": planned_tools_for_kind(interp.request_kind),
+        },
     }
     if interp.constraints.period and "temporal_constraint" not in summary:
         summary["temporal_constraint"] = interp.constraints.period

@@ -8,7 +8,7 @@
 **Must not edit:** `ConversationCapsule` / ADR-030 loop · `intent_router.py` · C15 bootstrap merge as an authority grant · worker-owned `current_subject_id` · worker prose to the user · `email.send` / `timer.*` · C16/C17 ledger files (P0 stays in those tickets)
 
 **Hard depends:** [C09c](./C09c-conversation-capsule.md) landed · frozen · [C16](./C16-attested-completion-invalidates-next-action.md) `done` · [C17](./C17-execution-receipts-verification-ledger.md) `done`  
-**Soft (~):** [C15](./C15-semantic-bootstrap-capsule.md) (consume interpretation; do not bypass the compiler) · [C21](./C21-grounded-values-no-invented-facts.md) · [C23](./C23-continuity-integrity-life-script.md) (this ticket does **not** block the 61-turn gate)
+**Soft (~):** [C15](./C15-semantic-bootstrap-capsule.md) (consume interpretation; do not bypass the compiler) · [C21](./C21-grounded-values-no-invented-facts.md) · [C25](./C25-evidence-coverage-bundle.md) (bundle shape · courier UI) · [C23](./C23-continuity-integrity-life-script.md) (this ticket does **not** block the 61-turn gate)
 
 **Architecture:** [ADR-033](../../docs/adr/033-bounded-subtask-workers.md) · [ADR-029](../../docs/adr/029-context-compilation-request-shaped-memory.md) · [ADR-030](../../docs/adr/030-conversation-capsule.md)
 
@@ -26,15 +26,15 @@ This is OpenClaw-like delegation with Enigma’s control philosophy: the worker 
 
 1. Consume C09c `public_view()` and the compiled turn. Do **not** bypass the capsule or the compiler. Do **not** amend the capsule object.
 2. Envelope authority is `READ` or `NONE` only. No `PROPOSE` on this first worker. Never `APPROVE` / `EXECUTE`.
-3. Return `SubtaskResult` (claims, evidence ids, unresolved). No user-facing prose from the worker.
+3. Return `SubtaskResult` mapped to [C25](./C25-evidence-coverage-bundle.md) `EvidenceBundle` (claims, evidence ids, unresolved). No user-facing prose from the worker.
 4. Parent satisfaction tracking and respond phase stay in the orchestrator. Worker `status` ≠ capsule SATISFIED ≠ execution receipt.
-5. No second personality. No “evidence assistant” in the UI.
+5. No second personality. Miso ([C25](./C25-evidence-coverage-bundle.md)) may project the bundle in the UI — not speak.
 6. Do not claim this ticket until C16 and C17 are `done`.
 
 ## Deliverables (when unparked)
 
 - [ ] `SubtaskEnvelope` / `SubtaskResult` types as [ADR-033](../../docs/adr/033-bounded-subtask-workers.md)
-- [ ] Read-only evidence worker: allowed tools ⊆ compiled READ surface; output grounded claims + evidence ids
+- [ ] Read-only evidence worker: executes compiled `FetchMission.planned_tools`; output `EvidenceBundle`-shaped result
 - [ ] `"ffs"` / mail-recency follow-up: parent dispatches worker after compile; answer requires this-turn evidence, not `recent_dialogue` ranking
 - [ ] Tests: worker cannot call `assist.propose` / `assist.approve`; worker cannot emit “I sent it”; compiler-denied tools are absent from `allowedTools`
 

@@ -1,7 +1,7 @@
-# Conversational UI programme (C00–C24)
+# Conversational UI programme (C00–C31)
 
-**Status:** MVP green (C00–C07 on Alex) · **C09 harness green / LLM 🟡** — C08 deferred · **C09b specified** (focus vs radar; C09 implements) · **C10 deferred** (scaffold landed; r3f + live feeds after SEC-04 event plumbing; not on HomePage) · **C11 future** (tone memory after C09 LLM proof) · **C12 landed** (Life Scripts CLI; first episodes green · PR [#89](https://github.com/oscarhilton/enigma-assistant-/pull/89) Python CI red) · **C13 todo** (repeat the same life against Fireworks) · **C14 done** (v0 activity strip merged [#90](https://github.com/oscarhilton/enigma-assistant-/pull/90); SSE/assistant-ui remaining) · **C09c landed · frozen** (conversation capsule; ADR-030) · **C15 in_progress** (ADR-029 handoff / `"ffs"` AC local; not in [#92](https://github.com/oscarhilton/enigma-assistant-/pull/92); C09c frozen) · **C16 in_progress** (attested completion invalidates next-action) · **C17–C22 todo/future** · **C23 landed · frozen as a specification** (gate red until C16–C21) · **C24 future** (read-only evidence worker after P0; [ADR-033](../../docs/adr/033-bounded-subtask-workers.md))  
-**Programme observability:** UI 🟢 frozen · Disclosure 🟢 active · Cortex 💤 deferred · Conversation activity 🟡 v0 strip (not SSE)  
+**Status:** MVP green (C00–C07 on Alex) · **C09 harness green / LLM 🟡** — C08 deferred · **C09b specified** (focus vs radar; C09 implements) · **C10 deferred** (scaffold landed; r3f + live feeds after SEC-04 event plumbing; not on HomePage) · **C11 future** (tone memory after C09 LLM proof) · **C12 landed** (Life Scripts CLI; first episodes green · PR [#89](https://github.com/oscarhilton/enigma-assistant-/pull/89) Python CI red) · **C13 todo** (repeat the same life against Fireworks) · **C14 done** (v0 activity strip merged [#90](https://github.com/oscarhilton/enigma-assistant-/pull/90); SSE/assistant-ui remaining) · **C09c landed · frozen** (conversation capsule; ADR-030) · **C15 in_progress** (ADR-029 handoff / `"ffs"` AC local; not in [#92](https://github.com/oscarhilton/enigma-assistant-/pull/92); C09c frozen) · **C16 in_progress** (attested completion invalidates next-action) · **C17–C22 todo/future** · **C23 landed · frozen as a specification** (gate red until C16–C21) · **C24 future** (read-only evidence worker after P0; [ADR-033](../../docs/adr/033-bounded-subtask-workers.md)) · **C25 in_progress** (evidence coverage bundle + courier / Goose projection; [ADR-034](../../docs/adr/034-evidence-coverage-bundle.md))  
+**Programme observability:** UI 🟢 frozen · Disclosure 🟢 active · Cortex 💤 deferred · Conversation activity 🟡 v0 strip + courier (not SSE)  
 **North star:** UI is a thin conversational projection of world state; chat history is not truth.
 
 > **Pivot (2026-08-17):** Stop expanding C05b/c regex phrase families. [C09](./C09-llm-conversational-boundary.md) supersedes language parsing with LLM tool calling ([ADR-020](../../docs/adr/020-llm-conversational-boundary-not-truth.md)). `intent_router` is frozen as fallback / test oracle.
@@ -90,6 +90,13 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C22](./C22-adhd-response-shape.md) | ADHD-hostile response shape (one / one / one) | **future** (P2 · do not block P0) |
 | [C23](./C23-continuity-integrity-life-script.md) | Continuity + action-integrity Life Script (61-turn gate) | **in_progress** (dump attached · YAML authored · gate red until C16–C21) |
 | [C24](./C24-read-only-evidence-worker.md) | Read-only evidence worker (`"ffs"` path) | **future** (after P0 · ADR-033) |
+| [C25](./C25-evidence-coverage-bundle.md) | Evidence coverage bundle + courier / Goose projection | **in_progress** (ADR-034) |
+| [C26](./C26-grounded-assertions-epistemics.md) | Grounded assertions, epistemic status, and challenge/reconciliation | **todo** |
+| [C27](./C27-handoff-turn-contract.md) | Handoff and turn contract | **todo** |
+| [C28](./C28-event-spine-agent-work.md) | Event spine and agent-work lifecycle | **todo** |
+| [C29](./C29-life-memory-and-retention.md) | Life memory, retention gate, and third-party ethics | **todo** |
+| [C30](./C30-brain-cortex-case-file.md) | Brain, Cortex, and Case File projections | **todo** |
+| [C31](./C31-goose-work-projection-and-proactivity.md) | Goose work projection and proactivity timing | **todo** |
 
 ## First milestone (Alex)
 

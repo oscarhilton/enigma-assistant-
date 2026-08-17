@@ -131,6 +131,7 @@ _FRAME_TTL_TURNS = 6
 RequestKind = Literal[
     "agenda",
     "next_work",
+    "catch_up",
     "important_from_source",
     "support_explain",
     "subject_details",
@@ -750,6 +751,7 @@ def capture_turn_local_location(utterance: str) -> str | None:
 _KIND_FAMILIES: dict[RequestKind, tuple[str, ...]] = {
     "agenda": ("agenda",),
     "next_work": ("attention", "agenda"),
+    "catch_up": ("attention", "explain", "agenda"),
     "important_from_source": ("source", "attention"),
     "support_explain": ("explain", "attention"),
     "subject_details": ("explain", "source", "attention"),
@@ -790,6 +792,13 @@ def assess_request_satisfaction(
         return "UNSATISFIED"
     if kind == "next_work":
         return "SATISFIED" if names & _AUTHORITATIVE_QUERY_TOOLS else "UNSATISFIED"
+    if kind == "catch_up":
+        required = {"attention.get_current", "agenda.get"}
+        if required.issubset(names):
+            return "SATISFIED"
+        if names & _AUTHORITATIVE_QUERY_TOOLS:
+            return "PARTIAL"
+        return "UNSATISFIED"
     if kind == "attest":
         return "SATISFIED" if "world.record_user_attestation" in names else "UNSATISFIED"
     if kind == "support_explain":
@@ -828,6 +837,7 @@ def reduce_conversation_capsule(
     if request_kind not in {
         "agenda",
         "next_work",
+        "catch_up",
         "important_from_source",
         "support_explain",
         "subject_details",

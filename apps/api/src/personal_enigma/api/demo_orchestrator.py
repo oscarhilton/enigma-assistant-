@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from personal_enigma.api.build_identity import ForensicProvenance
 from personal_enigma.api.context_compilation import (
     CompiledRemoteContext,
     compile_remote_context,
@@ -42,6 +43,11 @@ from personal_enigma.api.demo_tools import (
     bind_authority_arguments,
     execute_tool,
     tool_schemas,
+)
+from personal_enigma.api.evidence_bundle import (
+    EvidenceBundle,
+    build_evidence_bundle,
+    bundle_aware_fallback,
 )
 from personal_enigma.api.intent_router import (
     ConversationIntent,
@@ -141,6 +147,8 @@ class LlmTrace(BaseModel):
     included: list[str] = Field(default_factory=list)
     excluded: list[str] = Field(default_factory=lambda: list(_PRIVACY_EXCLUDED))
     correlation_id: str | None = None
+    evidence_bundle: dict[str, Any] | None = None
+    forensic_provenance: ForensicProvenance | None = None
 
 
 @dataclass(frozen=True)
@@ -310,6 +318,7 @@ def build_llm_trace(
     referent_resolution: list[dict[str, Any]] | None = None,
     executed_tool_request: list[ToolCallRecord] | None = None,
     tools_available: list[str] | None = None,
+    evidence_bundle: dict[str, Any] | None = None,
 ) -> LlmTrace:
     included: list[str] = []
     excluded: list[str] = list(_PRIVACY_EXCLUDED)
@@ -350,6 +359,7 @@ def build_llm_trace(
         included=included,
         excluded=excluded,
         correlation_id=correlation_id,
+        evidence_bundle=evidence_bundle,
     )
 
 
@@ -360,6 +370,7 @@ def build_intent_router_trace(
     last_intent: ConversationIntent | None,
     turn_items: list[dict[str, Any]],
     correlation_id: str | None = None,
+    evidence_bundle: dict[str, Any] | None = None,
 ) -> LlmTrace:
     resolved = compose_follow_up_intent(user_message, last_intent)
     return build_llm_trace(
@@ -875,12 +886,81 @@ def _message_content_text(message: dict[str, Any]) -> str | None:
     return None
 
 
+def _build_turn_evidence_bundle(
+    *,
+    user_message: str,
+    compiled: CompiledRemoteContext,
+    tool_results: list[ToolExecutionResult] | None,
+    resolutions: list[dict[str, Any]] | None,
+    context: ConversationContext,
+) -> EvidenceBundle:
+    trace_results = [
+        {
+            "name": row.name,
+            "ok": row.ok,
+            "data": _compact_tool_data(row.data),
+        }
+        for row in tool_results or []
+    ]
+    return build_evidence_bundle(
+        question=user_message,
+        working_set=compiled.working_set,
+        tool_results=trace_results,
+        referent_resolution=resolutions,
+        current_subject_id=context.current_subject_id,
+        evidence_domain=compiled.evidence_domain,
+        authority=compiled.authority,
+    )
+
+
+def _apply_coverage_fence(text: str, bundle: EvidenceBundle | None) -> str:
+    if bundle is None:
+        return text
+    hay = text.casefold()
+    over_claims_nothing = (
+        "nothing needs you" in hay
+        or "don't see anything on the calendar" in hay
+        or "do not see anything on the calendar" in hay
+    )
+    if not bundle.coverage_adequate and over_claims_nothing:
+        fallback = bundle_aware_fallback(bundle)
+        if fallback:
+            return fallback
+    if bundle.courier_state == "blocked" and len(text) > 400:
+        fallback = bundle_aware_fallback(bundle)
+        if fallback:
+            return fallback
+    return text
+
+
+def _rewrite_turn_items_with_bundle(
+    turn_items: list[dict[str, Any]],
+    bundle: EvidenceBundle | None,
+    at: str,
+) -> list[dict[str, Any]]:
+    if bundle is None:
+        return turn_items
+    rewritten: list[dict[str, Any]] = []
+    for item in turn_items:
+        if item.get("kind") != "enigma_message":
+            rewritten.append(item)
+            continue
+        text = str(item.get("text") or "")
+        new_text = _apply_coverage_fence(text, bundle)
+        if new_text != text:
+            rewritten.append({**item, "text": new_text, "at": item.get("at") or at})
+        else:
+            rewritten.append(item)
+    return rewritten
+
+
 def _ordinary_conversation_turn(
     at: str,
     text: str | None,
     *,
     session: DemoToolSession | None = None,
     compiled: CompiledRemoteContext | None = None,
+    evidence_bundle: EvidenceBundle | None = None,
 ) -> list[dict[str, Any]]:
     body = text.strip() if isinstance(text, str) and text.strip() else "Okay."
     if body == _ROUTER_UNKNOWN:
@@ -892,7 +972,9 @@ def _ordinary_conversation_turn(
             evidence_domain=compiled.evidence_domain,
             authority=compiled.authority,
             tool_names=compiled.tool_names,
+            evidence_bundle=evidence_bundle,
         )
+        body = _apply_coverage_fence(body, evidence_bundle)
     return _no_tool_turn(at, body)
 
 
@@ -1205,6 +1287,13 @@ def run_orchestrator_turn(
     egress = _planner_egress(planner)
 
     if not calls:
+        bundle = _build_turn_evidence_bundle(
+            user_message=user_message,
+            compiled=compiled,
+            tool_results=[],
+            resolutions=[],
+            context=session.context,
+        )
         use_router = getattr(planner, "uses_router_for_empty_tools", False)
         if use_router:
             turn_items, assist_plan = build_intent_turn(
@@ -1225,9 +1314,11 @@ def run_orchestrator_turn(
                 model_text if isinstance(model_text, str) else None,
                 session=session,
                 compiled=compiled,
+                evidence_bundle=bundle,
             )
             assist_plan = None
             router_fallback = False
+        turn_items = _rewrite_turn_items_with_bundle(turn_items, bundle, at)
         turn_items = _stamp_correlation(turn_items, corr)
         update_context_from_turn_items(session.context, turn_items)
         record_turn_dialogue(
@@ -1245,6 +1336,7 @@ def run_orchestrator_turn(
             tool_results=[],
         )
         egress = _planner_egress(planner)
+        bundle_payload = bundle.model_dump(mode="json")
         return OrchestratorTurn(
             turn_items=turn_items,
             tool_calls=[],
@@ -1263,6 +1355,7 @@ def run_orchestrator_turn(
                 disclosure_id=egress.get("disclosure_id"),
                 correlation_id=corr,
                 tools_available=compiled.tool_names,
+                evidence_bundle=bundle_payload,
             ),
         )
 
@@ -1312,6 +1405,14 @@ def run_orchestrator_turn(
             if item.get("kind") not in {"attention_item", "next_action", "attention_summary"}
         ]
 
+    bundle = _build_turn_evidence_bundle(
+        user_message=user_message,
+        compiled=compiled,
+        tool_results=results,
+        resolutions=resolutions,
+        context=session.context,
+    )
+    turn_items = _rewrite_turn_items_with_bundle(turn_items, bundle, at)
     turn_items = _stamp_correlation(turn_items, corr)
     session.context.remember_intent(resolved)
     update_context_from_turn_items(session.context, turn_items)
@@ -1330,6 +1431,7 @@ def run_orchestrator_turn(
         tool_results=results,
     )
     egress = _planner_egress(planner)
+    bundle_payload = bundle.model_dump(mode="json")
     return OrchestratorTurn(
         turn_items=turn_items,
         tool_calls=calls + composed,
@@ -1351,6 +1453,7 @@ def run_orchestrator_turn(
             referent_resolution=resolutions,
             executed_tool_request=executed_calls,
             tools_available=compiled.tool_names,
+            evidence_bundle=bundle_payload,
         ),
     )
 

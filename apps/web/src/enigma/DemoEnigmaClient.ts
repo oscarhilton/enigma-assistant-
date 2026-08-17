@@ -17,6 +17,7 @@ import type {
   ProvenanceView,
   QualificationDebug,
 } from "./types";
+import type { DemoStatus } from "./client";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "";
@@ -146,6 +147,31 @@ export class DemoEnigmaClient implements EnigmaClient {
   async getDemoEvents(): Promise<DemoEvent[]> {
     const body = await readJson<{ events: DemoEvent[] }>(await fetch(`${API_BASE}/demo/events`));
     return body.events;
+  }
+
+  async getDemoStatus(): Promise<DemoStatus> {
+    return readJson<DemoStatus>(await fetch(`${API_BASE}/demo/status`));
+  }
+
+  async advanceDemoDay(): Promise<void> {
+    await readJson(await fetch(`${API_BASE}/demo/timeline/day`, { method: "POST" }));
+    this.emit({ type: "status_changed" });
+  }
+
+  async advanceDemoStep(): Promise<void> {
+    await readJson(await fetch(`${API_BASE}/demo/timeline/step`, { method: "POST" }));
+    this.emit({ type: "status_changed" });
+  }
+
+  async setDemoSpeed(speed: number): Promise<void> {
+    await readJson(
+      await fetch(`${API_BASE}/demo/timeline/speed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ speed }),
+      }),
+    );
+    this.emit({ type: "status_changed" });
   }
 
   async getRecentDisclosures(limit = 20): Promise<EgressDisclosure[]> {

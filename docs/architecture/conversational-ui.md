@@ -93,6 +93,8 @@ Shareable recipes (future, after C09 LLM proof + SEC-05): LLM understands intent
 
 Tone memory (future, after C09 LLM proof): send a **small style-enum profile** with `current_subject` and tool results — not the last 200 messages, not a psych dossier. USER-SET and LEARNED persist; TURN-LOCAL evaporates. **Tone may transform expression; it may not transform state, urgency, recommendation strength, or authority.** ([ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [tone-memory.md](./tone-memory.md) · [C11](../../tickets/conversational-ui/C11-tone-memory.md)). Do not implement in this programme until C11 unparks.
 
+Grounded evidence follow-on: [enigma-master-gap-analysis.md](./enigma-master-gap-analysis.md) · [ADR-035](../adr/035-grounded-assertions-and-evidence-pack.md). Continuity and product language should compile from grounded assertions, unknowns, and challenge semantics rather than transcript vibes.
+
 See also: [next-action.md](./next-action.md), [ADR-012](../adr/012-reasoning-value-gate-decision.md), [ADR-020](../adr/020-llm-conversational-boundary-not-truth.md), [ADR-027](../adr/027-streaming-presentation-adapter.md), [conversational-stream.md](./conversational-stream.md), R-L10 ticket.
 
 ## C09 conversational boundary

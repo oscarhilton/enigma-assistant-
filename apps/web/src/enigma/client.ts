@@ -12,6 +12,13 @@ import type {
 
 export type Unsubscribe = () => void;
 
+export type DemoStatus = {
+  simulated_time: string | null;
+  speed: number | null;
+  paused: boolean | null;
+  checkpoint_id?: string | null;
+};
+
 export interface EnigmaClient {
   getConversation(): Promise<ConversationItem[]>;
   sendMessage(text: string): Promise<ConversationTurn>;
@@ -23,6 +30,10 @@ export interface EnigmaClient {
   jumpCheckpoint(checkpointId: string): Promise<void>;
   listCheckpoints(): Promise<{ id: string; at: string; label: string }[]>;
   getDemoEvents(): Promise<import("./types").DemoEvent[]>;
+  getDemoStatus(): Promise<DemoStatus>;
+  advanceDemoDay(): Promise<void>;
+  advanceDemoStep(): Promise<void>;
+  setDemoSpeed(speed: number): Promise<void>;
   getRecentDisclosures(limit?: number): Promise<EgressDisclosure[]>;
   subscribe(handler: EnigmaEventHandler): Unsubscribe;
   isDemo(): boolean;

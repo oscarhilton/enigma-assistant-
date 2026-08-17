@@ -525,12 +525,20 @@ def test_compiler_surface_for_live_falsification_variants() -> None:
 
     supportish = (
         "What should I focus on?",
-        "what should I be doing now?",
     )
     for utterance in supportish:
         compiled = compile_remote_context(utterance, session)
         assert compiled.evidence_domain == "PRIVATE_WORLD"
         assert compiled.authority == "SUPPORT"
+        assert "attention.get_current" in compiled.tool_names
+        assert "assist.approve" not in compiled.tool_names
+
+    next_workish = ("what should I be doing now?", "what should i be doing?")
+    for utterance in next_workish:
+        compiled = compile_remote_context(utterance, session)
+        assert compiled.evidence_domain == "PRIVATE_WORLD"
+        assert compiled.authority == "READ"
+        assert compiled.working_set["request_kind"] == "next_work"
         assert "attention.get_current" in compiled.tool_names
         assert "assist.approve" not in compiled.tool_names
 

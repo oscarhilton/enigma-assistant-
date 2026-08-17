@@ -1,4 +1,4 @@
-import type { AttentionState, ConversationItem, EgressDisclosure, LlmTrace } from "./types";
+import type { AttentionState, ConversationItem, EgressDisclosure, ForensicProvenance, LlmTrace } from "./types";
 
 export const MOCK_ATTENTION_JAN19: AttentionState = {
   simulated_time: "2026-01-19T10:00:00+00:00",
@@ -220,6 +220,33 @@ export const MOCK_DISCLOSURES: EgressDisclosure[] = [
   },
 ];
 
+export const MOCK_FORENSIC_PROVENANCE: ForensicProvenance = {
+  build: {
+    name: "c16-attested-overlay",
+    app_version: "0.3.0-dev",
+    git_sha: "7c8f4a1",
+    branch: "ticket/C16-attested-completion",
+    dirty: true,
+    patch_hash: "sha256:93ad2e0000000000000000000000000000000000000000000000000000000000",
+    build_fingerprint: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  },
+  contracts: {
+    trace_schema: 2,
+    compiler: "adr029-v3",
+    capsule: "adr030-c09c-frozen",
+    prompt_bundle: "sha256:81e4c900000000000000000000000000000000000000000000000000000000",
+    tool_registry: "sha256:42b7a0000000000000000000000000000000000000000000000000000000000",
+    feature_flags: ["c16_overlay", "c14_trace_v0"],
+  },
+  runtime: {
+    environment: "local-demo",
+    session_started: "2026-08-17T10:00:00+00:00",
+    model: "fireworks/gpt-oss-120b",
+    world_checkpoint: "alex-v1@2026-01-19",
+    fixture: "alex_jan19_continuity_integrity@0.2.1",
+  },
+};
+
 export const MOCK_LLM_TRACE_ROUTER: LlmTrace = {
   path: "intent_router",
   planner: "intent_router",
@@ -248,6 +275,7 @@ export const MOCK_LLM_TRACE_ROUTER: LlmTrace = {
     "private memory",
   ],
   correlation_id: "corr-router-001",
+  forensic_provenance: MOCK_FORENSIC_PROVENANCE,
 };
 
 export const MOCK_LLM_TRACE_LLM: LlmTrace = {
@@ -324,4 +352,5 @@ export const MOCK_LLM_TRACE_LLM: LlmTrace = {
     "private memory",
   ],
   correlation_id: "corr-demo-orchestrate-001",
+  forensic_provenance: MOCK_FORENSIC_PROVENANCE,
 };

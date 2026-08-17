@@ -57,6 +57,15 @@ function makeDemoClient(overrides: Partial<EnigmaClient> = {}): EnigmaClient {
         proactive_silence: true,
       } satisfies DemoEvent,
     ]),
+    getDemoStatus: vi.fn().mockResolvedValue({
+      simulated_time: "2026-01-19T10:00:00+00:00",
+      speed: 1,
+      paused: false,
+      checkpoint_id: "cp-jan19",
+    }),
+    advanceDemoDay: vi.fn().mockResolvedValue(undefined),
+    advanceDemoStep: vi.fn().mockResolvedValue(undefined),
+    setDemoSpeed: vi.fn().mockResolvedValue(undefined),
     jumpCheckpoint: vi.fn().mockResolvedValue(undefined),
     getConversation: vi.fn(),
     sendMessage: vi.fn(),
@@ -71,6 +80,22 @@ function makeDemoClient(overrides: Partial<EnigmaClient> = {}): EnigmaClient {
 }
 
 describe("DemoControlsPanel", () => {
+  it("advances timeline from the demo panel", async () => {
+    const client = makeDemoClient();
+    render(<DemoControlsPanel client={client} checkpointId="cp-jan19" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /jan 19/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /demo · jan 19/i }));
+    fireEvent.click(screen.getByRole("button", { name: /next day/i }));
+
+    await waitFor(() => {
+      expect(client.advanceDemoDay).toHaveBeenCalled();
+    });
+  });
+
   it("shows silence hint and refreshes events after checkpoint jump", async () => {
     const client = makeDemoClient();
     render(

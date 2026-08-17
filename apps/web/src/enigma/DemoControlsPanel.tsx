@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { EnigmaClient } from "./client";
+import type { DemoStatus, EnigmaClient } from "./client";
 import {
   copyTextToClipboard,
   formatLastTurnDump,
@@ -7,6 +7,8 @@ import {
   tracesFromItems,
 } from "./forensicDump";
 import type { ConversationItem, DemoEvent } from "./types";
+
+const SPEEDS = [0, 1, 10, 100] as const;
 
 type Props = {
   client: EnigmaClient;
@@ -17,6 +19,21 @@ type Props = {
   onShowUnderBonnetChange?: (value: boolean) => void;
   items?: ConversationItem[];
 };
+
+function formatSimulatedLabel(iso: string | null | undefined): string | null {
+  if (!iso) {
+    return null;
+  }
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return iso.slice(0, 16);
+  }
+  const month = parsed.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+  const day = parsed.getUTCDate();
+  const hours = String(parsed.getUTCHours()).padStart(2, "0");
+  const minutes = String(parsed.getUTCMinutes()).padStart(2, "0");
+  return `${month} ${day} · ${hours}:${minutes}`;
+}
 
 function formatEventKind(event: DemoEvent): string {
   if (event.proactive_silence) {
@@ -37,7 +54,9 @@ export function DemoControlsPanel({
   const [open, setOpen] = useState(false);
   const [checkpoints, setCheckpoints] = useState<{ id: string; label: string }[]>([]);
   const [events, setEvents] = useState<DemoEvent[]>([]);
+  const [status, setStatus] = useState<DemoStatus | null>(null);
   const [jumping, setJumping] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState<"session" | "turn" | null>(null);
 
   useEffect(() => {
@@ -54,7 +73,22 @@ export function DemoControlsPanel({
     }
     void client.listCheckpoints().then(setCheckpoints);
     void client.getDemoEvents().then(setEvents);
-  }, [client, checkpointId]);
+    void client.getDemoStatus().then(setStatus);
+  }, [client, checkpointId, simulatedTime]);
+
+  useEffect(() => {
+    if (!client.isDemo()) {
+      return;
+    }
+    const playing = (status?.speed ?? 0) > 0 && !status?.paused;
+    if (!playing) {
+      return;
+    }
+    const id = window.setInterval(() => {
+      void client.getDemoStatus().then(setStatus);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [client, status?.paused, status?.speed]);
 
   useEffect(() => {
     if (!client.isDemo()) {
@@ -67,6 +101,7 @@ export function DemoControlsPanel({
         event.type === "demo_event"
       ) {
         void client.getDemoEvents().then(setEvents);
+        void client.getDemoStatus().then(setStatus);
       }
     });
     return unsub;
@@ -76,10 +111,26 @@ export function DemoControlsPanel({
     return null;
   }
 
+  const liveTime = status?.simulated_time ?? simulatedTime;
   const label =
+    formatSimulatedLabel(liveTime) ??
     checkpoints.find((row) => row.id === checkpointId)?.label ??
-    simulatedTime?.slice(0, 16) ??
     "Demo";
+
+  async function applyTimeline(action: () => Promise<void>) {
+    setBusy(true);
+    try {
+      await action();
+      const [nextEvents, nextStatus] = await Promise.all([
+        client.getDemoEvents(),
+        client.getDemoStatus(),
+      ]);
+      setEvents(nextEvents);
+      setStatus(nextStatus);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleJump(id: string) {
     setJumping(id);
@@ -145,6 +196,42 @@ export function DemoControlsPanel({
       {open ? (
         <div className="demo-controls-panel">
           <p className="demo-controls-caption">Time machine — manipulates simulation, not fixtures.</p>
+          <p className="demo-time" data-testid="demo-simulated-time">
+            Simulated time:{" "}
+            <time dateTime={status?.simulated_time ?? simulatedTime ?? undefined}>
+              {status?.simulated_time ?? simulatedTime ?? "—"}
+            </time>
+          </p>
+          <div className="cta-row demo-controls-timeline">
+            <button
+              type="button"
+              disabled={busy || jumping !== null}
+              onClick={() => void applyTimeline(() => client.advanceDemoStep())}
+            >
+              Next event
+            </button>
+            <button
+              type="button"
+              disabled={busy || jumping !== null}
+              onClick={() => void applyTimeline(() => client.advanceDemoDay())}
+            >
+              Next day
+            </button>
+          </div>
+          <div className="demo-speed" role="group" aria-label="Simulation speed">
+            <span className="muted">Speed</span>
+            {SPEEDS.map((speed) => (
+              <button
+                key={speed}
+                type="button"
+                className={status?.speed === speed ? "active" : undefined}
+                disabled={busy || jumping !== null}
+                onClick={() => void applyTimeline(() => client.setDemoSpeed(speed))}
+              >
+                {speed === 0 ? "Pause" : `${speed}×`}
+              </button>
+            ))}
+          </div>
           {proactiveSilence ? (
             <p className="demo-controls-silence" data-testid="demo-silence-hint">
               Proactive silence — nothing added to the conversation.

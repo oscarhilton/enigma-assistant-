@@ -167,7 +167,12 @@ event: turn_complete
 data: {"items":[…],"llm_trace":{…}}
 ```
 
-Until that endpoint exists, `POST /demo/conversation/message` remains request/response. The client projects `llm_trace` → activity events.
+Until that endpoint exists, `POST /demo/conversation/message` remains request/response. The client projects `llm_trace` → activity events, or `llm_trace.evidence_bundle` → courier / Goose presentation ([C25](../../tickets/conversational-ui/C25-evidence-coverage-bundle.md) · [ADR-034](../adr/034-evidence-coverage-bundle.md)).
+
+### Evidence bundle on `turn_complete`
+
+`llm_trace.evidence_bundle` carries the typed satchel: mission, searched/empty/unsearched/unavailable sources, grounded assertions, unknowns, challenges, `coverage_adequate`, and `courier_state`. The courier UI is presentation only — Enigma still owns prose. If Product Language renders that courier as **THE Goose**, the Goose still does not decide truth, retries, scheduling, escalation, or interruption.
+
 
 ## Memory architecture (compiled turns)
 
@@ -226,6 +231,12 @@ The bootstrap model sees the utterance plus a public conversation capsule — no
 Attestation is compilation that lets text die: `"I finished the token draft"` → world write → attention rederived → the sentence was temporary computation.
 
 By June 30, prompt continuity Jan–Jun should be almost none; world continuity is selectively preserved. “What exact words did Maya use in February?” may be impossible because the raw source expired. **That is not memory failure. That is successful forgetting.** ([ADR-029](../adr/029-context-compilation-request-shaped-memory.md) · [data-retention.md](./data-retention.md) · [D08f](../../tickets/demo-scenario/D08f-alex-six-month.md) · [SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md))
+
+## Forensic build identity
+
+Demo **Copy debug** dumps (`apps/web/src/enigma/forensicDump.ts`) prepend a BUILD / CONTRACTS / RUNTIME header and a compact per-turn build line so old sessions cannot masquerade as current regressions. The API captures process build identity once (`apps/api/src/personal_enigma/api/build_identity.py`) and attaches `forensic_provenance` to each `llm_trace` and conversation payload.
+
+Set `ENIGMA_BUILD_NAME` for a human-friendly build label (defaults to the current git branch slug). Optional overrides: `ENIGMA_APP_VERSION`, `ENIGMA_FEATURE_FLAGS` (comma-separated). When git SHA, build fingerprint, or contract hashes are missing, the dump shows **BUILD UNKNOWN — FORENSIC COMPARISON UNSAFE**.
 
 ## Related
 

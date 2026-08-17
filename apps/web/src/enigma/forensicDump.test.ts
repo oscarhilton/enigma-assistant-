@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BUILD_UNKNOWN_WARNING } from "./buildIdentity";
 import {
   formatLastTurnDump,
   formatSessionDump,
@@ -42,7 +43,12 @@ describe("forensicDump", () => {
     const dump = formatSessionDump(tracesFromItems(items));
     expect(dump).toContain("# Enigma forensic dump");
     expect(dump).toContain("Turns: 2");
+    expect(dump).toContain("BUILD");
+    expect(dump).toContain("NAME              c16-attested-overlay");
+    expect(dump).toContain("TRACE SCHEMA      2");
     expect(dump).toContain("======== Turn 1 of 2 ========");
+    expect(dump).toContain("BUILD c16-attested-overlay · 7c8f4a1+dirty.93ad2e");
+    expect(dump).toContain("PROMPT 81e4c9 · TOOLS 42b7a0 · WORLD alex-v1@2026-01-19");
     expect(dump).toContain("PATH\nintent_router");
     expect(dump).toContain("CORRELATION\ncorr-router-001");
     expect(dump).toContain("USER MESSAGE\nWhat should I do next?");
@@ -90,5 +96,11 @@ describe("forensicDump", () => {
   it("does not overwrite a trace already stored on the run", () => {
     const stitched = stitchLlmTrace(items, MOCK_LLM_TRACE_LLM);
     expect(stitched).toBe(items);
+  });
+
+  it("warns when traces lack forensic provenance", () => {
+    const bareTrace = { ...MOCK_LLM_TRACE_LLM, forensic_provenance: undefined };
+    const dump = formatSessionDump([bareTrace]);
+    expect(dump).toContain(BUILD_UNKNOWN_WARNING);
   });
 });
