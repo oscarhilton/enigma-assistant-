@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` (Step 6 — prompt wiring) |
+| Status | `in_progress` (Step 7 recorded — **decision B**) |
 | Branch | `ticket/R-L09-transform-semantic-preservation` |
 | Domain | `reasoning` + `transformation` + `evaluation` |
 
@@ -21,7 +21,8 @@ privacy transformation — not model incapacity (full_synthetic oracle recall 1.
 | **R-L09.1** | Offline transform lacked causal semantics → fixed (`relations[]`, BLOCKED_BY resolution). |
 | **R-L09.2** | Offline causal-preservation gate passed (Jan 19/20). Production parity wired as `evaluation_transformed_v2`. |
 | **R-L09.3** | Live hardest-10: **NO MOVEMENT** — v2 critical recall **0.85** vs historical v1 **0.85**. Investigation: `relations[]` never entered the semantic judge prompt. Classified as **integration/wiring negative**, not hypothesis falsification. |
-| **R-L09.4** | **Next (Step 6):** Route privacy-gated `TransformedContext` directly into semantic judge prompt. Then re-run hardest-10 only (~$0.05). |
+| **R-L09.4** | Step 6 prompt wiring frozen at `50198fc` / `r-l09-step6-prompt-wiring`. |
+| **R-L09.5** | Step 7 live hardest-10 (~$0.069): **B**. v2 recall **0.85** vs historical v1 **0.85**; suppress 1.00; privacy 0. Jan 19/20 `actionability_now` → 0.9; `time_sensitivity` stayed ~0.3. Relations in prompt. Main **not** eligible. |
 
 ### R-L09.3 detail (2026-08-17 live run)
 
@@ -34,6 +35,18 @@ privacy transformation — not model incapacity (full_synthetic oracle recall 1.
 Jan 19/20 v2 semantics unchanged: `time_sensitivity` ~0.3, `LOW_URGENCY` / `CONTEXT_ONLY`.
 
 **Conclusion:** `evaluation_transformed_v2` preserved causal relations offline and passed privacy checks, but those relations were **not included in the semantic judge prompt**. This run falsifies the assumption that the current live judge path consumes `TransformedContext` — not the semantic-preservation hypothesis itself.
+
+### R-L09.5 detail (2026-08-17 Step 7 live, freeze `50198fc`)
+
+| Column | Critical recall | Notes |
+| --- | --- | --- |
+| v1 historical | **0.85** | Comparator (this-run v1 mixed-invalid) |
+| v2 | **0.85** | Valid |
+| full_synthetic (this run) | — | **`invalid_experiment`** (privacy gate refused all reps) |
+
+Jan 19/20 v2 token-audit: `actionability_now` **0.9**, reason codes mostly `USER_OWNS_ACTION` / `NEAR_TERM_COMMITMENT` / `EXPLICIT_REQUEST`, `time_sensitivity` still ~0.3. Audit: `BLOCKED_BY` + `state=resolved` + causal text in stored `context_json`.
+
+**Decision B.** Displacement: still Jan 19/20 (brunch outranks token-audit); no new checkpoint failure. Do not tune. Do not run main.
 
 ---
 
@@ -84,7 +97,7 @@ Jan 19/20 v2 semantics unchanged: `time_sensitivity` ~0.3, `LOW_URGENCY` / `CONT
 
 ---
 
-## Step 6 — Transformed-context prompt wiring
+## Step 6 — Transformed-context prompt wiring ✅ (frozen `r-l09-step6-prompt-wiring`)
 
 **Type:** Evaluator / integration change only. **`evaluation_transformed_v2` stays completely frozen.**
 
@@ -257,34 +270,34 @@ if expected_arm == "evaluation_transformed_v1" and prompt_build_failed:
 
 ### 1. Prompt-equivalence test
 
-- [ ] `evaluation_transformed_v2` and `full_synthetic` prompts are **not** byte-identical.
-- [ ] v2 prompt contains privacy-safe `relations[]` (Jan 19/20: `BLOCKED_BY`, `state=resolved`).
-- [ ] full_synthetic prompt may contain additional oracle context (names in summary/entities) — ablation arm only.
+- [x] `evaluation_transformed_v2` and `full_synthetic` prompts are **not** byte-identical.
+- [x] v2 prompt contains privacy-safe `relations[]` (Jan 19/20: `BLOCKED_BY`, `state=resolved`).
+- [x] full_synthetic prompt may contain additional oracle context (names in summary/entities) — ablation arm only.
 
 ### 2. Production-path test
 
-- [ ] Evaluation and production call the **same** `serialise_transformed_context_for_judge()` on `TransformedContext`.
-- [ ] No alternate `snapshot_to_context_dict()` candidate/context assembly in `build_semantic_judge_prompt`.
+- [x] Evaluation and production call the **same** `serialise_transformed_context_for_judge()` on `TransformedContext`.
+- [x] No alternate `snapshot_to_context_dict()` candidate/context assembly in `build_semantic_judge_prompt`.
 
 ### 3. Privacy invariant
 
-- [ ] `assert_remote_safe(ctx)` passes for v2 production path fixtures.
-- [ ] Serialised prompt blob passes `assert_no_raw_identity_in_text` (and existing prompt privacy checks).
-- [ ] Raw display names (`Elena`, `Jordan`, …) absent; pseudonyms / semantic tokens allowed.
+- [x] `assert_remote_safe(ctx)` passes for v2 production path fixtures.
+- [x] Serialised prompt blob passes `assert_no_raw_identity_in_text` (and existing prompt privacy checks).
+- [x] Raw display names (`Elena`, `Jordan`, …) absent; pseudonyms / semantic tokens allowed.
 
 ### 4. Causal fixture (Jan 19/20)
 
-- [ ] Prompt contains `TASK_TOKEN_AUDIT`, `BLOCKED_BY`, `state=resolved` (or equivalent token forms).
-- [ ] Ideally includes causal transition string from relation `causal` field.
+- [x] Prompt contains `TASK_TOKEN_AUDIT`, `BLOCKED_BY`, `state=resolved` (or equivalent token forms).
+- [x] Ideally includes causal transition string from relation `causal` field.
 
 ### 5. No evaluator truth
 
-- [ ] Property test or grep guard: serialised payload + prompt exclude forbidden evaluator markers.
+- [x] Property test or grep guard: serialised payload + prompt exclude forbidden evaluator markers.
 
 ### 6. Harness hard-fail
 
-- [ ] Unit test: simulated prompt-build failure on v1 arm → `experiment_invalid`, **not** Arm A recall.
-- [ ] Triple-column report surfaces `invalid_experiment` per arm when applicable.
+- [x] Unit test: simulated prompt-build failure on v1 arm → `experiment_invalid`, **not** Arm A recall.
+- [x] Triple-column report surfaces `invalid_experiment` per arm when applicable.
 
 ---
 
@@ -298,9 +311,9 @@ if expected_arm == "evaluation_transformed_v1" and prompt_build_failed:
 
 | Column | Expected recall (anchor) |
 | --- | --- |
-| v1 (frozen, legacy_v1 prompt) | 0.85 historical |
-| v2 + relations in prompt | **???** |
-| full_synthetic | 1.00 historical |
+| v1 (frozen, legacy_v1 prompt) | 0.85 historical (this-run v1 mixed-invalid — ignore 1.00) |
+| v2 + relations in prompt | **0.85** (Step 7) |
+| full_synthetic | 1.00 historical (this-run column `invalid_experiment`) |
 
 ### Predeclared outcomes
 
@@ -311,6 +324,10 @@ if expected_arm == "evaluation_transformed_v1" and prompt_build_failed:
 | **C — Falsified** | Still ~0.85 **and** Jan 19/20 semantics unchanged, with relations actually in prompt | Stop — clean negative for GPT-OSS-120B + Alex-v1 |
 
 CLI: `uv run enigma-eval --reasoning-gate-live --live --phase hardest-10-v2`
+
+### Step 7 result (2026-08-17, exactly one live run)
+
+**Decision: B — partial signal.** Cost **$0.069**. v2 recall 0.85; suppress 1.00; privacy 0. Audit confirms `BLOCKED_BY` + `state=resolved` in v2 prompt `context_json` for Jan 19 and Jan 20. Semantics moved on actionability/reason codes; `time_sensitivity` stayed ~0.3; brunch still displaced token-audit. No new checkpoint failure. **Main not eligible. Do not tune.**
 
 ---
 

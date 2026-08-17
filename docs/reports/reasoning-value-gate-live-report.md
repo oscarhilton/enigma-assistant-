@@ -1,7 +1,7 @@
 # Reasoning Value Gate — Live Report
 
-- Generated: 2026-08-17 (updated R-L09 Step 5)
-- Git: `1c80841`
+- Generated: 2026-08-17 (updated R-L09 Step 7)
+- Git freeze: `50198fc` / tag `r-l09-step6-prompt-wiring`
 - Scenario: `alex-v1` v0.2.1
 - Arm B path: semantic judge + deterministic interruption policy (B2)
 
@@ -9,9 +9,9 @@
 
 **PROVEN:** B2 + `evaluation_transformed_v1` → **`no_win`** vs frozen Arm A (main gate, ~$0.26).
 
-**NOT YET PROVEN:** B2 + production transform **seen by the model** → outcome pending R-L09 Step 6–7.
+**R-L09.5 (Step 7):** **B — partial signal.** Production `TransformedContext` (including `relations[]`) **was** seen by the model. v2 critical recall stayed **0.85** vs historical v1 **0.85**; Jan 19/20 token-audit *features* moved (`actionability_now` → 0.9) but policy still missed the item on most reps. **Not eligible for main.**
 
-Keep deterministic interruption policy in production. Semantic enrichment remains a research track (R-L09) — not adopted from current evidence alone.
+Keep deterministic interruption policy in production. Do not tune thresholds from this run.
 
 ---
 
@@ -44,9 +44,42 @@ Jan 19/20 checkpoints: dependency, resolution, causality checklist green. Privac
 
 Artifacts: `reports/reasoning-gate-live/hardest-10-triple-column.json`, per-column JSONs.
 
-### R-L09.4 — Next (Step 6)
+### R-L09.4 — Step 6 prompt wiring (frozen)
 
-Route privacy-gated `TransformedContext` → prompt serialisation → Fireworks. Hard-fail invalid ablation arms. Re-run hardest-10 only (~$0.05).
+`TransformedContext` → `serialise_transformed_context_for_judge()` → `build_semantic_judge_prompt()` → Fireworks. Invalid ablation arms hard-fail (`experiment_invalid`, no Arm A fallback). Tag: `r-l09-step6-prompt-wiring`.
+
+### R-L09.5 — Step 7 live hardest-10 (2026-08-17, ~$0.069)
+
+**Decision: B — partial signal.** Relations were in the prompt; aggregate recall did not move.
+
+| Column | Critical recall | MUST_SUPPRESS | Notes |
+| --- | --- | --- | --- |
+| v1 historical | **0.85** | ≥0.95 | Valid comparator |
+| v1 (this run) | 1.00 | 1.00 | Mixed-invalid — 15/30 reps `experiment_invalid`; do not use |
+| **v2** | **0.85** | **1.00** | Valid — privacy failures 0 |
+| full_synthetic (this run) | 1.00 | 1.00 | **`invalid_experiment`** — privacy gate refused all reps |
+| full_synthetic historical | 1.00 | ≥0.95 | Prior oracle anchor |
+
+**Jan 19/20 v2 token-audit semantics:** `actionability_now` **0.9** (was ~0.5–0.7); reason codes mostly `USER_OWNS_ACTION` / `NEAR_TERM_COMMITMENT` / `EXPLICIT_REQUEST` (left `LOW_URGENCY` / `CONTEXT_ONLY`); `time_sensitivity` still **~0.3**.
+
+**Displacement:** No new checkpoint regression. Failures remain Jan 19 (2/3 miss; 1/3 surfaced token-audit) and Jan 20 (3/3 brunch only). Do not tune.
+
+**Audit proof** (`reports/reasoning-gate-live/prompt-audit.jsonl`, v2 `item-obligation_token_audit`):
+
+```json
+{
+  "type": "BLOCKED_BY",
+  "subject": "TASK_TOKEN_AUDIT",
+  "object": "RESOURCE_TOKENS",
+  "state": "resolved",
+  "resolved_by": "PERSON_A",
+  "causal": "RESOURCE_TOKENS arrival made TASK_TOKEN_AUDIT actionable"
+}
+```
+
+Present on both `cp-2026-01-19T10:00` and `cp-2026-01-20T11:00` stored `context_json`.
+
+**Not A** (recall not 0.95–1.00). **Not C** (semantics moved; relations demonstrably in prompt). Main not eligible.
 
 ---
 
@@ -83,7 +116,7 @@ Route privacy-gated `TransformedContext` → prompt serialisation → Fireworks.
 
 ## Architecture decision
 
-**Decision:** `no_win` (production). Research continues under R-L09 Step 6.
+**Decision:** `no_win` (production). R-L09.5 = **B**; research may inspect displacement without threshold tuning or a main rerun.
 
 ## Failure attributions (main gate)
 
