@@ -123,6 +123,28 @@ adversarial  UI     replay
 
 ---
 
+## Phase 2.5 — Support fitness + Alex v2 (design landed)
+
+Second benchmark dimension: **given what matters, did Enigma offer help that reduces executive-function friction?** Architecture: [executive-function-support-benchmark.md](./executive-function-support-benchmark.md) · ADR: [011-observable-support-challenges-only.md](../adr/011-observable-support-challenges-only.md).
+
+| # | Milestone | Status | Ticket |
+| --- | --- | --- | --- |
+| V2-EF-01 | Support contract schema + v1 catalogue | `todo` | [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md) |
+| V2-EF-02 | Alex v2 EF arc authoring (~30 arcs / 12 mo) | `todo` | [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) |
+| EF-01 | Support fitness evaluator (D07 extension) | `todo` | [EF-01](../../tickets/demo-evaluation/EF-01-support-fitness-evaluator.md) |
+| D14 | LLM judge benchmark (structured attention + next_action) | `todo` | [D14](../../tickets/demo-evaluation/D14-llm-judge-benchmark.md) |
+
+### Three squeezes (+ Contextual Next Action)
+
+1. Reasoning LLM at “what does this mean?” (M03, M15–M16)
+2. Longitudinal memory — 12-month Alex v2 ([V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md))
+3. Shadow Mode behavioural feedback ([shadow-mode-questions.md](./shadow-mode-questions.md))
+4. Contextual Next Action — support contracts + EF-01 before runtime product surface
+
+Claim order: **V2-EF-01** → **V2-EF-02** ∥ **EF-01** (after schema) → **D14** (after EF-01 scorer types). Do not edit `scenarios/alex-v1/` or `packages/attention/**` for this track.
+
+---
+
 ## Phase 2.5+ — Next Action track (domain + ranking; Demo chrome separate)
 
 | # | Milestone | Status | Ticket |
@@ -197,4 +219,3 @@ S06 Exit criteria (before Private notifications)
 - Every silence is a logged prediction ([ADR-009](../adr/009-silence-as-prediction.md)); empty UI ≠ exit evidence ([shadow-silence-evaluation.md](./shadow-silence-evaluation.md)).
 - SE* tickets soft-depend on S01–S06 / earlier SE*; they must not re-implement env/banner/storage.
 - Do not edit Demo attention freeze / D15 card UX from silence tickets; do not start Gmail OAuth from this track.
-

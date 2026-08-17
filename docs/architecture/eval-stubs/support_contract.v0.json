@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enigma.local/eval-stubs/support_contract.v0.json",
+  "title": "SupportContractV0",
+  "description": "Evaluator-only support contract for Demo Mode benchmarks. Never ingested by Enigma. See docs/architecture/executive-function-support-benchmark.md and ADR-011.",
+  "type": "object",
+  "required": ["scenario", "challenge", "attention", "support"],
+  "additionalProperties": false,
+  "properties": {
+    "scenario": {
+      "type": "string",
+      "description": "Scenario arc or checkpoint id (e.g. december-expenses, checkpoint-2026-01-21T13:30)."
+    },
+    "obligation_id": {
+      "type": "string",
+      "description": "Optional link to an obligation ground-truth id when support is obligation-scoped."
+    },
+    "challenge": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/support_challenge"
+      }
+    },
+    "attention": {
+      "type": "object",
+      "required": ["behaviour"],
+      "additionalProperties": false,
+      "properties": {
+        "behaviour": {
+          "type": "string",
+          "enum": ["MUST_SURFACE", "MAY_SURFACE", "MUST_SUPPRESS", "MUST_STAY_QUIET"]
+        },
+        "window": {
+          "type": "object",
+          "required": ["start", "end"],
+          "additionalProperties": false,
+          "properties": {
+            "start": { "type": "string", "format": "date-time" },
+            "end": { "type": "string", "format": "date-time" }
+          }
+        },
+        "minimum_priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        }
+      }
+    },
+    "support": {
+      "type": "object",
+      "required": ["good_next_actions"],
+      "additionalProperties": false,
+      "properties": {
+        "good_next_actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/support_action_id" }
+        },
+        "acceptable_next_actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/support_action_id" }
+        },
+        "poor_actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/support_action_id" }
+        },
+        "preferred_effort": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_minutes": { "type": "integer", "minimum": 1 },
+            "effort": {
+              "type": "string",
+              "enum": ["trivial", "light", "moderate", "heavy"]
+            }
+          }
+        },
+        "timing_notes": {
+          "type": "string",
+          "description": "Author-facing rationale for timing fit (evaluator only)."
+        }
+      }
+    },
+    "next_action_checkpoint": {
+      "type": "object",
+      "description": "Independent WHAT SHOULD I DO NEXT scoring at a checkpoint instant.",
+      "required": ["at", "expected"],
+      "additionalProperties": false,
+      "properties": {
+        "at": { "type": "string", "format": "date-time" },
+        "expected": {
+          "type": "object",
+          "required": ["title"],
+          "additionalProperties": false,
+          "properties": {
+            "title": { "type": "string" },
+            "action_id": { "$ref": "#/$defs/support_action_id" },
+            "estimated_minutes": { "type": "integer", "minimum": 1 },
+            "effort": {
+              "type": "string",
+              "enum": ["trivial", "light", "moderate", "heavy"]
+            },
+            "why_this_now": { "type": "string" }
+          }
+        },
+        "attention_item_id": {
+          "type": "string",
+          "description": "When attention and next_action differ at the same instant, link the attention obligation/item id."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "support_challenge": {
+      "type": "string",
+      "enum": [
+        "prospective_memory",
+        "task_initiation",
+        "ambiguity",
+        "transition_cost",
+        "working_memory",
+        "time_estimation",
+        "distraction",
+        "admin_friction",
+        "task_decomposition",
+        "time_blindness",
+        "transition",
+        "interruption_recovery",
+        "blocked_task",
+        "recurrence",
+        "energy_mismatch",
+        "social_coordination",
+        "overwhelm"
+      ]
+    },
+    "support_action_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{2,63}$",
+      "description": "Stable snake_case action token for deterministic matching (e.g. gather_receipts, open_expenses_form)."
+    }
+  },
+  "examples": [
+    {
+      "scenario": "december-expenses",
+      "obligation_id": "obligation_december_expenses",
+      "challenge": ["admin_friction", "task_initiation"],
+      "attention": {
+        "behaviour": "MUST_SURFACE",
+        "window": {
+          "start": "2026-01-14T09:00:00Z",
+          "end": "2026-01-16T10:00:00Z"
+        },
+        "minimum_priority": 3
+      },
+      "support": {
+        "good_next_actions": [
+          "gather_receipts",
+          "open_expenses_form",
+          "submit_if_ready"
+        ],
+        "poor_actions": [
+          "restate_deadline_only",
+          "surface_repeatedly",
+          "manufacture_urgency"
+        ],
+        "preferred_effort": {
+          "max_minutes": 10,
+          "effort": "light"
+        }
+      }
+    }
+  ]
+}

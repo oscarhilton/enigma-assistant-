@@ -86,6 +86,7 @@ Shadow silence evaluation: [docs/architecture/shadow-silence-evaluation.md](../d
 Open-loop commitments: [docs/architecture/open-loop-commitments.md](../docs/architecture/open-loop-commitments.md) (SE11).  
 Attention surface (Phase 2.5 wind-tunnel / F-* naming): [docs/architecture/attention-surface.md](../docs/architecture/attention-surface.md).  
 Next Action (NEEDS YOU / WORTH DOING / CAN WAIT): [docs/architecture/next-action.md](../docs/architecture/next-action.md) · [ADR-010](../docs/adr/010-next-action-not-attention.md) · [M20](./domain-model/M20-next-action-schemas.md) · [N01](./next-action/N01-scorer-stub.md)–[N03](./next-action/N03-preference-learning.md).  
+Support fitness / Alex v2: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) (V2-EF-01, V2-EF-02, EF-01, D14).  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
 
