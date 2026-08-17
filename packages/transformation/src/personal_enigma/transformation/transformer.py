@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 
 from personal_enigma.domain import (
     PrivateCalendarEvent,
+    PrivateChatMessage,
     PrivateMessage,
     PrivateNote,
     PrivatePerson,
@@ -66,6 +67,8 @@ class DefaultEnigmaTransformer:
             return self._transform_person(record)
         if isinstance(record, PrivateMessage):
             return self._transform_message(record)
+        if isinstance(record, PrivateChatMessage):
+            return self._transform_chat(record)
         raise TypeError(f"Unsupported private record type: {type(record)!r}")
 
     def _coerce(self, private_record: dict[str, Any] | BaseModel) -> BaseModel:
@@ -75,6 +78,7 @@ class DefaultEnigmaTransformer:
             PrivateCalendarEvent,
             PrivateReminder,
             PrivateNote,
+            PrivateChatMessage,
             PrivateMessage,
             PrivatePerson,
         )
@@ -120,7 +124,7 @@ class DefaultEnigmaTransformer:
 
         def replace_phone(match: re.Match[str]) -> str:
             phone = match.group(0)
-            pseudo = self._resolver.resolve_ref(PrivatePersonRef(provider_id=f"phone:{phone}"))
+            pseudo = self._resolver.resolve_ref(PrivatePersonRef(phone=phone))
             if pseudo is None:
                 return "[REDACTED_PHONE]"
             value = str(pseudo)
@@ -249,6 +253,37 @@ class DefaultEnigmaTransformer:
                 "wholesale_body_included": False,
             },
             may_transmit_remotely=self._may_transmit(SourceType.EMAIL),
+        )
+
+    def _transform_chat(self, message: PrivateChatMessage) -> TransformedContext:
+        refs = ([message.from_person] if message.from_person else []) + list(message.to)
+        entities = self._resolve_refs(refs)
+        # Never ship wholesale chat body. Passage is local-only (VERY_HIGH).
+        passage = None
+        if message.body_text and message.kind == "text":
+            passage = self._sanitise_text(
+                extract_minimal_passage(message.body_text),
+                entities,
+            )
+        parts = ["Chat"]
+        if message.chat_title:
+            title = self._sanitise_text(message.chat_title, entities)
+            if title:
+                parts.append(title)
+        if passage:
+            parts.append(passage)
+        if entities:
+            parts.append(f"people: {', '.join(entities)}")
+        return TransformedContext(
+            summary=" | ".join(parts),
+            entities=entities,
+            metadata={
+                "source_type": SourceType.CHAT_MESSAGE.value,
+                "record_id": message.id,
+                "provider": message.provider,
+                "wholesale_body_included": False,
+            },
+            may_transmit_remotely=False,
         )
 
     def attach_relations(

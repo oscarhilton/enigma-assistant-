@@ -139,6 +139,10 @@ class HmacEntityResolver:
                 anchors.append(f"email:{normalised}")
         if ref.provider_id and ref.provider_id.strip():
             anchors.append(f"provider:ref:{ref.provider_id.strip()}")
+        if ref.phone:
+            normalised = _normalise_phone(ref.phone)
+            if normalised:
+                anchors.append(f"phone:{normalised}")
         if ref.display_name:
             name = _normalise_name(ref.display_name)
             if name:

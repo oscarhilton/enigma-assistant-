@@ -18,6 +18,7 @@ _DEFAULTS: dict[SourceType, PrivacyLevel] = {
     SourceType.REMINDER: PrivacyLevel.MEDIUM,
     SourceType.CONTACT: PrivacyLevel.HIGH,
     SourceType.NOTE: PrivacyLevel.HIGH,
+    SourceType.CHAT_MESSAGE: PrivacyLevel.VERY_HIGH,
 }
 
 

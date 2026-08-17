@@ -12,3 +12,7 @@ def test_contacts_default_high() -> None:
 
 def test_calendar_default_medium() -> None:
     assert default_level_for_source(SourceType.CALENDAR_EVENT) == PrivacyLevel.MEDIUM
+
+
+def test_chat_message_default_very_high() -> None:
+    assert default_level_for_source(SourceType.CHAT_MESSAGE) == PrivacyLevel.VERY_HIGH

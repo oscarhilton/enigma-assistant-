@@ -5,6 +5,7 @@ description = "Provider-agnostic data source protocol for Enigma"
 requires-python = ">=3.12"
 dependencies = [
   "personal-enigma-domain",
+  "personal-enigma-fixtures",
   "pydantic>=2.10.0",
   "httpx>=0.28.0",
 ]
@@ -18,3 +19,4 @@ packages = ["src/personal_enigma"]
 
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
+personal-enigma-fixtures = { workspace = true }

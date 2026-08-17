@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from personal_enigma.simulation.sources.mail import SyntheticMailSource
     from personal_enigma.simulation.sources.notes import SyntheticNotesSource
     from personal_enigma.simulation.sources.reminders import SyntheticReminderSource
+    from personal_enigma.simulation.sources.whatsapp import SyntheticWhatsAppSource
 
 NAMESPACE = UUID("6b1f0c2e-9a4d-4e8f-b7c1-2d3e4f5a6b7c")
 
@@ -29,6 +30,7 @@ _EXPORTS = {
     "SyntheticMailSource": ".mail",
     "SyntheticNotesSource": ".notes",
     "SyntheticReminderSource": ".reminders",
+    "SyntheticWhatsAppSource": ".whatsapp",
 }
 
 
@@ -128,6 +130,7 @@ __all__ = [
     "SyntheticMailSource",
     "SyntheticNotesSource",
     "SyntheticReminderSource",
+    "SyntheticWhatsAppSource",
     "_aware",
     "as_str_list",
     "as_str_mapping",

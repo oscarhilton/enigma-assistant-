@@ -26,6 +26,17 @@ FEATURE_SCENARIOS = (
     "background-no-alert",
 )
 
+WHATSAPP_FEATURE_SCENARIOS = (
+    "whatsapp-explicit-commitment",
+    "whatsapp-soft-intention",
+    "whatsapp-waiting-on",
+    "whatsapp-cancellation",
+    "whatsapp-ambiguous-chatter",
+    "whatsapp-group-noise",
+    "whatsapp-reaction-only",
+    "whatsapp-correction",
+)
+
 
 @pytest.mark.parametrize("name", FEATURE_SCENARIOS)
 def test_feature_scenarios_load(name: str) -> None:
@@ -38,12 +49,25 @@ def test_feature_scenarios_load(name: str) -> None:
         assert "commitment" not in event.payload
 
 
+@pytest.mark.parametrize("name", WHATSAPP_FEATURE_SCENARIOS)
+def test_whatsapp_feature_scenarios_load(name: str) -> None:
+    pkg = load_scenario(FEATURE / name)
+    assert pkg.manifest.id == name
+    assert pkg.manifest.status == "feature"
+    assert 5 <= len(pkg.events) <= 10
+    assert any(event.source == "whatsapp" for event in pkg.events)
+    for event in pkg.events:
+        assert "obligation" not in event.payload
+        assert "commitment" not in event.payload
+        assert "attention_item" not in event.payload
+
+
 def test_alex_benchmark_loads_deterministically() -> None:
     first = load_scenario(ALEX)
     second = load_scenario(ALEX)
     assert first.manifest.id == "alex-v1"
     assert first.manifest.status == "benchmark"
-    assert first.manifest.version == "0.2.1"
+    assert first.manifest.version == "0.2.2"
     assert first.persona
     assert first.effective_seed == "alex-v1"
     assert [e.model_dump(mode="json") for e in first.events] == [

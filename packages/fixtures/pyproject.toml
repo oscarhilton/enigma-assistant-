@@ -5,6 +5,7 @@ description = "Synthetic private-world fixtures for Enigma tests"
 requires-python = ">=3.12"
 dependencies = [
   "personal-enigma-domain",
+  "personal-enigma-attention",
 ]
 
 [build-system]
@@ -16,3 +17,15 @@ packages = ["src/personal_enigma"]
 
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
+personal-enigma-attention = { workspace = true }
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/personal_enigma/fixtures/data/demo/semantic/cp-2026-01-19T10:00.json" = "personal_enigma/fixtures/data/demo/semantic/cp-2026-01-19T10:00.json"
+"src/personal_enigma/fixtures/data/demo/semantic/cp-2026-01-20T11:00.json" = "personal_enigma/fixtures/data/demo/semantic/cp-2026-01-20T11:00.json"
+"src/personal_enigma/fixtures/data/security_canaries/medical_appointment.md" = "personal_enigma/fixtures/data/security_canaries/medical_appointment.md"
+"src/personal_enigma/fixtures/data/security_canaries/payroll_notice.md" = "personal_enigma/fixtures/data/security_canaries/payroll_notice.md"
+"src/personal_enigma/fixtures/data/security_canaries/home_address.md" = "personal_enigma/fixtures/data/security_canaries/home_address.md"
+"src/personal_enigma/fixtures/data/security_canaries/bank_account.md" = "personal_enigma/fixtures/data/security_canaries/bank_account.md"
+"src/personal_enigma/fixtures/data/security_canaries/relationship_private.md" = "personal_enigma/fixtures/data/security_canaries/relationship_private.md"
+"src/personal_enigma/fixtures/data/security_canaries/api_token.md" = "personal_enigma/fixtures/data/security_canaries/api_token.md"
+"src/personal_enigma/fixtures/data/security_canaries/confidential_company_doc.md" = "personal_enigma/fixtures/data/security_canaries/confidential_company_doc.md"

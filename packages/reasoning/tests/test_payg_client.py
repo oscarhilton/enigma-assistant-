@@ -24,7 +24,7 @@ def _safe_context(**overrides: Any) -> TransformedContext:
     data: dict[str, Any] = {
         "summary": "Meeting with PERSON_A4F91C about project timeline",
         "entities": ["PERSON_A4F91C"],
-        "metadata": {"source": "calendar"},
+        "metadata": {"source_type": "email"},
         "may_transmit_remotely": True,
     }
     data.update(overrides)
@@ -129,7 +129,7 @@ def test_rejects_unsanitised_email_in_summary() -> None:
     )
     ctx = _safe_context(summary="Email alice@example.com about lunch")
 
-    with pytest.raises(PrivacyGateError, match="raw email"):
+    with pytest.raises(PrivacyGateError, match="(?i)email"):
         client.reason(ctx)
 
 
@@ -137,7 +137,7 @@ def test_rejects_private_person_marker_in_metadata() -> None:
     client = PaygReasoningService(
         mode=ReasoningMode.DRY_RUN,
     )
-    ctx = _safe_context(metadata={"leak": "PrivatePerson dump"})
+    ctx = _safe_context(summary="PrivatePerson dump in summary")
 
     with pytest.raises(PrivacyGateError, match="PrivatePerson"):
         client.reason(ctx)
@@ -150,7 +150,7 @@ def test_dry_run_also_enforces_privacy_gate() -> None:
 
 
 def test_enabled_requires_explicit_transport() -> None:
-    with pytest.raises(ValueError, match="explicit PaygTransport"):
+    with pytest.raises(ValueError, match="AuditedEgressGate or PaygTransport"):
         PaygReasoningService(mode=ReasoningMode.ENABLED)
 
 

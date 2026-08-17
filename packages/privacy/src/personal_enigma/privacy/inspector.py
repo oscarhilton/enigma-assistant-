@@ -70,6 +70,13 @@ def inspect_transformed_context(
                 reason="Notes default HIGH — only minimal passages may ever be considered",
             )
         )
+    if source_type == SourceType.CHAT_MESSAGE:
+        redactions.append(
+            RedactionNote(
+                field="body_text",
+                reason="Chat messages default VERY_HIGH — verbatim bodies stay local",
+            )
+        )
 
     if cancel:
         return InspectionResult(

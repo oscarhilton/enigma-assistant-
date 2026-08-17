@@ -1,7 +1,7 @@
 """Scenario package loader and validator (D3).
 
 Scenarios describe **source-layer** evidence only (mail, calendar, reminders,
-notes, contacts). They must not embed pre-baked ``Obligation`` / attention
+notes, contacts, whatsapp). They must not embed pre-baked ``Obligation`` / attention
 objects — Enigma discovers those downstream.
 """
 
@@ -29,10 +29,15 @@ SOURCE_EVENT_TYPES = frozenset(
         "reminder.complete",
         "note.upsert",
         "contact.upsert",
+        "whatsapp.receive",
+        "whatsapp.send",
+        "whatsapp.reaction",
     }
 )
 
-SOURCE_KINDS = frozenset({"mail", "calendar", "reminders", "notes", "contacts"})
+SOURCE_KINDS = frozenset(
+    {"mail", "calendar", "reminders", "notes", "contacts", "whatsapp"}
+)
 
 FORBIDDEN_PAYLOAD_KEYS = frozenset(
     {

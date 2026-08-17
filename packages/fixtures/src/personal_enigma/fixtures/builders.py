@@ -13,6 +13,7 @@ from uuid import UUID
 
 from personal_enigma.domain import (
     PrivateCalendarEvent,
+    PrivateChatMessage,
     PrivateMessage,
     PrivateNote,
     PrivatePerson,
@@ -166,6 +167,44 @@ def build_message(**overrides: Any) -> PrivateMessage:
     if "cc" in overrides:
         data["cc"] = _as_person_refs(overrides["cc"])
     return PrivateMessage.model_validate(data)
+
+
+def build_chat_message(**overrides: Any) -> PrivateChatMessage:
+    """Build a synthetic WhatsApp PrivateChatMessage."""
+    data: dict[str, Any] = {
+        "id": "wa_fixture_1",
+        "provider": "whatsapp",
+        "provider_message_id": "wa-fixture-1",
+        "chat_id": "chat_fixture_1",
+        "thread_id": "chat_fixture_1",
+        "from_person": build_person_ref(
+            display_name="Elena Vargas",
+            email=None,
+            phone="+447700900011",
+            provider_id="elena",
+        ),
+        "to": [
+            build_person_ref(
+                display_name="Alex Morgan",
+                email=None,
+                phone="+447700900001",
+                provider_id="alex",
+            )
+        ],
+        "body_text": "See you Saturday",
+        "sent_at": FIXTURE_EPOCH,
+        "is_group": False,
+        "chat_title": None,
+        "kind": "text",
+        "reaction_emoji": None,
+        "reply_to_id": None,
+    }
+    data.update(overrides)
+    if "from_person" in overrides:
+        data["from_person"] = _as_person_ref(overrides["from_person"])
+    if "to" in overrides:
+        data["to"] = _as_person_refs(overrides["to"])
+    return PrivateChatMessage.model_validate(data)
 
 
 def sample_calendar_event() -> PrivateCalendarEvent:

@@ -7,21 +7,37 @@ to the private domain.
 
 from __future__ import annotations
 
-import base64
 import email.utils
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
+from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 import httpx
 
 from personal_enigma.domain import PrivateMessage, PrivatePersonRef
+from personal_enigma.ingestion.gmail_mime import ParsedGmailBody, parse_gmail_payload
+from personal_enigma.ingestion.gmail_persistence import assert_gmail_encrypted_vault_persistence
 from personal_enigma.ingestion.protocol import ChangeBatch, SyncCursor
 
 GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1"
+GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 SOURCE_NAME = "gmail"
+
+# SEC-04 scope audit — write/modify endpoints must never appear in connector code.
+FORBIDDEN_GMAIL_WRITE_PATHS = frozenset(
+    {
+        "/users/me/messages/send",
+        "/users/me/drafts",
+        "/users/me/drafts/send",
+        "/users/me/threads/modify",
+        "/users/me/messages/batchModify",
+        "/users/me/messages/trash",
+        "/users/me/messages/untrash",
+    }
+)
 
 _ANGLE_EMAIL = re.compile(r"<([^>]+)>")
 _BARE_EMAIL = re.compile(r"^[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+$")
@@ -38,14 +54,6 @@ class PersonRefResolver(Protocol):
     def resolve_ref(self, ref: PrivatePersonRef) -> object | None:
         """Return a pseudonym or contact handle when the ref is known."""
         ...
-
-
-def _decode_body_data(data: str | None) -> str | None:
-    if not data:
-        return None
-    padded = data + "=" * (-len(data) % 4)
-    raw = base64.urlsafe_b64decode(padded.encode("ascii"))
-    return raw.decode("utf-8", errors="replace")
 
 
 def _header_map(payload: Mapping[str, Any]) -> dict[str, str]:
@@ -87,26 +95,6 @@ def _parse_address_list(raw: str | None) -> list[PrivatePersonRef]:
     return refs
 
 
-def _extract_plain_text(payload: Mapping[str, Any] | None) -> str | None:
-    if not payload:
-        return None
-    mime = payload.get("mimeType")
-    body = payload.get("body") or {}
-    if mime == "text/plain":
-        return _decode_body_data(body.get("data") if isinstance(body, dict) else None)
-    parts = payload.get("parts") or []
-    if isinstance(parts, list):
-        for part in parts:
-            if isinstance(part, dict):
-                text = _extract_plain_text(part)
-                if text:
-                    return text
-    if mime == "text/html":
-        # Last resort: return decoded HTML when no plain part exists.
-        return _decode_body_data(body.get("data") if isinstance(body, dict) else None)
-    return None
-
-
 def _ms_to_datetime(value: str | int | None) -> datetime | None:
     if value is None:
         return None
@@ -143,7 +131,15 @@ class GmailSource:
         contacts_by_email: Mapping[str, PrivatePersonRef] | None = None,
         entity_resolver: PersonRefResolver | None = None,
         remote_llm_enabled: bool = False,
+        enforce_encrypted_vault: bool = False,
+        persistence_database_url: str | None = None,
+        persistence_database_path: Path | None = None,
     ) -> None:
+        if enforce_encrypted_vault:
+            assert_gmail_encrypted_vault_persistence(
+                database_url=persistence_database_url,
+                database_path=persistence_database_path,
+            )
         self.access_token = access_token
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
@@ -171,6 +167,7 @@ class GmailSource:
         return httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout)
 
     async def _get_json(self, path: str, *, params: Mapping[str, str] | None = None) -> Any:
+        self._assert_readonly_path(path)
         async with self._client() as client:
             try:
                 response = await client.get(path, headers=self._headers(), params=params)
@@ -182,6 +179,16 @@ class GmailSource:
         if response.status_code >= 400:
             raise GmailError(f"Gmail returned HTTP {response.status_code}: {response.text}")
         return response.json()
+
+    @staticmethod
+    def _assert_readonly_path(path: str) -> None:
+        """Refuse Gmail write/modify API paths — SEC-04 gmail.readonly only."""
+        normalized = path.split("?", 1)[0].rstrip("/")
+        for forbidden in FORBIDDEN_GMAIL_WRITE_PATHS:
+            if normalized.endswith(forbidden) or forbidden in normalized:
+                raise GmailError(
+                    f"Gmail write path refused (SEC-04 readonly): {path!r}"
+                )
 
     def _enrich_ref(self, ref: PrivatePersonRef) -> PrivatePersonRef:
         email_addr = (ref.email or "").lower()
@@ -197,11 +204,21 @@ class GmailSource:
             self.entity_resolver.resolve_ref(ref)
         return ref
 
-    def message_from_gmail(self, raw: Mapping[str, Any]) -> PrivateMessage:
+    def parse_payload(self, payload: Mapping[str, Any] | None) -> ParsedGmailBody:
+        """Parse hostile MIME/HTML from a Gmail API payload (SEC-03 boundary)."""
+        return parse_gmail_payload(payload if isinstance(payload, dict) else None)
+
+    def message_from_gmail(
+        self,
+        raw: Mapping[str, Any],
+        *,
+        parsed: ParsedGmailBody | None = None,
+    ) -> PrivateMessage:
         """Map a Gmail ``users.messages`` resource to ``PrivateMessage``."""
         provider_message_id = str(raw["id"])
         payload = raw.get("payload") if isinstance(raw.get("payload"), dict) else {}
         headers = _header_map(payload) if isinstance(payload, dict) else {}
+        body = parsed or self.parse_payload(payload if isinstance(payload, dict) else None)
 
         from_person = None
         if headers.get("from"):
@@ -213,8 +230,6 @@ class GmailSource:
         sent_at = _parse_date_header(headers.get("date")) or received_at
         labels = [str(label) for label in (raw.get("labelIds") or [])]
 
-        body_text = _extract_plain_text(payload if isinstance(payload, dict) else None)
-
         return PrivateMessage(
             id=f"gmail:{provider_message_id}",
             provider="gmail",
@@ -222,7 +237,7 @@ class GmailSource:
             thread_id=str(raw["threadId"]) if raw.get("threadId") else None,
             subject=headers.get("subject"),
             snippet=str(raw["snippet"]) if raw.get("snippet") is not None else None,
-            body_text=body_text,
+            body_text=body.body_text,
             from_person=from_person,
             to=to,
             cc=cc,
@@ -231,13 +246,17 @@ class GmailSource:
             labels=labels,
         )
 
-    async def _fetch_message(self, message_id: str) -> PrivateMessage:
+    async def _fetch_message_raw(self, message_id: str) -> dict[str, Any]:
         raw = await self._get_json(
             f"/users/me/messages/{message_id}",
             params={"format": "full"},
         )
         if not isinstance(raw, dict):
             raise GmailError("Gmail message payload was not an object")
+        return raw
+
+    async def _fetch_message(self, message_id: str) -> PrivateMessage:
+        raw = await self._fetch_message_raw(message_id)
         return self.message_from_gmail(raw)
 
     async def _list_message_ids(

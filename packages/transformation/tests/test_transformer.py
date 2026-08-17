@@ -227,3 +227,26 @@ def test_message_prefers_snippet_over_body_and_redacts_pii() -> None:
     assert ctx.metadata["wholesale_body_included"] is False
     assert ctx.may_transmit_remotely is True
     assert all(e.startswith("PERSON_") for e in ctx.entities)
+
+
+def test_chat_never_transmits_wholesale_body() -> None:
+    from personal_enigma.domain import PrivateChatMessage
+
+    transformer = DefaultEnigmaTransformer(hmac_key=FIXED_HMAC_KEY, allow_remote=True)
+    secret = "Secret chat body " * 40
+    message = PrivateChatMessage(
+        id="wa_1",
+        provider="whatsapp",
+        provider_message_id="wa-1",
+        chat_id="chat-1",
+        from_person=PrivatePersonRef(display_name="Elena Vargas", phone="+447700900011"),
+        body_text=secret,
+        kind="text",
+    )
+    ctx = transformer.transform(message)
+    blob = _serialised(ctx)
+    assert "+447700900011" not in blob
+    assert ctx.metadata["wholesale_body_included"] is False
+    assert ctx.may_transmit_remotely is False
+    assert ctx.metadata["source_type"] == "chat_message"
+    assert secret.strip() not in ctx.summary

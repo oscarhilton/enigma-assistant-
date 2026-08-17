@@ -16,10 +16,12 @@ from personal_enigma.attention import AttentionItem, AttentionKind
 from personal_enigma.dedupe import dedupe_calendar_events
 from personal_enigma.domain import (
     CalendarEvidence,
+    ChatEvidence,
     EmailEvidence,
     Obligation,
     ObligationEvidence,
     PrivateCalendarEvent,
+    PrivateChatMessage,
     PrivateMessage,
     PrivateReminder,
     ReminderEvidence,
@@ -63,6 +65,15 @@ def _tokens(text: str | None) -> frozenset[str]:
     return frozenset(t for t in raw if len(t) > 1 and t not in _STOPWORDS)
 
 
+def _chat_tokens(chat: PrivateChatMessage) -> frozenset[str]:
+    tokens: set[str] = set(_tokens(chat.body_text) | _tokens(chat.chat_title))
+    if chat.from_person is not None:
+        tokens |= _tokens(chat.from_person.display_name)
+    for person in chat.to:
+        tokens |= _tokens(person.display_name)
+    return frozenset(tokens)
+
+
 def _related(a: frozenset[str], b: frozenset[str]) -> bool:
     if not a or not b:
         return False
@@ -81,6 +92,7 @@ class _Signal:
     reminder: PrivateReminder | None = None
     message: PrivateMessage | None = None
     event: PrivateCalendarEvent | None = None
+    chat: PrivateChatMessage | None = None
 
 
 @dataclass
@@ -95,8 +107,14 @@ class _Cluster:
         return frozenset(merged)
 
 
-def _confidence(*, has_reminder: bool, has_email: bool, has_calendar: bool) -> float:
-    kinds = sum((has_reminder, has_email, has_calendar))
+def _confidence(
+    *,
+    has_reminder: bool,
+    has_email: bool,
+    has_calendar: bool,
+    has_chat: bool = False,
+) -> float:
+    kinds = sum((has_reminder, has_email, has_calendar, has_chat))
     if kinds >= 3:
         return 0.98
     if kinds == 2:
@@ -114,6 +132,7 @@ def _pick_description(
     reminders: list[PrivateReminder],
     messages: list[PrivateMessage],
     events: list[PrivateCalendarEvent],
+    chats: list[PrivateChatMessage] | None = None,
 ) -> str:
     if reminders:
         return reminders[0].title
@@ -121,6 +140,8 @@ def _pick_description(
         return events[0].title
     if messages:
         return messages[0].subject or messages[0].snippet or "Follow-up"
+    if chats:
+        return (chats[0].body_text or "Chat commitment")[:80]
     return "Obligation"
 
 
@@ -144,6 +165,7 @@ def _build_obligation(cluster: _Cluster) -> Obligation:
     reminders = [s.reminder for s in cluster.signals if s.reminder is not None]
     messages = [s.message for s in cluster.signals if s.message is not None]
     events = [s.event for s in cluster.signals if s.event is not None]
+    chats = [s.chat for s in cluster.signals if s.chat is not None]
 
     # Collapse residual provider duplicates inside a cluster (M12 stub-safe).
     unique_events: list[PrivateCalendarEvent] = []
@@ -168,15 +190,21 @@ def _build_obligation(cluster: _Cluster) -> Obligation:
         evidence.append(
             CalendarEvidence(event_id=event.id, title=event.title),
         )
+    for chat in chats:
+        snippet = (chat.body_text or "")[:80] or None
+        evidence.append(
+            ChatEvidence(message_id=chat.id, chat_id=chat.chat_id, snippet=snippet),
+        )
 
     return Obligation(
-        description=_pick_description(reminders, messages, unique_events),
+        description=_pick_description(reminders, messages, unique_events, chats),
         due_at=_pick_due_at(reminders, unique_events),
         evidence=evidence,
         confidence=_confidence(
             has_reminder=bool(reminders),
             has_email=bool(messages),
             has_calendar=bool(unique_events),
+            has_chat=bool(chats),
         ),
     )
 
@@ -200,10 +228,12 @@ def merge_sources(
     reminders: Sequence[PrivateReminder] = (),
     messages: Sequence[PrivateMessage] = (),
     calendar_events: Sequence[PrivateCalendarEvent] = (),
+    chat_messages: Sequence[PrivateChatMessage] = (),
 ) -> list[Obligation]:
     """Merge cross-source signals into Obligations with typed evidence.
 
     Calendar events are deduped via M12 ``dedupe_calendar_events`` first.
+    Chat messages must already be filtered to explicit commitments.
     """
     events = dedupe_calendar_events(list(calendar_events))
     signals: list[_Signal] = []
@@ -230,6 +260,13 @@ def merge_sources(
             _Signal(
                 tokens=_tokens(event.title) | _tokens(event.description),
                 event=event,
+            )
+        )
+    for chat in chat_messages:
+        signals.append(
+            _Signal(
+                tokens=_chat_tokens(chat),
+                chat=chat,
             )
         )
 
@@ -267,6 +304,10 @@ def obligation_attention_item(obligation: Obligation) -> AttentionItem:
             evidence_ids.append(evidence.note_id)
             label = evidence.title or evidence.note_id
             parts.append(f"Note: {label}")
+        elif evidence.kind == "chat":
+            evidence_ids.append(evidence.message_id)
+            label = evidence.snippet or evidence.message_id
+            parts.append(f"Chat: {label}")
 
     if obligation.due_at is not None:
         parts.append(f"Due {obligation.due_at.isoformat()}")
@@ -294,11 +335,13 @@ def merge_sources_to_attention(
     reminders: Sequence[PrivateReminder] = (),
     messages: Sequence[PrivateMessage] = (),
     calendar_events: Sequence[PrivateCalendarEvent] = (),
+    chat_messages: Sequence[PrivateChatMessage] = (),
 ) -> list[AttentionItem]:
     """Merge sources and emit one attention item per resulting Obligation."""
     obligations = merge_sources(
         reminders=reminders,
         messages=messages,
         calendar_events=calendar_events,
+        chat_messages=chat_messages,
     )
     return [obligation_attention_item(o) for o in obligations]

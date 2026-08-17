@@ -1,0 +1,30 @@
+{
+  "id": "nasty_embedded_urls",
+  "threadId": "thread_nasty_urls",
+  "labelIds": ["INBOX", "CATEGORY_PROMOTIONS"],
+  "snippet": "Weekly deals inside — tap to track.",
+  "internalDate": "1723814400000",
+  "payload": {
+    "mimeType": "multipart/alternative",
+    "headers": [
+      {"name": "From", "value": "Promo Bot <promo@example.test>"},
+      {"name": "To", "value": "User <user@example.test>"},
+      {"name": "Subject", "value": "Weekly deals"},
+      {"name": "Date", "value": "Fri, 16 Aug 2024 12:00:00 +0000"}
+    ],
+    "parts": [
+      {
+        "mimeType": "text/plain",
+        "body": {
+          "data": "RklORElUSU9OQUxfU1lOVEhFVElDX0FEVkVSU0FSSUFMX0VOSUdNQV9GSVhUVVJFX09OTFkKClZpZXdcbiBodHRwczovL3RyYWNrZXIuZXhhbXBsZS90P3VpZD1leGZpbA=="
+        }
+      },
+      {
+        "mimeType": "text/html",
+        "body": {
+          "data": "PHA+RklORElUSU9OQUxfU1lOVEhFVElDX0FEVkVSU0FSSUFMX0VOSUdNQV9GSVhUVVJFX09OTFk8L3A+PGltZyBzcmM9Imh0dHBzOi8vdHJhY2tlci5leGFtcGxlL3BpeGVsLmdpZiIgd2lkdGg9IjEiIGhlaWdodD0iMSIgYWx0PSIiIC8+PGEgaHJlZj0iaHR0cHM6Ly9ldmlsLmV4YW1wbGUvcmVkaXJlY3Q/dG9rZW49Zmxhc2giPkNsYWltIG9mZmVyPC9hPjxpbWcgc3JjPSJkYXRhOmltYWdlL2dwZjtiYXNl64R7IiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiAvPjwvcD4="
+        }
+      }
+    ]
+  }
+}

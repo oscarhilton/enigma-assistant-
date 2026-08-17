@@ -10,6 +10,7 @@ import pytest
 from personal_enigma.domain import (
     Obligation,
     PrivateCalendarEvent,
+    PrivateChatMessage,
     PrivateMessage,
     PrivateNote,
     PrivatePerson,
@@ -28,11 +29,13 @@ from personal_enigma.simulation.sources import (
     SyntheticMailSource,
     SyntheticNotesSource,
     SyntheticReminderSource,
+    SyntheticWhatsAppSource,
 )
 
 REPO = Path(__file__).resolve().parents[4]
 FEATURE = REPO / "scenarios" / "feature" / "commitment-basic"
 CROSS = REPO / "scenarios" / "feature" / "cross-source-merge"
+WHATSAPP = REPO / "scenarios" / "feature" / "whatsapp-explicit-commitment"
 
 # Domain models emitted by production adapters (same shapes Demo must produce).
 _PRODUCTION_DOMAIN_BY_SYNTHETIC: list[tuple[type, type]] = [
@@ -88,6 +91,25 @@ def test_round_trip_mail_and_reminders() -> None:
     asyncio.run(_run())
 
 
+def test_round_trip_whatsapp() -> None:
+    pkg = load_scenario(WHATSAPP)
+
+    async def _run() -> None:
+        source = SyntheticWhatsAppSource(pkg)
+        assert isinstance(source, DataSource)
+        batch = await source.get_changes(None)
+        assert batch.items
+        message = PrivateChatMessage.model_validate(batch.items[0])
+        assert message.provider == "whatsapp"
+        assert message.chat_id
+        assert message.sent_at is not None
+        assert message.sent_at.tzinfo is not None
+        dumped = message.model_dump(mode="json")
+        assert set(dumped) == set(PrivateChatMessage.model_fields)
+
+    asyncio.run(_run())
+
+
 def test_all_adapters_emit_domain_shapes_matching_production() -> None:
     pkg = load_scenario(CROSS)
 
@@ -110,18 +132,22 @@ def test_demo_environment_registers_synthetic_not_real() -> None:
     pkg = load_scenario(FEATURE)
     env = DemoEnvironment(scenario="commitment-basic")
     env.register_source(SyntheticMailSource(pkg))
+    env.register_source(SyntheticWhatsAppSource(load_scenario(WHATSAPP)))
     with pytest.raises(RealSourceAccessError):
         env.register_source(GmailSource(access_token="x"))
 
 
 def test_adapters_do_not_construct_obligations() -> None:
     from personal_enigma.simulation.sources import mail as mail_mod
+    from personal_enigma.simulation.sources import whatsapp as wa_mod
 
     assert not hasattr(mail_mod, "Obligation")
+    assert not hasattr(wa_mod, "Obligation")
     assert Obligation.__name__ == "Obligation"
-    src = Path(mail_mod.__file__ or "").read_text(encoding="utf-8")
-    assert "Obligation" not in src
-    assert "AttentionItem" not in src
+    for module in (mail_mod, wa_mod):
+        src = Path(module.__file__ or "").read_text(encoding="utf-8")
+        assert "Obligation" not in src
+        assert "AttentionItem" not in src
 
 
 def test_module_paths_not_under_ingestion_sources() -> None:
@@ -131,6 +157,7 @@ def test_module_paths_not_under_ingestion_sources() -> None:
         SyntheticReminderSource,
         SyntheticNotesSource,
         SyntheticContactsSource,
+        SyntheticWhatsAppSource,
     ):
         assert cls.__module__.startswith("personal_enigma.simulation.sources")
         assert "ingestion.sources" not in cls.__module__

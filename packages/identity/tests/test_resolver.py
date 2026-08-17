@@ -50,6 +50,19 @@ def test_email_invite_name_and_contact_unify_to_one_person() -> None:
     assert len(str(from_contact)) == len("PERSON_") + 6
 
 
+def test_phone_ref_unifies_with_contact() -> None:
+    resolver = HmacEntityResolver(FIXED_KEY)
+    contact = PrivatePerson(
+        id=uuid4(),
+        display_name="Elena Vargas",
+        phone_numbers=["+447700900011"],
+    )
+    from_contact = resolver.resolve_person(contact)
+    from_phone = resolver.resolve_ref(PrivatePersonRef(phone="+44 7700 900011"))
+    assert from_phone is not None
+    assert str(from_contact) == str(from_phone)
+
+
 def test_unification_stable_across_resolver_instances_with_same_index() -> None:
     person = PrivatePerson(
         id=uuid4(),
