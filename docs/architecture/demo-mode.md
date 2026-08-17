@@ -11,7 +11,7 @@ MVP proves Enigma can ingest, transform, reason, attend, and stay private for in
 
 > Can Enigma develop a useful model of a person **over time**?
 
-Demo Mode runs the **real** Enigma pipeline against one or more fictional lives whose synthetic world has **known ground truth**. The canonical initial persona is **Alex Morgan** (`scenarios/alex-v1/`). Downstream packages must not know whether inputs came from synthetic or private adapters.
+Demo Mode runs the **real** Enigma pipeline against one or more fictional lives whose synthetic world has **known ground truth**. The canonical persona is **Alex Morgan** (`scenarios/alex-v1/` — 0.2.1 is three January weeks; six months of ordinary events is a version bump, not a second package: [demo-corpus.md](./demo-corpus.md#six-month-ordinary-life-d08f)). Downstream packages must not know whether inputs came from synthetic or private adapters.
 
 Demo Mode simultaneously serves as:
 
