@@ -67,7 +67,7 @@ def assert_remote_safe(payload: Any) -> TransformedContext:
 
 def _flatten_text(context: TransformedContext) -> str:
     parts: list[str] = [context.summary, *context.entities]
-    for rel in context.relations:
+    for rel in getattr(context, "relations", None) or []:
         parts.append(rel.model_dump_json())
     for key, value in context.metadata.items():
         parts.append(str(key))

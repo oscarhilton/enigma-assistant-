@@ -15,7 +15,42 @@ from personal_enigma.privacy.egress.disclosure import (
     tool_names_from_wire,
 )
 
+
+def _manifest_dict(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if hasattr(value, "model_dump"):
+        dumped = value.model_dump(mode="json")
+        return dumped if dumped else None
+    if isinstance(value, dict) and value:
+        return value
+    return None
+
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+
+_DEFAULT_CONVERSATION_PROMPT = (
+    "You are Enigma's conversational orchestrator. "
+    "World state is truth — not chat history. "
+    "Conversation state resolves language; tools establish truth. "
+    "Context may help the model understand the question. It may not answer the question. "
+    "Assist funnel (never skip toward more authority): "
+    "UNDERSTAND → SUPPORT → PREPARE → PROPOSE → APPROVE → EXECUTE. "
+    "Distress may increase supportiveness, never authority. "
+    "Ambiguous help requests default to the least-authoritative useful interpretation. "
+    "The request chooses the context. The request selects what to fetch, transform, and send. "
+    "The existence of context does not justify sending it. "
+    "Context should be earned by the request. "
+    "Every piece of remote context must have a request-derived justification. "
+    "Context that is not required for this request does not enter the prompt. "
+    "Recent chat helps interpret the conversation. It does not establish world truth. "
+    "Chat history remembers the conversation. World state remembers the world. "
+    "Chat history explains meaning; it does not become world truth. "
+    "Send enough previous conversation to understand meaning — not enough to recreate their life. "
+    "User reports are evidence; user commands grant authority. "
+    "Long memory underneath. Short attention above. "
+    "Words are working memory. State is memory. "
+    "Never invent world facts — only tools provide truth."
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +82,7 @@ class RemoteSafeContext(BaseModel):
     included: list[str] = Field(default_factory=list)
     excluded: list[str] = Field(default_factory=list)
     denied_capabilities: list[str] = Field(default_factory=list)
+    context_manifest: dict[str, Any] | None = None
 
     @classmethod
     def from_transformed(
@@ -79,9 +115,10 @@ class RemoteSafeContext(BaseModel):
                 "metadata": safe_metadata,
             },
         }
-        if context.relations:
+        relations = getattr(context, "relations", None) or []
+        if relations:
             wire_user["context"]["relations"] = [
-                rel.model_dump(mode="json") for rel in context.relations
+                rel.model_dump(mode="json") for rel in relations
             ]
         body: dict[str, Any] = {
             "model": model,
@@ -106,7 +143,7 @@ class RemoteSafeContext(BaseModel):
             field_summary={
                 "summary_word_count": len(context.summary.split()),
                 "entity_count": len(context.entities),
-                "relation_count": len(context.relations),
+                "relation_count": len(getattr(context, "relations", None) or []),
                 "metadata_keys": sorted(safe_metadata.keys()),
                 "pseudonym_count": sum(
                     1 for entity in context.entities if str(entity).startswith("PERSON_")
@@ -124,63 +161,48 @@ class RemoteSafeContext(BaseModel):
         model: str,
         provider: str = "fireworks",
         denied_capabilities: list[str] | None = None,
+        system_prompt: str | None = None,
+        request_profile: str | None = None,
+        context_manifest: dict[str, Any] | None = None,
     ) -> RemoteSafeContext:
-        """C09 orchestrator path — utterance, conversation state, same tool schemas."""
-        conversation = {
-            "current_subject_id": context_summary.get("current_subject_id"),
-            "current_subject_kind": context_summary.get("current_subject_kind"),
+        """C09 orchestrator path — compiled working set, not the whole world."""
+        summary = dict(context_summary)
+        prompt = system_prompt or summary.pop("system_prompt", None) or _DEFAULT_CONVERSATION_PROMPT
+        profile = request_profile or summary.pop("request_profile", None)
+        skip = {"system_prompt", "last_intent_kind", "last_period", "context_manifest"}
+        top_level = {
+            "recent_dialogue",
+            "simulated_time",
+            "attention_count",
+            "working_set",
+            "attention_working_set",
+            "current_subject_summary",
         }
-        for key in (
-            "referent_candidates",
-            "current_attention_item_id",
-            "current_next_action_id",
-            "current_assist_proposal_id",
-            "suppressed_next_action_ids",
-            "last_intent_kind",
-            "last_period",
-        ):
-            if key in context_summary:
-                conversation[key] = context_summary[key]
-        user_content: dict[str, Any] = {
-            "user_message": user_message,
-            "conversation": conversation,
-        }
-        if "simulated_time" in context_summary:
-            user_content["simulated_time"] = context_summary["simulated_time"]
-        if "attention_count" in context_summary:
-            user_content["attention_count"] = context_summary["attention_count"]
+        conversation: dict[str, Any] = {}
+        user_content: dict[str, Any] = {"user_message": user_message}
+        if profile:
+            user_content["request_profile"] = profile
+        for key, value in summary.items():
+            if key in skip:
+                continue
+            if key in top_level:
+                if value not in (None, [], {}):
+                    user_content[key] = value
+            else:
+                conversation[key] = value
+        if conversation:
+            user_content["conversation"] = conversation
+        manifest = _manifest_dict(context_manifest) or _manifest_dict(
+            summary.get("context_manifest")
+        )
+        field_manifest = manifest
         blob = json.dumps(user_content, default=str)
         if _EMAIL_RE.search(blob):
             raise ValueError("conversation orchestrator payload contains raw email address")
         body: dict[str, Any] = {
             "model": model,
             "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are Enigma's conversational orchestrator for a demo assistant. "
-                        "Conversation state resolves language; tools establish truth. "
-                        "referent_candidates are {id, label, kind} for resolving 'that' / "
-                        "named subjects only — not a schedule, not urgency, not status, "
-                        "not recommendations, not world claims. "
-                        "A question about the user's private world must be grounded by "
-                        "calling an Enigma tool. Do not answer private-world questions "
-                        "from conversation state alone. "
-                        "For questions about the user's personal world (attention, calendar, "
-                        "what is on a period, next actions, availability, what changed), "
-                        "select the matching tool. "
-                        "Never invent world facts — only tools provide truth. "
-                        "Mail importance is an attention question: call attention.get_current, "
-                        "never a mail-search tool. "
-                        "For ordinary conversation (greetings, chitchat, general knowledge "
-                        "such as the colour of the sky), answer in content with no tool calls. "
-                        "If the request is genuinely ambiguous, ask a brief clarifying question. "
-                        "Do not default to saying you don't follow. "
-                        "If no tool can ground a personal-world fact, return no tool calls "
-                        "and admit ignorance — do not guess from referent_candidates. "
-                        "Referents come from conversation context, not invention."
-                    ),
-                },
+                {"role": "system", "content": prompt},
                 {"role": "user", "content": blob},
             ],
             "tools": tools,
@@ -197,6 +219,7 @@ class RemoteSafeContext(BaseModel):
             included=list(CONVERSATION_EGRESS_INCLUDED),
             excluded=list(CONVERSATION_EGRESS_EXCLUDED),
             denied_capabilities=list(denied_capabilities or ()),
+            context_manifest=field_manifest,
             field_summary={
                 "message_word_count": len(user_message.split()),
                 "context_keys": sorted(conversation.keys()),
@@ -204,5 +227,7 @@ class RemoteSafeContext(BaseModel):
                 "tool_names": tool_names,
                 "simulated_time": user_content.get("simulated_time"),
                 "attention_count": user_content.get("attention_count"),
+                "request_profile": profile,
+                "context_manifest": field_manifest,
             },
         )

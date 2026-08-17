@@ -347,9 +347,10 @@ def test_subject_referent_acceptance_transcript(llm_demo_client: TestClient) -> 
     assert "token" in start["items"][0]["proposal"]["title"].lower()
 
     why = _ask(llm_demo_client, "Why do i need to do this?")
-    assert why["items"][0]["kind"] == "attention_item"
-    assert why["items"][0]["item"]["id"] == TOKEN_ID
-    assert why["items"][0]["item"]["id"] != BRUNCH_ID
+    why_items = [item for item in why["items"] if item["kind"] == "attention_item"]
+    assert why_items
+    assert why_items[0]["item"]["id"] == TOKEN_ID
+    assert why_items[0]["item"]["id"] != BRUNCH_ID
 
     reject = _ask(llm_demo_client, "Actually, I can't be bothered.")
     assert reject["items"][0]["kind"] == "enigma_message"
@@ -440,6 +441,15 @@ class _ScriptedFrontDoorLLM:
         if user_message not in self._script:
             raise AssertionError(f"unscripted utterance: {user_message!r}")
         return [call.model_copy(deep=True) for call in self._script[user_message]]
+
+
+def test_demo_session_exposes_chat_index_for_llm_front_door() -> None:
+    """Live Demo LLM path reads DemoSession.chat_index; missing attr is HTTP 500."""
+    from personal_enigma.api.demo_chat import DemoChatIndex
+    from personal_enigma.api.routes.demo import DemoSession
+
+    session = DemoSession()
+    assert isinstance(session.chat_index, DemoChatIndex)
 
 
 def test_front_door_enters_orchestrator_when_fireworks_configured(

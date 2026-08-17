@@ -14,6 +14,7 @@ from personal_enigma.privacy.egress.classification import (
     RemoteSafeContext,
 )
 from personal_enigma.privacy.egress.disclosure import (
+    CompiledTurnManifest,
     EgressDisclosure,
     redact_transport_secrets,
 )
@@ -266,6 +267,11 @@ class AuditedEgressGate:
             included=list(remote_ctx.included),
             excluded=list(remote_ctx.excluded),
             denied_capabilities=list(remote_ctx.denied_capabilities),
+            context_manifest=(
+                CompiledTurnManifest.model_validate(remote_ctx.context_manifest)
+                if remote_ctx.context_manifest
+                else None
+            ),
         )
         self._store.append(disclosure)
         return EgressResult(disclosure=disclosure, response=response, sent=True)
@@ -346,6 +352,11 @@ class AuditedEgressGate:
             included=list(context.included),
             excluded=list(context.excluded),
             denied_capabilities=list(context.denied_capabilities),
+            context_manifest=(
+                CompiledTurnManifest.model_validate(context.context_manifest)
+                if context.context_manifest
+                else None
+            ),
         )
         self._store.append(disclosure)
         return EgressResult(

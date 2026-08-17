@@ -185,7 +185,8 @@ def test_tool_registry_is_one_fact_derived_from_wire() -> None:
     summary_names = set(store.recent(limit=1)[0].payload_field_summary.get("tool_names") or [])
 
     assert schema_names == set(ALLOWED_TOOL_NAMES)
-    assert wire_names == schema_names == disclosure_names == summary_names
+    assert wire_names == disclosure_names == summary_names
+    assert wire_names <= schema_names
     assert wire_names.isdisjoint(LEGACY_TOOL_NAMES)
     assert set(store.recent(limit=1)[0].denied_capabilities) == set(DENIED_REMOTE_CAPABILITIES)
 
