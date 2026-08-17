@@ -1,0 +1,236 @@
+# Life Script — Alex, Monday 19 Jan 2026, 10:00.
+# Discourse focus vs objects on radar.
+#
+# Frozen rules:
+#   1. Scripts speak like Alex, never like Enigma internals.
+#   2. Assertions observe public effects + structured boundaries.
+#   3. Model-specific behaviour is replaceable; world truth is not.
+#   4. Not falling back is not the same as understanding.
+#
+# Product boundary this episode exists to lock:
+#
+#   objects_in_response[]  ≠  conversation_focus
+#
+# Rendering "also on radar: brunch" MUST NOT steal focus from TOKEN.
+# ConversationContext (C09) owns:
+#   current_subject_id · current_subject_kind · focus_reason
+#
+# Transitions (do not silently teach the router English):
+#   USER explicitly selects item          → change focus
+#   MODEL answers primarily about item    → may change focus
+#   HORIZON MODIFIER ("this week?")       → preserve focus unless the
+#                                           response clearly replaces it
+#   SECONDARY CARD RENDERED (radar)       → DO NOT change focus
+#   FAILED / UNKNOWN TURN                 → DO NOT change focus
+#
+# Forensic UI session (Jan 19 10:00) was PATH=intent_router,
+# REMOTE CONTEXT SENT=none. Do NOT add "help!" to the router —
+# leave it as evidence why the router must die. C09 must interpret.
+#
+# TOKEN  = item-obligation_token_audit
+# BRUNCH = item-obligation_brunch_book
+#
+# If brunch steals focus, this script going red is correct.
+# Do not cheat by matching the buggy behaviour.
+
+scenario: alex_jan19_focus_vs_radar
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  Hold TOKEN as conversation focus while brunch is allowed to appear as a
+  secondary radar object. Horizon modifiers must not steal the subject.
+  Named referent recovery and Assist targeting follow the subject, not
+  the last card rendered. Vague "help!" is social, not Assist. Delayed
+  Assist completion belongs to its originating action, not the current turn.
+
+pass_rule: >
+  Judge capability family, subject, secondary objects, Assist target, and
+  attribution. Do NOT require exact assistant wording. Do NOT encode
+  router intents, handler names, or regex. objects_in_response ≠ focus.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "What is urgent right now?"
+    v1: live
+    comment: >
+      Nothing needs Alex as an interrupt. The good optional action is the
+      token inventory — that becomes conversation focus. Brunch may sit
+      on radar. Radar is not the subject.
+    expect:
+      meaning: current_attention
+      needs_you: []
+      current_subject_id: TOKEN_AUDIT
+    response:
+      meaning:
+        - nothing_needs_attention
+      may_offer: token_inventory_optional
+      must_not:
+        - promote_token_to_needs_you
+        - invent_urgency
+
+  - user: "this week?"
+    v1: live
+    comment: >
+      Horizon modifier. Re-query the week. Brunch may appear as a
+      secondary object ("also on radar"). That card must not become
+      current_subject. Focus stays TOKEN.
+    expect:
+      tool: availability.check
+      arguments:
+        period: this_week
+      preserve_subject: TOKEN_AUDIT
+      secondary_items: BRUNCH
+      secondary_items_may_include: BRUNCH
+
+  - user: "what about the week after?"
+    v1: live
+    comment: >
+      Second horizon. Still a modifier, not a new subject. Focus stays
+      TOKEN unless the response is clearly about something else.
+    expect:
+      tool: availability.check
+      arguments:
+        period: next_week
+      preserve_subject: TOKEN_AUDIT
+
+  - user: "What is the draft colour?"
+    v1: live
+    comment: >
+      Lexical / named-referent recovery to TOKEN. This is C09, not a
+      regex. The router cannot learn "draft colour". Deterministic
+      planner follows the capability; live Fireworks must choose it.
+    expect:
+      tool: world.explain
+      current_subject_id: TOKEN_AUDIT
+    response:
+      meaning:
+        - token_inventory_good_action
+      must_not:
+        - invent_urgency
+
+  - user: "Can you help me do that?"
+    v1: live
+    comment: >
+      "that" is TOKEN if focus held. The live UI proposed BRUNCH because
+      a secondary radar card stole the subject — that is the bug. Do not
+      encode the buggy target here.
+    expect:
+      tool: assist.propose
+      current_subject_id: TOKEN_AUDIT
+      assist_target: TOKEN_AUDIT
+      world_mutation: false
+    response:
+      must_not:
+        - execute_without_approval
+
+  - user: "I need help with the token inventory"
+    v1: live
+    comment: >
+      Explicit named referent. Even if "that" drifted, saying the name
+      recovers TOKEN and Assist must target TOKEN. C09, not phrase maps.
+    expect:
+      tool: assist.propose
+      current_subject_id: TOKEN_AUDIT
+      assist_target: TOKEN_AUDIT
+      world_mutation: false
+    response:
+      must_not:
+        - execute_without_approval
+
+  - inject:
+      wrong_subject_id: BRUNCH
+      note: >
+        MODEL / TEST INJECTION: brunch is conversation focus. Named
+        "design tokens" must retarget TOKEN. Empty assist.propose must
+        not execute brunch.
+    user: "I need help with the design tokens"
+    v1: live
+    comment: >
+      Harder than the agreeing-subject case. Focus is BRUNCH; the
+      utterance names TOKEN. Success is assist.propose targeting
+      TOKEN_AUDIT, not brunch. help! stays off the router.
+    expect:
+      tool: assist.propose
+      current_subject_id: TOKEN_AUDIT
+      assist_target: TOKEN_AUDIT
+      world_mutation: false
+    response:
+      must_not:
+        - execute_without_approval
+
+  - user: "Go on then."
+    v1: live
+    comment: >
+      Authority transition. Model may send assist.approve({}). Enigma
+      must bind proposal_id before execution.
+    expect:
+      tool: assist.approve
+      verified_external_effect: true
+
+  - user: "help!"
+    v1: live
+    comment: >
+      Vague social distress, not Assist. Do NOT add this phrase to
+      intent_router. Ordinary conversation. No tool. No proposal.
+    expect:
+      no_tool: true
+      conversational_response: true
+      fallback_not_allowed: true
+      response_meaning:
+        - social_acknowledgement
+    response:
+      must_not:
+        - execute_without_approval
+        - appear_as_reply_to_current_user_turn
+
+  - user: "heeeelllppp!!"
+    v1: live
+    comment: >
+      Same lane as help! — elongated social, still not Assist. Leave
+      the router unable to parse this. That inability is the point.
+    expect:
+      no_tool: true
+      conversational_response: true
+      fallback_not_allowed: true
+      response_meaning:
+        - social_acknowledgement
+    response:
+      must_not:
+        - execute_without_approval
+        - appear_as_reply_to_current_user_turn
+
+  - event: assist_verified
+    v1: deferred
+    deferred_reason: >
+      Asynchronous Assist completion is not a first-class conversation
+      event on the v1 surface. Completions currently append as ordinary
+      transcript items, often stamped with the current user turn, so
+      "Done — Saturday brunch is booked" can appear as a reply to help!.
+      Missing: parent correlation on the originating Assist, and updating
+      that Assist card rather than conversational prose.
+    comment: >
+      If a brunch Assist was already in flight, its verified completion
+      must attach to that Assist (correlation parent) and must not
+      appear as the reply to the current user turn.
+    expect:
+      attributed_to_original_assist: BRUNCH
+    response:
+      must_not:
+        - appear_as_reply_to_current_user_turn
