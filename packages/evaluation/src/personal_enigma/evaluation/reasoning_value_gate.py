@@ -59,6 +59,10 @@ class LiveGateEvidence:
     median_output_tokens: int
     architecture_decision: LiveGateArchitectureDecision
     architecture_rationale: str
+    rescues: int = 0
+    regressions: int = 0
+    agreements: int = 0
+    shared_failures: int = 0
     attributions: list[dict[str, Any]] = field(default_factory=list)
     benchmark: dict[str, Any] = field(default_factory=dict)
     ablation: dict[str, Any] = field(default_factory=dict)
@@ -79,6 +83,10 @@ class LiveGateEvidence:
             "schema_failure_rate": self.schema_failure_rate,
             "privacy_failure_rate": self.privacy_failure_rate,
             "critical_regressions": self.critical_regressions,
+            "rescues": self.rescues,
+            "regressions": self.regressions,
+            "agreements": self.agreements,
+            "shared_failures": self.shared_failures,
             "total_cost_usd": self.total_cost_usd,
             "median_latency_ms_arm_b": self.median_latency_ms_arm_b,
             "median_input_tokens": self.median_input_tokens,
@@ -231,6 +239,9 @@ def collect_live_gate_evidence(
     deltas = {k: arm_b.get(k, 0.0) - arm_a.get(k, 0.0) for k in set(arm_a) | set(arm_b)}
     outcomes = getattr(main, "outcome_counts", None)
     critical_regressions = outcomes.regressions if outcomes else 0
+    rescues = outcomes.rescues if outcomes else 0
+    agreements = outcomes.agreements if outcomes else 0
+    shared_failures = outcomes.shared_failures if outcomes else 0
     decision, rationale = decide_live_architecture(
         arm_a,
         arm_b,
@@ -253,6 +264,10 @@ def collect_live_gate_evidence(
         schema_failure_rate=float(getattr(main, "schema_failure_rate", 0.0)),
         privacy_failure_rate=float(getattr(main, "privacy_failure_rate", 0.0)),
         critical_regressions=critical_regressions,
+        rescues=rescues,
+        regressions=critical_regressions,
+        agreements=agreements,
+        shared_failures=shared_failures,
         total_cost_usd=float(getattr(ledger, "cumulative_usd", 0.0)),
         median_latency_ms_arm_b=float(getattr(main, "median_latency_ms", 0.0)),
         median_input_tokens=int(getattr(main, "median_input_tokens", 0)),
@@ -301,6 +316,9 @@ def render_live_gate_report_markdown(evidence: LiveGateEvidence) -> str:
         f"| Schema failures | — | {evidence.schema_failure_rate:.1%} | — |",
         f"| Privacy failures | — | {evidence.privacy_failure_rate:.1%} | — |",
         f"| Critical regressions | — | {evidence.critical_regressions} | — |",
+        f"| Rescues (A fail → B pass) | — | {evidence.rescues} | — |",
+        f"| Agreements (both pass) | — | {evidence.agreements} | — |",
+        f"| Shared failures (both fail) | — | {evidence.shared_failures} | — |",
         f"| Median latency | ~ms | {evidence.median_latency_ms_arm_b:.1f} ms | — |",
         f"| Median input tokens | — | {evidence.median_input_tokens} | — |",
         f"| Median output tokens | — | {evidence.median_output_tokens} | — |",

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from typing import Any
+from typing import Any, Protocol
 from urllib import error, request
 
 from personal_enigma.reasoning.logging import UsageRecord
@@ -20,9 +20,24 @@ from personal_enigma.reasoning.structured_output import (
     parse_semantic_judge_v1_output,
     semantic_judge_v1_response_format,
 )
+from personal_enigma.transformation import TransformedContext
 
 JudgeArm = str  # "b1" | "b2" — evaluation benchmark arms only
-from personal_enigma.transformation import TransformedContext
+
+
+class BudgetAttemptHook(Protocol):
+    """Optional hook for budget-gated live calls (wired by evaluation layer)."""
+
+    def check_can_spend(self, *, input_tokens: int, max_output_tokens: int) -> float: ...
+
+    def record_attempt(
+        self,
+        *,
+        prompt_tokens: int,
+        completion_tokens: int,
+        metadata: dict[str, Any] | None = None,
+        model: str = "",
+    ) -> None: ...
 
 DEFAULT_FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1"
 DEFAULT_FIREWORKS_MODEL = "accounts/fireworks/models/gpt-oss-120b"
@@ -208,6 +223,11 @@ def _resolve_max_output_tokens(
     return transport_default
 
 
+def _prompt_tokens_from_payload(payload: dict[str, Any]) -> int:
+    usage_raw = payload.get("usage") or {}
+    return int(usage_raw.get("prompt_tokens", 0))
+
+
 class FireworksChatTransport:
     """HTTP transport for Fireworks serverless Chat Completions.
 
@@ -231,10 +251,19 @@ class FireworksChatTransport:
         self._timeout_s = timeout_s
         self._max_output_tokens = max_output_tokens
         self._urlopen = urlopen or request.urlopen
+        self._budget_hook: BudgetAttemptHook | None = None
 
     @property
     def max_output_tokens(self) -> int:
         return self._max_output_tokens
+
+    @property
+    def budget_hook(self) -> BudgetAttemptHook | None:
+        return self._budget_hook
+
+    @budget_hook.setter
+    def budget_hook(self, hook: BudgetAttemptHook | None) -> None:
+        self._budget_hook = hook
 
     def _build_request_body(
         self,
@@ -277,6 +306,26 @@ class FireworksChatTransport:
         )
         with self._urlopen(req, timeout=self._timeout_s) as resp:
             return json.loads(resp.read().decode("utf-8"))
+
+    def _record_http_usage(
+        self,
+        payload: dict[str, Any],
+        *,
+        attempt: str,
+        finish_reason: str = "",
+        model: str = "",
+    ) -> tuple[int, int]:
+        usage_raw = payload.get("usage") or {}
+        prompt_tokens = int(usage_raw.get("prompt_tokens", 0))
+        completion_tokens = int(usage_raw.get("completion_tokens", 0))
+        if self._budget_hook is not None:
+            self._budget_hook.record_attempt(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                metadata={"attempt": attempt, "finish_reason": finish_reason},
+                model=model,
+            )
+        return prompt_tokens, completion_tokens
 
     def complete(
         self,
@@ -433,12 +482,29 @@ class FireworksChatTransport:
             )
         text = _extract_message_content(message)
         retried_for_length = False
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
+        budget_records_attempts = self._budget_hook is not None
+        if budget_records_attempts:
+            p, c = self._record_http_usage(
+                payload,
+                attempt="initial",
+                finish_reason=finish_reason,
+                model=resolved_model,
+            )
+            total_prompt_tokens += p
+            total_completion_tokens += c
         if (
             judge_arm == "b2"
             and finish_reason == "length"
             and not _semantic_output_valid(text)
             and resolved_max_tokens < SEMANTIC_LENGTH_RETRY_MAX_TOKENS
         ):
+            if self._budget_hook is not None:
+                self._budget_hook.check_can_spend(
+                    input_tokens=total_prompt_tokens or _prompt_tokens_from_payload(payload),
+                    max_output_tokens=SEMANTIC_LENGTH_RETRY_MAX_TOKENS,
+                )
             retry_body = self._build_request_body(
                 model=resolved_model,
                 prompt=prompt,
@@ -456,17 +522,31 @@ class FireworksChatTransport:
                     retry_choice = retry_choices[0]
                     retry_message = retry_choice.get("message") or {}
                     retry_text = _extract_message_content(retry_message)
+                    retry_finish = str(retry_choice.get("finish_reason") or "")
+                    if budget_records_attempts:
+                        p, c = self._record_http_usage(
+                            retry_payload,
+                            attempt="length_retry",
+                            finish_reason=retry_finish,
+                            model=resolved_model,
+                        )
+                        total_prompt_tokens += p
+                        total_completion_tokens += c
                     if _semantic_output_valid(retry_text):
                         payload = retry_payload
                         choice = retry_choice
                         message = retry_message
-                        finish_reason = str(retry_choice.get("finish_reason") or "")
+                        finish_reason = retry_finish
                         response_shape = describe_message_shape(message)
                         text = retry_text
                         retried_for_length = True
-        usage_raw = payload.get("usage") or {}
-        prompt_tokens = int(usage_raw.get("prompt_tokens", 0))
-        completion_tokens = int(usage_raw.get("completion_tokens", 0))
+        if budget_records_attempts:
+            prompt_tokens = total_prompt_tokens
+            completion_tokens = total_completion_tokens
+        else:
+            usage_raw = payload.get("usage") or {}
+            prompt_tokens = int(usage_raw.get("prompt_tokens", 0))
+            completion_tokens = int(usage_raw.get("completion_tokens", 0))
         usage = UsageRecord(
             model=resolved_model,
             mode=ReasoningMode.ENABLED,

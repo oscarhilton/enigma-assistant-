@@ -85,14 +85,17 @@ Judge the single candidate below against the sanitised checkpoint context.
 Do not rely on any prior heuristic policy — evaluate evidence independently.
 
 Attention decision semantics:
-- surface: this candidate warrants the user's attention **now** (action or decision needed at this checkpoint instant)
+- surface: this candidate warrants the user's attention **now**
+  (action or decision needed at this checkpoint instant)
 - suppress: no useful intervention at this instant
-- context: genuine but non-urgent information; use when relevant but no current intervention is useful
+- context: genuine but non-urgent information; use when relevant but no current
+  intervention is useful
 
 Important distinctions:
 - An open obligation alone does not justify surface
 - Important ≠ needs attention now; open ≠ urgent; candidate ≠ alert
-- It is valid and often desirable for every candidate to receive suppress or context (zero surfaces is ok)
+- It is valid and often desirable for every candidate to receive suppress or
+  context (zero surfaces is ok)
 
 Return JSON only (no markdown, no chain-of-thought) using schema judge-v1:
 

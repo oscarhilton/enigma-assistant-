@@ -170,6 +170,19 @@ class BudgetGatedFireworksTransport:
     def ledger(self) -> BenchmarkBudgetLedger:
         return self._ledger
 
+    def _make_budget_hook(
+        self,
+        *,
+        checkpoint_id: str,
+        rep: int,
+    ) -> _LedgerBudgetHook:
+        return _LedgerBudgetHook(
+            ledger=self._ledger,
+            checkpoint_id=checkpoint_id,
+            rep=rep,
+            phase=self._phase,
+        )
+
     def complete(
         self,
         *,
@@ -198,16 +211,31 @@ class BudgetGatedFireworksTransport:
         )
         self._ledger.check_can_spend(input_tokens=input_tokens, max_output_tokens=max_out)
 
-        result = self._transport.complete(
-            model=model,
-            prompt=prompt,
-            context=context,
-            rep=rep,
-            seed=seed,
-            max_output_tokens=max_output_tokens,
-        )
+        hook = self._make_budget_hook(checkpoint_id=checkpoint_id, rep=rep)
+        prior_hook = self._transport.budget_hook
+        self._transport.budget_hook = hook
+        try:
+            result = self._transport.complete(
+                model=model,
+                prompt=prompt,
+                context=context,
+                rep=rep,
+                seed=seed,
+                max_output_tokens=max_output_tokens,
+            )
+        finally:
+            self._transport.budget_hook = prior_hook
+
         usage = result.usage
         if usage is None:
+            return result
+
+        if hook.recorded:
+            cost = self._ledger.estimate_cost_usd(
+                input_tokens=usage.prompt_tokens or input_tokens,
+                output_tokens=usage.completion_tokens,
+            )
+            usage.estimated_cost_usd = cost
             return result
 
         prompt_tokens = usage.prompt_tokens or input_tokens
@@ -226,6 +254,42 @@ class BudgetGatedFireworksTransport:
             metadata={"status": result.metadata.get("status", "")},
         )
         return result
+
+
+@dataclass
+class _LedgerBudgetHook:
+    """Records each HTTP attempt and enforces cap before length retries."""
+
+    ledger: BenchmarkBudgetLedger
+    checkpoint_id: str
+    rep: int
+    phase: str
+    recorded: bool = False
+    model: str = ""
+
+    def check_can_spend(self, *, input_tokens: int, max_output_tokens: int) -> float:
+        return self.ledger.check_can_spend(
+            input_tokens=input_tokens, max_output_tokens=max_output_tokens
+        )
+
+    def record_attempt(
+        self,
+        *,
+        prompt_tokens: int,
+        completion_tokens: int,
+        metadata: dict[str, Any] | None = None,
+        model: str = "",
+    ) -> None:
+        self.ledger.record_request(
+            checkpoint_id=self.checkpoint_id,
+            rep=self.rep,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            phase=self.phase,
+            model=model or self.model,
+            metadata=metadata or {},
+        )
+        self.recorded = True
 
 
 __all__ = [
