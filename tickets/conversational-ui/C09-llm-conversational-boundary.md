@@ -149,6 +149,8 @@ Compare LLM path against `intent_router` oracle where both are enabled.
 - [ ] Ordinary conversation (no Enigma capability) → natural answer, not `"Okay."` and not canned unknown — **unmet** (respond phase stub)
 - [x] Assist propose → approve → verified ack unchanged (C07)
 - [x] Yes inherits the speech act; never SHOW? → yes → `assist.approve` (core `pending_dialogue_act`, not a router phrase)
+- [x] Context compiler recall: week / work / focus / email stay private-world; sky trivia is general knowledge ([ADR-029](../../docs/adr/029-context-compilation-request-shaped-memory.md))
+- [x] Compiler precision: OAuth / design tokens / wait / smile / sky stay non-private; bare `"yes"` is CONVERSATION unless live `APPROVE_CONFIRMATION`
 - [x] Proposal id round-trip: surfaced proposal is stored authoritatively; approval resolves the same id
 - [x] Referent correction updates focus and does not by itself authorize `assist.propose`
 - [x] Inspect / advise / external search missing on v1 defer honestly (`alex_jan19_speech_acts`)

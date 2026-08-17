@@ -9,6 +9,8 @@ from personal_enigma.privacy.egress.classification import (
 from personal_enigma.privacy.egress.disclosure import (
     CONVERSATION_EGRESS_EXCLUDED,
     CONVERSATION_EGRESS_INCLUDED,
+    CompiledTurnManifest,
+    ContextModuleDecision,
     EgressDisclosure,
     redact_transport_secrets,
     tool_names_from_wire,
@@ -30,6 +32,8 @@ from personal_enigma.privacy.egress.store import (
 __all__ = [
     "CONVERSATION_EGRESS_EXCLUDED",
     "CONVERSATION_EGRESS_INCLUDED",
+    "CompiledTurnManifest",
+    "ContextModuleDecision",
     "AuditBackedDisclosureStore",
     "AuditedEgressGate",
     "DisclosureStore",

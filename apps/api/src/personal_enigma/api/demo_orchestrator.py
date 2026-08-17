@@ -10,6 +10,10 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from personal_enigma.api.context_compilation import (
+    CompiledRemoteContext,
+    compile_remote_context,
+)
 from personal_enigma.api.conversation_context import (
     ConversationContext,
     DialogueTurn,
@@ -298,6 +302,7 @@ def build_llm_trace(
     correlation_id: str | None = None,
     referent_resolution: list[dict[str, Any]] | None = None,
     executed_tool_request: list[ToolCallRecord] | None = None,
+    tools_available: list[str] | None = None,
 ) -> LlmTrace:
     included: list[str] = []
     excluded: list[str] = list(_PRIVACY_EXCLUDED)
@@ -313,7 +318,9 @@ def build_llm_trace(
         planner=planner,
         user_message=user_message,
         conversation_state=conversation_state,
-        tools_available=_tools_available(),
+        tools_available=(
+            list(tools_available) if tools_available is not None else _tools_available()
+        ),
         remote_context_sent=remote_context_sent,
         model_tool_request=[call.model_dump(mode="json") for call in tool_calls or []],
         referent_resolution=list(referent_resolution or []),
@@ -400,6 +407,19 @@ def context_summary(
         summary["simulated_time"] = state.simulated_time
         summary["attention_count"] = len(state.needs_you) + len(state.context)
     return summary
+
+
+def _planner_wire_context(
+    user_message: str, session: DemoToolSession
+) -> tuple[CompiledRemoteContext, dict[str, Any]]:
+    """Compile the remote working set; keep last_intent locally for the oracle."""
+    compiled = compile_remote_context(user_message, session)
+    local = context_summary(session.context, session.state)
+    wire = compiled.wire_context()
+    wire["last_intent_kind"] = local.get("last_intent_kind")
+    wire["last_period"] = local.get("last_period")
+    wire["context_manifest"] = compiled.manifest.model_dump(mode="json")
+    return compiled, wire
 
 
 def _matches_start_todays_action(normalized: str) -> bool:
@@ -670,6 +690,21 @@ class EgressConversationLLM:
             model=self._model,
             provider=self._provider,
             denied_capabilities=list(DENIED_REMOTE_CAPABILITIES),
+            system_prompt=(
+                context_summary.get("system_prompt")
+                if isinstance(context_summary.get("system_prompt"), str)
+                else None
+            ),
+            request_profile=(
+                context_summary.get("request_profile")
+                if isinstance(context_summary.get("request_profile"), str)
+                else None
+            ),
+            context_manifest=(
+                context_summary.get("context_manifest")
+                if isinstance(context_summary.get("context_manifest"), dict)
+                else None
+            ),
         )
         gate = self._resolve_gate()
         self.last_gate = gate
@@ -1076,6 +1111,7 @@ def run_orchestrator_turn(
     if resolved.period is not None:
         session.context.temporal_constraint = resolved.period.value
     speech_act = classify_speech_act(user_message)
+    compiled, wire = _planner_wire_context(user_message, session)
 
     if normalized in {"hey", "hi", "hello"}:
         turn_items = _stamp_correlation(_no_tool_turn(at, "Hey. What's up?"), corr)
@@ -1098,6 +1134,7 @@ def run_orchestrator_turn(
                 turn_items=turn_items,
                 intent_name=resolved.kind.value,
                 correlation_id=corr,
+                tools_available=compiled.tool_names,
             ),
         )
 
@@ -1105,8 +1142,8 @@ def run_orchestrator_turn(
     planner_path = trace_path_for_planner(planner)
     calls = planner.select_tools(
         user_message=user_message,
-        context_summary=context_summary(session.context, session.state),
-        tools=tool_schemas(),
+        context_summary=wire,
+        tools=compiled.tools,
         correlation_id=corr,
     )
     calls = apply_speech_act_constitution(calls, speech_act, user_message)
@@ -1166,6 +1203,7 @@ def run_orchestrator_turn(
                 disclosure=egress.get("disclosure"),
                 disclosure_id=egress.get("disclosure_id"),
                 correlation_id=corr,
+                tools_available=compiled.tool_names,
             ),
         )
 
@@ -1252,6 +1290,7 @@ def run_orchestrator_turn(
             correlation_id=corr,
             referent_resolution=resolutions,
             executed_tool_request=executed_calls,
+            tools_available=compiled.tool_names,
         ),
     )
 

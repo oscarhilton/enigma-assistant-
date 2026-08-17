@@ -319,16 +319,20 @@ def format_time_fit_message(
     reference: datetime,
     task_minutes: int,
     task_title: str | None = None,
+    period: str = "later_today",
 ) -> str:
     free_minutes, next_title = minutes_until_next_commitment(
         checkpoint_id,
         reference,
-        period="later_today",
+        period=period,
     )
     task_label = task_title or "This"
+    window = _RELATIVE_PERIOD_LABELS.get(period)
+    if window is None:
+        window = "Saturday" if period == "saturday" else "later today"
     if free_minutes is None:
         return (
-            "I don't see anything blocking you later today. "
+            f"I don't see anything blocking you {window}. "
             f"{task_label} should take around {task_minutes} minutes."
         )
     if free_minutes == 0:

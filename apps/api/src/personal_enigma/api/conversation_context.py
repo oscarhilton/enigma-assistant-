@@ -10,7 +10,7 @@ truth. Chat history remembers the conversation; world state remembers the world.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 
 from personal_enigma.api.intent_router import (
@@ -117,16 +117,32 @@ _LOCATION_STOPWORDS: frozenset[str] = frozenset(
 )
 
 
+_PENDING_ACT_TTL: dict[str, int] = {
+    "APPROVE_CONFIRMATION": 6,
+    "SHOW_CONFIRMATION": 1,
+    "EXPLAIN_CONFIRMATION": 1,
+    "ADVISE_CONFIRMATION": 1,
+    "CLARIFY_CONFIRMATION": 1,
+}
+
+
 @dataclass(frozen=True)
 class PendingConfirmation:
     """Speech act the previous Enigma turn asked the user to answer.
 
     ``yes`` inherits this act. It never upgrades it.
     SHOW? → yes → SHOW. APPROVE THIS ACTION? → yes → APPROVE.
+
+    Only a *live* pending act is compiled. ``created_turn`` /
+    ``consumed_by`` / ``expires_after_turns`` keep SHOW from leaking
+    into a later unrelated question.
     """
 
     kind: DialogueActKind
     subject_id: str | None = None
+    created_turn: int = 0
+    consumed_by: int | None = None
+    expires_after_turns: int = 1
 
 
 @dataclass(frozen=True)
@@ -175,6 +191,8 @@ class ConversationContext:
     temporal_constraint: str | None = None
     pending_confirmation: PendingConfirmation | None = None
     pending_dialogue_act: DialogueActKind | None = None
+    # User-turn counter for pending-act TTL. Incremented at begin_user_turn.
+    turn_index: int = 0
     turn_local_constraints: list[TurnLocalConstraint] = field(default_factory=list)
     suppressed_next_action_ids: list[str] = field(default_factory=list)
     last_intent: ConversationIntent | None = None
@@ -184,22 +202,46 @@ class ConversationContext:
     named_referent_changed_this_turn: bool = False
     turn_local_recorded_this_turn: bool = False
 
+    def live_pending_confirmation(self) -> PendingConfirmation | None:
+        """Pending act that is still unanswered and unexpired."""
+        pending = self.pending_confirmation
+        if pending is None or pending.consumed_by is not None:
+            return None
+        age = self.turn_index - pending.created_turn
+        if age > pending.expires_after_turns:
+            return None
+        return pending
+
     def set_pending_confirmation(
         self,
         kind: DialogueActKind | None,
         subject_id: str | None = None,
     ) -> None:
+        current = self.pending_confirmation
+        if current is not None and current.consumed_by is None:
+            self.pending_confirmation = replace(current, consumed_by=self.turn_index)
         if kind is None:
-            self.pending_confirmation = None
             self.pending_dialogue_act = None
             return
-        self.pending_confirmation = PendingConfirmation(kind=kind, subject_id=subject_id)
+        pending = PendingConfirmation(
+            kind=kind,
+            subject_id=subject_id,
+            created_turn=self.turn_index,
+            expires_after_turns=_PENDING_ACT_TTL.get(kind, 1),
+        )
+        self.pending_confirmation = pending
         self.pending_dialogue_act = kind
 
     def begin_user_turn(self) -> None:
         """Evaporate this-turn flags. Session constraints stay until reset."""
+        self.turn_index += 1
         self.named_referent_changed_this_turn = False
         self.turn_local_recorded_this_turn = False
+        live = self.live_pending_confirmation()
+        if live is None:
+            self.pending_dialogue_act = None
+        else:
+            self.pending_dialogue_act = live.kind
 
     def remember_dialogue_turn(self, turn: DialogueTurn) -> None:
         """Append a turn and drop anything older than ``RECENT_DIALOGUE_LIMIT``."""
@@ -209,12 +251,12 @@ class ConversationContext:
             self.recent_dialogue = self.recent_dialogue[overflow:]
 
     def approval_authorized(self) -> bool:
-        pending = self.pending_confirmation
+        pending = self.live_pending_confirmation()
         return pending is not None and pending.kind == "APPROVE_CONFIRMATION"
 
     def propose_authorized(self) -> bool:
         """PREPARE is not the answer to SHOW / EXPLAIN / ADVISE / CLARIFY."""
-        pending = self.pending_confirmation
+        pending = self.live_pending_confirmation()
         if pending is None:
             return True
         return pending.kind not in _NON_ACTION_DIALOGUE_ACTS
@@ -302,7 +344,8 @@ def update_pending_dialogue_act(
         if item.get("kind") == "enigma_message"
     ]
     blob = " ".join(texts)
-    if "?" in blob:
+    # Empty-horizon copy is not a live SHOW exchange, even if it contains "?".
+    if "?" in blob and context.focus_reason != "empty_horizon":
         context.set_pending_confirmation(
             "SHOW_CONFIRMATION",
             context.current_subject_id,
@@ -694,7 +737,11 @@ def classify_assistant_dialogue_egress(
 
 
 def project_recent_dialogue_for_egress(turns: list[DialogueTurn]) -> list[dict[str, Any]]:
-    """Remote working memory: acts + ids + remote-safe text or summary. Never raw local quotes."""
+    """Remote working memory: acts + ids + remote-safe text or summary. Never raw local quotes.
+
+    QUOTE ≠ REMOTE CONTEXT: a ``source_quote`` / ``local_only`` assistant turn may
+    be remembered as a summary. The verbatim body stays off the Fireworks wire.
+    """
     rows: list[dict[str, Any]] = []
     for turn in turns:
         row: dict[str, Any] = {"role": turn.role}

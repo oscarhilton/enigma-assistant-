@@ -340,6 +340,65 @@ def build_why_turn(state: AttentionState, at: str) -> list[dict[str, Any]]:
     return [_attention_item(target, at)]
 
 
+_SUPPORT_OPTIONS: tuple[str, ...] = (
+    "talk through what needs deciding",
+    "make it smaller",
+    "figure out the first step",
+    "or I can prepare something if you ask me to",
+)
+
+
+def build_support_payload(
+    state: AttentionState,
+    context: ConversationContext,
+) -> dict[str, Any]:
+    """SUPPORT payload — discuss / explain / break down / first step. Not Assist."""
+    action, title = resolve_referent(state, context)
+    item_id = action.source_candidate_id if action is not None else context.current_subject_id
+    item: AttentionItemView | None = None
+    if item_id:
+        for candidate in (*state.needs_you, *state.context):
+            if candidate.id == item_id:
+                item = candidate
+                break
+    display_title = (item.title if item is not None else title) or "this"
+    why = ""
+    if item is not None and item.explanation:
+        why = item.explanation
+    elif action is not None:
+        why = action.reason
+    first_step = "Name the smallest next move."
+    estimated: int | None = None
+    if action is not None:
+        first_step = action.reason or action.title
+        estimated = estimated_minutes_for_action(action)
+    return {
+        "title": display_title,
+        "why_it_matters": why,
+        "first_step": first_step,
+        "estimated_minutes": estimated,
+        "support_options": list(_SUPPORT_OPTIONS),
+        "assist_offered": False,
+        "subject_id": item_id,
+    }
+
+
+def support_message(payload: dict[str, Any]) -> str:
+    """Talk through the problem. Never skip to a proposal card."""
+    title = str(payload.get("title") or "this")
+    why = str(payload.get("why_it_matters") or "").strip()
+    first = str(payload.get("first_step") or "name the smallest next move")
+    minutes = payload.get("estimated_minutes")
+    why_clause = f" It's showing up because {why}." if why else ""
+    duration = f" About {minutes} minutes." if isinstance(minutes, int) else ""
+    return (
+        f"Let's talk through {title}.{why_clause} "
+        f"A useful first step is {first}.{duration} "
+        "We can break it down, make it smaller, or I can prepare something if you ask — "
+        "I'm not going to start it unless you want that."
+    )
+
+
 def build_explain_referent_turn(
     state: AttentionState,
     context: ConversationContext,
@@ -347,11 +406,15 @@ def build_explain_referent_turn(
     *,
     recover: bool = False,
 ) -> list[dict[str, Any]]:
-    """Explain the conversation referent — not the first context item (C09)."""
+    """Explain the conversation referent — not the first context item (C09).
+
+    SUPPORT copy talks through the problem. It is not an Assist card.
+    """
     action, title = resolve_referent(state, context)
     item_id = action.source_candidate_id if action is not None else context.current_subject_id
     if not item_id:
         return [_enigma_message("I'm not sure what you're referring to.", at)]
+    payload = build_support_payload(state, context)
     for item in (*state.needs_you, *state.context):
         if item.id == item_id:
             if recover:
@@ -365,7 +428,10 @@ def build_explain_referent_turn(
                     ),
                     _attention_item(item, at),
                 ]
-            return [_attention_item(item, at)]
+            return [
+                _enigma_message(support_message(payload), at),
+                _attention_item(item, at),
+            ]
     return [_enigma_message(f"I don't have an explanation for {title or item_id}.", at)]
 
 
@@ -654,6 +720,8 @@ __all__ = [
     "build_attention_horizon_turn",
     "build_duration_turn",
     "build_explain_referent_turn",
+    "build_support_payload",
+    "support_message",
     "build_help_turn",
     "build_intent_turn",
     "build_priorities_turn",

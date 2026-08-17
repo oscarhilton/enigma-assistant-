@@ -127,5 +127,55 @@ def test_conversation_disclosure_outbound_is_exact_wire_without_secrets() -> Non
     user_content = json.loads(record.outbound_payload["messages"][1]["content"])
     assert user_content["user_message"] == "Why do I need to do this?"
     assert "raw email bodies" in record.excluded
+    assert "raw chat bodies" in record.excluded
     dumped = record.model_dump_json()
     assert "@" not in dumped
+
+
+def test_conversation_disclosure_records_compiled_turn_manifest() -> None:
+    store = InMemoryDisclosureStore()
+    gate = build_audited_egress_gate(
+        remote_config=RemoteInferenceConfig(enabled=True),
+        disclosure_store=store,
+        fireworks_api_key="fw-secret-key",
+        fireworks_urlopen=lambda *_a, **_k: _FakeResponse(
+            {
+                "choices": [{"message": {"content": "{}"}}],
+                "usage": {},
+            }
+        ),
+    )
+    manifest = {
+        "profile": "PRIVATE_QUERY",
+        "speech_act": "QUESTION",
+        "context": {
+            "attention": {
+                "include": True,
+                "justification": "This private-world query earned the current projection.",
+            },
+            "calendar": {
+                "include": False,
+                "justification": "No request-derived justification.",
+            },
+        },
+        "tools": ["next_action.get"],
+        "excluded_tools": ["assist.approve"],
+    }
+    remote_ctx = RemoteSafeContext.for_conversation_orchestrator(
+        user_message="What's next?",
+        context_summary={"current_subject_id": "item-obligation_token_audit"},
+        tools=[{"type": "function", "function": {"name": "next_action.get"}}],
+        model="accounts/fireworks/models/gpt-oss-120b",
+        provider="fireworks",
+        request_profile="PRIVATE_QUERY",
+        context_manifest=manifest,
+    )
+    gate.send(remote_ctx, purpose="conversation.orchestrate")
+    record = store.recent(limit=1)[0]
+    assert record.context_manifest is not None
+    assert record.context_manifest.profile == "PRIVATE_QUERY"
+    assert record.context_manifest.context["attention"].include is True
+    assert record.context_manifest.context["calendar"].include is False
+    user_content = json.loads(record.outbound_payload["messages"][1]["content"])
+    assert "justification" not in json.dumps(user_content)
+    assert "context_manifest" not in user_content
