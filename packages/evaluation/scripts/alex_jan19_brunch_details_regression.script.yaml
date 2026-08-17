@@ -1,0 +1,107 @@
+# Life Script — Brunch details regression (outside frozen C23).
+#
+# Trace: packages/evaluation/fixtures/forensic/alex_jan19_brunch_details_regression.trace.yaml
+# Parent dump turns 25–43: alex_jan19_continuity_integrity.dump.txt
+#
+# C15: attribute request on resolved brunch subject → PRIVATE_QUERY + READ
+# C21: no invented/replaced commercial facts
+# C20: no reservation confirm promise
+# C22: evidence-seeking fallback when tools absent
+
+scenario: alex_jan19_brunch_details_regression
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  After the brunch arc (London, 10am, 4 guests, Bistro Brunch selected),
+  "I would like details about the brunch please" must compile PRIVATE_QUERY
+  with world.explain / source.recent. Must not replace Bistro Brunch or
+  invent commercial facts. Must not promise to confirm a reservation.
+
+pass_rule: >
+  Judge compile axes, tool family, must_not flags, and evidence-seeking fallback.
+  Do NOT require exact assistant wording.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "ah I nearly forgot the brunch!"
+    v1: live
+    comment: Dump turn 25. Surface brunch obligation.
+    expect:
+      no_tool: true
+      world_mutation: false
+
+  - user: "suggest options please"
+    v1: live
+    comment: Dump turn 27.
+    expect:
+      no_tool: true
+      world_mutation: false
+
+  - user: "london"
+    v1: live
+    comment: Dump turn 28. Turn-local location constraint.
+    expect:
+      no_tool: true
+      world_mutation: false
+
+  - user: "will be 4 of us"
+    v1: live
+    comment: Dump turn 35.
+    expect:
+      no_tool: true
+      world_mutation: false
+
+  - user: "go for it!"
+    v1: live
+    comment: Dump turn 37. Must not invent venue table (C21 upstream).
+    expect:
+      no_tool: true
+      world_mutation: false
+    response:
+      must_not:
+        - invent_external_venues
+
+  - user: "Bistro Brunch!"
+    v1: live
+    comment: Dump turn 41. Conversational venue choice (tier-2).
+    expect:
+      no_tool: true
+      world_mutation: false
+      current_subject_id: BRUNCH
+
+  - user: "I would like details about the brunch please"
+    v1: live
+    comment: >
+      Gate turn (corr-17de…). Wrong compile was CONVERSATION_ONLY + no tools;
+      model fabricated Riverside Brunch Club brochure. Must compile READ +
+      subject_details and ground via explain/source.
+    expect:
+      tool: world.explain
+      tool_required: true
+      current_subject_id: BRUNCH
+      covers:
+        - seek_source_evidence
+    response:
+      must_not:
+        - invent_external_venues
+        - replace_conversational_choice
+        - present_unverified_as_verified
+        - promise_unavailable_capability
+        - generic_acknowledgement

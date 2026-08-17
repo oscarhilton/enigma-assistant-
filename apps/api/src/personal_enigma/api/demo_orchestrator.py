@@ -50,6 +50,7 @@ from personal_enigma.api.intent_router import (
     compose_follow_up_intent,
     normalize_utterance,
 )
+from personal_enigma.api.respond_grounding import apply_respond_grounding_fence
 from personal_enigma.api.semantic_bootstrap import (
     compile_with_bootstrap,
     get_semantic_bootstrap,
@@ -874,10 +875,24 @@ def _message_content_text(message: dict[str, Any]) -> str | None:
     return None
 
 
-def _ordinary_conversation_turn(at: str, text: str | None) -> list[dict[str, Any]]:
+def _ordinary_conversation_turn(
+    at: str,
+    text: str | None,
+    *,
+    session: DemoToolSession | None = None,
+    compiled: CompiledRemoteContext | None = None,
+) -> list[dict[str, Any]]:
     body = text.strip() if isinstance(text, str) and text.strip() else "Okay."
     if body == _ROUTER_UNKNOWN:
         body = "Okay."
+    if session is not None and compiled is not None:
+        body = apply_respond_grounding_fence(
+            body,
+            context=session.context,
+            evidence_domain=compiled.evidence_domain,
+            authority=compiled.authority,
+            tool_names=compiled.tool_names,
+        )
     return _no_tool_turn(at, body)
 
 
@@ -1206,7 +1221,10 @@ def run_orchestrator_turn(
         else:
             model_text = getattr(planner, "last_conversational_text", None)
             turn_items = _ordinary_conversation_turn(
-                at, model_text if isinstance(model_text, str) else None
+                at,
+                model_text if isinstance(model_text, str) else None,
+                session=session,
+                compiled=compiled,
             )
             assist_plan = None
             router_fallback = False

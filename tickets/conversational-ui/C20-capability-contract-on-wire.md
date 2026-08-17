@@ -38,6 +38,7 @@ Exact lines:
 ## Deliverables
 
 - [ ] Compiled envelope includes `capability_contract`: `{allowed: [...], unavailable: [...]}` (names stable, tiny, remote-safe)
+- [x] `capability_contract` on compiled working set including `reservation.confirm` / `reservation.book` absences
 - [ ] Tests: timer/email-send absent from allowed and present in unavailable on a default Demo compile; respond/orchestration must not claim those acts ([C17](./C17-execution-receipts-verification-ledger.md) fence may consume this)
 - [ ] ADR-029 consequence: capability contract is part of compilation, not prompt folklore
 - [ ] Existing `test_c09_context_compilation.py` stays green

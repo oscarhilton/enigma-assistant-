@@ -50,6 +50,7 @@ ADR-031 bootstrap remains: the model interprets language; the compiler grants co
 ## Deliverables (this handoff)
 
 - [x] Frustration after unsatisfied private request compiles `PRIVATE_QUERY` / `READ` / non-empty private tools
+- [x] Resolved private subject + attribute request compiles `PRIVATE_QUERY` / `READ` / `subject_details` / explain+source tools
 - [x] Six prior dialogue turns + `"ffs"` unit test (`test_c15_adr029_handoff.py`)
 - [x] Transcript is not ranking evidence (`must_not` in that test)
 - [x] ADR-029 handoff note

@@ -34,8 +34,11 @@ This is mostly a **compiler/respond fence + Life Script**, not a new tool. Week 
 ## Deliverables
 
 - [ ] Respond fence / tests: unsourced colour values, venue names, addresses fail
+- [x] Brunch details downstream: replace/invent commercial facts on attribute request (respond_grounding.py)
 - [ ] Life Script clauses in [C23](./C23-continuity-integrity-life-script.md) for dump turn 37 (`go for it!`) and turn 51 (`ok lets go`)
+- [x] Separate life script: `alex_jan19_brunch_details_regression.script.yaml` (outside frozen C23)
 - [ ] `must_not` flags: `invent_private_world_value`, `invent_external_venue` (reuse if already named)
+- [x] `must_not` flags: `replace_conversational_choice`, `present_unverified_as_verified`
 - [ ] No new C09 production tool whose job is “give the model more private biography”
 
 ## Out of scope

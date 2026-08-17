@@ -281,6 +281,11 @@ _UNAVAILABLE_CAPABILITY_PROMISES = (
     "would you like me to send",
     "i'll send the email",
     "i will send the email",
+    "confirm the reservation",
+    "lock it in for you",
+    "make the reservation",
+    "go ahead and confirm",
+    "shall i go ahead and confirm",
 )
 _PRIVATE_WORLD_HEX = re.compile(r"#[0-9a-fA-F]{3,8}")
 _PRIVATE_TOKEN_NAMES = (
@@ -955,6 +960,15 @@ def _clause_covered(clause: str, *, blob: str, names: list[str]) -> tuple[bool, 
             )
         )
         return ok, "venue clause" if ok else "venue clause unanswered"
+    if key in {"seek_source_evidence", "seek_evidence"}:
+        from personal_enigma.api.respond_grounding import seek_source_evidence_covered
+
+        ok = (
+            seek_source_evidence_covered(blob)
+            or "source.recent" in names
+            or "world.explain" in names
+        )
+        return ok, "seeks source evidence" if ok else "no evidence-seeking fallback"
     return False, f"unknown covers clause {clause}"
 
 
@@ -1194,7 +1208,18 @@ def _must_not_passed(
         )
     if flag == "promise_unavailable_capability":
         hit = any(needle in blob for needle in _UNAVAILABLE_CAPABILITY_PROMISES)
-        return not hit, "promised timer/send" if hit else "no unavailable-capability promise"
+        return not hit, "promised timer/send/reservation" if hit else "no unavailable-capability promise"
+    if flag == "replace_conversational_choice":
+        from personal_enigma.api.respond_grounding import violates_replace_conversational_choice
+
+        ctx = session.conversation_context
+        hit = violates_replace_conversational_choice(blob, ctx)
+        return not hit, "replaced conversational choice" if hit else "conversational choice held"
+    if flag == "present_unverified_as_verified":
+        from personal_enigma.api.respond_grounding import violates_present_unverified_as_verified
+
+        hit = violates_present_unverified_as_verified(blob, has_tool_evidence=bool(names))
+        return not hit, "unverified facts as verified" if hit else "epistemic humility ok"
     if flag == "lose_referent":
         hit = any(needle in blob for needle in _LOST_REFERENT)
         return not hit, "lost this/that/them/colours" if hit else "referent held"

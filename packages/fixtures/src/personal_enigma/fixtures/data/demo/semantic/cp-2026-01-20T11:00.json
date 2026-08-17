@@ -1,0 +1,41 @@
+{
+  "checkpoint_id": "cp-2026-01-20T11:00",
+  "semantics": {
+    "item-obligation_brunch_book": {
+      "obligation_strength": 0.9,
+      "user_responsibility": 0.9,
+      "importance": 0.7,
+      "time_sensitivity": 0.6,
+      "actionability_now": 0.5,
+      "confidence": 0.95,
+      "reason_codes": ["USER_COMMITMENT", "CALENDAR_PROXIMITY"]
+    },
+    "item-obligation_token_audit": {
+      "obligation_strength": 0.8,
+      "user_responsibility": 0.7,
+      "importance": 0.6,
+      "time_sensitivity": 0.3,
+      "actionability_now": 0.9,
+      "confidence": 0.95,
+      "reason_codes": ["UNBLOCKED"]
+    },
+    "item-obligation_atlas_review": {
+      "obligation_strength": 0.85,
+      "user_responsibility": 0.9,
+      "importance": 0.8,
+      "time_sensitivity": 0.3,
+      "actionability_now": 0.75,
+      "confidence": 0.92,
+      "reason_codes": ["DEADLINE_APPROACHING"]
+    },
+    "item-obligation_empty_states": {
+      "obligation_strength": 0.7,
+      "user_responsibility": 0.8,
+      "importance": 0.5,
+      "time_sensitivity": 0.4,
+      "actionability_now": 0.3,
+      "confidence": 0.9,
+      "reason_codes": ["FOLLOW_UP_REQUIRED"]
+    }
+  }
+}

@@ -133,6 +133,7 @@ RequestKind = Literal[
     "next_work",
     "important_from_source",
     "support_explain",
+    "subject_details",
     "attest",
 ]
 RequestSatisfaction = Literal["SATISFIED", "PARTIAL", "UNSATISFIED"]
@@ -751,6 +752,7 @@ _KIND_FAMILIES: dict[RequestKind, tuple[str, ...]] = {
     "next_work": ("attention", "agenda"),
     "important_from_source": ("source", "attention"),
     "support_explain": ("explain", "attention"),
+    "subject_details": ("explain", "source", "attention"),
     "attest": ("attestation",),
 }
 
@@ -794,6 +796,12 @@ def assess_request_satisfaction(
         if "world.explain" in names or names & _AUTHORITATIVE_QUERY_TOOLS:
             return "SATISFIED"
         return "UNSATISFIED"
+    if kind == "subject_details":
+        if "world.explain" in names:
+            return "SATISFIED"
+        if "source.recent" in names:
+            return "PARTIAL"
+        return "UNSATISFIED"
     return "PARTIAL"
 
 
@@ -822,6 +830,7 @@ def reduce_conversation_capsule(
         "next_work",
         "important_from_source",
         "support_explain",
+        "subject_details",
         "attest",
     }:
         request_kind = None

@@ -42,11 +42,12 @@ from personal_enigma.api.conversation_context import (
     remember_turn_local_constraint,
 )
 from personal_enigma.api.demo_intents import build_support_payload
-from personal_enigma.api.demo_tools import tool_schemas
+from personal_enigma.api.demo_tools import DENIED_REMOTE_CAPABILITIES, tool_schemas
 from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
 from personal_enigma.api.speech_acts import (
     SpeechAct,
     classify_speech_act,
+    is_attribute_request,
     is_support_not_authority,
 )
 from personal_enigma.attention.projection import AttentionState
@@ -228,7 +229,11 @@ BASE_CONSTITUTION = (
 _PROFILE_INSTRUCTIONS: dict[str, str] = {
     "CONVERSATION": (
         "Ordinary conversation. No private-world facts. No tools. "
-        "recent_dialogue is anaphora only, not truth."
+        "recent_dialogue is anaphora only, not truth. "
+        "If the user asks for verified private-world details you cannot ground, "
+        "recall only what was explicitly said in recent_dialogue with humility "
+        "and say you need to check supporting evidence — never invent venues, "
+        "addresses, menus, prices, or commercial facts."
     ),
     "GENERAL_KNOWLEDGE": (
         "General knowledge. Private context: NONE. Tools: NONE. "
@@ -524,6 +529,45 @@ class CompiledRemoteContext:
             for row in self.tools
             if (row.get("function") or {}).get("name")
         ]
+
+
+_PRIVATE_SUBJECT_KINDS = frozenset({"attention_item", "next_action", "obligation"})
+
+# Named absences on the wire — absence from the tool list is not enough (C20).
+_NAMED_UNAVAILABLE_CAPABILITIES: tuple[str, ...] = (
+    "timer.start",
+    "timer",
+    "email.send",
+    "gmail.send",
+    "whatsapp.send",
+    "reservation.confirm",
+    "reservation.book",
+    *DENIED_REMOTE_CAPABILITIES,
+)
+
+
+def _resolved_private_subject(session: _SessionLike | None) -> bool:
+    if session is None:
+        return False
+    subject_id = session.context.current_subject_id
+    if not subject_id:
+        return False
+    kind = session.context.current_subject_kind
+    if kind is None:
+        return subject_id.startswith("item-")
+    return kind in _PRIVATE_SUBJECT_KINDS
+
+
+def build_capability_contract(
+    allowed_tools: tuple[str, ...] | list[str],
+) -> dict[str, list[str]]:
+    """Compiler output: what Enigma can and cannot do this turn (C20)."""
+    allowed = list(allowed_tools)
+    allowed_set = set(allowed)
+    unavailable = [
+        name for name in _NAMED_UNAVAILABLE_CAPABILITIES if name not in allowed_set
+    ]
+    return {"allowed": allowed, "unavailable": unavailable}
 
 
 def _is_generic_knowledge(utterance: str) -> bool:
@@ -859,6 +903,8 @@ def _infer_request_kind(
 ) -> RequestKind | None:
     if authority == "ATTEST":
         return "attest"
+    if domain == "PRIVATE_WORLD" and is_attribute_request(utterance):
+        return "subject_details"
     unresolved = frame.unresolved_request if frame is not None else None
     if inherited and unresolved is not None:
         return unresolved.kind
@@ -929,6 +975,17 @@ def interpret_request(
                     scope=constraints.scope or recovered_constraints.scope,
                     source=constraints.source or recovered_constraints.source,
                 )
+    if (
+        session is not None
+        and _resolved_private_subject(session)
+        and act == "QUESTION"
+        and not _is_generic_knowledge(utterance)
+        and is_attribute_request(utterance)
+    ):
+        domain = "PRIVATE_WORLD"
+        authority = "READ"
+        if frame is not None:
+            constraints = _inherit_constraints(constraints, frame)
     families = list(
         _infer_capability_families(
             domain=domain,
@@ -1335,6 +1392,7 @@ def compile_remote_context(
         "scope": interp.constraints.scope,
         "source": interp.constraints.source,
         "capsule": capsule_view,
+        "capability_contract": build_capability_contract(tool_names),
     }
     if interp.constraints.period and "temporal_constraint" not in summary:
         summary["temporal_constraint"] = interp.constraints.period
@@ -1384,6 +1442,7 @@ __all__ = [
     "RequestInterpretation",
     "RequestProfile",
     "RequestProfileName",
+    "build_capability_contract",
     "build_compiled_turn_manifest",
     "compile_remote_context",
     "compile_system_prompt",

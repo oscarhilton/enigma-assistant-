@@ -44,6 +44,7 @@ CAPSULE = SCRIPTS / "alex_jan19_conversation_capsule.script.yaml"
 BOOTSTRAP = SCRIPTS / "alex_jan19_semantic_bootstrap.script.yaml"
 WHATSAPP = SCRIPTS / "alex_jan20_whatsapp.script.yaml"
 CONTINUITY = SCRIPTS / "alex_jan19_continuity_integrity.script.yaml"
+BRUNCH_DETAILS = SCRIPTS / "alex_jan19_brunch_details_regression.script.yaml"
 DUMP_TURNS = (
     Path(__file__).resolve().parents[1]
     / "fixtures"
@@ -1001,6 +1002,45 @@ def test_c23_must_not_flags() -> None:
     )
     assert not ok
     ok, _ = _must_not_passed(
+        "promise_unavailable_capability",
+        items=[],
+        blob="shall i go ahead and confirm the reservation",
+        names=[],
+        session=session,
+        before=empty,
+        after=empty,
+        subject=None,
+    )
+    assert not ok
+    ok, _ = _must_not_passed(
+        "replace_conversational_choice",
+        items=[],
+        blob="the riverside brunch club at 11:30 am",
+        names=[],
+        session=session,
+        before=empty,
+        after=empty,
+        subject=None,
+    )
+    assert ok
+    ok, _ = _must_not_passed(
+        "present_unverified_as_verified",
+        items=[],
+        blob="**menu highlights** fresh sourdough £38 per adult",
+        names=[],
+        session=session,
+        before=empty,
+        after=empty,
+        subject=None,
+    )
+    assert not ok
+    ok, _ = _clause_covered(
+        "seek_source_evidence",
+        blob="i don't have verified details yet. i'll check the supporting email.",
+        names=[],
+    )
+    assert ok
+    ok, _ = _must_not_passed(
         "lose_referent",
         items=[],
         blob="i'm not sure which colors you're referring to.",
@@ -1067,5 +1107,19 @@ def test_alex_jan19_continuity_integrity_deterministic() -> None:
     assert any(row.name == "covers · email" and row.passed for row in compound.checks)
 
 
+def test_alex_jan19_brunch_details_regression_deterministic() -> None:
+    report = run_life_script(BRUNCH_DETAILS, mode="deterministic")
+    gate = _turn(report, "I would like details about the brunch please")
+    assert gate.passed, report.transcript
+    assert any(row.name == "world.explain" and row.passed for row in gate.checks)
+    assert any(
+        row.name == "must_not · invent_external_venues" and row.passed
+        for row in gate.checks
+    )
+    assert any(
+        row.name == "must_not · promise_unavailable_capability" and row.passed
+        for row in gate.checks
+    )
+    assert report.ok, report.transcript
 
 
