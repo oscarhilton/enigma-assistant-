@@ -31,7 +31,7 @@
 
 ## Acceptance criteria
 
-- [x] Min-viable coherent fictional life for Alex Morgan: **3 weeks** (2026-01-05 → 2026-01-25). Full multi-month expansion is a future version bump, not this release.
+- [x] Min-viable coherent fictional life for Alex Morgan: **3 weeks** (2026-01-05 → 2026-01-25). Full multi-month expansion is a future version bump, not this release — **picked up as [D08f](./D08f-alex-six-month.md)** (ordinary events Jan–Jun in the same `alex-v1` package; not `alex-v2`).
 - [x] Work, personal, projects, relationships, deadlines, noise, ambiguity, cross-source cases
 - [x] Scenario remains immutable after release (bump `version` in `scenario.yaml` under the same `alex-v1` package id)
 
@@ -46,6 +46,7 @@ Corpus density is **not** a new top-level milestone. Track under:
 | Background integration | [D08c](./D08c-background-integration.md) | `done` |
 | Noise layer | [D08d](./D08d-noise-layer.md) | `done` |
 | Canonical scale | [D08e](./D08e-canonical-scale.md) | `done` |
+| Six-month ordinary life | [D08f](./D08f-alex-six-month.md) | `todo` (docs/layout landed; months not authored) |
 
 Governing rule: **Story creates meaning. Corpus creates noise.** See [demo-corpus.md](../../docs/architecture/demo-corpus.md).
 

@@ -112,13 +112,13 @@ flowchart TD
 
 ## Stretch (after R07 passes)
 
-Amend [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) → **3 longitudinal arcs only** (3–6 months each):
+[V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) authors **support contracts** on the three EF threads inside [D08f](../../tickets/demo-scenario/D08f-alex-six-month.md) six-month ordinary events (`scenarios/alex-v1/` — **not** a new `alex-v2` package):
 
 1. Boring recurring admin (expenses drift)
-2. Long-running work project (Atlas-style)
-3. Relationship/social commitment (parents multi-visit)
+2. Long-running work project (Atlas/token-style)
+3. Relationship/social commitment (parents / partner)
 
-Proves longitudinal machinery for the next question: *Does accumulated memory improve reasoning over 6–12 months?*
+Source events are D08f (do not wait on R07). V2-EF-02 waits on the gate for *evaluator contracts*. Proves longitudinal machinery for: *Does accumulated memory improve reasoning over 6–12 months?*
 
 ---
 
@@ -129,7 +129,7 @@ Proves longitudinal machinery for the next question: *Does accumulated memory im
 - 40k email corpus generation
 - Changing `HeuristicAttentionEngine` ranking logic during the gate (observe, don't fix)
 - Runtime Next Action product surface ([N01](../../tickets/next-action/N01-scorer-stub.md) waits)
-- Full alex-v2 12-month / ~30-arc authoring
+- Full 12-month / ~30-arc authoring; a second `scenarios/alex-v2/` package
 
 ---
 
