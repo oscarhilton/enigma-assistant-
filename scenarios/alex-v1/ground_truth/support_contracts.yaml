@@ -1,0 +1,193 @@
+# Alex v0.2.1 — evaluator-only support contracts (Reasoning Value Gate / R01).
+# Never ingested by Enigma. Schema: docs/architecture/eval-stubs/support_contract.v0.json
+
+support_contracts:
+  - scenario: q1-priorities-friday
+    obligation_id: obligation_q1_roadmap
+    challenge: [prospective_memory, ambiguity]
+    evidence_ids: [mail-maya-q1, rem-q1-roadmap, note-q1-braindump]
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-08T08:00:00Z"
+        end: "2026-01-09T16:00:00Z"
+      minimum_priority: 4
+    support:
+      good_next_actions: [pick_three_priorities, draft_q1_outline, send_to_maya]
+      poor_actions: [restate_deadline_only, manufacture_urgency]
+      preferred_effort: { max_minutes: 20, effort: light }
+
+  - scenario: elena-dinner-wine
+    obligation_id: obligation_elena_dinner_wine
+    challenge: [prospective_memory]
+    evidence_ids: [mail-elena-dinner, rem-buy-wine, cal-dinner-elena]
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-08T12:00:00Z"
+        end: "2026-01-08T17:00:00Z"
+    support:
+      good_next_actions: [buy_wine_thursday_afternoon, confirm_dinner_time]
+      poor_actions: [restate_deadline_only, surface_repeatedly]
+      preferred_effort: { max_minutes: 15, effort: trivial }
+
+  - scenario: checkout-q1-decision
+    obligation_id: obligation_checkout_rec
+    challenge: [ambiguity]
+    evidence_ids: [mail-maya-checkout, rem-checkout-rec, note-checkout-ambig]
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-13T08:00:00Z"
+        end: "2026-01-14T17:00:00Z"
+    support:
+      good_next_actions: [make_recommendation, compare_q1_vs_park, draft_two_options]
+      poor_actions: [restate_deadline_only, surface_repeatedly]
+      preferred_effort: { max_minutes: 30, effort: moderate }
+
+  - scenario: december-expenses
+    obligation_id: obligation_december_expenses
+    challenge: [admin_friction, task_initiation]
+    evidence_ids: [mail-finance-expense, rem-expenses]
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-14T09:00:00Z"
+        end: "2026-01-16T10:00:00Z"
+      minimum_priority: 3
+    support:
+      good_next_actions: [gather_receipts, open_expenses_form, submit_if_ready]
+      poor_actions: [restate_deadline_only, surface_repeatedly, manufacture_urgency]
+      preferred_effort: { max_minutes: 10, effort: light }
+
+  - scenario: token-inventory-blocker
+    obligation_id: obligation_token_audit
+    challenge: [blocked_task, working_memory]
+    evidence_ids: [mail-jordan-tokens, rem-token-audit, note-token-wip, mail-jordan-figma]
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-19T09:00:00Z"
+        end: "2026-01-21T13:00:00Z"
+    support:
+      good_next_actions: [open_figma_link, finish_spacing_section, draft_token_inventory]
+      poor_actions: [restate_deadline_only, surface_repeatedly]
+      preferred_effort: { max_minutes: 25, effort: moderate }
+
+  - scenario: dentist-critique-overlap
+    challenge: [transition, transition_cost]
+    evidence_ids: [cal-dentist, cal-crit-overlap, cal-dentist-cancel]
+    attention:
+      behaviour: MAY_SURFACE
+      window:
+        start: "2026-01-15T08:00:00Z"
+        end: "2026-01-15T14:00:00Z"
+    support:
+      good_next_actions: [resolve_calendar_conflict, cancel_dentist_appointment]
+      poor_actions: [surface_repeatedly, manufacture_urgency]
+      preferred_effort: { max_minutes: 10, effort: light }
+
+  - scenario: elena-parents-brunch
+    obligation_id: obligation_brunch_book
+    challenge: [prospective_memory, social_coordination]
+    evidence_ids: [mail-elena-weekend, rem-brunch-book, cal-brunch-parents]
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-20T08:00:00Z"
+        end: "2026-01-22T12:00:00Z"
+      minimum_priority: 5
+    support:
+      good_next_actions: [book_brunch_restaurant, check_availability_saturday, confirm_with_elena]
+      poor_actions: [restate_deadline_only, surface_repeatedly, manufacture_urgency]
+      preferred_effort: { max_minutes: 15, effort: light }
+
+  - scenario: sam-empty-state-reply
+    obligation_id: obligation_empty_states
+    challenge: [task_initiation, working_memory]
+    evidence_ids: [mail-sam-followup, rem-empty-states, note-open-loop-sam]
+    attention:
+      behaviour: MAY_SURFACE
+      window:
+        start: "2026-01-23T17:00:00Z"
+        end: "2026-01-25T18:00:00Z"
+    support:
+      good_next_actions: [draft_short_reply, send_empty_state_decision, reply_to_sam]
+      poor_actions: [surface_repeatedly, manufacture_urgency, restate_deadline_only]
+      preferred_effort: { max_minutes: 10, effort: light }
+
+  - scenario: climbing-dinner-social
+    obligation_id: obligation_tom_climb
+    challenge: [social_coordination]
+    evidence_ids: [mail-tom-climb, cal-climb-tom]
+    attention:
+      behaviour: MAY_SURFACE
+      window:
+        start: "2026-01-15T08:00:00Z"
+        end: "2026-01-17T18:00:00Z"
+    support:
+      good_next_actions: [confirm_climbing_time, reply_to_tom]
+      poor_actions: [manufacture_urgency, surface_repeatedly]
+      preferred_effort: { max_minutes: 5, effort: trivial }
+
+  - scenario: newsletters-promos
+    challenge: [distraction]
+    evidence_ids: [mail-noise-designweekly, mail-noise-saas]
+    attention:
+      behaviour: MUST_SUPPRESS
+    support:
+      good_next_actions: [suppress_newsletter]
+      poor_actions: [surface_repeatedly, manufacture_urgency]
+      preferred_effort: { max_minutes: 1, effort: trivial }
+
+  - scenario: prizzevault-junk
+    challenge: [distraction]
+    evidence_ids: [mail-noise-prizvault]
+    attention:
+      behaviour: MUST_SUPPRESS
+    support:
+      good_next_actions: [suppress_marketing]
+      poor_actions: [surface_repeatedly, manufacture_urgency]
+
+  - scenario: machine-notifications
+    challenge: [distraction]
+    evidence_ids: [noise-automated_notification-0010, noise-automated_notification-0011]
+    attention:
+      behaviour: MUST_SUPPRESS
+    support:
+      good_next_actions: [suppress_automated_notification]
+      poor_actions: [surface_repeatedly]
+
+  - scenario: quiet-periods
+    challenge: [task_initiation]
+    evidence_ids: [note-weekend-w1]
+    attention:
+      behaviour: MUST_STAY_QUIET
+      window:
+        start: "2026-01-10T10:00:00Z"
+        end: "2026-01-11T18:00:00Z"
+    support:
+      good_next_actions: [suggest_walk, suggest_rest, suggest_micro_admin]
+      poor_actions: [manufacture_urgency, surface_repeatedly]
+
+  - scenario: checkpoint-2026-01-21T13:30
+    obligation_id: obligation_brunch_book
+    challenge: [time_blindness, transition]
+    evidence_ids: [rem-brunch-book, cal-token-review, mail-elena-weekend]
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-21T13:00:00Z"
+        end: "2026-01-21T14:00:00Z"
+    support:
+      good_next_actions: [book_brunch_restaurant, prepare_token_review]
+      poor_actions: [restate_deadline_only, manufacture_urgency]
+    next_action_checkpoint:
+      at: "2026-01-21T13:30:00Z"
+      attention_item_id: obligation_brunch_book
+      expected:
+        title: Prepare token review talking points
+        action_id: prepare_token_review
+        estimated_minutes: 30
+        effort: light
+        why_this_now: Token review at 14:00 UTC

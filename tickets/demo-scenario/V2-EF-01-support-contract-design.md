@@ -1,9 +1,13 @@
 # V2-EF-01 — Support contract design freeze
 
+> **Superseded by [R01](../reasoning/R01-scenario-truth-catalogue.md)** — alex-v1
+> v0.2.1 evaluator correction ships `support_contracts.yaml`, loader, and merged
+> `load_evaluation_truth()`.
+
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
-| Branch | `ticket/V2-EF-01-support-contract-design` |
+| Status | `superseded` |
+| Branch | `ticket/R01-scenario-truth-catalogue` |
 | Domain | `demo-scenario` + `demo-evaluation` (schema only) |
 
 ## Package boundary (hard)

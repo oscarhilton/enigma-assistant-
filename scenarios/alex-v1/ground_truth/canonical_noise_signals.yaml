@@ -1,0 +1,12 @@
+# Alex v0.2.1 — canonical spine noise signals (evaluator-only).
+
+signals:
+  - evidence_id: mail-noise-designweekly
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: mail-noise-saas
+    signal_class: noise
+    expected_attention: false
+  - evidence_id: mail-noise-prizvault
+    signal_class: noise
+    expected_attention: false
