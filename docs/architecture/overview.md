@@ -76,4 +76,5 @@ See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.
 Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).  
 Background email corpus: [demo-corpus.md](./demo-corpus.md).  
 Attention surface + Next Action: [attention-surface.md](./attention-surface.md) · [next-action.md](./next-action.md).  
+Support fitness benchmark (Phase 2.5): [executive-function-support-benchmark.md](./executive-function-support-benchmark.md).  
 Phase 3 Shadow Mode: [shadow-mode.md](./shadow-mode.md) · evaluation rubric [shadow-evaluation.md](./shadow-evaluation.md) · silence evaluation [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) ([ADR-009](../adr/009-silence-as-prediction.md)) · open loops [open-loop-commitments.md](./open-loop-commitments.md).
