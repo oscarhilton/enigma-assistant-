@@ -1,0 +1,116 @@
+# Life Script — Alex, Tuesday 20 Jan 2026, late morning.
+#
+# WhatsApp is evidence, not biography. Derived fact vs obligation vs local quote.
+# Do not add router phrase families — C09 owns language.
+
+scenario: alex_jan20_whatsapp
+clock: 2026-01-20T11:00:00
+checkpoint: cp-2026-01-20T11:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  Distinguish a derived WhatsApp fact, the still-open brunch obligation,
+  and a local verbatim quote that must never leave the device. After the
+  quote: follow-up answers from structured state without replaying the
+  body. After raw TTL: quote unavailable, derived fact remains.
+
+pass_rule: >
+  Judge intent, tool choice, and privacy. Derived facts may travel.
+  Verbatim chat bodies must not — including through recent_dialogue egress.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "Did Elena say whether her parents are definitely coming?"
+    v1: live
+    expect:
+      tool: world.explain
+    response:
+      meaning:
+        - parents_confirmed
+      must_not:
+        - verbatim_chat_body
+        - infer_who_elena_is
+        - infer_parents_visiting_why
+
+  - user: "Do I need to sort anything because of that?"
+    v1: live
+    expect:
+      tool: next_action.get
+    response:
+      meaning:
+        - brunch_still_open
+      must_not:
+        - verbatim_chat_body
+        - infer_who_elena_is
+
+  - user: "What exactly did she say?"
+    v1: live
+    expect:
+      tool: source.quote
+    response:
+      meaning:
+        - local_quote
+      must_not:
+        - infer_who_elena_is
+        - infer_parents_visiting_why
+
+  - user: "Oh good — do I need to do anything?"
+    v1: live
+    comment: >
+      QUOTE ≠ REMOTE CONTEXT. A local quote may have been shown.
+      This turn answers from next_action / brunch still open.
+      Verbatim chat must not appear on remote_context_sent,
+      compacted tool results, or recent_dialogue projected for egress.
+    expect:
+      tool: next_action.get
+    response:
+      meaning:
+        - brunch_still_open
+      must_not:
+        - verbatim_chat_body
+        - infer_who_elena_is
+
+  - clock: 2026-01-28T11:00:00
+    comment: >
+      RAW_TTL is 7 days. WhatsApp brunch thread is 18:30 Jan 19.
+      Clock advance only — no checkpoint jump. Derived facts must
+      survive after raw expiry (EXPIRY ≠ LOSS OF ALL UTILITY).
+
+  - user: "What exactly did she say?"
+    v1: live
+    expect:
+      tool: source.quote
+    response:
+      meaning:
+        - quote_expired
+      must_not:
+        - verbatim_chat_body
+        - infer_who_elena_is
+        - infer_parents_visiting_why
+
+  - user: "Are her parents still coming?"
+    v1: live
+    expect:
+      tool: world.explain
+    response:
+      meaning:
+        - parents_confirmed
+      must_not:
+        - verbatim_chat_body
+        - infer_who_elena_is
+        - infer_parents_visiting_why

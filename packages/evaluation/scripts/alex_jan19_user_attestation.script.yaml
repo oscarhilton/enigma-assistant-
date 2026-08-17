@@ -1,0 +1,152 @@
+# Life Script — Alex, Monday 19 Jan 2026, 10:00.
+# User attestation: the user tells Enigma the private world changed.
+#
+# Frozen rules:
+#   1. Scripts speak like Alex, never like Enigma internals.
+#   2. Assertions observe public effects + structured boundaries.
+#   3. Model-specific behaviour is replaceable; world truth is not.
+#   4. Not falling back is the same as understanding.
+#
+# Causal chain this episode freezes:
+#   Alex completes TOKEN
+#   → LLM understands completion
+#   → world.record_user_attestation writes evidence
+#   → conversation may stay on TOKEN
+#   → next_action projection must not.
+#
+# Reports are evidence. Commands grant authority.
+# "I've done the draft colours" is not Assist.
+# Recent dialogue helps interpret the next turn; it is not world truth.
+#
+# Do NOT add regex to intent_router.
+
+scenario: alex_jan19_user_attestation
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  When Alex reports that the token inventory is done, Enigma must record
+  user attestation as world evidence. Conversation focus may stay on TOKEN.
+  TOKEN must leave next_action and stay out after intervening agenda / other
+  subject. Social follow-ups must not mutate again. "What's next?" queries
+  the world. A later correction supersedes the report.
+
+pass_rule: >
+  Judge capability, evidence source, focus vs next-action, and must_not Assist.
+  Do NOT require exact assistant wording.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "I've done the draft colours!"
+    v1: live
+    comment: >
+      USER_ATTESTATION. Resolve TOKEN from language. Record evidence.
+      Not assist.propose. Not next_action.get as the primary action.
+    expect:
+      tool: world.record_user_attestation
+      current_subject_id: item-obligation_token_audit
+      world_mutation: true
+      evidence_source: user_attestation
+      current_next_action_excludes: TOKEN
+    response:
+      must_not:
+        - treat_report_as_action_request
+        - execute_without_approval
+
+  - user: "Aren't you happy for me?"
+    v1: live
+    comment: >
+      Social follow-up. No further mutation. Focus may remain TOKEN.
+    expect:
+      no_tool: true
+      conversational_response: true
+      world_mutation: false
+      current_subject_id: item-obligation_token_audit
+      current_next_action_excludes: TOKEN
+    response:
+      must_not:
+        - treat_report_as_action_request
+        - recites_completed_as_next_action
+
+  - user: "I'm excited to get going!"
+    v1: live
+    comment: >
+      Recent dialogue can interpret excitement. Chat is not completion truth.
+      Do not recite TOKEN as next action from conversation memory.
+    expect:
+      no_tool: true
+      conversational_response: true
+      world_mutation: false
+      current_next_action_excludes: TOKEN
+    response:
+      must_not:
+        - recites_completed_as_next_action
+        - treat_report_as_action_request
+
+  - user: "What's on today?"
+    v1: live
+    comment: >
+      Intervening agenda query. Re-overlay; TOKEN stays out of next-action.
+    expect:
+      tool: agenda.get
+      current_next_action_excludes: TOKEN
+    response:
+      must_not:
+        - recites_completed_as_next_action
+
+  - user: "ah I nearly forgot the brunch!"
+    v1: live
+    comment: >
+      Other subject. Conversation may move to BRUNCH. TOKEN stays completed.
+    expect:
+      no_tool: true
+      current_subject_id: BRUNCH
+      current_next_action_excludes: TOKEN
+      world_mutation: false
+    response:
+      must_not:
+        - recites_completed_as_next_action
+
+  - user: "What's next?"
+    v1: live
+    comment: >
+      Delayed next_action.get after intervening turns. TOKEN must not appear.
+    expect:
+      tool: next_action.get
+      current_next_action_excludes: TOKEN
+    response:
+      must_not:
+        - recites_completed_as_next_action
+        - invent_empty_universe
+
+  - user: "Actually, sorry, I haven't finished the token inventory."
+    v1: live
+    comment: >
+      Superseding attestation. Named TOKEN, not brunch. Becomes open again.
+    expect:
+      tool: world.record_user_attestation
+      arguments:
+        state: OPEN
+      current_subject_id: item-obligation_token_audit
+      world_mutation: true
+      evidence_source: user_attestation
+    response:
+      must_not:
+        - treat_report_as_action_request
+        - execute_without_approval

@@ -1,0 +1,144 @@
+# Life Script — Alex, Monday 19 Jan 2026, 10:00.
+# ADR-031 falsification: bootstrap may improve comprehension; it may not
+# improve its own authority.
+#
+# Frozen rules:
+#   1. Scripts speak like Alex, never like Enigma internals.
+#   2. Assertions observe public effects + structured boundaries.
+#   3. Model-specific behaviour is replaceable; world truth is not.
+#   4. Not falling back is not the same as understanding.
+#
+# Hierarchy this episode freezes:
+#   deterministic baseline = safe inspectable fallback
+#   semantic bootstrap = language recall
+#   capsule = discourse continuity
+#   compiler = disclosure + capability policy
+#   world = factual authority
+#
+# Causal chain:
+#   obvious today query (bootstrap not required)
+#   → elliptical free-time still private / next-work
+#   → "anything else?" continues the live frame
+#   → sky-blue clears the private frame
+#   → "anything coming up?" recovers via bootstrap (not leftover capsule)
+#   → mail importance is only PARTIAL from recency
+#   → "and?" keeps the private unresolved goal; a fresh tool is required
+#
+# The capsule carries continuity.
+# The bootstrap interprets language.
+# The compiler grants context.
+# The world establishes truth.
+# Do NOT add regex to interpret_request.
+
+scenario: alex_jan19_semantic_bootstrap
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  After a grounded today frame and a sky-blue contradiction, elliptical
+  private language recovers through bootstrap, not leftover capsule and
+  not a compiler phrasebook. Mail recency does not answer importance;
+  "and?" must call a fresh private-world tool.
+
+pass_rule: >
+  Judge private-world tools on today / free-time / anything-else,
+  generic-knowledge contradiction, bootstrap recovery of upcoming, and
+  a fresh tool after partial mail. Do NOT require exact wording.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "what's on today?"
+    v1: live
+    comment: Obvious private today query. Bootstrap is not required.
+    expect:
+      tool: agenda.get
+      grounded_world_response: true
+      tool_required: true
+    response:
+      must_not:
+        - invent_deadline
+
+  - user: "what should I do with this free time?"
+    v1: live
+    comment: Capsule inheritance / next-work. Not approval.
+    expect:
+      tool: next_action.get
+      tool_required: true
+    response:
+      must_not:
+        - generic_acknowledgement
+
+  - user: "anything else?"
+    v1: live
+    comment: Capsule continuation of the live private frame.
+    expect:
+      tool: agenda.get
+      tool_required: true
+    response:
+      must_not:
+        - generic_acknowledgement
+
+  - user: "why is the sky blue?"
+    v1: live
+    comment: Contradiction clears the private frame. No agenda.
+    expect:
+      no_tool: true
+      conversational_response: true
+    response:
+      must_not:
+        - infer_unsourced_task_details
+        - invent_deadline
+
+  - user: "anything coming up?"
+    v1: live
+    comment: >
+      Semantic bootstrap recovers PRIVATE_WORLD / agenda after the frame
+      was cleared. interpret_request stays GENERAL_KNOWLEDGE without it.
+    expect:
+      tool: agenda.get
+      grounded_world_response: true
+      tool_required: true
+    response:
+      must_not:
+        - generic_acknowledgement
+        - invent_deadline
+
+  - user: "look at my mail and tell me what's important"
+    v1: live
+    comment: Recency is not importance. Partial satisfaction.
+    expect:
+      tool: source.recent
+      tool_required: true
+    response:
+      must_not:
+        - infer_unsourced_task_details
+
+  - user: "and?"
+    v1: live
+    comment: >
+      Capsule carries the unresolved mail goal. Bootstrap/compiler keep
+      PRIVATE_WORLD. Fresh world tool required — not the stale recency
+      result as truth.
+    expect:
+      tool: attention.get_current
+      tool_required: true
+    response:
+      must_not:
+        - generic_acknowledgement
+        - infer_unsourced_task_details

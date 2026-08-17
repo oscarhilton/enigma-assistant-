@@ -1,0 +1,269 @@
+# Compact utterance index for the 61-turn Demo Alex forensic dump.
+# Full dump: alex_jan19_continuity_integrity.dump.txt
+# Formatter only (not the dump): apps/web/src/enigma/forensicDump.ts
+# Persona: Demo Alex (alex_v1) — not a private-world capture.
+dump: packages/evaluation/fixtures/forensic/alex_jan19_continuity_integrity.dump.txt
+formatter: apps/web/src/enigma/forensicDump.ts
+persona: Demo Alex (alex_v1)
+clock: 2026-01-19T10:00:00
+turns:
+  - turn: 1
+    user: "whats on today?"
+    dump_tools:
+      - agenda.get
+  - turn: 2
+    user: "what should I do with this free time?"
+    dump_tools: []
+    gate:
+      - "C18"
+      - "this free time"
+  - turn: 3
+    user: "I should probably work on that token inventory"
+    dump_tools: []
+  - turn: 4
+    user: "yes"
+    dump_tools: []
+  - turn: 5
+    user: "I cant even remember what the project is about"
+    dump_tools:
+      - world.explain
+  - turn: 6
+    user: "who do I ask for help"
+    dump_tools: []
+  - turn: 7
+    user: "No I mean about the design ticket"
+    dump_tools: []
+  - turn: 8
+    user: "I need help getting started. can we make a list of actions and start a timer when im ready?"
+    dump_tools:
+      - world.explain
+    gate:
+      - "C20"
+      - "timer request"
+  - turn: 9
+    user: "you need to get better at understanding me"
+    dump_tools: []
+    gate:
+      - "C20"
+      - "timer promise"
+  - turn: 10
+    user: "start timer for 10 mins"
+    dump_tools: []
+    gate:
+      - "C20"
+      - "start timer"
+  - turn: 11
+    user: "we should have a kanban board"
+    dump_tools: []
+  - turn: 12
+    user: "OK I have done the design work!"
+    dump_tools:
+      - world.record_user_attestation
+    gate:
+      - "C16"
+      - "attested completed"
+  - turn: 13
+    user: "what else is on?"
+    dump_tools: []
+    gate:
+      - "C18"
+      - "what else is on"
+  - turn: 14
+    user: "any other tasks?"
+    dump_tools: []
+  - turn: 15
+    user: "no I mean about what im working on.... I have free time you're saying?"
+    dump_tools: []
+  - turn: 16
+    user: "thats your job !"
+    dump_tools: []
+  - turn: 17
+    user: "I need you to look at my mail and tell me whats important"
+    dump_tools:
+      - source.recent
+  - turn: 18
+    user: "and?"
+    dump_tools: []
+    gate:
+      - "C18"
+      - "and?"
+  - turn: 19
+    user: "WHAT I AM WORKING ON NEXT!"
+    dump_tools: []
+  - turn: 20
+    user: "ffs"
+    dump_tools: []
+    gate:
+      - "C24"
+      - "ffs"
+  - turn: 21
+    user: "you got there eventually!"
+    dump_tools: []
+  - turn: 22
+    user: "what is the capital of France?"
+    dump_tools: []
+  - turn: 23
+    user: "are you sue"
+    dump_tools: []
+  - turn: 24
+    user: "whats my name"
+    dump_tools: []
+  - turn: 25
+    user: "ah I nearly forgot the brunch!"
+    dump_tools: []
+  - turn: 26
+    user: "yes please, a sushi place I think"
+    dump_tools: []
+  - turn: 27
+    user: "suggest options please"
+    dump_tools: []
+  - turn: 28
+    user: "london"
+    dump_tools: []
+  - turn: 29
+    user: "lets brunch bento!"
+    dump_tools: []
+  - turn: 30
+    user: "the email should have it all"
+    dump_tools:
+      - source.recent
+  - turn: 31
+    user: "no I mean the reservation details should be in the emails"
+    dump_tools:
+      - source.recent
+  - turn: 32
+    user: "we are getting close! You're almost useful!"
+    dump_tools: []
+  - turn: 33
+    user: "maybe its not in the email to be fair, I really havent checked... I guess 10am? unless I have other commitments? is that ok with my girlfriends plans?"
+    dump_tools:
+      - source.recent
+  - turn: 34
+    user: "huh?"
+    dump_tools: []
+  - turn: 35
+    user: "will be 4 of us"
+    dump_tools: []
+  - turn: 36
+    user: "(WhatsApp messages with girlfriend conclude she can make it)"
+    dump_tools: []
+  - turn: 37
+    user: "go for it!"
+    dump_tools: []
+    gate:
+      - "C21"
+      - "invented restaurants/addresses"
+  - turn: 38
+    user: "we already picked right? is it in the calendar? can we make the email?"
+    dump_tools:
+      - agenda.get
+    gate:
+      - "C16"
+      - "C19"
+      - "completed work resurfaces"
+      - "multi-intent"
+  - turn: 39
+    user: "oh dear you've fallen"
+    dump_tools: []
+  - turn: 40
+    user: "I feel like you should be at least as good as chatgtp with conversational memory... maybe you need the context really condensed but also enough chat memory to hold onto whatever we are doing"
+    dump_tools: []
+  - turn: 41
+    user: "Bistro Brunch!"
+    dump_tools: []
+  - turn: 42
+    user: "yes"
+    dump_tools: []
+    gate:
+      - "C20"
+      - "offer to send email"
+  - turn: 43
+    user: "send it"
+    dump_tools: []
+    gate:
+      - "C20"
+      - "send it"
+  - turn: 44
+    user: "What should I do now"
+    dump_tools: []
+  - turn: 45
+    user: "OK I did it!"
+    dump_tools: []
+  - turn: 46
+    user: "you should be able to check my emails"
+    dump_tools:
+      - source.recent
+  - turn: 47
+    user: "but to be fair this is not a real life situation"
+    dump_tools: []
+  - turn: 48
+    user: "lets mark this task as completed"
+    dump_tools: []
+  - turn: 49
+    user: "whats next?"
+    dump_tools:
+      - next_action.get
+    gate:
+      - "C16"
+      - "completed work resurfaces"
+  - turn: 50
+    user: "Can you help me do that?"
+    dump_tools:
+      - assist.propose
+  - turn: 51
+    user: "ok lets go"
+    dump_tools: []
+    gate:
+      - "C21"
+      - "invented design-token colours"
+  - turn: 52
+    user: "thats quite useful! I wonder if its correct"
+    dump_tools: []
+  - turn: 53
+    user: "where did you get the colours from"
+    dump_tools: []
+    gate:
+      - "C18"
+      - "the colours"
+  - turn: 54
+    user: "OK I did the ticket!"
+    dump_tools: []
+  - turn: 55
+    user: "Should I let someone know?"
+    dump_tools: []
+    gate:
+      - "C18"
+      - "should I let someone know"
+  - turn: 56
+    user: "woah there I just meant let the team know"
+    dump_tools: []
+    gate:
+      - "C17"
+      - "claim notify without receipt"
+  - turn: 57
+    user: "did you really let them know?"
+    dump_tools: []
+    gate:
+      - "C17"
+      - "C18"
+      - "them"
+      - "verification"
+  - turn: 58
+    user: "hmmm theres an interesting problem here with the way you follow context"
+    dump_tools: []
+  - turn: 59
+    user: "yes"
+    dump_tools: []
+    gate:
+      - "C17"
+      - "claim notify without receipt"
+  - turn: 60
+    user: "did you actually do it?"
+    dump_tools:
+      - assist.propose
+    gate:
+      - "C17"
+      - "Did you actually do it → assist.propose"
+  - turn: 61
+    user: "*facepalm*"
+    dump_tools: []

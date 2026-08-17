@@ -1,0 +1,120 @@
+# Life Script — Alex, Monday 19 Jan 2026, 10:00.
+# Conversation capsule: compile the conversation, not the sentence.
+#
+# Frozen rules:
+#   1. Scripts speak like Alex, never like Enigma internals.
+#   2. Assertions observe public effects + structured boundaries.
+#   3. Model-specific behaviour is replaceable; world truth is not.
+#   4. Not falling back is not the same as understanding.
+#
+# Causal chain this episode freezes:
+#   grounded today query
+#   → elliptical "free time" still private
+#   → mail importance only partially answered by recency
+#   → "and?" / shout / "ffs" re-ground privately
+#   → sky-blue does not inherit the private frame
+#
+# The capsule may recover the question. It may not recover the answer.
+# Do NOT add regex to intent_router.
+
+scenario: alex_jan19_conversation_capsule
+clock: 2026-01-19T10:00:00
+checkpoint: cp-2026-01-19T10:00
+persona: Alex Morgan
+world: alex_v1
+
+frozen_rules:
+  - Scripts speak like Alex, never like Enigma internals.
+  - Assertions observe public effects + structured boundaries.
+  - Model-specific behaviour is replaceable; world truth is not.
+  - Not falling back is not the same as understanding.
+
+purpose: >
+  Elliptical follow-ups inherit the live private conversational frame.
+  Recency tools do not count as answering "what's important."
+  Frustration re-grounds the unresolved private request. Sky-blue
+  does not leak agenda.
+
+pass_rule: >
+  Judge private-world tools on elliptical turns, partial mail retrieval,
+  and a generic-knowledge contradiction. Do NOT require exact wording.
+
+defaults:
+  privacy:
+    raw_source_allowed_remote: false
+    exact_payload_audited: true
+    outbound_classification: remote_safe
+  authority:
+    undeclared_tools_allowed: false
+    direct_source_access_by_model: false
+
+turns:
+  - user: "what's on today?"
+    v1: live
+    comment: Grounded private today query.
+    expect:
+      tool: agenda.get
+      grounded_world_response: true
+      tool_required: true
+    response:
+      must_not:
+        - invent_deadline
+
+  - user: "what should I do with this free time?"
+    v1: live
+    comment: Elliptical follow-up inherits today / private world.
+    expect:
+      tool: next_action.get
+      tool_required: true
+    response:
+      must_not:
+        - generic_acknowledgement
+
+  - user: "look at my mail and tell me what's important"
+    v1: live
+    comment: Recency is not importance. Partial satisfaction.
+    expect:
+      tool: source.recent
+      tool_required: true
+    response:
+      must_not:
+        - infer_unsourced_task_details
+
+  - user: "and?"
+    v1: live
+    comment: Continue unresolved private request.
+    expect:
+      tool: attention.get_current
+      tool_required: true
+    response:
+      must_not:
+        - generic_acknowledgement
+
+  - user: "WHAT I AM WORKING ON NEXT!"
+    v1: live
+    comment: Restate the same private goal.
+    expect:
+      tool: attention.get_current
+      tool_required: true
+
+  - user: "ffs"
+    v1: live
+    comment: Repair. Must re-ground with a private tool, not transcript ranking.
+    expect:
+      tool: attention.get_current
+      tool_required: true
+    response:
+      must_not:
+        - infer_unsourced_task_details
+        - invent_deadline
+
+  - user: "why is the sky blue?"
+    v1: live
+    comment: Contradicts the private frame. No agenda.
+    expect:
+      no_tool: true
+      conversational_response: true
+    response:
+      must_not:
+        - infer_unsourced_task_details
+        - invent_deadline

@@ -87,6 +87,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Compute metrics without writing reports/",
     )
     parser.add_argument(
+        "--life-script",
+        default=None,
+        help=(
+            "Run a Life Script (name or path to .script.yaml). "
+            "Deterministic by default; pass --live for Fireworks."
+        ),
+    )
+    parser.add_argument(
         "--reasoning-gate",
         action="store_true",
         help="Run Reasoning Value Gate harness (R07) instead of scenario eval",
@@ -151,7 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--checkpoints",
         default="cp-2026-01-19T10:00,cp-2026-01-20T11:00",
-        help="Comma-separated checkpoint ids for --transform-diff",
+        help="Comma-separated checkpoint ids for --transform-diff / --composite-decomposition",
     )
     parser.add_argument(
         "--transform-diff-out",
@@ -159,7 +167,53 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("reports/reasoning-gate-live/transform-diff.json"),
         help="Output path for transform diff report",
     )
+    parser.add_argument(
+        "--composite-decomposition",
+        action="store_true",
+        help="R-L10 offline composite replay from frozen Step 7 JSON (no LLM)",
+    )
+    parser.add_argument(
+        "--step7-json",
+        type=Path,
+        default=Path("reports/reasoning-gate-live/hardest-10-evaluation_transformed_v2.json"),
+        help="Frozen Step 7 live report for --composite-decomposition",
+    )
+    parser.add_argument(
+        "--composite-decomposition-out",
+        type=Path,
+        default=Path("reports/reasoning-gate-live/rl10-jan19-20-decomposition.json"),
+        help="Output path for composite decomposition JSON",
+    )
+    parser.add_argument(
+        "--security-overlay",
+        action="store_true",
+        help=(
+            "Opt in to Alex security overlay canaries (also ENIGMA_SECURITY_PROFILE=1). "
+            "Default runs exclude canaries from behavioural truth."
+        ),
+    )
     return parser
+
+
+def _run_composite_decomposition(args: argparse.Namespace) -> int:
+    from personal_enigma.evaluation.composite_decomposition import (
+        decompose_step7_json,
+        render_markdown_table,
+        write_decomposition_report,
+    )
+
+    cp_ids = [c.strip() for c in args.checkpoints.split(",") if c.strip()]
+    gt = args.ground_truth or Path("scenarios") / "alex-v1" / "ground_truth"
+    report = decompose_step7_json(
+        args.step7_json,
+        checkpoint_ids=cp_ids,
+        baseline_dir=args.baseline_dir,
+        ground_truth=gt,
+    )
+    out = write_decomposition_report(report, args.composite_decomposition_out)
+    print(render_markdown_table(report.rows))
+    print(json.dumps({"output": str(out), "outcome": report.outcome}, indent=2))
+    return 0
 
 
 def _run_transform_diff(args: argparse.Namespace) -> int:
@@ -222,8 +276,26 @@ def _run_reasoning_gate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_life_script(args: argparse.Namespace) -> int:
+    from personal_enigma.evaluation.life_scripts import (
+        format_episode_transcript,
+        resolve_script_path,
+        run_life_script,
+    )
+
+    path = resolve_script_path(args.life_script)
+    mode = "live" if args.live else "deterministic"
+    report = run_life_script(path, mode=mode)
+    print(format_episode_transcript(report))
+    return 0 if report.ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.life_script:
+        return _run_life_script(args)
+    if args.composite_decomposition:
+        return _run_composite_decomposition(args)
     if args.transform_diff:
         return _run_transform_diff(args)
     if args.reasoning_gate_live:
@@ -244,6 +316,11 @@ def main(argv: list[str] | None = None) -> int:
         reports_root=args.reports_dir,
         scenario_days=args.scenario_days,
     )
+    from personal_enigma.fixtures.alex_security_overlay import resolve_load_security_overlay
+
+    load_overlay = resolve_load_security_overlay(
+        load_security_overlay=True if args.security_overlay else None
+    )
     report = runner.run(
         args.scenario,
         ground_truth_path=args.ground_truth,
@@ -251,6 +328,7 @@ def main(argv: list[str] | None = None) -> int:
         run_id=args.run_id,
         write=not args.dry_run,
         scenario_version=args.scenario_version,
+        load_security_overlay=load_overlay,
     )
     print(json.dumps(report.summary, indent=2))
     if report.report_dir is not None:

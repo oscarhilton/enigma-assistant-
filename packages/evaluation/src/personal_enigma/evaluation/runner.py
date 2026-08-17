@@ -26,6 +26,10 @@ from personal_enigma.evaluation.metrics import (
 )
 from personal_enigma.evaluation.observations import EvaluationObservations
 from personal_enigma.evaluation.report import render_summary_markdown, write_report
+from personal_enigma.fixtures.alex_security_overlay import (
+    SECURITY_OVERLAY,
+    load_alex_fixture_context,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,9 +67,15 @@ class EvaluationRunner:
         run_id: str | None = None,
         write: bool = True,
         scenario_version: str = "0.0.0",
+        load_security_overlay: bool = False,
     ) -> EvaluationReport:
         """Evaluate a scenario against ground truth + run observations."""
         obs = observations or EvaluationObservations()
+        alex_ctx = (
+            load_alex_fixture_context(load_security_overlay=load_security_overlay)
+            if scenario == "alex-v1"
+            else None
+        )
         eval_truth: EvaluationTruth | None = None
         truth = ground_truth
         if truth is None:
@@ -194,6 +204,16 @@ class EvaluationRunner:
             "evaluated_at": at.isoformat(),
             "environment": "demo",
             "corpus_fingerprint": obs.corpus_fingerprint,
+            "security_overlay": (
+                SECURITY_OVERLAY
+                if alex_ctx and alex_ctx.security_overlay_enabled
+                else None
+            ),
+            "security_overlay_canary_count": (
+                len(alex_ctx.security_overlay)
+                if alex_ctx and alex_ctx.security_overlay_enabled
+                else 0
+            ),
         }
 
         timeline = {

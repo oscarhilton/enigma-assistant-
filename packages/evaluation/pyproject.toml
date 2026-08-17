@@ -11,6 +11,7 @@ dependencies = [
   "personal-enigma-reasoning",
   "personal-enigma-simulation",
   "personal-enigma-transformation",
+  "personal-enigma-api",
   "pydantic>=2.10.0",
   "pyyaml>=6.0.0",
 ]
@@ -33,3 +34,4 @@ personal-enigma-attention = { workspace = true }
 personal-enigma-reasoning = { workspace = true }
 personal-enigma-simulation = { workspace = true }
 personal-enigma-transformation = { workspace = true }
+personal-enigma-api = { workspace = true }
