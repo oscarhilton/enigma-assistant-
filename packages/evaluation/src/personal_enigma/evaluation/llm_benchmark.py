@@ -1,18 +1,18 @@
 """LLM judge benchmark — Arm A heuristic vs Arm B PAYG (Reasoning Value Gate / R03).
 
-Top-1 / top-3 flow (judge-v1 / R-L02)
---------------------------------------
-1. For each candidate in the frozen ``candidate_set``, Arm B calls the remote judge
-   with a per-candidate prompt (``Candidate:`` block + sanitised context snapshot).
-2. Each call returns ``JudgeV1Output`` with an independent ``attention.decision``.
-3. ``rank_candidate_judgements`` deterministically ranks candidates whose model
-   decision is ``surface`` by ``(-priority, -heuristic score, candidate id)``.
-4. Top-3 alerts (and top-1 recall metrics) come from that ranked list after
-   ``apply_attention_policy`` may suppress model surfaces (e.g. snapshot-suppressed).
-5. ``next_action`` is taken from the top ranked surfaced candidate when present.
+Top-1 / top-3 flow
+------------------
+**Arm B1 (legacy):** per-candidate judge-v1 with direct surface/suppress/context decision.
+**Arm B2 (default):** semantic-judge-v1 features → deterministic interruption policy.
 
-Arm B logs ``model_judgement`` (ranked model surfaces) and ``policy_judgement``
-(final alerts after deterministic policy) separately.
+1. For each candidate, Arm B calls the remote judge with a per-candidate prompt.
+2. B1 returns ``JudgeV1Output``; B2 returns ``SemanticJudgeV1Output``.
+3. B2 applies ``decide_interruption`` (observable facts + semantic features).
+4. Rank surfaced candidates deterministically for top-3 / top-1 metrics.
+5. ``policy_judgement`` (final alerts) is what metrics score against contracts.
+
+Arm B logs ``model_judgement`` (ranked policy surfaces) and ``policy_judgement``
+(final alerts after snapshot engine suppressions) separately.
 """
 
 from __future__ import annotations
@@ -21,9 +21,18 @@ import json
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from personal_enigma.attention.interruption_policy import (
+    CandidatePolicyFacts,
+    InterruptionMode,
+    SemanticFeatures,
+    decide_interruption,
+    evidence_is_noise,
+    interruption_mode_for_instant,
+)
 from personal_enigma.evaluation.checkpoint_runner import (
     load_checkpoint_snapshot,
     verify_arm_a_integrity,
@@ -48,12 +57,17 @@ from personal_enigma.reasoning.structured_output import (
     JudgeV1Attention,
     JudgeV1Output,
     JudgeV1ParseError,
+    SemanticJudgeV1Output,
+    SemanticJudgeV1ParseError,
     parse_judge_v1_output,
+    parse_semantic_judge_v1_output,
     validate_evidence_ids,
 )
 from personal_enigma.transformation import TransformedContext
 
-PROMPT_VERSION = "judge-v1"
+JudgeArm = Literal["b1", "b2"]
+PROMPT_VERSION = "semantic-judge-v1"
+PROMPT_VERSION_B1 = "judge-v1"
 SURFACE_CONFIDENCE_MIN = 0.5
 FORBIDDEN_PROMPT_MARKERS = (
     "support_challenges",
@@ -68,6 +82,21 @@ FORBIDDEN_PROMPT_MARKERS = (
 _JUDGE_PROMPT = """You are Enigma's reasoning judge for Demo Mode evaluation.
 
 Judge the single candidate below against the sanitised checkpoint context.
+Do not rely on any prior heuristic policy — evaluate evidence independently.
+
+Attention decision semantics:
+- surface: this candidate warrants the user's attention **now**
+  (action or decision needed at this checkpoint instant)
+- suppress: no useful intervention at this instant
+- context: genuine but non-urgent information; use when relevant but no current
+  intervention is useful
+
+Important distinctions:
+- An open obligation alone does not justify surface
+- Important ≠ needs attention now; open ≠ urgent; candidate ≠ alert
+- It is valid and often desirable for every candidate to receive suppress or
+  context (zero surfaces is ok)
+
 Return JSON only (no markdown, no chain-of-thought) using schema judge-v1:
 
 {{
@@ -89,6 +118,35 @@ Context snapshot:
 {context_json}
 """
 
+_SEMANTIC_JUDGE_PROMPT = """You are Enigma's semantic interpreter for Demo Mode evaluation.
+
+Interpret the single candidate below against the sanitised checkpoint context.
+Do NOT decide surface/suppress/context — return semantic feature scores only.
+Enigma applies deterministic interruption policy locally using your scores plus
+observable facts (now, due dates, open obligations, calendar proximity).
+
+Return JSON only (no markdown, no chain-of-thought) using schema semantic-judge-v1.
+Emit required score fields first; optional next_action comes last and may be null.
+
+{{
+  "schema_version": "semantic-judge-v1",
+  "obligation_strength": 0.0-1.0,
+  "user_responsibility": 0.0-1.0,
+  "importance": 0.0-1.0,
+  "time_sensitivity": 0.0-1.0,
+  "actionability_now": 0.0-1.0,
+  "confidence": 0.0-1.0,
+  "reason_codes": ["EXPLICIT_REQUEST", "USER_OWNS_ACTION"],
+  "next_action": {next_action_schema}
+}}
+
+Candidate:
+{candidate_json}
+
+Context snapshot:
+{context_json}
+"""
+
 
 def assert_prompt_safe(prompt: str) -> None:
     lower = prompt.lower()
@@ -99,10 +157,31 @@ def assert_prompt_safe(prompt: str) -> None:
             )
 
 
+def checkpoint_temporal_facts(at: datetime) -> dict[str, Any]:
+    """Deterministic calendar facts for judge context (not ground-truth labels)."""
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=UTC)
+    utc = at.astimezone(UTC).replace(microsecond=0)
+    day_names = (
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    )
+    return {
+        "now": utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "day_of_week": day_names[utc.weekday()],
+        "is_weekend": utc.weekday() >= 5,
+    }
+
+
 def snapshot_to_context_dict(snapshot: CheckpointSnapshot) -> dict[str, Any]:
     return {
         "checkpoint_id": snapshot.checkpoint_id,
-        "at": snapshot.at.isoformat(),
+        **checkpoint_temporal_facts(snapshot.at),
         "candidates": [
             {
                 "id": c.id,
@@ -110,13 +189,8 @@ def snapshot_to_context_dict(snapshot: CheckpointSnapshot) -> dict[str, Any]:
                 "obligation_ids": c.obligation_ids,
                 "evidence_ids": c.evidence_ids,
                 "score": c.score,
-                "suppressed": c.suppressed,
             }
             for c in snapshot.candidate_set
-        ],
-        "surfaced": [
-            {"id": a.id, "title": a.title, "obligation_ids": a.obligation_ids}
-            for a in snapshot.alerts
         ],
         "memory": (
             {"open_obligation_ids": list(snapshot.memory_state.open_obligation_ids)}
@@ -136,7 +210,6 @@ def candidate_to_dict(candidate: AttentionCandidateObservation) -> dict[str, Any
         "obligation_ids": candidate.obligation_ids,
         "evidence_ids": candidate.evidence_ids,
         "score": candidate.score,
-        "suppressed": candidate.suppressed,
     }
 
 
@@ -202,6 +275,86 @@ def build_judge_prompt(
     return prompt
 
 
+def build_semantic_judge_prompt(
+    snapshot: CheckpointSnapshot,
+    candidate: AttentionCandidateObservation,
+    *,
+    attention_only: bool = False,
+) -> str:
+    next_action_schema = (
+        "null"
+        if attention_only
+        else '{ "title": "<micro-step>", "estimated_minutes": <int> }'
+    )
+    prompt = _SEMANTIC_JUDGE_PROMPT.format(
+        next_action_schema=next_action_schema,
+        candidate_json=json.dumps(candidate_to_dict(candidate), indent=2),
+        context_json=json.dumps(snapshot_to_context_dict(snapshot), indent=2),
+    )
+    assert_prompt_safe(prompt)
+    return prompt
+
+
+def semantic_output_to_features(output: SemanticJudgeV1Output) -> SemanticFeatures:
+    return SemanticFeatures(
+        obligation_strength=output.obligation_strength,
+        user_responsibility=output.user_responsibility,
+        importance=output.importance,
+        time_sensitivity=output.time_sensitivity,
+        actionability_now=output.actionability_now,
+        confidence=output.confidence,
+        reason_codes=tuple(c.value for c in output.reason_codes),
+    )
+
+
+def build_candidate_policy_facts(
+    snapshot: CheckpointSnapshot,
+    candidate: AttentionCandidateObservation,
+    truth: EvaluationTruth | None = None,
+) -> CandidatePolicyFacts:
+    temporal = checkpoint_temporal_facts(snapshot.at)
+    open_ids = set(
+        snapshot.memory_state.open_obligation_ids if snapshot.memory_state else []
+    )
+    obligation_id = candidate.obligation_ids[0] if candidate.obligation_ids else None
+    due_at = None
+    is_completed = False
+    has_open = False
+    if obligation_id:
+        has_open = obligation_id in open_ids
+        if truth is not None:
+            obligation = truth.ground_truth.obligation_by_id(obligation_id)
+            if obligation is not None:
+                due_at = obligation.due_at
+                is_completed = not obligation.is_open_at(snapshot.at)
+                has_open = obligation.is_open_at(snapshot.at)
+    has_reminder = any(eid.startswith("rem-") for eid in candidate.evidence_ids)
+    cal_hours: float | None = None
+    for eid in candidate.evidence_ids:
+        if eid.startswith("cal-"):
+            cal_hours = 0.5
+            break
+    mode = interruption_mode_for_instant(
+        now=snapshot.at,
+        is_weekend=bool(temporal.get("is_weekend")),
+    )
+    return CandidatePolicyFacts(
+        candidate_id=candidate.id,
+        now=snapshot.at,
+        candidate_kind=candidate.kind,
+        obligation_ids=tuple(candidate.obligation_ids),
+        evidence_ids=tuple(candidate.evidence_ids),
+        has_open_obligation=has_open,
+        is_completed=is_completed,
+        due_at=due_at,
+        has_existing_reminder=has_reminder,
+        calendar_proximity_hours=cal_hours,
+        engine_suppressed=candidate.suppressed,
+        interruption_mode=InterruptionMode(mode.value),
+        is_noise_evidence=evidence_is_noise(tuple(candidate.evidence_ids)),
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class PolicyJudgement:
     decision: Literal["surface", "suppress", "context"]
@@ -219,14 +372,26 @@ def apply_attention_policy(attention: JudgeV1Attention) -> PolicyJudgement:
 class CandidateJudgement:
     candidate_id: str
     output: JudgeV1Output | None = None
+    semantic_output: SemanticJudgeV1Output | None = None
     parse_error: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "candidate_id": self.candidate_id,
             "output": self.output.model_dump(mode="json") if self.output else None,
+            "semantic_output": (
+                self.semantic_output.model_dump(mode="json") if self.semantic_output else None
+            ),
             "parse_error": self.parse_error,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class SemanticRankedCandidate:
+    candidate: AttentionCandidateObservation
+    semantic: SemanticJudgeV1Output
+    policy_decision: Literal["surface", "suppress", "context"]
+    composite_score: float = 0.0
 
 
 def rank_candidate_judgements(
@@ -257,6 +422,98 @@ def rank_candidate_judgements(
         )
     ranked.sort(key=lambda row: row[2])
     return [(c, o) for c, o, _ in ranked]
+
+
+def rank_semantic_judgements(
+    snapshot: CheckpointSnapshot,
+    judgements: list[CandidateJudgement],
+    truth: EvaluationTruth,
+) -> list[SemanticRankedCandidate]:
+    by_id = {c.id: c for c in snapshot.candidate_set}
+    ranked: list[tuple[SemanticRankedCandidate, tuple[float, float, str]]] = []
+    for judgement in judgements:
+        if judgement.semantic_output is None:
+            continue
+        candidate = by_id.get(judgement.candidate_id)
+        if candidate is None:
+            continue
+        facts = build_candidate_policy_facts(snapshot, candidate, truth)
+        policy = decide_interruption(
+            semantic_output_to_features(judgement.semantic_output),
+            facts,
+        )
+        if policy.decision != "surface":
+            continue
+        ranked.append(
+            (
+                SemanticRankedCandidate(
+                    candidate=candidate,
+                    semantic=judgement.semantic_output,
+                    policy_decision=policy.decision,
+                    composite_score=policy.composite_score,
+                ),
+                (-policy.composite_score, -candidate.score, candidate.id),
+            )
+        )
+    ranked.sort(key=lambda row: row[1])
+    return [row[0] for row in ranked]
+
+
+def semantic_ranked_to_alerts(
+    snapshot: CheckpointSnapshot,
+    ranked: list[SemanticRankedCandidate],
+) -> list[SurfacedAlert]:
+    alerts: list[SurfacedAlert] = []
+    for row in ranked:
+        alerts.append(
+            SurfacedAlert(
+                id=row.candidate.id,
+                title=row.candidate.title,
+                kind=row.candidate.kind,
+                score=row.composite_score,
+                obligation_ids=list(row.candidate.obligation_ids),
+                evidence_ids=list(row.candidate.evidence_ids),
+                surfaced_at=snapshot.at,
+            )
+        )
+    return alerts
+
+
+def filter_semantic_snapshot_policy(
+    snapshot: CheckpointSnapshot,
+    ranked: list[SemanticRankedCandidate],
+) -> list[SurfacedAlert]:
+    alerts: list[SurfacedAlert] = []
+    for row in ranked:
+        if row.candidate.suppressed:
+            continue
+        alerts.append(
+            SurfacedAlert(
+                id=row.candidate.id,
+                title=row.candidate.title,
+                kind=row.candidate.kind,
+                score=row.composite_score,
+                obligation_ids=list(row.candidate.obligation_ids),
+                evidence_ids=list(row.candidate.evidence_ids),
+                surfaced_at=snapshot.at,
+            )
+        )
+    return alerts
+
+
+def pick_semantic_next_action(
+    ranked: list[SemanticRankedCandidate],
+) -> NextActionObservation | None:
+    for row in ranked:
+        if row.semantic.next_action is None:
+            continue
+        title = row.semantic.next_action.title
+        return NextActionObservation(
+            title=title,
+            action_id=title.strip().lower().replace(" ", "_"),
+            estimated_minutes=row.semantic.next_action.estimated_minutes,
+        )
+    return None
 
 
 def filter_snapshot_attention_policy(
@@ -431,18 +688,73 @@ def _judge_candidate(
     context: TransformedContext,
     model: str,
     attention_only: bool,
+    judge_arm: JudgeArm = "b2",
 ) -> CandidateJudgement:
+    if judge_arm == "b2":
+        return _judge_candidate_semantic(
+            snapshot,
+            candidate,
+            service=service,
+            context=context,
+            model=model,
+            attention_only=attention_only,
+        )
     prompt = build_judge_prompt(snapshot, candidate, attention_only=attention_only)
+    result = None
     try:
         result = service.reason(context, prompt=prompt, model=model)
         output = parse_judge_v1_output(result.text)
         validate_evidence_ids(output, set(candidate.evidence_ids))
         return CandidateJudgement(candidate_id=candidate.id, output=output)
     except (JudgeV1ParseError, InvalidEvidenceIdsError, ValueError) as exc:
+        detail = str(exc)
+        if result is not None:
+            debug_bits: list[str] = []
+            finish_reason = result.metadata.get("finish_reason")
+            response_shape = result.metadata.get("response_shape")
+            if finish_reason:
+                debug_bits.append(f"finish_reason={finish_reason}")
+            if response_shape:
+                debug_bits.append(str(response_shape))
+            if debug_bits:
+                detail = f"{detail} [{' '.join(debug_bits)}]"
         return CandidateJudgement(
             candidate_id=candidate.id,
-            parse_error=str(exc),
+            parse_error=detail,
         )
+
+
+def _judge_candidate_semantic(
+    snapshot: CheckpointSnapshot,
+    candidate: AttentionCandidateObservation,
+    *,
+    service: PaygReasoningService,
+    context: TransformedContext,
+    model: str,
+    attention_only: bool,
+) -> CandidateJudgement:
+    prompt = build_semantic_judge_prompt(snapshot, candidate, attention_only=attention_only)
+    result = None
+    try:
+        result = service.reason(context, prompt=prompt, model=model)
+        output = parse_semantic_judge_v1_output(result.text)
+        return CandidateJudgement(candidate_id=candidate.id, semantic_output=output)
+    except (SemanticJudgeV1ParseError, ValueError) as exc:
+        detail = str(exc)
+        if result is not None:
+            debug_bits: list[str] = []
+            finish_reason = result.metadata.get("finish_reason")
+            response_shape = result.metadata.get("response_shape")
+            retried = result.metadata.get("retried_for_length")
+            if finish_reason:
+                debug_bits.append(f"finish_reason={finish_reason}")
+            if retried == "true":
+                debug_bits.append("retried_for_length=true")
+            if response_shape:
+                debug_bits.append(str(response_shape))
+            if debug_bits:
+                detail = f"{detail} [{' '.join(debug_bits)}]"
+        return CandidateJudgement(candidate_id=candidate.id, parse_error=detail)
 
 
 def score_arm_b(
@@ -453,8 +765,12 @@ def score_arm_b(
     context: TransformedContext | None = None,
     model: str = "payg-gate",
     attention_only: bool = False,
+    judge_arm: JudgeArm = "b2",
 ) -> CheckpointArmResult:
     ctx = context or snapshot_to_transformed_context(snapshot)
+    ctx = ctx.model_copy(
+        update={"metadata": {**ctx.metadata, "judge_arm": judge_arm}}
+    )
     start = time.perf_counter()
     judgements: list[CandidateJudgement] = []
     total_cost = 0.0
@@ -468,6 +784,7 @@ def score_arm_b(
             context=ctx,
             model=model,
             attention_only=attention_only,
+            judge_arm=judge_arm,
         )
         judgements.append(judgement)
         if judgement.parse_error and first_parse_error is None:
@@ -475,7 +792,9 @@ def score_arm_b(
 
     latency_ms = (time.perf_counter() - start) * 1000.0
 
-    if first_parse_error is not None and all(j.output is None for j in judgements):
+    if first_parse_error is not None and all(
+        j.output is None and j.semantic_output is None for j in judgements
+    ):
         metrics = compute_support_fitness_metrics(
             truth, alerts=snapshot.alerts, next_action=None, at=snapshot.at
         )
@@ -488,10 +807,18 @@ def score_arm_b(
             candidate_judgements=judgements,
         )
 
-    ranked = rank_candidate_judgements(snapshot, judgements)
-    model_alerts = ranked_surfaces_to_alerts(snapshot, ranked)
-    policy_alerts = filter_snapshot_attention_policy(snapshot, ranked)
-    next_action = None if attention_only else pick_next_action(ranked)
+    if judge_arm == "b2":
+        ranked_sem = rank_semantic_judgements(snapshot, judgements, truth)
+        model_alerts = semantic_ranked_to_alerts(snapshot, ranked_sem)
+        policy_alerts = filter_semantic_snapshot_policy(snapshot, ranked_sem)
+        next_action = (
+            None if attention_only else pick_semantic_next_action(ranked_sem)
+        )
+    else:
+        ranked = rank_candidate_judgements(snapshot, judgements)
+        model_alerts = ranked_surfaces_to_alerts(snapshot, ranked)
+        policy_alerts = filter_snapshot_attention_policy(snapshot, ranked)
+        next_action = None if attention_only else pick_next_action(ranked)
 
     metrics = compute_support_fitness_metrics(
         truth,
@@ -521,6 +848,7 @@ def run_llm_benchmark(
     checkpoint_ids: list[str] | None = None,
     context_mode: Literal["transformed", "full_synthetic"] = "transformed",
     attention_only: bool = False,
+    judge_arm: JudgeArm = "b2",
 ) -> LlmBenchmarkReport:
     root = Path(baseline_dir)
     mismatches = verify_arm_a_integrity(root)
@@ -559,6 +887,7 @@ def run_llm_benchmark(
                 service=service,
                 context=ctx,
                 attention_only=attention_only,
+                judge_arm=judge_arm,
             )
         )
 
@@ -587,21 +916,32 @@ __all__ = [
     "FORBIDDEN_PROMPT_MARKERS",
     "CandidateJudgement",
     "CheckpointArmResult",
+    "JudgeArm",
     "LlmBenchmarkReport",
     "PolicyJudgement",
     "PROMPT_VERSION",
+    "PROMPT_VERSION_B1",
     "SURFACE_CONFIDENCE_MIN",
+    "SemanticRankedCandidate",
     "aggregate_support_fitness",
     "apply_attention_policy",
     "assert_prompt_safe",
     "benchmark_cost_events",
+    "build_candidate_policy_facts",
     "build_judge_prompt",
+    "build_semantic_judge_prompt",
+    "checkpoint_temporal_facts",
+    "filter_semantic_snapshot_policy",
     "filter_snapshot_attention_policy",
     "pick_next_action",
+    "pick_semantic_next_action",
     "rank_candidate_judgements",
+    "rank_semantic_judgements",
     "run_llm_benchmark",
     "score_arm_a",
     "score_arm_b",
+    "semantic_output_to_features",
+    "semantic_ranked_to_alerts",
     "snapshot_to_full_synthetic_context",
     "snapshot_to_transformed_context",
 ]

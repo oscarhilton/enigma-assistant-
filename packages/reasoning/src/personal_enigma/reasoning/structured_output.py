@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
@@ -68,6 +69,49 @@ class JudgeV1Output(BaseModel):
     next_action: NextActionV1 | None = None
 
 
+JUDGE_V1_EXAMPLE: dict[str, Any] = {
+    "schema_version": "judge-v1",
+    "attention": {
+        "decision": "surface",
+        "priority": 4,
+        "confidence": 0.85,
+        "reason_codes": ["USER_COMMITMENT"],
+        "evidence_ids": ["rem-example"],
+    },
+    "next_action": None,
+}
+
+JUDGE_V1_EXAMPLE_JSON = json.dumps(JUDGE_V1_EXAMPLE, indent=2)
+
+JUDGE_V1_SYSTEM_PROMPT = (
+    "You are Enigma's reasoning judge. Reason only over the sanitised context "
+    "in the user message. Do not invent private identifiers.\n"
+    "Attention semantics: surface = warrants the user's attention now; "
+    "suppress = no useful intervention at this instant; context = genuine but "
+    "non-urgent info when no current intervention is useful. "
+    "Open obligation alone is not sufficient for surface. "
+    "Important ≠ needs attention now; open ≠ urgent; candidate ≠ alert. "
+    "Zero surfaced items across all candidates is valid.\n"
+    "Return exactly one JSON object matching schema judge-v1 — no markdown "
+    "fences, no chain-of-thought, no error placeholders.\n"
+    f"Example shape:\n{JUDGE_V1_EXAMPLE_JSON}\n"
+    "Required top-level keys: schema_version, attention (decision, priority, "
+    "confidence, reason_codes, evidence_ids). next_action may be null.\n"
+    'Never return {"name": "Invalid", ...} or other non-judge-v1 shapes.'
+)
+
+
+def judge_v1_response_format() -> dict[str, Any]:
+    """Fireworks/OpenAI-compatible structured output for judge-v1."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "judge_v1_output",
+            "schema": JudgeV1Output.model_json_schema(),
+        },
+    }
+
+
 class JudgeV1ParseError(ValueError):
     """Structured judge-v1 output could not be parsed or validated."""
 
@@ -87,16 +131,112 @@ def validate_evidence_ids(output: JudgeV1Output, allowed: set[str]) -> None:
         )
 
 
-def parse_judge_v1_output(text: str) -> JudgeV1Output:
+_TRANSPORT_ERROR_PREFIXES = ("[fireworks transport", "[openai transport")
+
+
+def _strip_markdown_fences(text: str) -> str:
+    stripped = text.strip()
+    if not stripped.startswith("```"):
+        return stripped
+    lines = stripped.splitlines()
+    if lines and lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
+def _strip_redacted_thinking(text: str) -> str:
+    """Remove gpt-oss thinking wrappers; keep text after the closing tag."""
+    return re.sub(
+        r"<think>.*?</think>",
+        "",
+        text,
+        flags=re.DOTALL,
+    ).strip()
+
+
+def describe_llm_text_shape(text: str) -> str:
+    """Compact summary of model text for parse-failure debug (no secrets)."""
+    stripped = text.strip()
+    return (
+        f"len={len(stripped)} has_brace={'{' in stripped} "
+        f"has_harmony_final={'<|channel|>final<|message|>' in stripped} "
+        f"has_redacted_thinking={'<think>' in stripped} "
+        f"preview={stripped[:80]!r}"
+    )
+
+
+def _extract_harmony_final(text: str) -> str:
+    marker = "<|channel|>final<|message|>"
+    idx = text.rfind(marker)
+    if idx >= 0:
+        return text[idx + len(marker) :].strip()
+    return text
+
+
+def _is_rejection_payload(payload: dict[str, Any]) -> bool:
+    """Fireworks / json-mode placeholder when the model cannot emit judge-v1."""
+    if payload.get("name") == "Invalid":
+        return True
+    if "attention" not in payload and payload.get("schema_version") != "judge-v1":
+        reason = payload.get("reason") or payload.get("message") or payload.get("error")
+        if isinstance(reason, str) and reason.strip():
+            return True
+    return False
+
+
+def _extract_first_json_object(text: str) -> str:
+    """Return substring of the first parseable JSON object (ignore trailing blobs)."""
+    decoder = json.JSONDecoder()
+    start = 0
+    while start < len(text):
+        brace = text.find("{", start)
+        if brace < 0:
+            break
+        try:
+            _, end = decoder.raw_decode(text, brace)
+            return text[brace:end]
+        except json.JSONDecodeError:
+            start = brace + 1
+    raise JudgeV1ParseError(
+        f"no JSON object found in LLM response ({describe_llm_text_shape(text)})"
+    )
+
+
+def extract_judge_v1_json_text(text: str) -> str:
+    """Normalize model text to a JSON object string before ``json.loads``."""
     stripped = text.strip()
     if not stripped:
-        raise JudgeV1ParseError("empty LLM response")
+        raise JudgeV1ParseError(f"empty LLM response ({describe_llm_text_shape(text)})")
+    lowered = stripped.lower()
+    for prefix in _TRANSPORT_ERROR_PREFIXES:
+        if lowered.startswith(prefix):
+            raise JudgeV1ParseError(
+                f"transport error (not model JSON): {stripped[:240]}"
+            )
+    candidate = _extract_harmony_final(
+        _strip_redacted_thinking(_strip_markdown_fences(stripped))
+    )
+    return _extract_first_json_object(candidate)
+
+
+def parse_judge_v1_output(text: str) -> JudgeV1Output:
     try:
-        payload = json.loads(stripped)
+        json_text = extract_judge_v1_json_text(text)
+    except JudgeV1ParseError:
+        raise
+    try:
+        payload = json.loads(json_text)
     except json.JSONDecodeError as exc:
         raise JudgeV1ParseError(f"invalid JSON: {exc}") from exc
     if not isinstance(payload, dict):
         raise JudgeV1ParseError(f"expected JSON object, got {type(payload).__name__}")
+    if _is_rejection_payload(payload):
+        detail = payload.get("reason") or payload.get("message") or payload.get("name")
+        raise JudgeV1ParseError(
+            f"model rejection (not judge-v1): {detail!s}"[:240]
+        )
     if payload.get("schema_version") not in (None, "judge-v1"):
         raise JudgeV1ParseError(
             f"unsupported schema_version: {payload.get('schema_version')!r}"
@@ -111,15 +251,194 @@ def parse_llm_judge_output(text: str) -> JudgeV1Output:
     return parse_judge_v1_output(text)
 
 
+# --- Arm B2: semantic judge (interpretation only; no surface/suppress decision) ---
+
+
+class SemanticReasonCode(StrEnum):
+    EXPLICIT_REQUEST = "EXPLICIT_REQUEST"
+    USER_OWNS_ACTION = "USER_OWNS_ACTION"
+    NEAR_TERM_COMMITMENT = "NEAR_TERM_COMMITMENT"
+    SOCIAL_COORDINATION = "SOCIAL_COORDINATION"
+    ADMIN_FRICTION = "ADMIN_FRICTION"
+    LOW_VALUE_NOISE = "LOW_VALUE_NOISE"
+    LOW_URGENCY = "LOW_URGENCY"
+    CONTEXT_ONLY = "CONTEXT_ONLY"
+    OTHER = "OTHER"
+
+
+class SemanticNextActionV1(BaseModel):
+    title: str
+    estimated_minutes: int | None = Field(default=None, ge=1)
+
+
+class SemanticJudgeV1Output(BaseModel):
+    schema_version: Literal["semantic-judge-v1"] = "semantic-judge-v1"
+    obligation_strength: float = Field(ge=0.0, le=1.0)
+    user_responsibility: float = Field(ge=0.0, le=1.0)
+    importance: float = Field(ge=0.0, le=1.0)
+    time_sensitivity: float = Field(ge=0.0, le=1.0)
+    actionability_now: float = Field(ge=0.0, le=1.0)
+    confidence: float = Field(ge=0.0, le=1.0)
+    reason_codes: list[SemanticReasonCode] = Field(default_factory=list)
+    next_action: SemanticNextActionV1 | None = None
+
+    @field_validator("reason_codes", mode="before")
+    @classmethod
+    def _coerce_semantic_reason_codes(cls, value: object) -> list[SemanticReasonCode]:
+        if not isinstance(value, list):
+            return value  # type: ignore[return-value]
+        allowed = {c.value for c in SemanticReasonCode}
+        return [
+            SemanticReasonCode(item) if str(item) in allowed else SemanticReasonCode.OTHER
+            for item in value
+        ]
+
+
+SEMANTIC_JUDGE_V1_EXAMPLE: dict[str, Any] = {
+    "schema_version": "semantic-judge-v1",
+    "obligation_strength": 0.96,
+    "user_responsibility": 0.98,
+    "importance": 0.82,
+    "time_sensitivity": 0.88,
+    "actionability_now": 0.91,
+    "confidence": 0.95,
+    "reason_codes": ["EXPLICIT_REQUEST", "USER_OWNS_ACTION", "NEAR_TERM_COMMITMENT"],
+    "next_action": {"title": "Book the brunch", "estimated_minutes": 10},
+}
+
+SEMANTIC_JUDGE_V1_EXAMPLE_JSON = json.dumps(SEMANTIC_JUDGE_V1_EXAMPLE, indent=2)
+
+SEMANTIC_JUDGE_V1_SYSTEM_PROMPT = (
+    "You are Enigma's semantic interpreter. Reason only over the sanitised context "
+    "in the user message. Do not invent private identifiers.\n"
+    "Return semantic features describing the candidate — do NOT decide whether to "
+    "surface, suppress, or alert the user. Enigma applies deterministic policy "
+    "locally using your features plus observable facts (due dates, completion, now).\n"
+    "Score each float 0.0–1.0. reason_codes explain your interpretation.\n"
+    "Return exactly one JSON object matching schema semantic-judge-v1 — no markdown "
+    "fences, no chain-of-thought.\n"
+    f"Example shape:\n{SEMANTIC_JUDGE_V1_EXAMPLE_JSON}\n"
+    "Required keys (emit in this order): schema_version, obligation_strength, "
+    "user_responsibility, importance, time_sensitivity, actionability_now, confidence, "
+    "reason_codes. Optional next_action comes last and may be null."
+)
+
+
+def semantic_judge_v1_response_format() -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "semantic_judge_v1_output",
+            "schema": SemanticJudgeV1Output.model_json_schema(),
+        },
+    }
+
+
+class SemanticJudgeV1ParseError(ValueError):
+    """Structured semantic-judge-v1 output could not be parsed or validated."""
+
+
+_SEMANTIC_REQUIRED_SCORE_KEYS = (
+    "obligation_strength",
+    "user_responsibility",
+    "importance",
+    "time_sensitivity",
+    "actionability_now",
+    "confidence",
+)
+
+
+def _is_next_action_only_payload(payload: dict[str, Any]) -> bool:
+    """Detect truncated output where only a bare next_action fragment survived."""
+    if any(key in payload for key in _SEMANTIC_REQUIRED_SCORE_KEYS):
+        return False
+    if payload.get("schema_version") == "semantic-judge-v1":
+        return False
+    keys = set(payload.keys())
+    if keys <= {"title", "estimated_minutes"}:
+        return True
+    return "title" in payload and isinstance(payload.get("title"), str)
+
+
+def _is_semantic_rejection_payload(payload: dict[str, Any]) -> bool:
+    if payload.get("name") == "Invalid":
+        return True
+    if payload.get("schema_version") not in (None, "semantic-judge-v1"):
+        return False
+    required = (
+        "obligation_strength",
+        "user_responsibility",
+        "importance",
+        "time_sensitivity",
+        "actionability_now",
+        "confidence",
+    )
+    if not all(key in payload for key in required):
+        reason = payload.get("reason") or payload.get("message") or payload.get("error")
+        if isinstance(reason, str) and reason.strip():
+            return True
+    return False
+
+
+def parse_semantic_judge_v1_output(text: str) -> SemanticJudgeV1Output:
+    try:
+        json_text = extract_judge_v1_json_text(text)
+    except JudgeV1ParseError as exc:
+        raise SemanticJudgeV1ParseError(str(exc)) from exc
+    try:
+        payload = json.loads(json_text)
+    except json.JSONDecodeError as exc:
+        raise SemanticJudgeV1ParseError(f"invalid JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise SemanticJudgeV1ParseError(f"expected JSON object, got {type(payload).__name__}")
+    if _is_semantic_rejection_payload(payload):
+        detail = payload.get("reason") or payload.get("message") or payload.get("name")
+        raise SemanticJudgeV1ParseError(f"model rejection: {detail!s}"[:240])
+    if payload.get("schema_version") not in (None, "semantic-judge-v1"):
+        raise SemanticJudgeV1ParseError(
+            f"unsupported schema_version: {payload.get('schema_version')!r}"
+        )
+    if _is_next_action_only_payload(payload):
+        raise SemanticJudgeV1ParseError(
+            "truncated semantic output: payload contains only next_action fields "
+            "(required score fields missing — likely max_tokens exhausted)"
+        )
+    try:
+        return SemanticJudgeV1Output.model_validate(payload)
+    except ValidationError as exc:
+        detail = str(exc)
+        if _is_next_action_only_payload(payload):
+            detail = (
+                "truncated semantic output: payload contains only next_action fields "
+                "(required score fields missing — likely max_tokens exhausted)"
+            )
+        raise SemanticJudgeV1ParseError(f"schema validation failed: {detail}") from exc
+
+
 __all__ = [
     "InvalidEvidenceIdsError",
+    "JUDGE_V1_EXAMPLE",
+    "JUDGE_V1_EXAMPLE_JSON",
+    "JUDGE_V1_SYSTEM_PROMPT",
     "JudgeV1Attention",
     "JudgeV1Output",
     "JudgeV1ParseError",
     "LlmJudgeParseError",
     "NextActionV1",
     "ReasonCode",
+    "SemanticJudgeV1Output",
+    "SemanticJudgeV1ParseError",
+    "SemanticNextActionV1",
+    "SemanticReasonCode",
+    "SEMANTIC_JUDGE_V1_EXAMPLE",
+    "SEMANTIC_JUDGE_V1_EXAMPLE_JSON",
+    "SEMANTIC_JUDGE_V1_SYSTEM_PROMPT",
+    "describe_llm_text_shape",
+    "extract_judge_v1_json_text",
+    "judge_v1_response_format",
     "parse_judge_v1_output",
     "parse_llm_judge_output",
+    "parse_semantic_judge_v1_output",
+    "semantic_judge_v1_response_format",
     "validate_evidence_ids",
 ]

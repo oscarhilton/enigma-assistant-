@@ -114,3 +114,127 @@ def test_budget_gated_transport_records_and_refuses(tmp_path: Any) -> None:
             budget_input_tokens=400_000,
             max_output_tokens=33_333,
         )
+
+
+def test_budget_gated_transport_records_length_retry_both_attempts(tmp_path: Any) -> None:
+    """Both initial and length-retry HTTP calls must count against HARD_CAP_USD."""
+    truncated = json.dumps({"title": "Open expense spreadsheet", "estimated_minutes": 5})
+    full = json.dumps(
+        {
+            "schema_version": "semantic-judge-v1",
+            "obligation_strength": 0.96,
+            "user_responsibility": 0.98,
+            "importance": 0.82,
+            "time_sensitivity": 0.88,
+            "actionability_now": 0.91,
+            "confidence": 0.95,
+            "reason_codes": ["EXPLICIT_REQUEST"],
+        }
+    )
+    calls = 0
+
+    def _urlopen(_req: Any, timeout: float = 0) -> Any:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            payload = json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {"content": truncated},
+                            "finish_reason": "length",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 500, "completion_tokens": 512},
+                }
+            ).encode("utf-8")
+        else:
+            payload = json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {"content": full},
+                            "finish_reason": "stop",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 500, "completion_tokens": 800},
+                }
+            ).encode("utf-8")
+
+        class _FakeResponse:
+            def read(self) -> bytes:
+                return payload
+
+            def __enter__(self) -> _FakeResponse:
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+        return _FakeResponse()
+
+    inner = FireworksChatTransport(api_key="test-key", urlopen=_urlopen)
+    ledger = BenchmarkBudgetLedger(audit_dir=tmp_path, cumulative_usd=0.0)
+    transport = BudgetGatedFireworksTransport(transport=inner, ledger=ledger, phase="smoke")
+    ctx = TransformedContext(
+        summary="short prompt",
+        entities=["A"],
+        metadata={"checkpoint_id": "cp-smoke", "judge_arm": "b2"},
+        may_transmit_remotely=True,
+    )
+    result = transport.complete(prompt="judge", context=ctx, rep=0)
+    assert result.metadata.get("retried_for_length") == "true"
+    assert calls == 2
+    assert len(ledger.records) == 2
+    expected = estimate_cost_usd(input_tokens=500, output_tokens=512) + estimate_cost_usd(
+        input_tokens=500, output_tokens=800
+    )
+    assert ledger.cumulative_usd == pytest.approx(expected)
+    assert ledger.records[0].metadata.get("attempt") == "initial"
+    assert ledger.records[1].metadata.get("attempt") == "length_retry"
+
+
+def test_budget_gated_transport_refuses_length_retry_over_cap(tmp_path: Any) -> None:
+    truncated = json.dumps({"title": "partial"})
+    calls = 0
+
+    def _urlopen(_req: Any, timeout: float = 0) -> Any:
+        nonlocal calls
+        calls += 1
+        payload = json.dumps(
+            {
+                "choices": [
+                    {
+                        "message": {"content": truncated},
+                        "finish_reason": "length",
+                    }
+                ],
+                "usage": {"prompt_tokens": 500, "completion_tokens": 512},
+            }
+        ).encode("utf-8")
+
+        class _FakeResponse:
+            def read(self) -> bytes:
+                return payload
+
+            def __enter__(self) -> _FakeResponse:
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+        return _FakeResponse()
+
+    inner = FireworksChatTransport(api_key="test-key", urlopen=_urlopen)
+    ledger = BenchmarkBudgetLedger(audit_dir=tmp_path, cumulative_usd=0.799)
+    transport = BudgetGatedFireworksTransport(transport=inner, ledger=ledger, phase="smoke")
+    ctx = TransformedContext(
+        summary="short prompt",
+        entities=["A"],
+        metadata={"checkpoint_id": "cp-smoke", "judge_arm": "b2"},
+        may_transmit_remotely=True,
+    )
+    with pytest.raises(BudgetCapExceededError):
+        transport.complete(prompt="judge", context=ctx, rep=0)
+    assert calls == 1
+    assert len(ledger.records) == 1

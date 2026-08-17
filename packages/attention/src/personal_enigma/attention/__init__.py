@@ -13,11 +13,25 @@ from personal_enigma.attention.engine import (
     HeuristicAttentionEngine,
     effective_score,
 )
+from personal_enigma.attention.interruption_policy import (
+    CandidatePolicyFacts,
+    InterruptionMode,
+    PolicyJudgement,
+    SemanticFeatures,
+    decide_interruption,
+    interruption_mode_for_instant,
+)
 from personal_enigma.attention.kinds import AttentionKind
 from personal_enigma.attention.overdue import overdue_reminders
 from personal_enigma.attention.protocol import AttentionEngine, AttentionItem
 
 __all__ = [
+    "CandidatePolicyFacts",
+    "InterruptionMode",
+    "PolicyJudgement",
+    "SemanticFeatures",
+    "decide_interruption",
+    "interruption_mode_for_instant",
     "KIND_PRIORITY",
     "WEAK_INFERRED_KINDS",
     "AttentionEngine",

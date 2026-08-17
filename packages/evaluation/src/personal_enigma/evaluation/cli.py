@@ -129,6 +129,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="all",
         help="Live gate phase to run (default: all)",
     )
+    parser.add_argument(
+        "--arm",
+        choices=["b1", "b2"],
+        default="b2",
+        help="Arm B judge path: b1=direct judge-v1, b2=semantic judge + policy (default)",
+    )
     return parser
 
 
@@ -142,6 +148,7 @@ def _run_live_gate(args: argparse.Namespace) -> int:
         smoke_only=args.smoke_only,
         live=args.live,
         write_report=not args.dry_run,
+        judge_arm=args.arm,
     )
     payload: dict[str, object] = {
         "blocked": result.blocked,
