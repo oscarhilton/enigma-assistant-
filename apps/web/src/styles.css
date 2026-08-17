@@ -551,3 +551,804 @@ button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+.conversational-home {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 60vh;
+}
+
+.conversational-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.conversation-viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  padding: 1rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.conversation-line--user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(47, 93, 80, 0.12);
+  border-radius: 0.5rem;
+}
+
+.conversation-line--enigma {
+  color: var(--ink);
+}
+
+.conversation-line--status {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.conversation-line--success {
+  color: var(--accent);
+}
+
+.conversation-line--error {
+  color: #9b3b3b;
+}
+
+.conversation-empty {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.activity-strip {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.activity-strip--collapsed > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.activity-strip--collapsed > summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity-strip-mark {
+  display: inline-block;
+  margin-right: 0.4rem;
+  color: var(--accent);
+}
+
+.activity-strip-list {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.turn-debug {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.35);
+  font-size: 0.82rem;
+}
+
+.turn-debug-row > summary {
+  cursor: pointer;
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  color: var(--muted);
+}
+
+.turn-debug-detail,
+.turn-debug-privacy dl {
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.turn-debug-detail > div,
+.turn-debug-privacy dl > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.turn-debug-detail dt,
+.turn-debug-privacy dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.turn-debug-detail dd,
+.turn-debug-privacy dd {
+  margin: 0;
+}
+
+.turn-debug-detail pre,
+.turn-debug-privacy pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+}
+
+.turn-debug-hash {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.turn-debug-caption {
+  margin: 0.5rem 0;
+  color: var(--muted);
+}
+
+.attention-item,
+.next-action-item,
+.assist-proposal {
+  border: 1px solid var(--line);
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.assist-proposal button {
+  margin-top: 0.5rem;
+}
+
+.assist-proposal-error {
+  margin: 0.5rem 0 0;
+  color: #9b3b3b;
+  font-size: 0.9rem;
+}
+
+.next-action-item {
+  max-width: 36rem;
+}
+
+.next-action-context-hint {
+  display: block;
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.next-action-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.radar-panel {
+  margin-top: 0.25rem;
+  max-width: 36rem;
+}
+
+.radar-panel > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.92rem;
+  list-style: none;
+}
+
+.radar-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.radar-panel > summary::before {
+  content: "› ";
+  color: var(--muted);
+}
+
+.radar-item + .radar-item {
+  margin-top: 0.15rem;
+}
+
+.radar-item-title {
+  display: block;
+  width: 100%;
+  padding: 0.2rem 0 0.2rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.radar-item-title::before {
+  content: "› ";
+  color: var(--muted);
+}
+
+.radar-item-detail {
+  margin: 0.35rem 0 0.5rem 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.radar-item-detail p {
+  margin: 0 0 0.35rem;
+}
+
+.attention-item--quiet {
+  border-style: dashed;
+  background: transparent;
+}
+
+.attention-badge {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.attention-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.composer-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.composer-error {
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #d4a0a0;
+  background: rgba(155, 59, 59, 0.08);
+  color: #9b3b3b;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.composer-error-dismiss {
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.composer {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.composer input {
+  flex: 1;
+  font: inherit;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.demo-controls-badge {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.demo-controls-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.demo-under-bonnet-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.demo-forensic-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.demo-forensic-copy-button {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.demo-controls-panel {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--line);
+}
+
+.demo-controls-silence {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.demo-controls-checkpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.demo-controls-checkpoints button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: rgba(47, 93, 80, 0.12);
+}
+
+.demo-event-log {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.demo-event-log-empty {
+  list-style: none;
+  margin-left: -1.1rem;
+}
+
+.under-bonnet {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.95rem;
+}
+
+.under-bonnet a {
+  color: var(--muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.qualification-debug table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.qualification-debug th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.egress-disclosure {
+  margin-top: 1.25rem;
+}
+
+.egress-disclosure-toggle {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.egress-disclosure-panel {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.egress-disclosure-header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.egress-disclosure-header p,
+.egress-disclosure-caption {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.egress-disclosure-error {
+  margin: 0 0 0.75rem;
+  color: #8b2e2e;
+  font-size: 0.9rem;
+}
+
+.egress-disclosure-error p {
+  margin: 0 0 0.2rem;
+}
+
+.egress-disclosure-error-title {
+  font-weight: 600;
+}
+
+.egress-disclosure-error-preview {
+  margin-top: 0.45rem;
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.egress-disclosure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.egress-disclosure-row {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.egress-disclosure-row > summary {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  list-style: none;
+}
+
+.egress-disclosure-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.egress-disclosure-time {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.egress-disclosure-purpose {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+}
+
+.egress-disclosure-provider {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.egress-disclosure-status {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.egress-disclosure-status-sent {
+  color: var(--accent);
+}
+
+.egress-disclosure-status-blocked {
+  color: #8b2e2e;
+}
+
+.egress-disclosure-detail {
+  padding: 0 0.65rem 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.egress-disclosure-detail dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 0.65rem 0;
+  font-size: 0.88rem;
+}
+
+.egress-disclosure-detail dt {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.egress-disclosure-detail dd {
+  margin: 0.15rem 0 0;
+}
+
+.egress-disclosure-hash {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.egress-disclosure-payload {
+  margin-top: 0.5rem;
+}
+
+.egress-disclosure-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.egress-disclosure-tabs button {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.egress-disclosure-tabs button.is-active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(26, 31, 28, 0.04);
+}
+
+.egress-disclosure-tab-body {
+  margin-top: 0.25rem;
+}
+
+.egress-disclosure-forensic {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+}
+
+.egress-disclosure-forensic p {
+  margin: 0 0 0.2rem;
+}
+
+.egress-disclosure-endpoint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.egress-disclosure-payload pre {
+  margin: 0.5rem 0 0;
+  padding: 0.65rem;
+  overflow-x: auto;
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  background: rgba(26, 31, 28, 0.04);
+  border: 1px solid var(--line);
+}
+
+.cortex-panel-root {
+  margin-top: 0.75rem;
+}
+
+.cortex-panel-toggle {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.cortex-panel {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.cortex-panel-header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.cortex-panel-header p,
+.cortex-caption {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.cortex-error {
+  margin: 0;
+  color: #8b2e2e;
+  font-size: 0.9rem;
+}
+
+.cortex-regions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.cortex-region {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 0.82rem;
+}
+
+.cortex-region strong {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.cortex-region span {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.cortex-region-collapsed {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.cortex-scene-placeholder {
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px dotted var(--line);
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.cortex-membrane-toggle {
+  margin-top: 0.5rem;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.cortex-membrane-toggle.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cortex-privacy-caption {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+.cortex-retention {
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.cortex-retention h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.cortex-retention p {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.cortex-retention input[type="range"] {
+  width: 100%;
+}
+
+.cortex-retention-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.cortex-retention-labels .active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.cortex-retention-metrics {
+  display: flex;
+  gap: 1.5rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+}
+
+.cortex-retention-metrics dt {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.cortex-retention-metrics dd {
+  margin: 0.15rem 0 0;
+  font-family: "IBM Plex Mono", Menlo, monospace;
+}
+
+.cortex-event-log h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.cortex-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cortex-event-row {
+  display: grid;
+  grid-template-columns: 8.5rem 5.5rem 1fr;
+  gap: 0.65rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.cortex-event-time {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.cortex-event-region {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.cortex-event-label {
+  font-family: "IBM Plex Mono", Menlo, monospace;
+  font-size: 0.8rem;
+}
+
