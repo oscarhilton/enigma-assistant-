@@ -329,6 +329,32 @@ CLI: `uv run enigma-eval --reasoning-gate-live --live --phase hardest-10-v2`
 
 **Decision: B — partial signal.** Cost **$0.069**. v2 recall 0.85; suppress 1.00; privacy 0. Audit confirms `BLOCKED_BY` + `state=resolved` in v2 prompt `context_json` for Jan 19 and Jan 20. Semantics moved on actionability/reason codes; `time_sensitivity` stayed ~0.3; brunch still displaced token-audit. No new checkpoint failure. **Main not eligible. Do not tune.**
 
+### Step 7 displacement attribution (R-L09.5.1, read-only)
+
+**Sources:** `main-benchmark.json` (historical v1 B), `hardest-10-evaluation_transformed_v2.json` (Step 7 v2 B), `prompt-audit.jsonl`, `hardest-10-triple-column.json`.
+
+| checkpoint | v1/hist | v2 Step7 | token blocker | change |
+| --- | --- | --- | --- | --- |
+| cp-2026-01-20T11:00 | FAIL | FAIL | 0/3→0/3 | shared_fail |
+| cp-2026-01-19T10:00 | FAIL | FAIL | 0/3→1/3 | shared_fail (partial) |
+| cp-2026-01-11T11:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-10T14:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-15T13:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-25T17:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-25T10:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-24T15:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-24T09:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-23T12:00 | PASS | PASS | n/a | agree |
+
+- **vs historical v1:** 8 agree, 0 regressions, 0 rescues, 2 shared_fail (Jan 19/20).
+- **vs Arm A (Step 7):** 6 agree, 2 rescues, 2 regressions — same Jan 19/20 token-blocker pair.
+
+**Jan 19/20:** Jan 19 rep2 only rescue (brunch + token surfaced); Jan 20 3/3 brunch-only. Not checkpoint-level FAIL→PASS.
+
+**Attribution:** Bucket **1** (semantic improvement + Top-1 ranking displacement). Token `actionability_now`↑ to 0.9; `time_sensitivity` stuck ~0.3; brunch wins composite score.
+
+**Next (no implementation):** policy-input trace for composite components; Top-N surface budget probe; `time_sensitivity` rubric research.
+
 ---
 
 ## Information-loss taxonomy

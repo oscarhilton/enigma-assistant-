@@ -27,6 +27,7 @@ Keep deterministic interruption policy. Do **not** adopt remote reasoning from t
 | **R-L09.3** | Live hardest-10: v2 critical recall **0.85** vs historical v1 **0.85** — **NO MOVEMENT**. Investigation: `relations[]` never entered the semantic judge prompt (`snapshot_to_context_dict()` fork). Result classified as **integration/wiring negative**, not semantic-preservation hypothesis falsification. |
 | **R-L09.4** | Step 6: route privacy-gated `TransformedContext` into semantic judge prompt (frozen at `r-l09-step6-prompt-wiring`). |
 | **R-L09.5** | Step 7 live hardest-10 (~$0.069): **decision B**. v2 critical recall **0.85** vs historical v1 **0.85**; MUST_SUPPRESS 1.00; v2 privacy failures 0. Jan 19/20 `actionability_now` 0.5–0.7→**0.9** and reason codes left `LOW_URGENCY`/`CONTEXT_ONLY`; `time_sensitivity` stayed ~0.3. Relations (`BLOCKED_BY`, `state=resolved`) were in the stored prompt `context_json`. Remaining misses are still Jan 19/20 (brunch displacement / policy did not surface token-audit) — not a new checkpoint regression. **Not eligible for main.** Do not tune thresholds. |
+| **R-L09.5.1** | Step 7 displacement attribution (read-only, no tuning): **zero net checkpoint movement** vs historical v1 B (`main-benchmark.json`). 8 agree PASS, 2 shared_fail (Jan 19/20). Jan 19 token-inventory-blocker **0/3→1/3** rep rescue (rep2 surfaces both brunch + token); Jan 20 **0/3→0/3** (3/3 brunch-only policy surface). No checkpoint worsened vs historical v1. Arm-A-vs-B regressions (Jan 19/20) persist — bucket **1** (semantic improvement + ranking displacement): token `actionability_now`↑ but `time_sensitivity`~0.3 leaves composite below brunch on Top-1 budget. Next: policy-input trace (`time_sensitivity` gap) without threshold edits. |
 
 ### Step 5 live hardest-10 (2026-08-17)
 
@@ -53,7 +54,7 @@ Cost: **$0.069**. v2 MUST_SUPPRESS: **1.00**. v2 privacy failures: **0**.
 
 **Predeclared A/B/C:** **B — partial signal.** Aggregate unchanged vs 0.85, but token-audit semantics moved and prompt audit proves `BLOCKED_BY` / `state=resolved` / causal text reached the model. Not A (recall not 0.95–1.00). Not C (Jan 19/20 are no longer stuck on `LOW_URGENCY`/`CONTEXT_ONLY`). Harness `no_movement` label is the older aggregate-only rule and does not override A/B/C.
 
-**Displacement:** No new checkpoint failed. Jan 20 3/3 still miss token-audit while brunch surfaces; Jan 19 2/3 miss, 1/3 surfaces token-audit. Policy still sees `time_sensitivity` ~0.3. Do not tune. Do not run main.
+**Displacement (R-L09.5.1):** Per-checkpoint v1-historical vs Step-7-v2 — 8 agree PASS, 2 shared_fail (Jan 19/20 only). **No new regressions** vs historical v1. Jan 19 token contract 0/3→**1/3** rep pass; Jan 20 0/3 unchanged (brunch-only surface all reps). Attribution bucket **1** on both: semantics improved (`actionability_now` 0.9) but Top-1 ranking still favours brunch (`time_sensitivity` 0.6–0.88 vs token 0.3–0.4). Policy still sees token `time_sensitivity` ~0.3. Do not tune. Do not run main.
 
 ## Live evidence (original main gate — B2 + evaluation_transformed_v1)
 
@@ -80,9 +81,15 @@ Cost: **$0.069**. v2 MUST_SUPPRESS: **1.00**. v2 privacy failures: **0**.
 5. **Prompt wiring gap (R-L09.3)** — v2 preserved causal semantics offline but the live judge never received them; Step 5 did not test the semantic-preservation hypothesis, only the current integration path.
 6. **Relations-in-prompt (R-L09.5)** — Step 6 closed the wiring gap. Step 7: **B**. Causal relations in the prompt moved token-audit *features* (`actionability_now` → 0.9) but not aggregate recall (still 0.85). `time_sensitivity` stayed ~0.3; brunch still displaced token-audit on Jan 20.
 
-## Interim research direction (after R-L09.5 / decision B)
+## Interim research direction (after R-L09.5.1 / decision B)
 
-Inspect displacement (policy vs remaining low `time_sensitivity`) **without** threshold tuning, prompt edits, or a main rerun. Main is eligible only under outcome A.
+Displacement attribution complete (read-only). Recommended next investigation — **no implementation**:
+
+1. **Policy-input trace:** For Jan 19/20, log `composite_surface_score` components per candidate to confirm `time_sensitivity` (weight 0.25) dominates despite `actionability_now` 0.9 (weight 0.15).
+2. **Top-N vs Top-1:** Jan 19 rep2 surfaces both candidates — test whether a second surface slot would lift aggregate recall without threshold edits.
+3. **`time_sensitivity` prompt probe:** Relations reach the model but do not move `time_sensitivity` — investigate whether judge rubric or relation serialisation should encode urgency separately (research only; no prompt tuning until directed).
+
+No threshold tuning, prompt edits, or main rerun. Main is eligible only under outcome A.
 
 ## Multi-axis decision table
 

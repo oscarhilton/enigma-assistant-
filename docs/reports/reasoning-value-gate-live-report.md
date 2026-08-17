@@ -62,7 +62,45 @@ Artifacts: `reports/reasoning-gate-live/hardest-10-triple-column.json`, per-colu
 
 **Jan 19/20 v2 token-audit semantics:** `actionability_now` **0.9** (was ~0.5–0.7); reason codes mostly `USER_OWNS_ACTION` / `NEAR_TERM_COMMITMENT` / `EXPLICIT_REQUEST` (left `LOW_URGENCY` / `CONTEXT_ONLY`); `time_sensitivity` still **~0.3**.
 
-**Displacement:** No new checkpoint regression. Failures remain Jan 19 (2/3 miss; 1/3 surfaced token-audit) and Jan 20 (3/3 brunch only). Do not tune.
+#### Displacement table (R-L09.5.1)
+
+Historical v1 comparator: `main-benchmark.json` arm B (`evaluation_transformed_v1`, 0.85 aggregate). Step 7 v2: `hardest-10-evaluation_transformed_v2.json` arm B.
+
+| checkpoint | v1/historical | v2 Step 7 | token-inventory-blocker | change |
+| --- | --- | --- | --- | --- |
+| cp-2026-01-20T11:00 | FAIL | FAIL | 0/3 → 0/3 | shared_fail |
+| cp-2026-01-19T10:00 | FAIL | FAIL | 0/3 → **1/3** | shared_fail (token partial) |
+| cp-2026-01-11T11:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-10T14:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-15T13:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-25T17:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-25T10:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-24T15:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-24T09:00 | PASS | PASS | n/a | agree |
+| cp-2026-01-23T12:00 | PASS | PASS | n/a | agree |
+
+**Outcome summary vs historical v1:** 8 agree, 0 rescues, 0 regressions, 2 shared_fail.
+
+**Arm A vs B (Step 7 `outcome_counts`):** 6 agree, 2 rescues (`cp-2026-01-10T14:00`, `cp-2026-01-11T11:00`), 2 regressions (`cp-2026-01-19T10:00`, `cp-2026-01-20T11:00`).
+
+#### Jan 19/20 rescue status (precise)
+
+| checkpoint | historical v1 token pass | Step 7 v2 token pass | policy surface |
+| --- | --- | --- | --- |
+| cp-2026-01-19T10:00 | 0/3 | **1/3** (rep2) | rep0: none; rep1: brunch only; rep2: brunch + token |
+| cp-2026-01-20T11:00 | 0/3 | 0/3 | 3/3 brunch only (`elena-parents-brunch` contract passes; token `must_surface_missed`) |
+
+**Jan 19:** partial rep-level rescue — not checkpoint majority PASS. **Jan 20:** no rescue.
+
+#### Regression attribution (Jan 19/20 persistent failures)
+
+No checkpoint worsened vs historical v1. Both persistent failures classified **bucket 1 — semantic improvement, ranking displacement (Top-N budget)**:
+
+- Token-audit semantics improved (`actionability_now` 0.5–0.7 → 0.9; reason codes upgraded) once `BLOCKED_BY`/`state=resolved` reached the prompt.
+- `time_sensitivity` stayed ~0.3 (Jan 20 brunch 0.6–0.88), so `composite_surface_score` (weight 0.25 on time sensitivity) still ranks brunch Top-1.
+- Jan 19 rep2 proves both can surface when brunch score is closer — variance across reps contributes but pattern is coherent (not bucket 3).
+
+Do not tune.
 
 **Audit proof** (`reports/reasoning-gate-live/prompt-audit.jsonl`, v2 `item-obligation_token_audit`):
 
