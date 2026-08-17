@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/R07-reasoning-value-gate-report` |
 | Domain | `demo-evaluation` + docs |
 
