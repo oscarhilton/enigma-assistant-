@@ -101,7 +101,7 @@ support:
     effort: light
 ```
 
-On-disk home (v2): `scenarios/alex-v2/ground_truth/support_contracts.yaml` — see [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md).
+On-disk home: `scenarios/alex-v1/ground_truth/support_contracts.yaml` (v0.2.1 January exists; Feb–Jun overlay after [D08f](../../tickets/demo-scenario/D08f-alex-six-month.md)). Do **not** create `scenarios/alex-v2/`.
 
 ### Support fitness metric rubric
 
@@ -237,7 +237,7 @@ Documented product/eval maturity path:
 | Squeeze | Question | Benchmark hook |
 | --- | --- | --- |
 | **1 — Reasoning LLM** | “What does this mean?” at the transformation boundary | World-model + obligation merge (M03, M15–M16) |
-| **2 — Longitudinal memory** | “What still matters across months?” | Alex v2 12-month arcs + memory checkpoints |
+| **2 — Longitudinal memory** | “What still matters across months?” | Six-month ordinary events in `alex-v1` ([D08f](../../tickets/demo-scenario/D08f-alex-six-month.md)); V2-EF-02 support contracts on those threads |
 | **3 — Shadow Mode** | “Does real behaviour match synthetic?” | [shadow-mode-questions.md](./shadow-mode-questions.md); preference fit metric |
 | **4 — Contextual Next Action** *(secret fourth)* | “What should I do next, right now?” | Support contracts + EF-01 evaluator; structured LLM arm |
 
@@ -250,7 +250,7 @@ Phase 2.5 exit ([demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode)) p
 | Ticket | Scope |
 | --- | --- |
 | [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md) | Schema freeze, loader validation, v1 catalogue YAML |
-| [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) | ~30 alex-v2 arcs across 8 patterns |
+| [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) | Support contracts on D08f Jan–Jun threads (not `alex-v2`) |
 | [EF-01](../../tickets/demo-evaluation/EF-01-support-fitness-evaluator.md) | D07 extension: support fitness metrics + checkpoint scorer |
 | [D14](../../tickets/demo-evaluation/D14-llm-judge-benchmark.md) | LLM arms: structured `attention` + `next_action` scoring |
 
