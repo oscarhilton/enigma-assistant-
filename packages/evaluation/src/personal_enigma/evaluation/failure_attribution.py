@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from personal_enigma.evaluation.checkpoint_runner import must_surface_obligations_at
 from personal_enigma.evaluation.evaluation_truth import EvaluationTruth
+from personal_enigma.evaluation.live_benchmark import LiveRepResult
 from personal_enigma.evaluation.llm_benchmark import CheckpointArmResult
 from personal_enigma.evaluation.observations import CheckpointSnapshot
 
@@ -210,10 +211,55 @@ def enrich_failures_json(
     return enriched
 
 
+def attribute_live_disagreements(
+    snapshots: dict[str, CheckpointSnapshot],
+    truth: EvaluationTruth,
+    *,
+    arm_a_results: list[CheckpointArmResult],
+    arm_b_reps: dict[str, list[LiveRepResult]],
+) -> list[AttributionCase]:
+    """Attribute live-lane disagreements including unstable Arm B reps."""
+    by_a = {r.checkpoint_id: r for r in arm_a_results}
+    cases: list[AttributionCase] = []
+    for cp_id, snap in snapshots.items():
+        if cp_id not in by_a or cp_id not in arm_b_reps:
+            continue
+        reps = arm_b_reps[cp_id]
+        if not reps:
+            continue
+        b_passes = [r.metrics.attention_accuracy >= 1.0 for r in reps]
+        unstable = len(set(b_passes)) > 1
+        majority_pass = sum(b_passes) >= (len(b_passes) // 2 + 1)
+        idx = next((i for i, p in enumerate(b_passes) if p == majority_pass), 0)
+        arm_b = CheckpointArmResult(
+            checkpoint_id=cp_id,
+            arm="B",
+            metrics=reps[idx].metrics,
+        )
+        cases.extend(
+            attribute_checkpoint_disagreements(
+                snap, truth, arm_a=by_a[cp_id], arm_b=arm_b
+            )
+        )
+        if unstable:
+            cases.append(
+                AttributionCase(
+                    checkpoint_id=cp_id,
+                    dimension="attention",
+                    cause=FailureCause.INTERPRETATION,
+                    narrative=f"Arm B unstable across {len(reps)} reps at {cp_id}",
+                    arm_a_pass=by_a[cp_id].metrics.attention_accuracy >= 1.0,
+                    arm_b_pass=majority_pass,
+                )
+            )
+    return cases
+
+
 __all__ = [
     "AttributionCase",
     "FailureCause",
     "attribute_benchmark",
     "attribute_checkpoint_disagreements",
+    "attribute_live_disagreements",
     "enrich_failures_json",
 ]
