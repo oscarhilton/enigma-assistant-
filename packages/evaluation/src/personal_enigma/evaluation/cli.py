@@ -12,6 +12,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from personal_enigma.evaluation.live_gate import run_live_gate
 from personal_enigma.evaluation.observations import (
     CostEvent,
     EvaluationObservations,
@@ -107,7 +108,55 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Score Arm B attention only (skip next_action fitness)",
     )
+    parser.add_argument(
+        "--reasoning-gate-live",
+        action="store_true",
+        help="Run live Fireworks Reasoning Value Gate (R-L04–L08)",
+    )
+    parser.add_argument(
+        "--smoke-only",
+        action="store_true",
+        help="Run smoke gate only ($0.05 cap, 3 cases × 3 reps)",
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Enable live Fireworks calls (requires FIREWORKS_API_KEY)",
+    )
+    parser.add_argument(
+        "--phase",
+        choices=["smoke", "main", "disagreements", "ablation", "report", "all"],
+        default="all",
+        help="Live gate phase to run (default: all)",
+    )
     return parser
+
+
+def _run_live_gate(args: argparse.Namespace) -> int:
+    gt = args.ground_truth or Path("scenarios") / "alex-v1" / "ground_truth"
+    phase = "smoke" if args.smoke_only else args.phase
+    result = run_live_gate(
+        ground_truth_path=gt,
+        baseline_dir=args.baseline_dir,
+        phase=phase,
+        smoke_only=args.smoke_only,
+        live=args.live,
+        write_report=not args.dry_run,
+    )
+    payload: dict[str, object] = {
+        "blocked": result.blocked,
+        "block_reason": result.block_reason,
+    }
+    if result.smoke is not None:
+        payload["smoke"] = result.smoke.as_dict()
+    if result.main is not None:
+        payload["main"] = result.main.as_dict()
+    if result.evidence is not None:
+        payload["evidence"] = result.evidence.as_dict()
+    print(json.dumps(payload, indent=2))
+    if result.blocked or (result.smoke is not None and not result.smoke.passed):
+        return 1
+    return 0
 
 
 def _run_reasoning_gate(args: argparse.Namespace) -> int:
@@ -129,6 +178,8 @@ def _run_reasoning_gate(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.reasoning_gate_live:
+        return _run_live_gate(args)
     if args.scenario == "reasoning-gate" or args.reasoning_gate:
         return _run_reasoning_gate(args)
     observations = _load_observations(args.observations)
