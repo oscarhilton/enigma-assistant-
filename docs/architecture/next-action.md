@@ -170,6 +170,37 @@ You've got a clear hour before your next commitment.
 
 Demo UI ticket: [D18](../../tickets/demo-ui/D18-demo-next-action.md) (chrome only; model ownership stays here / M20 / N*).
 
+## Assist completed ≠ task completed
+
+Verified Assist is not the same as completing the underlying obligation. The closed loop is:
+
+```text
+understand → help → verify → update world → derive new state → derive new next action
+```
+
+Not: help → task vanishes.
+
+| Effect | Meaning |
+| --- | --- |
+| **SUPPORT_ONLY** | Prepared something; obligation remains OPEN |
+| **ADVANCES** | New obligation support state; recalculate next action |
+| **SATISFIES** | Verified effect completes the obligation |
+| **UNRELATED** | Side effect does not mutate the target |
+
+Demo: recording a synthetic draft for TOKEN is **ADVANCES** (TOKEN stays in context; next action becomes “Review the draft”). Booking brunch is **SATISFIES**. C07’s `completed_item_ids` overlay is SATISFIES-only.
+
+Follow-on: [C07b](../../tickets/conversational-ui/C07b-assist-completed-not-task-completed.md). **A completed or superseded task cannot be returned by `next_action.get`.** Attested COMPLETED/CANCELLED updates the session overlay (`completed_item_ids`) and drops cached next actions. Later `next_action.get` re-overlays from the frozen checkpoint — intervening conversation or checkpoint re-projection must not resurrect the task. OPEN restores eligibility. Capsule is not the store ([C16](../../tickets/conversational-ui/C16-attested-completion-invalidates-next-action.md)).
+
+### Absence of recommendation is not absence of activity
+
+Empty `next_actions[]` is not evidence that nothing is worth doing. Brunch and Atlas may still sit in `context[]`. Prefer:
+
+> Nothing stands out as a strong next action.
+
+Not: “Nothing worth doing right now.” That invents an empty universe from a missing recommendation.
+
+Full NEVER-empty Next Action UX (REST / NOTHING as first-class recommendations) remains N01.
+
 ## Relationship to Attention freeze
 
 [attention-surface.md](./attention-surface.md) freezes interrupt discipline (compression, calendar ≠ obligation, Done/Snooze Demo-only). This doc freezes the **companion** output: optional Next Action that fills the executive-function gap between “needs you” and “can wait.”

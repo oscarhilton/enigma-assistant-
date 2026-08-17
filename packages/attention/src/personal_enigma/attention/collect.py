@@ -89,6 +89,8 @@ def items_from_obligations(obligations: Sequence[Obligation]) -> list[AttentionI
                 evidence_ids.append(evidence.event_id)
             elif evidence.kind == "note":
                 evidence_ids.append(evidence.note_id)
+            elif evidence.kind == "chat":
+                evidence_ids.append(evidence.message_id)
         body = ""
         if obligation.due_at is not None:
             body = f"Due {obligation.due_at.isoformat()}"
