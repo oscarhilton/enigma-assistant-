@@ -11,6 +11,7 @@ from personal_enigma.privacy import (
     REMOTE_METADATA_KEYS,
     InspectionResult,
     RemoteInferenceConfig,
+    build_audited_egress_gate,
     inspect_transformed_context,
 )
 from personal_enigma.reasoning import (
@@ -18,7 +19,6 @@ from personal_enigma.reasoning import (
     ReasoningDisabledError,
     ReasoningMode,
 )
-from personal_enigma.reasoning.openai_transport import OpenAIChatTransport
 from personal_enigma.transformation import TransformedContext
 
 
@@ -100,7 +100,9 @@ def install_chat_routes(app: FastAPI) -> None:
 
         service = PaygReasoningService(
             mode=ReasoningMode.ENABLED,
-            transport=OpenAIChatTransport(),
+            gate=build_audited_egress_gate(
+                remote_config=RemoteInferenceConfig(enabled=True),
+            ),
             default_model=os.environ.get("ENIGMA_OPENAI_MODEL", "gpt-4o-mini"),
         )
         try:

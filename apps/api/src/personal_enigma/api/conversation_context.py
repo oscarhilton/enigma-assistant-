@@ -1,0 +1,609 @@
+"""Session-scoped dialogue referents — not world state.
+
+Conversation context resolves "it", "that", and "this" from structured turns
+Enigma already presented. It never mutates AttentionState or checkpoints.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
+from personal_enigma.api.intent_router import (
+    ConversationIntent,
+    ConversationIntentKind,
+    compose_follow_up_intent,
+)
+from personal_enigma.attention.projection import AttentionState, NextActionView
+
+_REMEMBERED_INTENT_KINDS = frozenset(
+    {
+        ConversationIntentKind.ATTENTION_QUERY,
+        ConversationIntentKind.NEXT_ACTION_QUERY,
+        ConversationIntentKind.AVAILABILITY_QUERY,
+        ConversationIntentKind.TIME_FIT_QUERY,
+        ConversationIntentKind.DURATION_QUERY,
+        ConversationIntentKind.WAITING_ON_QUERY,
+        ConversationIntentKind.CAN_WAIT_QUERY,
+        ConversationIntentKind.CHANGES_QUERY,
+        ConversationIntentKind.WHY_QUERY,
+        ConversationIntentKind.HELP_QUERY,
+        ConversationIntentKind.ALTERNATE_TASK_QUERY,
+    }
+)
+
+# Alex-v1 support-contract preferred_effort max_minutes (evaluator ground truth).
+_OBLIGATION_ESTIMATED_MINUTES: dict[str, int] = {
+    "item-obligation_token_audit": 30,
+    "item-obligation_atlas_review": 15,
+    "item-obligation_brunch_book": 15,
+    "item-obligation_empty_states": 10,
+}
+
+DialogueActKind = Literal[
+    "SHOW_CONFIRMATION",
+    "APPROVE_CONFIRMATION",
+    "EXPLAIN_CONFIRMATION",
+    "ADVISE_CONFIRMATION",
+    "CLARIFY_CONFIRMATION",
+]
+
+# Answering these does not authorize PREPARE / ACT.
+_NON_ACTION_DIALOGUE_ACTS: frozenset[str] = frozenset(
+    {
+        "SHOW_CONFIRMATION",
+        "EXPLAIN_CONFIRMATION",
+        "ADVISE_CONFIRMATION",
+        "CLARIFY_CONFIRMATION",
+    }
+)
+
+_STRUCTURED_SUBJECT_KINDS: frozenset[str] = frozenset(
+    {"attention_item", "next_action", "attention_summary"}
+)
+
+_LOCATION_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "a",
+        "an",
+        "my",
+        "the",
+        "this",
+        "that",
+        "our",
+        "your",
+        "their",
+        "his",
+        "her",
+        "some",
+        "any",
+        "town",
+        "city",
+        "mind",
+        "fact",
+        "order",
+        "case",
+        "front",
+        "back",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "today",
+        "tomorrow",
+        "weekend",
+        "morning",
+        "afternoon",
+        "evening",
+        "night",
+    }
+)
+
+
+@dataclass(frozen=True)
+class PendingConfirmation:
+    """Speech act the previous Enigma turn asked the user to answer.
+
+    ``yes`` inherits this act. It never upgrades it.
+    SHOW? → yes → SHOW. APPROVE THIS ACTION? → yes → APPROVE.
+    """
+
+    kind: DialogueActKind
+    subject_id: str | None = None
+
+
+@dataclass(frozen=True)
+class TurnLocalConstraint:
+    """Session-only constraint. Evaporates with the session — not user memory.
+
+    Same philosophy as turn-local tone (ADR-025): this-turn location is not
+    “Alex lives in Shoreditch.”
+    """
+
+    key: str
+    value: str
+    applies_to: str | None = None
+    durable: bool = False
+
+
+@dataclass
+class ConversationContext:
+    current_attention_item_id: str | None = None
+    current_next_action_id: str | None = None
+    current_world_object_id: str | None = None
+    current_assist_proposal_id: str | None = None
+    # Invisible discourse subject — populated from structured Enigma turns (C09).
+    current_subject_id: str | None = None
+    current_subject_kind: str | None = None
+    pending_confirmation: PendingConfirmation | None = None
+    pending_dialogue_act: DialogueActKind | None = None
+    turn_local_constraints: list[TurnLocalConstraint] = field(default_factory=list)
+    suppressed_next_action_ids: list[str] = field(default_factory=list)
+    last_intent: ConversationIntent | None = None
+    # Set for this user turn only; never a durable trait.
+    named_referent_changed_this_turn: bool = False
+    turn_local_recorded_this_turn: bool = False
+
+    def set_pending_confirmation(
+        self,
+        kind: DialogueActKind | None,
+        subject_id: str | None = None,
+    ) -> None:
+        if kind is None:
+            self.pending_confirmation = None
+            self.pending_dialogue_act = None
+            return
+        self.pending_confirmation = PendingConfirmation(kind=kind, subject_id=subject_id)
+        self.pending_dialogue_act = kind
+
+    def begin_user_turn(self) -> None:
+        """Evaporate this-turn flags. Session constraints stay until reset."""
+        self.named_referent_changed_this_turn = False
+        self.turn_local_recorded_this_turn = False
+
+    def approval_authorized(self) -> bool:
+        pending = self.pending_confirmation
+        return pending is not None and pending.kind == "APPROVE_CONFIRMATION"
+
+    def propose_authorized(self) -> bool:
+        """PREPARE is not the answer to SHOW / EXPLAIN / ADVISE / CLARIFY."""
+        pending = self.pending_confirmation
+        if pending is None:
+            return True
+        return pending.kind not in _NON_ACTION_DIALOGUE_ACTS
+
+    def suppress_next_action(self, action_id: str) -> None:
+        if action_id and action_id not in self.suppressed_next_action_ids:
+            self.suppressed_next_action_ids.append(action_id)
+
+    def remember_intent(self, intent: ConversationIntent) -> None:
+        if intent.kind in _REMEMBERED_INTENT_KINDS:
+            self.last_intent = intent
+
+    def compose_intent(self, text: str) -> ConversationIntent:
+        """Resolve utterance, composing period-only follow-ups with last intent."""
+        resolved = compose_follow_up_intent(text, self.last_intent)
+        self.remember_intent(resolved)
+        return resolved
+
+
+def referent_candidates(state: AttentionState) -> list[dict[str, str]]:
+    """Ids the model may bind language to — not a schedule or world answer.
+
+    Shape is ``{id, label, kind}`` only. Kind is the referent class
+    (attention_item / next_action), not a bucket, urgency, or status.
+    """
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in (*state.needs_you, *state.context):
+        if item.id in seen:
+            continue
+        seen.add(item.id)
+        rows.append({"id": item.id, "label": item.title, "kind": "attention_item"})
+    for action in state.next_actions:
+        source = action.source_candidate_id
+        if not source or source in seen:
+            continue
+        seen.add(source)
+        rows.append({"id": source, "label": action.title, "kind": "next_action"})
+    return rows
+
+
+def update_pending_dialogue_act(
+    context: ConversationContext,
+    turn_items: list[dict[str, Any]],
+) -> None:
+    """Pending act is the last Enigma turn's speech act — not the user's 'yes'.
+
+    An assist_proposal card is an explicit approval affordance.
+    Any other Enigma turn replaces that affordance. ``yes`` cannot upgrade
+    SHOW / CLARIFY into APPROVE.
+    """
+    kinds = [str(item.get("kind") or "") for item in turn_items]
+    if "assist_proposal" in kinds:
+        proposal_id = context.current_assist_proposal_id
+        for item in turn_items:
+            if item.get("kind") != "assist_proposal":
+                continue
+            proposal = item.get("proposal") or {}
+            plan = item.get("plan") or {}
+            proposal_id = str(
+                item.get("proposal_id")
+                or proposal.get("id")
+                or plan.get("proposal_id")
+                or proposal_id
+                or ""
+            )
+            break
+        context.set_pending_confirmation(
+            "APPROVE_CONFIRMATION",
+            proposal_id or context.current_assist_proposal_id,
+        )
+        return
+    if "assist_result" in kinds:
+        context.set_pending_confirmation(None)
+        context.current_assist_proposal_id = None
+        return
+    if any(kind in _STRUCTURED_SUBJECT_KINDS for kind in kinds):
+        context.set_pending_confirmation(None)
+        return
+    texts = [
+        str(item.get("text") or item.get("message") or "")
+        for item in turn_items
+        if item.get("kind") == "enigma_message"
+    ]
+    blob = " ".join(texts)
+    if "?" in blob:
+        context.set_pending_confirmation(
+            "SHOW_CONFIRMATION",
+            context.current_subject_id,
+        )
+        return
+    context.set_pending_confirmation(None)
+
+
+def update_context_from_turn_items(
+    context: ConversationContext,
+    turn_items: list[dict[str, Any]],
+) -> None:
+    """Refresh referents from structured items Enigma just presented."""
+    for item in turn_items:
+        kind = item.get("kind")
+        if kind == "attention_item":
+            item_id = item.get("item", {}).get("id")
+            if item_id:
+                context.current_attention_item_id = item_id
+                context.current_subject_id = item_id
+                context.current_subject_kind = "attention_item"
+        elif kind == "next_action":
+            action = item.get("action", {})
+            action_id = action.get("id")
+            if action_id:
+                context.current_next_action_id = action_id
+            source_id = action.get("source_candidate_id")
+            if source_id:
+                context.current_attention_item_id = source_id
+                context.current_subject_id = source_id
+                context.current_subject_kind = "next_action"
+            elif action_id:
+                context.current_subject_id = action_id
+                context.current_subject_kind = "next_action"
+        elif kind == "assist_proposal":
+            proposal = item.get("proposal") or {}
+            plan = item.get("plan") or {}
+            proposal_id = (
+                item.get("proposal_id")
+                or proposal.get("id")
+                or plan.get("proposal_id")
+            )
+            if proposal_id:
+                context.current_assist_proposal_id = str(proposal_id)
+        elif kind == "attention_summary":
+            state = item.get("state") or {}
+            actions = state.get("next_actions") or []
+            if actions:
+                action = actions[0]
+                action_id = action.get("id")
+                if action_id:
+                    context.current_next_action_id = action_id
+                source_id = action.get("source_candidate_id")
+                if source_id:
+                    context.current_attention_item_id = source_id
+                    context.current_subject_id = source_id
+                    context.current_subject_kind = "next_action"
+                elif action_id:
+                    context.current_subject_id = action_id
+                    context.current_subject_kind = "next_action"
+    update_pending_dialogue_act(context, turn_items)
+
+
+def estimated_minutes_for_action(action: NextActionView) -> int | None:
+    if action.estimated_minutes is not None:
+        return action.estimated_minutes
+    if action.source_candidate_id:
+        return _OBLIGATION_ESTIMATED_MINUTES.get(action.source_candidate_id)
+    return None
+
+
+def find_next_action_by_id(
+    state: AttentionState,
+    action_id: str | None,
+) -> NextActionView | None:
+    if not action_id:
+        return None
+    for row in state.next_actions:
+        if row.id == action_id:
+            return row
+    for row in context_derived_alternates(state, set()):
+        if row.id == action_id:
+            return row
+    return None
+
+
+def find_attention_item_by_id(
+    state: AttentionState,
+    item_id: str | None,
+) -> tuple[str, str] | None:
+    """Return (title, item_id) for a context or needs_you item."""
+    if not item_id:
+        return None
+    for item in (*state.needs_you, *state.context):
+        if item.id == item_id:
+            return item.title, item.id
+    return None
+
+
+def context_derived_alternates(
+    state: AttentionState,
+    suppressed_ids: set[str],
+) -> list[NextActionView]:
+    """Context items as next-action-shaped alternates when support layer is exhausted."""
+    primary_sources = {
+        row.source_candidate_id
+        for row in state.next_actions
+        if row.source_candidate_id
+    }
+    alternates: list[NextActionView] = []
+    for item in state.context:
+        action_id = f"next-{item.id}"
+        if action_id in suppressed_ids:
+            continue
+        if item.id in primary_sources:
+            continue
+        alternates.append(
+            NextActionView(
+                id=action_id,
+                title=item.title,
+                reason="Could work if you want something else.",
+                optional=True,
+                estimated_minutes=_OBLIGATION_ESTIMATED_MINUTES.get(item.id),
+                source_candidate_id=item.id,
+            )
+        )
+    return alternates
+
+
+def available_next_actions(
+    state: AttentionState,
+    suppressed_ids: set[str],
+) -> list[NextActionView]:
+    """Next actions from support layer, then context-derived alternates."""
+    actions: list[NextActionView] = [
+        row for row in state.next_actions if row.id not in suppressed_ids
+    ]
+    if actions:
+        return actions
+    return context_derived_alternates(state, suppressed_ids)
+
+
+def pick_alternate_next_action(
+    state: AttentionState,
+    suppressed_ids: set[str],
+) -> NextActionView | None:
+    actions = available_next_actions(state, suppressed_ids)
+    return actions[0] if actions else None
+
+
+_REFERENT_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "be",
+        "can",
+        "could",
+        "do",
+        "for",
+        "from",
+        "get",
+        "got",
+        "help",
+        "i",
+        "is",
+        "it",
+        "me",
+        "my",
+        "need",
+        "of",
+        "on",
+        "or",
+        "please",
+        "that",
+        "the",
+        "this",
+        "to",
+        "we",
+        "with",
+        "you",
+    }
+)
+
+
+def _referent_tokens(text: str) -> set[str]:
+    tokens: set[str] = set()
+    for raw in re.findall(r"[a-z0-9]+", text.lower()):
+        word = raw[:-1] if raw.endswith("s") and len(raw) > 3 else raw
+        if word not in _REFERENT_STOPWORDS and len(word) >= 3:
+            tokens.add(word)
+    return tokens
+
+
+def match_named_referent(
+    utterance: str,
+    candidates: list[dict[str, str]],
+) -> str | None:
+    """Bind a named lexical mention to a unique referent_candidates id.
+
+    Discourse grounding against labels Enigma already surfaced — not an
+    intent_router phrase family. Ambiguous or stopword-only utterances
+    return None so implicit current_subject can apply.
+    """
+    uttered = _referent_tokens(utterance)
+    if not uttered:
+        return None
+    scored: list[tuple[int, str]] = []
+    for row in candidates:
+        label = row.get("label") or row.get("title") or ""
+        item_id = row.get("id")
+        if not item_id:
+            continue
+        overlap = uttered & _referent_tokens(label)
+        if overlap:
+            scored.append((len(overlap), item_id))
+    if not scored:
+        return None
+    best = max(score for score, _item_id in scored)
+    winners = [item_id for score, item_id in scored if score == best]
+    if len(winners) != 1:
+        return None
+    return winners[0]
+
+
+def apply_named_referent_focus(
+    context: ConversationContext,
+    utterance: str,
+    candidates: list[dict[str, str]],
+) -> str | None:
+    """Bind a named mention to discourse focus. Not an action.
+
+    A conversational correction may change what Enigma is talking about;
+    it may never by itself authorize Enigma to do something.
+    SUBJECT SELECTION ≠ CAPABILITY SELECTION.
+    """
+    bound = match_named_referent(utterance, candidates)
+    if not bound:
+        return None
+    if bound != context.current_subject_id:
+        context.named_referent_changed_this_turn = True
+        context.current_subject_id = bound
+        context.current_attention_item_id = bound
+        context.current_subject_kind = context.current_subject_kind or "attention_item"
+    return bound
+
+
+def capture_turn_local_location(utterance: str) -> str | None:
+    """Optional session location. Not durable memory. Not a search tool."""
+    match = re.search(
+        r"\bin\s+([A-Za-z][A-Za-z]+(?:\s+[A-Za-z][A-Za-z]+)*)",
+        utterance,
+    )
+    if not match:
+        return None
+    value = match.group(1).strip()
+    first = value.split()[0].lower()
+    if first in _LOCATION_STOPWORDS or value.lower() in _LOCATION_STOPWORDS:
+        return None
+    return value
+
+
+def remember_turn_local_constraint(
+    context: ConversationContext,
+    *,
+    key: str,
+    value: str,
+    applies_to: str | None,
+) -> TurnLocalConstraint:
+    constraint = TurnLocalConstraint(
+        key=key,
+        value=value,
+        applies_to=applies_to,
+        durable=False,
+    )
+    context.turn_local_constraints = [
+        row
+        for row in context.turn_local_constraints
+        if not (row.key == key and row.applies_to == applies_to)
+    ]
+    context.turn_local_constraints.append(constraint)
+    context.turn_local_recorded_this_turn = True
+    return constraint
+
+
+def reconcile_action_focus(context: ConversationContext, state: AttentionState) -> None:
+    """Clear current_next_action_id when it no longer names a live next action.
+
+    Discourse subject may survive completion (``what did you just do?``).
+    Action focus must not point at a non-action. Same family as
+    objects_in_response ≠ conversation_focus: product projection and
+    conversation focus have separate lifetimes.
+    """
+    action_id = context.current_next_action_id
+    if not action_id:
+        return
+    if any(row.id == action_id for row in state.next_actions):
+        return
+    context.current_next_action_id = None
+
+
+def resolve_referent(
+    state: AttentionState,
+    context: ConversationContext,
+) -> tuple[NextActionView | None, str | None]:
+    """Resolve duration/time-fit referent from explicit context ids only."""
+    if context.current_next_action_id:
+        action = find_next_action_by_id(state, context.current_next_action_id)
+        if action is not None:
+            return action, action.title
+    if context.current_attention_item_id:
+        attention = find_attention_item_by_id(state, context.current_attention_item_id)
+        if attention is not None:
+            title, item_id = attention
+            action_id = f"next-{item_id}"
+            action = find_next_action_by_id(state, action_id)
+            if action is None:
+                action = NextActionView(
+                    id=action_id,
+                    title=title,
+                    reason="",
+                    optional=True,
+                    estimated_minutes=_OBLIGATION_ESTIMATED_MINUTES.get(item_id),
+                    source_candidate_id=item_id,
+                )
+            return action, title
+    return None, None
+
+
+__all__ = [
+    "ConversationContext",
+    "PendingConfirmation",
+    "TurnLocalConstraint",
+    "apply_named_referent_focus",
+    "available_next_actions",
+    "capture_turn_local_location",
+    "context_derived_alternates",
+    "estimated_minutes_for_action",
+    "find_next_action_by_id",
+    "match_named_referent",
+    "pick_alternate_next_action",
+    "reconcile_action_focus",
+    "referent_candidates",
+    "remember_turn_local_constraint",
+    "resolve_referent",
+    "update_context_from_turn_items",
+    "update_pending_dialogue_act",
+]
