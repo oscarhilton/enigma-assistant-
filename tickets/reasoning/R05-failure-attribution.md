@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/R05-failure-attribution` |
 | Domain | `demo-evaluation` |
 

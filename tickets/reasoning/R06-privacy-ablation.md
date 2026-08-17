@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/R06-privacy-ablation` |
 | Domain | `demo-evaluation` + `privacy` (assertions only) |
 

@@ -21,10 +21,17 @@ from personal_enigma.reasoning.replay_transport import (
     ReplayMismatchPolicy,
     ReplayPaygTransport,
 )
+from personal_enigma.reasoning.structured_output import (
+    LlmJudgeOutput,
+    LlmJudgeParseError,
+    parse_llm_judge_output,
+)
 from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
 
 __all__ = [
     "InMemoryUsageLogger",
+    "LlmJudgeOutput",
+    "LlmJudgeParseError",
     "MockPaygTransport",
     "NullPaygTransport",
     "OpenAIChatTransport",
@@ -43,4 +50,5 @@ __all__ = [
     "UsageLogger",
     "UsageRecord",
     "build_reasoning_client",
+    "parse_llm_judge_output",
 ]

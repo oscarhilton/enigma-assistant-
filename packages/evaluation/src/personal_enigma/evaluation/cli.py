@@ -18,6 +18,7 @@ from personal_enigma.evaluation.observations import (
     PrivacyProbe,
     SurfacedAlert,
 )
+from personal_enigma.evaluation.reasoning_value_gate import run_reasoning_value_gate
 from personal_enigma.evaluation.runner import EvaluationRunner
 
 
@@ -84,11 +85,46 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Compute metrics without writing reports/",
     )
+    parser.add_argument(
+        "--reasoning-gate",
+        action="store_true",
+        help="Run Reasoning Value Gate harness (R07) instead of scenario eval",
+    )
+    parser.add_argument(
+        "--baseline-dir",
+        type=Path,
+        default=Path("packages/evaluation/fixtures/baselines/arm-a"),
+        help="Arm A baseline directory for reasoning gate",
+    )
+    parser.add_argument(
+        "--replay-fixture",
+        type=Path,
+        default=None,
+        help="Replay JSON for Arm B (required with --reasoning-gate unless dry-run)",
+    )
     return parser
+
+
+def _run_reasoning_gate(args: argparse.Namespace) -> int:
+    gt = args.ground_truth or Path("scenarios") / "alex-v1" / "ground_truth"
+    replay = args.replay_fixture
+    if replay is None and not args.dry_run:
+        print("--replay-fixture required for reasoning gate", file=sys.stderr)
+        return 2
+    evidence = run_reasoning_value_gate(
+        ground_truth_path=gt,
+        baseline_dir=args.baseline_dir,
+        replay_fixture=replay or Path("packages/evaluation/fixtures/replay/quiet-day.json"),
+        write_report=not args.dry_run,
+    )
+    print(json.dumps(evidence.as_dict(), indent=2))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.scenario == "reasoning-gate" or args.reasoning_gate:
+        return _run_reasoning_gate(args)
     observations = _load_observations(args.observations)
     if args.spine_metrics is not None:
         spine = json.loads(args.spine_metrics.read_text(encoding="utf-8"))

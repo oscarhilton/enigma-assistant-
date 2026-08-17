@@ -4,7 +4,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/R03-llm-judge` |
 | Domain | `demo-evaluation` + `reasoning` (transport wiring only) |
 
