@@ -7,6 +7,7 @@ from personal_enigma.evaluation.metrics import (
     privacy,
     retrieval,
     scale,
+    support_fitness,
     suppression,
 )
 
@@ -18,4 +19,5 @@ __all__ = [
     "retrieval",
     "scale",
     "suppression",
+    "support_fitness",
 ]

@@ -1,0 +1,206 @@
+{
+  "alerts": [
+    {
+      "duplicate_of": null,
+      "evidence_ids": [
+        "mail-elena-weekend",
+        "rem-brunch-book",
+        "cal-brunch-parents"
+      ],
+      "id": "item-obligation_brunch_book",
+      "kind": "explicit_reminder",
+      "obligation_ids": [
+        "obligation_brunch_book"
+      ],
+      "resolved_underlying": false,
+      "score": 100.9,
+      "surfaced_at": "2026-01-19T10:00:00Z",
+      "title": "Book Saturday brunch for Elena's parents"
+    },
+    {
+      "duplicate_of": null,
+      "evidence_ids": [
+        "mail-jordan-tokens",
+        "rem-token-audit",
+        "mail-alex-tokens"
+      ],
+      "id": "item-obligation_token_audit",
+      "kind": "explicit_reminder",
+      "obligation_ids": [
+        "obligation_token_audit"
+      ],
+      "resolved_underlying": false,
+      "score": 100.9,
+      "surfaced_at": "2026-01-19T10:00:00Z",
+      "title": "Draft colour + spacing token inventory"
+    },
+    {
+      "duplicate_of": null,
+      "evidence_ids": [
+        "mail-atlas-ask"
+      ],
+      "id": "item-obligation_atlas_review",
+      "kind": "explicit_reminder",
+      "obligation_ids": [
+        "obligation_atlas_review"
+      ],
+      "resolved_underlying": false,
+      "score": 100.55,
+      "surfaced_at": "2026-01-19T10:00:00Z",
+      "title": "review Atlas proposal"
+    }
+  ],
+  "at": "2026-01-19T10:00:00Z",
+  "candidate_set": [
+    {
+      "evidence_ids": [
+        "mail-elena-weekend",
+        "rem-brunch-book",
+        "cal-brunch-parents"
+      ],
+      "id": "item-obligation_brunch_book",
+      "kind": "explicit_reminder",
+      "obligation_ids": [
+        "obligation_brunch_book"
+      ],
+      "score": 100.9,
+      "suppress_reason": null,
+      "suppressed": false,
+      "title": "Book Saturday brunch for Elena's parents"
+    },
+    {
+      "evidence_ids": [
+        "mail-jordan-tokens",
+        "rem-token-audit",
+        "mail-alex-tokens"
+      ],
+      "id": "item-obligation_token_audit",
+      "kind": "explicit_reminder",
+      "obligation_ids": [
+        "obligation_token_audit"
+      ],
+      "score": 100.9,
+      "suppress_reason": null,
+      "suppressed": false,
+      "title": "Draft colour + spacing token inventory"
+    },
+    {
+      "evidence_ids": [
+        "mail-atlas-ask"
+      ],
+      "id": "item-obligation_atlas_review",
+      "kind": "explicit_reminder",
+      "obligation_ids": [
+        "obligation_atlas_review"
+      ],
+      "score": 100.55,
+      "suppress_reason": null,
+      "suppressed": false,
+      "title": "review Atlas proposal"
+    },
+    {
+      "evidence_ids": [
+        "mail-sam-followup",
+        "rem-empty-states",
+        "note-open-loop-sam"
+      ],
+      "id": "item-obligation_empty_states",
+      "kind": "inferred_obligation",
+      "obligation_ids": [
+        "obligation_empty_states"
+      ],
+      "score": 50.9,
+      "suppress_reason": "top_n_policy",
+      "suppressed": true,
+      "title": "Reply to Sam on empty-state decision"
+    }
+  ],
+  "checkpoint_id": "cp-2026-01-19T10:00",
+  "git_commit": "15eb07c",
+  "memory_state": {
+    "at": "2026-01-19T10:00:00Z",
+    "memory_ids": [],
+    "open_obligation_ids": [
+      "obligation_atlas_review",
+      "obligation_token_audit",
+      "obligation_empty_states",
+      "obligation_brunch_book"
+    ],
+    "texts": []
+  },
+  "next_action": null,
+  "retrieval": [
+    {
+      "hits": [
+        "mail-atlas-ask"
+      ],
+      "k": 5,
+      "query_id": "obligation_atlas_review",
+      "relevant_ids": [
+        "mail-atlas-ask"
+      ]
+    },
+    {
+      "hits": [
+        "mail-jordan-tokens",
+        "rem-token-audit",
+        "mail-alex-tokens"
+      ],
+      "k": 5,
+      "query_id": "obligation_token_audit",
+      "relevant_ids": [
+        "mail-jordan-tokens",
+        "rem-token-audit",
+        "mail-alex-tokens"
+      ]
+    },
+    {
+      "hits": [
+        "mail-sam-followup",
+        "rem-empty-states",
+        "note-open-loop-sam"
+      ],
+      "k": 5,
+      "query_id": "obligation_empty_states",
+      "relevant_ids": [
+        "mail-sam-followup",
+        "rem-empty-states",
+        "note-open-loop-sam"
+      ]
+    },
+    {
+      "hits": [
+        "mail-elena-weekend",
+        "rem-brunch-book",
+        "cal-brunch-parents"
+      ],
+      "k": 5,
+      "query_id": "obligation_brunch_book",
+      "relevant_ids": [
+        "mail-elena-weekend",
+        "rem-brunch-book",
+        "cal-brunch-parents"
+      ]
+    }
+  ],
+  "scenario": "alex-v1",
+  "scenario_version": "0.2.1",
+  "suppressed_candidates": [
+    {
+      "evidence_ids": [
+        "mail-sam-followup",
+        "rem-empty-states",
+        "note-open-loop-sam"
+      ],
+      "id": "item-obligation_empty_states",
+      "kind": "inferred_obligation",
+      "obligation_ids": [
+        "obligation_empty_states"
+      ],
+      "score": 50.9,
+      "suppress_reason": "top_n_policy",
+      "suppressed": true,
+      "title": "Reply to Sam on empty-state decision"
+    }
+  ]
+}
