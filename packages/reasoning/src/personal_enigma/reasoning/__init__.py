@@ -22,17 +22,28 @@ from personal_enigma.reasoning.replay_transport import (
     ReplayPaygTransport,
 )
 from personal_enigma.reasoning.structured_output import (
-    LlmJudgeOutput,
+    InvalidEvidenceIdsError,
+    JudgeV1Attention,
+    JudgeV1Output,
+    JudgeV1ParseError,
     LlmJudgeParseError,
+    NextActionV1,
+    ReasonCode,
+    parse_judge_v1_output,
     parse_llm_judge_output,
+    validate_evidence_ids,
 )
 from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
 
 __all__ = [
     "InMemoryUsageLogger",
-    "LlmJudgeOutput",
+    "InvalidEvidenceIdsError",
+    "JudgeV1Attention",
+    "JudgeV1Output",
+    "JudgeV1ParseError",
     "LlmJudgeParseError",
     "MockPaygTransport",
+    "NextActionV1",
     "NullPaygTransport",
     "OpenAIChatTransport",
     "NullUsageLogger",
@@ -40,6 +51,7 @@ __all__ = [
     "PaygReasoningService",
     "PaygTransport",
     "PrivacyGateError",
+    "ReasonCode",
     "ReasoningDisabledError",
     "ReasoningMode",
     "ReasoningResult",
@@ -50,5 +62,7 @@ __all__ = [
     "UsageLogger",
     "UsageRecord",
     "build_reasoning_client",
+    "parse_judge_v1_output",
     "parse_llm_judge_output",
+    "validate_evidence_ids",
 ]

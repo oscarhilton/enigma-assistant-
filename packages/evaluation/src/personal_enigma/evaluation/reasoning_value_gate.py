@@ -119,6 +119,7 @@ def collect_reasoning_value_gate_evidence(
     replay_fixture: str | Path,
     checkpoint_ids: list[str] | None = None,
     repo: Path | None = None,
+    attention_only: bool = False,
 ) -> ReasoningValueGateEvidence:
     repo = repo or Path.cwd()
     benchmark = run_llm_benchmark(
@@ -126,6 +127,7 @@ def collect_reasoning_value_gate_evidence(
         baseline_dir=baseline_dir,
         replay_fixture=replay_fixture,
         checkpoint_ids=checkpoint_ids,
+        attention_only=attention_only,
     )
     ablation = run_privacy_ablation(
         truth,
@@ -285,6 +287,7 @@ def run_reasoning_value_gate(
     checkpoint_ids: list[str] | None = None,
     write_report: bool = True,
     repo: Path | None = None,
+    attention_only: bool = False,
 ) -> ReasoningValueGateEvidence:
     truth = load_evaluation_truth(ground_truth_path)
     evidence = collect_reasoning_value_gate_evidence(
@@ -293,6 +296,7 @@ def run_reasoning_value_gate(
         replay_fixture=replay_fixture,
         checkpoint_ids=checkpoint_ids,
         repo=repo,
+        attention_only=attention_only,
     )
     if write_report:
         write_reasoning_value_gate_report(evidence)

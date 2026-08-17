@@ -102,6 +102,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Replay JSON for Arm B (required with --reasoning-gate unless dry-run)",
     )
+    parser.add_argument(
+        "--attention-only",
+        action="store_true",
+        help="Score Arm B attention only (skip next_action fitness)",
+    )
     return parser
 
 
@@ -116,6 +121,7 @@ def _run_reasoning_gate(args: argparse.Namespace) -> int:
         baseline_dir=args.baseline_dir,
         replay_fixture=replay or Path("packages/evaluation/fixtures/replay/quiet-day.json"),
         write_report=not args.dry_run,
+        attention_only=args.attention_only,
     )
     print(json.dumps(evidence.as_dict(), indent=2))
     return 0

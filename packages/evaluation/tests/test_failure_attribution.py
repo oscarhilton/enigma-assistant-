@@ -30,6 +30,7 @@ def _metrics(*, att: float, na: float = 1.0, na_scored: int = 0) -> SupportFitne
         timing_fit=1.0,
         suppression_accuracy=1.0,
         top3_critical_recall=att,
+        top1_critical_recall=att,
         attention_accuracy=att,
         next_action_accuracy=na,
         contracts_scored=1,

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from personal_enigma.evaluation.reasoning_value_gate import (
@@ -32,6 +31,7 @@ def test_decide_architecture_branches() -> None:
 
 
 def test_gate_report_smoke(tmp_path: Path) -> None:
+    from personal_enigma.evaluation._testing.judge_mock import PerCandidateJudgeMockTransport
     from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
     from personal_enigma.evaluation.evaluation_truth import load_evaluation_truth
     from personal_enigma.evaluation.llm_benchmark import (
@@ -39,30 +39,14 @@ def test_gate_report_smoke(tmp_path: Path) -> None:
         snapshot_to_transformed_context,
     )
     from personal_enigma.reasoning import (
-        MockPaygTransport,
         PaygReasoningService,
         ReasoningMode,
         RecordingPaygTransport,
     )
 
     truth = load_evaluation_truth(GT)
-    response = json.dumps(
-        {
-            "attention": {
-                "item_id": "item-obligation_december_expenses",
-                "behaviour": "surface",
-                "priority": 4,
-            },
-            "next_action": {
-                "title": "Gather receipts",
-                "estimated_minutes": 5,
-                "effort": "light",
-                "why_this_now": "Due soon",
-            },
-        }
-    )
     recorder = RecordingPaygTransport(
-        MockPaygTransport(response_text=response), scenario="gate-smoke"
+        PerCandidateJudgeMockTransport(), scenario="gate-smoke"
     )
     service = PaygReasoningService(mode=ReasoningMode.ENABLED, transport=recorder)
     snap = load_checkpoint_snapshot(BASELINES / "cp-2026-01-14T10:00.json")
