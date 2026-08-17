@@ -1,4 +1,4 @@
-# Alex v0.2.1 — evaluator-only support contracts (Reasoning Value Gate / R01).
+# Alex v0.2.1 — evaluator-only support contracts (Reasoning Value Gate / R01, R-L01).
 # Never ingested by Enigma. Schema: docs/architecture/eval-stubs/support_contract.v0.json
 
 support_contracts:
@@ -6,6 +6,10 @@ support_contracts:
     obligation_id: obligation_q1_roadmap
     challenge: [prospective_memory, ambiguity]
     evidence_ids: [mail-maya-q1, rem-q1-roadmap, note-q1-braindump]
+    valid_from: "2026-01-08T08:00:00Z"
+    valid_until: "2026-01-09T16:00:00Z"
+    resolution_event: w1-rem-roadmap-done
+    expected_surface_window: Wed 8 Jan morning through Fri 9 Jan before Maya's 4pm deadline
     attention:
       behaviour: MUST_SURFACE
       window:
@@ -21,6 +25,10 @@ support_contracts:
     obligation_id: obligation_elena_dinner_wine
     challenge: [prospective_memory]
     evidence_ids: [mail-elena-dinner, rem-buy-wine, cal-dinner-elena]
+    valid_from: "2026-01-08T12:00:00Z"
+    valid_until: "2026-01-08T17:00:00Z"
+    resolution_event: w1-rem-wine-done
+    expected_surface_window: Thu 8 Jan afternoon — buy wine before dinner, not morning-of
     attention:
       behaviour: MUST_SURFACE
       window:
@@ -35,6 +43,10 @@ support_contracts:
     obligation_id: obligation_checkout_rec
     challenge: [ambiguity]
     evidence_ids: [mail-maya-checkout, rem-checkout-rec, note-checkout-ambig]
+    valid_from: "2026-01-13T08:00:00Z"
+    valid_until: "2026-01-14T17:00:00Z"
+    resolution_event: w2-rem-checkout-done
+    expected_surface_window: Mon 13 Jan through Tue 14 Jan — two-option recommendation frame
     attention:
       behaviour: MUST_SURFACE
       window:
@@ -49,6 +61,10 @@ support_contracts:
     obligation_id: obligation_december_expenses
     challenge: [admin_friction, task_initiation]
     evidence_ids: [mail-finance-expense, rem-expenses]
+    valid_from: "2026-01-14T09:00:00Z"
+    valid_until: "2026-01-16T10:00:00Z"
+    resolution_event: w2-rem-expenses-done
+    expected_surface_window: Tue 14 Jan through Fri 16 Jan morning — 5 min receipt gather, not DO EXPENSES
     attention:
       behaviour: MUST_SURFACE
       window:
@@ -64,6 +80,10 @@ support_contracts:
     obligation_id: obligation_token_audit
     challenge: [blocked_task, working_memory]
     evidence_ids: [mail-jordan-tokens, rem-token-audit, note-token-wip, mail-jordan-figma]
+    valid_from: "2026-01-19T09:00:00Z"
+    valid_until: "2026-01-21T13:00:00Z"
+    resolution_event: w3-rem-tokens-done
+    expected_surface_window: Mon 19 Jan through Wed 21 Jan 13:00 — surface Figma link as next action
     attention:
       behaviour: MUST_SURFACE
       window:
@@ -77,11 +97,15 @@ support_contracts:
   - scenario: dentist-critique-overlap
     challenge: [transition, transition_cost]
     evidence_ids: [cal-dentist, cal-crit-overlap, cal-dentist-cancel]
+    valid_from: "2026-01-15T08:00:00Z"
+    valid_until: "2026-01-16T08:00:00Z"
+    resolution_event: w2-cal-dentist-cancel
+    expected_surface_window: Wed 15 Jan conflict window; after Thu 16 Jan 08:00 cancel — CONTEXT_ONLY, do not re-nag
     attention:
-      behaviour: MAY_SURFACE
+      behaviour: CONTEXT_ONLY
       window:
         start: "2026-01-15T08:00:00Z"
-        end: "2026-01-15T14:00:00Z"
+        end: "2026-01-16T08:00:00Z"
     support:
       good_next_actions: [resolve_calendar_conflict, cancel_dentist_appointment]
       poor_actions: [surface_repeatedly, manufacture_urgency]
@@ -91,6 +115,10 @@ support_contracts:
     obligation_id: obligation_brunch_book
     challenge: [prospective_memory, social_coordination]
     evidence_ids: [mail-elena-weekend, rem-brunch-book, cal-brunch-parents]
+    valid_from: "2026-01-20T08:00:00Z"
+    valid_until: "2026-01-22T12:00:00Z"
+    resolution_event: w3-rem-brunch-done
+    expected_surface_window: Mon 20 Jan through Wed 22 Jan noon — book restaurant before Saturday parents visit
     attention:
       behaviour: MUST_SURFACE
       window:
@@ -106,6 +134,9 @@ support_contracts:
     obligation_id: obligation_empty_states
     challenge: [task_initiation, working_memory]
     evidence_ids: [mail-sam-followup, rem-empty-states, note-open-loop-sam]
+    valid_from: "2026-01-23T17:00:00Z"
+    valid_until: "2026-01-25T18:00:00Z"
+    expected_surface_window: Fri 23 Jan evening through Sun 25 Jan — tiny reply, avoid stale re-alerts
     attention:
       behaviour: MAY_SURFACE
       window:
@@ -120,6 +151,9 @@ support_contracts:
     obligation_id: obligation_tom_climb
     challenge: [social_coordination]
     evidence_ids: [mail-tom-climb, cal-climb-tom]
+    valid_from: "2026-01-15T08:00:00Z"
+    valid_until: "2026-01-17T18:00:00Z"
+    expected_surface_window: Wed 15 Jan through Fri 17 Jan — warm reply without fake urgency
     attention:
       behaviour: MAY_SURFACE
       window:
@@ -133,6 +167,7 @@ support_contracts:
   - scenario: newsletters-promos
     challenge: [distraction]
     evidence_ids: [mail-noise-designweekly, mail-noise-saas]
+    expected_surface_window: Always suppress — newsletters and SaaS promos
     attention:
       behaviour: MUST_SUPPRESS
     support:
@@ -143,6 +178,7 @@ support_contracts:
   - scenario: prizzevault-junk
     challenge: [distraction]
     evidence_ids: [mail-noise-prizvault]
+    expected_surface_window: Always suppress — PrizeVault marketing junk
     attention:
       behaviour: MUST_SUPPRESS
     support:
@@ -152,6 +188,7 @@ support_contracts:
   - scenario: machine-notifications
     challenge: [distraction]
     evidence_ids: [noise-automated_notification-0010, noise-automated_notification-0011]
+    expected_surface_window: Always suppress — automated machine notifications
     attention:
       behaviour: MUST_SUPPRESS
     support:
@@ -161,6 +198,9 @@ support_contracts:
   - scenario: quiet-periods
     challenge: [task_initiation]
     evidence_ids: [note-weekend-w1]
+    valid_from: "2026-01-10T10:00:00Z"
+    valid_until: "2026-01-11T18:00:00Z"
+    expected_surface_window: Sat 10 Jan morning through Sun 11 Jan evening — restful weekend, no manufactured urgency
     attention:
       behaviour: MUST_STAY_QUIET
       window:
@@ -174,6 +214,10 @@ support_contracts:
     obligation_id: obligation_brunch_book
     challenge: [time_blindness, transition]
     evidence_ids: [rem-brunch-book, cal-token-review, mail-elena-weekend]
+    valid_from: "2026-01-21T13:00:00Z"
+    valid_until: "2026-01-21T14:00:00Z"
+    resolution_event: w3-rem-tokens-done
+    expected_surface_window: Wed 21 Jan 13:00–14:00 UTC — attention (brunch) ≠ next action (token prep)
     attention:
       behaviour: MUST_SURFACE
       window:

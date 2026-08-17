@@ -11,6 +11,7 @@ from personal_enigma.evaluation.ground_truth import GroundTruthValidationError
 from personal_enigma.evaluation.support_contract import (
     AttentionBehaviour,
     load_support_contracts,
+    render_truth_checklist,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -133,3 +134,83 @@ support_contracts:
     corpus = load_support_contracts(gt_dir)
     assert len(corpus.contracts) == 1
     assert corpus.by_scenario("quiet-periods") is not None
+
+
+def test_valid_from_until_alias_attention_window(tmp_path: Path) -> None:
+    path = tmp_path / "aliases.yaml"
+    path.write_text(
+        """
+support_contracts:
+  - scenario: arc-a
+    challenge: [prospective_memory]
+    valid_from: "2026-01-08T08:00:00Z"
+    valid_until: "2026-01-09T16:00:00Z"
+    resolution_event: w1-rem-roadmap-done
+    expected_surface_window: Wed morning through Fri afternoon
+    attention:
+      behaviour: MUST_SURFACE
+    support:
+      good_next_actions: [pick_three_priorities]
+""",
+        encoding="utf-8",
+    )
+    corpus = load_support_contracts(path)
+    contract = corpus.by_scenario("arc-a")
+    assert contract is not None
+    assert contract.valid_from == datetime(2026, 1, 8, 8, 0, tzinfo=UTC)
+    assert contract.valid_until == datetime(2026, 1, 9, 16, 0, tzinfo=UTC)
+    assert contract.attention.window is not None
+    assert contract.attention.window.start == contract.valid_from
+    assert contract.resolution_event == "w1-rem-roadmap-done"
+    assert contract.expected_surface_window == "Wed morning through Fri afternoon"
+
+
+def test_valid_from_until_must_match_window(tmp_path: Path) -> None:
+    path = tmp_path / "mismatch.yaml"
+    path.write_text(
+        """
+support_contracts:
+  - scenario: arc-a
+    challenge: [prospective_memory]
+    valid_from: "2026-01-08T08:00:00Z"
+    valid_until: "2026-01-09T16:00:00Z"
+    attention:
+      behaviour: MUST_SURFACE
+      window:
+        start: "2026-01-08T09:00:00Z"
+        end: "2026-01-09T16:00:00Z"
+    support:
+      good_next_actions: [pick_three_priorities]
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(GroundTruthValidationError):
+        load_support_contracts(path)
+
+
+def test_brunch_contract_has_resolution_event() -> None:
+    corpus = load_support_contracts(ALEX_CONTRACTS)
+    brunch = corpus.by_scenario("elena-parents-brunch")
+    assert brunch is not None
+    assert brunch.resolution_event == "w3-rem-brunch-done"
+    assert brunch.valid_from is not None
+    assert brunch.expected_surface_window is not None
+
+
+def test_dentist_post_cancel_is_context_only() -> None:
+    corpus = load_support_contracts(ALEX_CONTRACTS)
+    dentist = corpus.by_scenario("dentist-critique-overlap")
+    assert dentist is not None
+    assert dentist.attention.behaviour == AttentionBehaviour.CONTEXT_ONLY
+    assert dentist.resolution_event == "w2-cal-dentist-cancel"
+    assert dentist.valid_until == datetime(2026, 1, 16, 8, 0, tzinfo=UTC)
+
+
+def test_render_truth_checklist_one_row_per_arc() -> None:
+    corpus = load_support_contracts(ALEX_CONTRACTS)
+    markdown = render_truth_checklist(corpus)
+    assert "| Scenario | Behaviour |" in markdown
+    for contract in corpus.contracts:
+        assert contract.scenario in markdown
+    assert markdown.count("| elena-parents-brunch |") == 1
+    assert "w3-rem-brunch-done" in markdown

@@ -15,6 +15,24 @@
       "type": "string",
       "description": "Optional link to an obligation ground-truth id when support is obligation-scoped."
     },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Alias for attention.window.start — when proactive surfacing may begin."
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Alias for attention.window.end — when proactive surfacing should stop (often resolution instant)."
+    },
+    "resolution_event": {
+      "type": "string",
+      "description": "Timeline event id that closes the arc (e.g. w3-rem-brunch-done, w2-cal-dentist-cancel)."
+    },
+    "expected_surface_window": {
+      "type": "string",
+      "description": "Human-readable surface window for evaluator inspection (e.g. Wed 15 Jan morning through Thu 16 Jan cancel)."
+    },
     "challenge": {
       "type": "array",
       "minItems": 1,
@@ -30,7 +48,13 @@
       "properties": {
         "behaviour": {
           "type": "string",
-          "enum": ["MUST_SURFACE", "MAY_SURFACE", "MUST_SUPPRESS", "MUST_STAY_QUIET"]
+          "enum": [
+            "MUST_SURFACE",
+            "MAY_SURFACE",
+            "CONTEXT_ONLY",
+            "MUST_SUPPRESS",
+            "MUST_STAY_QUIET"
+          ]
         },
         "window": {
           "type": "object",
