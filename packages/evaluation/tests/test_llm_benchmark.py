@@ -1,4 +1,4 @@
-"""Tests for LLM judge benchmark (R03)."""
+"""Tests for LLM judge benchmark (R03, R-L02 judge-v1)."""
 
 from __future__ import annotations
 
@@ -10,48 +10,72 @@ import pytest
 from personal_enigma.evaluation.evaluation_truth import load_evaluation_truth
 from personal_enigma.evaluation.llm_benchmark import (
     FORBIDDEN_PROMPT_MARKERS,
+    apply_attention_policy,
+    build_candidate_judge_prompt,
     build_judge_prompt,
     run_llm_benchmark,
 )
+from personal_enigma.evaluation.metrics.support_fitness import (
+    RescueRegressionOutcome,
+    classify_arm_outcome,
+    compute_rescue_regression_metrics,
+)
 from personal_enigma.reasoning import (
-    MockPaygTransport,
     PaygReasoningService,
     ReasoningMode,
     RecordingPaygTransport,
     ReplayPaygTransport,
 )
-from personal_enigma.reasoning.structured_output import LlmJudgeParseError, parse_llm_judge_output
+from personal_enigma.reasoning.structured_output import (
+    JudgeV1ParseError,
+    ReasonCode,
+    parse_judge_v1_output,
+)
 
 REPO = Path(__file__).resolve().parents[3]
 GT = REPO / "scenarios" / "alex-v1" / "ground_truth"
 BASELINES = Path(__file__).resolve().parents[1] / "fixtures" / "baselines" / "arm-a"
 MINI_CPS = ["cp-2026-01-14T10:00", "cp-2026-01-21T13:30", "cp-2026-01-11T11:00"]
 
-_LLM_JSON = json.dumps(
-    {
-        "attention": {
-            "item_id": "item-obligation_december_expenses",
-            "behaviour": "surface",
-            "priority": 4,
-        },
-        "next_action": {
-            "title": "Gather receipts",
-            "estimated_minutes": 5,
-            "effort": "light",
-            "why_this_now": "Expense deadline approaching",
-        },
-    }
+
+from personal_enigma.evaluation._testing.judge_mock import (
+    PerCandidateJudgeMockTransport,
+    surface_expenses_json,
 )
 
 
-def test_parse_llm_judge_output_valid() -> None:
-    out = parse_llm_judge_output(_LLM_JSON)
+def test_parse_judge_v1_output_valid() -> None:
+    out = parse_judge_v1_output(surface_expenses_json())
+    assert out.next_action is not None
     assert out.next_action.title == "Gather receipts"
+    assert out.attention.decision == "surface"
 
 
-def test_parse_llm_judge_output_invalid() -> None:
-    with pytest.raises(LlmJudgeParseError):
-        parse_llm_judge_output("not json")
+def test_parse_judge_v1_unknown_reason_code_maps_to_other() -> None:
+    payload = json.loads(surface_expenses_json())
+    payload["attention"]["reason_codes"] = ["MADE_UP_CODE"]
+    out = parse_judge_v1_output(json.dumps(payload))
+    assert out.attention.reason_codes == [ReasonCode.OTHER]
+
+
+def test_parse_judge_v1_output_invalid() -> None:
+    with pytest.raises(JudgeV1ParseError):
+        parse_judge_v1_output("not json")
+
+
+def test_apply_attention_policy_surface_threshold() -> None:
+    from personal_enigma.reasoning.structured_output import JudgeV1Attention
+
+    low_conf = JudgeV1Attention(
+        decision="surface",
+        priority=4,
+        confidence=0.2,
+        reason_codes=[ReasonCode.DEADLINE_APPROACHING],
+        evidence_ids=["rem-expenses"],
+    )
+    policy = apply_attention_policy(low_conf)
+    assert policy.decision == "suppress"
+    assert policy.reason == "surface_threshold"
 
 
 def test_prompt_excludes_contract_markers() -> None:
@@ -63,9 +87,18 @@ def test_prompt_excludes_contract_markers() -> None:
         assert marker.lower() not in prompt.lower()
 
 
+def test_classify_rescue_regression() -> None:
+    assert classify_arm_outcome(arm_a_pass=False, arm_b_pass=True) == (
+        RescueRegressionOutcome.RESCUE
+    )
+    assert classify_arm_outcome(arm_a_pass=True, arm_b_pass=False) == (
+        RescueRegressionOutcome.REGRESSION
+    )
+
+
 def test_record_and_replay_benchmark(tmp_path: Path) -> None:
     truth = load_evaluation_truth(GT)
-    inner = MockPaygTransport(response_text=_LLM_JSON)
+    inner = PerCandidateJudgeMockTransport()
     recorder = RecordingPaygTransport(inner, scenario="gate-mini")
     service = PaygReasoningService(mode=ReasoningMode.ENABLED, transport=recorder)
 
@@ -76,12 +109,15 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
     )
 
     snap = load_checkpoint_snapshot(BASELINES / f"{MINI_CPS[0]}.json")
-    score_arm_b(
+    result = score_arm_b(
         snap,
         truth,
         service=service,
         context=snapshot_to_transformed_context(snap),
     )
+    assert result.judgements
+    assert any(j.policy_judgement.decision == "surface" for j in result.judgements)
+
     replay_path = tmp_path / "gate.json"
     recorder.save(replay_path)
 
@@ -93,12 +129,44 @@ def test_record_and_replay_benchmark(tmp_path: Path) -> None:
     )
     assert report.arm_a
     assert report.arm_b
-    assert report.arm_b[0].llm_output is not None
+    assert report.arm_b[0].judgements
+    assert report.rescue_regression_summary
+
+    rescue = compute_rescue_regression_metrics(
+        checkpoint_id=MINI_CPS[0],
+        arm_a=report.arm_a[0].metrics,
+        arm_b=report.arm_b[0].metrics,
+    )
+    assert rescue
 
     replay = ReplayPaygTransport(replay_path, force_offline=True)
     client = PaygReasoningService(mode=ReasoningMode.ENABLED, transport=replay)
+    first = snap.candidate_set[0]
     assert client.reason(
         snapshot_to_transformed_context(snap),
-        prompt=build_judge_prompt(snap),
+        prompt=build_candidate_judge_prompt(snap, first),
         model="payg-gate",
-    ).text == _LLM_JSON
+    ).text
+
+
+def test_attention_only_skips_next_action_scoring() -> None:
+    from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
+    from personal_enigma.evaluation.llm_benchmark import (
+        score_arm_b,
+        snapshot_to_transformed_context,
+    )
+
+    truth = load_evaluation_truth(GT)
+    snap = load_checkpoint_snapshot(BASELINES / f"{MINI_CPS[0]}.json")
+    service = PaygReasoningService(
+        mode=ReasoningMode.ENABLED, transport=PerCandidateJudgeMockTransport()
+    )
+    result = score_arm_b(
+        snap,
+        truth,
+        service=service,
+        context=snapshot_to_transformed_context(snap),
+        attention_only=True,
+    )
+    assert result.metrics.next_action_checkpoints_scored == 0
+    assert result.metrics.next_action_accuracy == 1.0
