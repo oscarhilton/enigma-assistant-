@@ -178,7 +178,10 @@ def test_fireworks_transport_b2_requests_semantic_schema() -> None:
 
     snap = load_checkpoint_snapshot(BASELINES / "cp-2026-01-21T13:30.json")
     candidate = snap.candidate_set[0]
-    prompt = build_semantic_judge_prompt(snap, candidate)
+    ctx = snapshot_to_transformed_context(snap)
+    prompt = build_semantic_judge_prompt(
+        ctx, candidate, checkpoint_at=snap.at, snapshot=snap
+    )
     transport = FireworksChatTransport(api_key="test-key", urlopen=_urlopen)
     result = transport.complete(
         prompt=prompt,

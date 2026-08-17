@@ -12,6 +12,7 @@ on the wire to a hosted model.
 | --- | --- |
 | ``summary`` | Sanitised text; may include ``PERSON_*`` opaque tokens |
 | ``entities`` | List of ``PERSON_*`` opaque IDs only |
+| ``relations`` | Privacy-safe causal graph (``SemanticRelation`` shapes) |
 | ``metadata`` | Subset of :data:`REMOTE_METADATA_KEYS` |
 | ``may_transmit_remotely`` | Gate bit; still requires remote inference enabled |
 
@@ -36,8 +37,23 @@ REMOTE_PAYLOAD_TOP_LEVEL_KEYS: Final[frozenset[str]] = frozenset(
     {
         "summary",
         "entities",
+        "relations",
         "metadata",
         "may_transmit_remotely",
+    }
+)
+
+REMOTE_RELATION_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "type",
+        "subject",
+        "object",
+        "state",
+        "resolved_by",
+        "resolved_at",
+        "since",
+        "due",
+        "causal",
     }
 )
 

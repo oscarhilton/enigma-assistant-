@@ -17,15 +17,20 @@ from personal_enigma.evaluation.checkpoint_runner import (
     load_checkpoint_snapshot,
     verify_arm_a_integrity,
 )
+from personal_enigma.evaluation.evaluation_transformed_v1_frozen import (
+    snapshot_to_evaluation_transformed_v1_frozen,
+)
 from personal_enigma.evaluation.evaluation_truth import EvaluationTruth
+from personal_enigma.evaluation.failure_class import FailureClass, classify_parse_error
 from personal_enigma.evaluation.llm_benchmark import (
     CheckpointArmResult,
+    EvaluationContextMode,
     JudgeArm,
     aggregate_support_fitness,
     score_arm_a,
     score_arm_b,
     snapshot_to_full_synthetic_context,
-    snapshot_to_transformed_context,
+    snapshot_to_production_transformed,
 )
 from personal_enigma.evaluation.metrics.support_fitness import SupportFitnessMetrics
 from personal_enigma.evaluation.observations import CheckpointSnapshot
@@ -89,6 +94,10 @@ class LiveRepResult:
         return self.arm_result.parse_error
 
     @property
+    def experiment_invalid(self) -> bool:
+        return self.arm_result.experiment_invalid
+
+    @property
     def schema_error(self) -> str | None:
         if self.arm_result.parse_error and "evidence_ids" in self.arm_result.parse_error:
             return self.arm_result.parse_error
@@ -119,6 +128,45 @@ class OutcomeCounts:
 
 
 @dataclass
+class FailureRates:
+    provider_transport_failure_rate: float = 0.0
+    model_truncation_failure_rate: float = 0.0
+    model_schema_failure_rate: float = 0.0
+    privacy_gate_failure_rate: float = 0.0
+
+    @property
+    def schema_failure_rate(self) -> float:
+        """Legacy alias — model schema only (excludes transport/truncation)."""
+        return self.model_schema_failure_rate
+
+    def as_dict(self) -> dict[str, float]:
+        return {
+            "provider_transport_failure_rate": self.provider_transport_failure_rate,
+            "model_truncation_failure_rate": self.model_truncation_failure_rate,
+            "model_schema_failure_rate": self.model_schema_failure_rate,
+            "privacy_gate_failure_rate": self.privacy_gate_failure_rate,
+            "schema_failure_rate": self.schema_failure_rate,
+        }
+
+
+def compute_failure_rates(reps: list[LiveRepResult]) -> FailureRates:
+    if not reps:
+        return FailureRates()
+    counts = {fc: 0 for fc in FailureClass if fc != FailureClass.NONE}
+    for rep in reps:
+        fc = classify_parse_error(rep.parse_error)
+        if fc != FailureClass.NONE:
+            counts[fc] += 1
+    n = len(reps)
+    return FailureRates(
+        provider_transport_failure_rate=counts[FailureClass.PROVIDER_TRANSPORT_FAILURE] / n,
+        model_truncation_failure_rate=counts[FailureClass.MODEL_TRUNCATION_FAILURE] / n,
+        model_schema_failure_rate=counts[FailureClass.MODEL_SCHEMA_FAILURE] / n,
+        privacy_gate_failure_rate=counts[FailureClass.PRIVACY_GATE_FAILURE] / n,
+    )
+
+
+@dataclass
 class LiveBenchmarkReport:
     scenario: str
     phase: str
@@ -127,6 +175,7 @@ class LiveBenchmarkReport:
     arm_a_aggregate: dict[str, float] = field(default_factory=dict)
     arm_b_aggregate: dict[str, float] = field(default_factory=dict)
     arm_b_stability_pct: float = 1.0
+    failure_rates: FailureRates = field(default_factory=FailureRates)
     schema_failure_rate: float = 0.0
     privacy_failure_rate: float = 0.0
     outcome_counts: OutcomeCounts = field(default_factory=OutcomeCounts)
@@ -144,7 +193,8 @@ class LiveBenchmarkReport:
             "arm_a_aggregate": self.arm_a_aggregate,
             "arm_b_aggregate": self.arm_b_aggregate,
             "arm_b_stability_pct": self.arm_b_stability_pct,
-            "schema_failure_rate": self.schema_failure_rate,
+            "failure_rates": self.failure_rates.as_dict(),
+            "schema_failure_rate": self.failure_rates.schema_failure_rate,
             "privacy_failure_rate": self.privacy_failure_rate,
             "outcome_counts": self.outcome_counts.as_dict(),
             "total_cost_usd": self.total_cost_usd,
@@ -430,12 +480,13 @@ def aggregate_b_reps(
 ) -> dict[str, float]:
     majority_metrics: list[SupportFitnessMetrics] = []
     for reps in arm_b_reps.values():
-        if not reps:
+        valid = [r for r in reps if not r.experiment_invalid]
+        if not valid:
             continue
-        passes = [_attention_pass(r.metrics) for r in reps]
+        passes = [_attention_pass(r.metrics) for r in valid]
         majority = sum(passes) >= (len(passes) // 2 + 1)
         idx = next((i for i, p in enumerate(passes) if p == majority), 0)
-        majority_metrics.append(reps[idx].metrics)
+        majority_metrics.append(valid[idx].metrics)
     return aggregate_support_fitness(majority_metrics)
 
 
@@ -457,15 +508,18 @@ def score_live_rep(
     *,
     service: PaygReasoningService,
     rep: int,
-    context_mode: Literal["transformed", "full_synthetic"] = "transformed",
+    context_mode: EvaluationContextMode = "evaluation_transformed_v2",
     model: str = LIVE_MODEL,
     judge_arm: JudgeArm = "b2",
+    prompt_privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
+    audit_dir: str | Path | None = None,
 ) -> LiveRepResult:
-    ctx = (
-        snapshot_to_full_synthetic_context(snapshot)
-        if context_mode == "full_synthetic"
-        else snapshot_to_transformed_context(snapshot)
-    )
+    if context_mode == "full_synthetic":
+        ctx = snapshot_to_full_synthetic_context(snapshot)
+    elif context_mode in ("evaluation_transformed_v1", "transformed"):
+        ctx = snapshot_to_evaluation_transformed_v1_frozen(snapshot)
+    else:
+        ctx = snapshot_to_production_transformed(snapshot)
     ctx = ctx.model_copy(update={"metadata": {**ctx.metadata, "rep": str(rep)}})
     arm_result = score_arm_b(
         snapshot,
@@ -474,6 +528,8 @@ def score_live_rep(
         context=ctx,
         model=model,
         judge_arm=judge_arm,
+        prompt_privacy=prompt_privacy,
+        audit_dir=audit_dir,
     )
     return LiveRepResult(
         checkpoint_id=snapshot.checkpoint_id, rep=rep, arm_result=arm_result
@@ -488,15 +544,20 @@ def run_live_benchmark(
     transport: PaygTransport,
     phase: str = "main",
     reps: int = MAIN_REPS,
-    context_mode: Literal["transformed", "full_synthetic"] = "transformed",
+    context_mode: EvaluationContextMode = "evaluation_transformed_v2",
     ledger: BenchmarkBudgetLedger | None = None,
     judge_arm: JudgeArm = "b2",
+    prompt_privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
+    audit_dir: str | Path | None = None,
 ) -> LiveBenchmarkReport:
     root = Path(baseline_dir)
     mismatches = verify_arm_a_integrity(root)
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     scenario = str(manifest.get("scenario", "alex-v1"))
     service = PaygReasoningService(mode=ReasoningMode.ENABLED, transport=transport)
+    effective_audit_dir = audit_dir
+    if effective_audit_dir is None and ledger is not None:
+        effective_audit_dir = ledger.audit_dir
 
     report = LiveBenchmarkReport(
         scenario=scenario,
@@ -518,6 +579,8 @@ def run_live_benchmark(
                     rep=rep,
                     context_mode=context_mode,
                     judge_arm=judge_arm,
+                    prompt_privacy=prompt_privacy,
+                    audit_dir=effective_audit_dir,
                 )
             )
         report.arm_b_reps[cp_id] = rep_results
@@ -536,9 +599,8 @@ def run_live_benchmark(
         report.arm_b_stability_pct = (
             sum(stabilities) / len(stabilities) if stabilities else 1.0
         )
-        report.schema_failure_rate = sum(
-            1 for r in all_reps if r.parse_error
-        ) / len(all_reps)
+        report.failure_rates = compute_failure_rates(all_reps)
+        report.schema_failure_rate = report.failure_rates.schema_failure_rate
         report.median_latency_ms = statistics.median([r.latency_ms for r in all_reps])
         report.total_cost_usd = sum(r.cost_usd for r in all_reps)
 

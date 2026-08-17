@@ -19,9 +19,13 @@ from personal_enigma.domain import (
 )
 from personal_enigma.identity import EntityResolver
 from personal_enigma.privacy import PrivacyLevel, default_level_for_source
+from personal_enigma.transformation.attention_context import AttentionCandidateInput
+from personal_enigma.transformation.context_relations import with_relations
 from personal_enigma.transformation.passages import extract_minimal_passage
 from personal_enigma.transformation.protocol import TransformedContext
+from personal_enigma.transformation.relations import SemanticRelation
 from personal_enigma.transformation.stub_resolver import StubHmacResolver
+from personal_enigma.transformation.title_sanitisation import pseudonymise_remote_text
 
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _PHONE_RE = re.compile(
@@ -126,6 +130,7 @@ class DefaultEnigmaTransformer:
 
         scrubbed = _EMAIL_RE.sub(replace_email, text)
         scrubbed = _PHONE_RE.sub(replace_phone, scrubbed)
+        scrubbed = pseudonymise_remote_text(scrubbed, resolver=self._resolver, entities=entities)
         return scrubbed
 
     def _transform_calendar(self, event: PrivateCalendarEvent) -> TransformedContext:
@@ -244,6 +249,39 @@ class DefaultEnigmaTransformer:
                 "wholesale_body_included": False,
             },
             may_transmit_remotely=self._may_transmit(SourceType.EMAIL),
+        )
+
+    def attach_relations(
+        self,
+        ctx: TransformedContext,
+        relations: list[SemanticRelation],
+    ) -> TransformedContext:
+        """Merge task-relevant relations into a transformed context."""
+        return with_relations(ctx, relations)
+
+    def build_remote_attention_context(
+        self,
+        *,
+        checkpoint_id: str,
+        checkpoint_at: datetime,
+        candidates: list[AttentionCandidateInput],
+        context_mode: str = "production",
+        may_transmit_remotely: bool | None = None,
+    ) -> TransformedContext:
+        """Production path: pseudonymised titles + causal relations[] graph."""
+        from personal_enigma.transformation.attention_context import (
+            build_remote_attention_context,
+        )
+
+        return build_remote_attention_context(
+            checkpoint_id=checkpoint_id,
+            checkpoint_at=checkpoint_at,
+            candidates=candidates,
+            resolver=self._resolver,
+            context_mode=context_mode,
+            may_transmit_remotely=(
+                self._allow_remote if may_transmit_remotely is None else may_transmit_remotely
+            ),
         )
 
 

@@ -1,55 +1,80 @@
 # ADR-012: Reasoning Value Gate architecture decision
 
-**Status:** Accepted (Arm B2 hypothesis — interim evidence; final gate pending R-L05 main A/B)
+**Status:** Accepted (live gate evidence — B2 + evaluation_transformed_v1; R-L09 integration finding)
 **Date:** 2026-08-17
+**Git:** `1c80841`
 
-## Context
+## Production decision (narrow scope)
 
-The Reasoning Value Gate compares frozen Arm A (deterministic heuristic) against Arm B (remote LLM on sanitised Alex checkpoints).
+**no_win** — No win — keep deterministic (recall Δ=-0.075, regressions=2, model_schema_fail=0.0%). Provider transport failures=5.0% (excluded from model schema rate).
 
-## Arm B1 result (direct judge-v1 surface/suppress)
+Keep deterministic interruption policy. Do **not** adopt remote reasoning from this gate alone.
 
-Live smoke with **gpt-oss-120b** under judge-v1 direct-decision framing:
+### What was tested
 
-| Case | Before (leak) | After de-anchor prompt |
-| --- | --- | --- |
-| Brunch (must surface) | 3/3 | 0/3 |
-| PrizeVault (must suppress) | 3/3 | 0/3 |
-| Quiet weekend | 0/3 | 0/3 |
-
-**Conclusion:** gpt-oss-120b did not reliably calibrate surface/suppress under judge-v1 direct-decision framing. The anchored path leaked evaluator labels into runtime context; the de-anchored path failed Brunch entirely. Model-direct interruption authority is the wrong abstraction.
-
-Evaluator labels (`MUST_SURFACE`, `MUST_SUPPRESS`, `MUST_STAY_QUIET`) in `support_contracts.yaml` are **evaluator-only** — never injected into runtime prompts or policy.
-
-## Arm B2 hypothesis (semantic judge + deterministic policy)
-
-**Split responsibility:**
-
-1. **Remote LLM** — semantic interpretation only (`semantic-judge-v1`): obligation strength, user responsibility, importance, time sensitivity, actionability, confidence, reason codes, optional next action.
-2. **Local Enigma policy** — `packages/attention/interruption_policy.py` combines semantic features with observable facts (`now`, `due_at`, open/completion, calendar proximity, noise evidence patterns, restful-weekend mode) → `surface` / `context` / `suppress`.
-
-Metrics score **`policy_judgement`** (post-policy alerts), not raw model output.
-
-## Interim evidence (2026-08-17 — not final ADR decision)
-
-| Track | Result |
+| Scope | Result |
 | --- | --- |
-| B1 direct judge | **FAILED** — de-anchored: Brunch 0/3; anchored path had evaluation leak |
-| B2 semantic judge + policy | Live smoke **9/9** (Brunch / PrizeVault / Quiet — 3 cases × 3 reps) |
-| Architecture boundary | LLM understands situation; **policy decides interruption** |
+| B2 + `evaluation_transformed_v1` | **PROVEN** → `no_win` |
+| B2 + `evaluation_transformed_v2` (Step 5 live) | **NO MOVEMENT** — see R-L09 chronology below |
+| B2 + `DefaultEnigmaTransformer` in prompt | **NOT YET PROVEN** — R-L09 Step 6 follow-up |
 
-**Final ADR decision deferred** until R-L05 main A/B (20 checkpoints). Do **not** declare `clear_win` / `no_win` from smoke alone.
+## R-L09 chronology (research record)
 
-## Mock honesty
+| Phase | Finding |
+| --- | --- |
+| **R-L09.1** | Offline transform lacked causal semantics → fixed (`relations[]`, BLOCKED_BY resolution, production parity as `evaluation_transformed_v2`). |
+| **R-L09.2** | Offline causal-preservation gate passed (Jan 19/20 checkpoints). |
+| **R-L09.3** | Live hardest-10: v2 critical recall **0.85** vs historical v1 **0.85** — **NO MOVEMENT**. Investigation: `relations[]` never entered the semantic judge prompt (`snapshot_to_context_dict()` fork). Result classified as **integration/wiring negative**, not semantic-preservation hypothesis falsification. |
+| **R-L09.4** | Next experiment: route privacy-gated `TransformedContext` directly into semantic judge prompt (Step 6); re-run hardest-10 only. |
 
-`SmokeOracleTransport` (formerly `SmokeMockTransport`) is plumbing-only: validates schema, policy wiring, and orchestration — **not** live prompt semantics. Regression path: record replay fixtures from real Fireworks responses via `ReplayPaygTransport`.
+### Step 5 live hardest-10 (2026-08-17)
 
-## Decision (pending main A/B)
+| Column | Critical recall | Valid? |
+| --- | --- | --- |
+| v1 (frozen) | 1.00 | **No** — prompt-build failures silently fell back to Arm A scoring |
+| v2 | **0.85** | Yes |
+| full_synthetic | 1.00 | Yes, but byte-identical prompt to v2 (confound) |
 
-Run live gate with `--arm b2` (default). B1 remains available for comparison (`--arm b1`). Do not spend budget on B1 prompt tuning.
+Cost: ~$0.058. v2 MUST_SUPPRESS: 1.00. Privacy failures: 0.
 
-## Related
+**Architectural finding:** Privacy transformation and reasoning pipelines were conceptually connected but **not connected at the final model-input boundary**. Fireworks receives only the prompt string; `TransformedContext.relations[]` passed `assert_remote_safe()` but was never serialised into it. This is exactly the class of boundary violation the benchmark programme is designed to uncover.
 
-- [reasoning-value-gate-live.md](../demo/reasoning-value-gate-live.md)
-- `packages/reasoning/.../structured_output.py` — `SemanticJudgeV1Output`
-- `packages/attention/.../interruption_policy.py` — deterministic policy
+## Live evidence (original main gate — B2 + evaluation_transformed_v1)
+
+| Metric | Arm A | LLM B | Delta |
+| --- | --- | --- | --- |
+| Critical recall | 0.925 | 0.850 | -0.075 |
+| Must-suppress accuracy | 0.975 | 1.000 | +0.025 |
+| Top-3 critical recall | 0.925 | 0.850 | -0.075 |
+| Next-action fit | 1.000 | 0.950 | -0.050 |
+| Total live cost | ~$0 | $0.2639 | — |
+| B stability | n/a | 98.3% | — |
+| Rescues | — | 2 | — |
+| Critical regressions | — | 2 | — |
+| Provider transport failures | — | 5.0% | — |
+| Model schema failures | — | 0.0% | — |
+| Privacy ablation critical recall Δ (full − eval_v1) | — | — | +0.150 |
+
+## Research findings (do not overstate as production conclusions)
+
+1. **Direct judge (B1) failed** — anchored prompt leaked Arm A labels; de-anchored collapsed.
+2. **Semantic judge + policy (B2) is viable** — smoke 9/9; main stability 98.3%.
+3. **Transform gap dominates recall** — hardest-10: eval_v1 recall 0.85 vs full_synthetic 1.00 (+15pp).
+4. **Failure taxonomy was polluted** — reported 5% “schema” failures were HTTP 403 transport errors.
+5. **Prompt wiring gap (R-L09.3)** — v2 preserved causal semantics offline but the live judge never received them; Step 5 did not test the semantic-preservation hypothesis, only the current integration path.
+
+## Interim research direction (R-L09 Step 6)
+
+**Prompt wiring:** `TransformedContext` → serialise → `build_semantic_judge_prompt()` → Fireworks. Eliminate the parallel `snapshot_to_context_dict()` path for live judge calls. Hard-fail invalid ablation arms (no Arm A fallback). Re-gate hardest-10 only (~$0.05).
+
+**Frozen:** `evaluation_transformed_v2` transform logic until Step 7 live result is recorded.
+
+## Multi-axis decision table
+
+| Outcome | Criteria |
+| --- | --- |
+| CLEAR WIN | recall Δ≥+5pp AND suppress Δ≥-1pp AND regressions=0 AND model schema/privacy=100% |
+| SMALL WIN | hybrid threshold (recall Δ≥+2pp, suppress Δ≥-1pp, ≤1 regression) |
+| NO WIN | keep deterministic |
+
+See [reasoning-value-gate-live-report.md](../reports/reasoning-value-gate-live-report.md).

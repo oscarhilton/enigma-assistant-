@@ -17,6 +17,7 @@ from personal_enigma.privacy.allowlist import (
     PERSON_PSEUDONYM_PREFIX,
     REMOTE_METADATA_KEYS,
     REMOTE_PAYLOAD_TOP_LEVEL_KEYS,
+    REMOTE_RELATION_KEYS,
 )
 from personal_enigma.privacy.levels import PrivacyLevel, default_level_for_source
 from personal_enigma.privacy.notes_policy import (
@@ -78,9 +79,27 @@ def assert_remote_payload_allowlisted(payload: Any) -> None:
     if not isinstance(entities, list):
         raise PrivacyInvariantError("Remote payload 'entities' must be a list")
     for entity in entities:
-        if not isinstance(entity, str) or not _PERSON_TOKEN_RE.fullmatch(entity):
+        if not isinstance(entity, str):
+            raise PrivacyInvariantError("Remote entity must be a string")
+        if _PERSON_TOKEN_RE.fullmatch(entity):
+            continue
+        if entity.startswith(("OBLIGATION_", "TASK_", "EVIDENCE_")):
+            continue
+        raise PrivacyInvariantError(
+            f"Remote entity must be opaque {PERSON_PSEUDONYM_PREFIX}* or "
+            f"evaluation token, got {entity!r}"
+        )
+
+    relations = data.get("relations", [])
+    if not isinstance(relations, list):
+        raise PrivacyInvariantError("Remote payload 'relations' must be a list")
+    for rel in relations:
+        if not isinstance(rel, Mapping):
+            raise PrivacyInvariantError("Remote relation must be a mapping")
+        bad_rel = set(rel) - REMOTE_RELATION_KEYS
+        if bad_rel:
             raise PrivacyInvariantError(
-                f"Remote entity must be opaque {PERSON_PSEUDONYM_PREFIX}* token, got {entity!r}"
+                f"Remote relation contains non-allowlisted keys: {sorted(bad_rel)}"
             )
 
     metadata = data.get("metadata", {})

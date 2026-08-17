@@ -7,6 +7,7 @@ from typing import Any
 
 from personal_enigma.reasoning.errors import PrivacyGateError
 from personal_enigma.transformation import TransformedContext
+from personal_enigma.transformation.title_sanitisation import assert_no_raw_identity_in_text
 
 # Raw attendee / contact emails must never appear in remote payloads.
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
@@ -45,6 +46,7 @@ def assert_remote_safe(payload: Any) -> TransformedContext:
     _reject_forbidden_markers(payload)
     _reject_raw_emails(payload)
     _reject_raw_phones(payload)
+    _reject_raw_identity(payload)
     return payload
 
 
@@ -77,8 +79,18 @@ def _reject_raw_phones(context: TransformedContext) -> None:
         )
 
 
+def _reject_raw_identity(context: TransformedContext) -> None:
+    blob = _flatten_text(context)
+    try:
+        assert_no_raw_identity_in_text(blob)
+    except ValueError as exc:
+        raise PrivacyGateError(str(exc)) from exc
+
+
 def _flatten_text(context: TransformedContext) -> str:
     parts: list[str] = [context.summary, *context.entities]
+    for rel in context.relations:
+        parts.append(rel.model_dump_json())
     for key, value in context.metadata.items():
         parts.append(str(key))
         parts.append(str(value))

@@ -34,8 +34,13 @@ class PrivacyAblationReport:
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "evaluation_transformed_v1_aggregate": self.transformed_aggregate,
             "transformed_aggregate": self.transformed_aggregate,
             "full_synthetic_aggregate": self.full_synthetic_aggregate,
+            "context_modes": {
+                "evaluation_arm": "evaluation_transformed_v1",
+                "oracle_arm": "full_synthetic",
+            },
             "delta": self.delta,
             "attention_delta": self.attention_delta,
             "next_action_delta": self.next_action_delta,

@@ -59,6 +59,7 @@ class LiveGateEvidence:
     median_output_tokens: int
     architecture_decision: LiveGateArchitectureDecision
     architecture_rationale: str
+    failure_rates: dict[str, float] = field(default_factory=dict)
     rescues: int = 0
     regressions: int = 0
     agreements: int = 0
@@ -81,6 +82,7 @@ class LiveGateEvidence:
             "ablation_next_action_delta": self.ablation_next_action_delta,
             "arm_b_stability_pct": self.arm_b_stability_pct,
             "schema_failure_rate": self.schema_failure_rate,
+            "failure_rates": self.failure_rates,
             "privacy_failure_rate": self.privacy_failure_rate,
             "critical_regressions": self.critical_regressions,
             "rescues": self.rescues,
@@ -186,6 +188,7 @@ def decide_live_architecture(
     critical_regressions: int,
     schema_failure_rate: float,
     privacy_failure_rate: float,
+    provider_transport_failure_rate: float = 0.0,
 ) -> tuple[LiveGateArchitectureDecision, str]:
     recall_delta = arm_b.get("critical_recall", 0.0) - arm_a.get("critical_recall", 0.0)
     suppress_delta = (
@@ -193,6 +196,12 @@ def decide_live_architecture(
     )
     schema_ok = schema_failure_rate <= 0.0
     privacy_ok = privacy_failure_rate <= 0.0
+    transport_note = ""
+    if provider_transport_failure_rate > 0.0:
+        transport_note = (
+            f" Provider transport failures={provider_transport_failure_rate:.1%} "
+            "(excluded from model schema rate)."
+        )
     if (
         recall_delta >= CLEAR_WIN_RECALL_DELTA
         and suppress_delta >= CLEAR_WIN_SUPPRESS_FLOOR
@@ -203,7 +212,7 @@ def decide_live_architecture(
         return (
             "clear_win",
             f"LLM clear win: recall Δ={recall_delta:+.3f}, suppress Δ={suppress_delta:+.3f}, "
-            f"0 regressions, schema/privacy clean.",
+            f"0 regressions, model schema/privacy clean.{transport_note}",
         )
     if (
         recall_delta >= SMALL_WIN_RECALL_DELTA
@@ -219,7 +228,8 @@ def decide_live_architecture(
     return (
         "no_win",
         f"No win — keep deterministic (recall Δ={recall_delta:+.3f}, "
-        f"regressions={critical_regressions}, schema_fail={schema_failure_rate:.1%}).",
+        f"regressions={critical_regressions}, model_schema_fail={schema_failure_rate:.1%})."
+        f"{transport_note}",
     )
 
 
@@ -242,12 +252,19 @@ def collect_live_gate_evidence(
     rescues = outcomes.rescues if outcomes else 0
     agreements = outcomes.agreements if outcomes else 0
     shared_failures = outcomes.shared_failures if outcomes else 0
+    failure_rates = getattr(main, "failure_rates", None)
+    fr_dict = failure_rates.as_dict() if failure_rates is not None else {}
+    model_schema_rate = float(
+        fr_dict.get("model_schema_failure_rate", getattr(main, "schema_failure_rate", 0.0))
+    )
+    transport_rate = float(fr_dict.get("provider_transport_failure_rate", 0.0))
     decision, rationale = decide_live_architecture(
         arm_a,
         arm_b,
         critical_regressions=critical_regressions,
-        schema_failure_rate=float(getattr(main, "schema_failure_rate", 0.0)),
+        schema_failure_rate=model_schema_rate,
         privacy_failure_rate=float(getattr(main, "privacy_failure_rate", 0.0)),
+        provider_transport_failure_rate=transport_rate,
     )
     return LiveGateEvidence(
         git_commit=_git_commit(repo),
@@ -261,7 +278,8 @@ def collect_live_gate_evidence(
         ablation_attention_delta=ablation.get("attention_delta", {}),
         ablation_next_action_delta=ablation.get("next_action_delta", {}),
         arm_b_stability_pct=float(getattr(main, "arm_b_stability_pct", 1.0)),
-        schema_failure_rate=float(getattr(main, "schema_failure_rate", 0.0)),
+        schema_failure_rate=model_schema_rate,
+        failure_rates=fr_dict,
         privacy_failure_rate=float(getattr(main, "privacy_failure_rate", 0.0)),
         critical_regressions=critical_regressions,
         rescues=rescues,
@@ -295,6 +313,11 @@ def _metric_table_row(
 
 def render_live_gate_report_markdown(evidence: LiveGateEvidence) -> str:
     a, b, d = evidence.arm_a, evidence.arm_b, evidence.deltas
+    fr = evidence.failure_rates or {}
+    transport = fr.get("provider_transport_failure_rate", 0.0)
+    truncation = fr.get("model_truncation_failure_rate", 0.0)
+    model_schema = fr.get("model_schema_failure_rate", evidence.schema_failure_rate)
+    ablation_crit = evidence.ablation_attention_delta.get("critical_recall", 0.0)
     lines = [
         "# Reasoning Value Gate — Live Report",
         "",
@@ -302,7 +325,20 @@ def render_live_gate_report_markdown(evidence: LiveGateEvidence) -> str:
         f"- Git: `{evidence.git_commit}`",
         f"- Scenario: `{evidence.scenario}` v{evidence.scenario_version}",
         f"- Live Fireworks: `{evidence.live}`",
+        "- Arm B path: semantic judge + deterministic interruption policy (B2)",
+        "- Context arm: **`evaluation_transformed_v1`** "
+        "(evaluation stub — not `DefaultEnigmaTransformer`)",
         f"- Total cost: ${evidence.total_cost_usd:.4f}",
+        "",
+        "## Scientific conclusion (narrow production scope)",
+        "",
+        "**PROVEN:** B2 + `evaluation_transformed_v1` → **`no_win`** vs frozen Arm A.",
+        "",
+        "**NOT YET PROVEN:** B2 + actual production transformer → `no_win`.",
+        "",
+        "Keep deterministic interruption policy in production. Semantic enrichment",
+        "remains a research track (R-L09) behind deterministic policy — not blocked",
+        "by this gate, but not adopted from current evidence alone.",
         "",
         "## Exit gate metrics",
         "",
@@ -313,26 +349,64 @@ def render_live_gate_report_markdown(evidence: LiveGateEvidence) -> str:
         _metric_table_row("Top-3 critical recall", "top3_critical_recall", a, b, d),
         _metric_table_row("Next-action fit", "next_action_fit", a, b, d),
         f"| Stable decisions (B) | n/a | {evidence.arm_b_stability_pct:.1%} | — |",
-        f"| Schema failures | — | {evidence.schema_failure_rate:.1%} | — |",
+        f"| Provider transport failures | — | {transport:.1%} | — |",
+        f"| Model truncation failures | — | {truncation:.1%} | — |",
+        f"| Model schema failures | — | {model_schema:.1%} | — |",
         f"| Privacy failures | — | {evidence.privacy_failure_rate:.1%} | — |",
         f"| Critical regressions | — | {evidence.critical_regressions} | — |",
         f"| Rescues (A fail → B pass) | — | {evidence.rescues} | — |",
         f"| Agreements (both pass) | — | {evidence.agreements} | — |",
         f"| Shared failures (both fail) | — | {evidence.shared_failures} | — |",
-        f"| Median latency | ~ms | {evidence.median_latency_ms_arm_b:.1f} ms | — |",
+        (
+            f"| Median latency (B only; A local) | ~0 ms | "
+            f"{evidence.median_latency_ms_arm_b:.1f} ms | — |"
+        ),
         f"| Median input tokens | — | {evidence.median_input_tokens} | — |",
         f"| Median output tokens | — | {evidence.median_output_tokens} | — |",
         "",
+        "## Rescues and regressions",
+        "",
+        f"- **Rescues ({evidence.rescues}):** quiet-period restraint where Arm A over-surfaced "
+        "(e.g. `cp-2026-01-10T14:00`, `cp-2026-01-11T11:00`).",
+        f"- **Regressions ({evidence.critical_regressions}):** token-inventory blocker context "
+        "lost under `evaluation_transformed_v1` (`cp-2026-01-19T10:00`, `cp-2026-01-20T11:00`).",
+        "",
+        "## Benchmark / production-transform gap",
+        "",
+        "The live gate tests **`snapshot_to_evaluation_transformed_v1`** in `llm_benchmark.py`,",
+        "an evaluation-side production-like stub. It does **not** exercise",
+        "`DefaultEnigmaTransformer`. Any ADR or report claiming “privacy transform hurts",
+        "reasoning” must scope to **`evaluation_transformed_v1`** until R-L09 wires production",
+        "parity and re-gates.",
+        "",
         "## Privacy ablation (10 hardest)",
         "",
+        "- Context comparison: `evaluation_transformed_v1` vs "
+        "`full_synthetic` (oracle upper bound)",
+        f"- Critical recall delta (full − eval_v1): **+{ablation_crit:.2f}** on hardest 10",
         f"- Attention delta: `{evidence.ablation_attention_delta}`",
         f"- Next-action delta: `{evidence.ablation_next_action_delta}`",
+        "",
+        "Interpretation: recall gap suggests **lost task-relevant semantics**, not model",
+        "incapacity — motivates R-L09 semantic-preservation work (`relations[]` graph).",
+        "",
+        "## Failure taxonomy note",
+        "",
+        "Legacy `schema_failure_rate` mixed HTTP 403 / Cloudflare (transport) with malformed JSON.",
+        "This report splits: transport, truncation, model schema, privacy gate.",
         "",
         "## Architecture decision",
         "",
         f"**Decision:** `{evidence.architecture_decision}`",
         "",
         evidence.architecture_rationale,
+        "",
+        "## Research follow-up (R-L09)",
+        "",
+        "1. Transform diff on regression checkpoints",
+        "2. Deterministic semantic-preservation tests (LLM-independent)",
+        "3. Live hardest-10 only if offline transform metrics improve materially",
+        "4. Stop if semantics preservation does not move reasoning metrics",
         "",
     ]
     if evidence.attributions:
@@ -356,6 +430,7 @@ def write_live_gate_report(
     report_path.write_text(render_live_gate_report_markdown(evidence), encoding="utf-8")
     adr = Path(adr_path)
     a, b, d = evidence.arm_a, evidence.arm_b, evidence.deltas
+    fr = evidence.failure_rates or {}
     metric_rows = "\n".join(
         [
             _metric_table_row("Critical recall", "critical_recall", a, b, d),
@@ -368,12 +443,28 @@ def write_live_gate_report(
             _metric_table_row("Next-action fit", "next_action_fit", a, b, d),
         ]
     )
+    model_schema_pct = fr.get("model_schema_failure_rate", evidence.schema_failure_rate)
+    ablation_crit_delta = evidence.ablation_attention_delta.get("critical_recall", 0.0)
+    stability_pct = evidence.arm_b_stability_pct
     adr.write_text(
         f"""# ADR-012: Reasoning Value Gate architecture decision
 
-**Status:** Accepted (live gate evidence — placeholders filled when live run completes)
+**Status:** Accepted (live gate evidence — B2 + evaluation_transformed_v1)
 **Date:** {evidence.generated_at[:10]}
 **Git:** `{evidence.git_commit}`
+
+## Production decision (narrow scope)
+
+**{evidence.architecture_decision}** — {evidence.architecture_rationale}
+
+Keep deterministic interruption policy. Do **not** adopt remote reasoning from this gate alone.
+
+### What was tested
+
+| Scope | Result |
+| --- | --- |
+| B2 + `evaluation_transformed_v1` | **PROVEN** → `{evidence.architecture_decision}` |
+| B2 + `DefaultEnigmaTransformer` | **NOT YET PROVEN** — R-L09 follow-up |
 
 ## Live evidence
 
@@ -381,19 +472,31 @@ def write_live_gate_report(
 | --- | --- | --- | --- |
 {metric_rows}
 | Total live cost | ~$0 | ${evidence.total_cost_usd:.4f} | — |
-| B stability | n/a | {evidence.arm_b_stability_pct:.1%} | — |
+| B stability | n/a | {stability_pct:.1%} | — |
+| Rescues | — | {evidence.rescues} | — |
 | Critical regressions | — | {evidence.critical_regressions} | — |
-| Schema failure rate | — | {evidence.schema_failure_rate:.1%} | — |
-| Privacy ablation (attention) | — | — | {evidence.ablation_attention_delta} |
-| Privacy ablation (next-action) | — | — | {evidence.ablation_next_action_delta} |
+| Provider transport failures | — | {fr.get("provider_transport_failure_rate", 0.0):.1%} | — |
+| Model schema failures | — | {model_schema_pct:.1%} | — |
+| Privacy ablation critical recall Δ | — | — | {ablation_crit_delta:+.3f} |
 
-## Multi-axis decision
+## Research findings (do not overstate as production conclusions)
 
-**{evidence.architecture_decision}** — {evidence.architecture_rationale}
+1. **Direct judge (B1) failed** — anchored prompt leaked Arm A labels; de-anchored collapsed.
+2. **Semantic judge + policy (B2) is viable** — smoke 9/9; main stability {stability_pct:.1%}.
+3. **Transform gap dominates recall** — hardest-10 eval_v1 0.85 vs full_synthetic 1.00 (+15pp).
+4. **Failure taxonomy was polluted** — 5% “schema” failures were HTTP 403 transport errors.
+
+## Interim research direction (R-L09)
+
+Privacy transform = remove identifying specificity **+** preserve task-relevant relational semantics
+(`relations[]` graph: BLOCKED_BY, WAITING_ON, COMMITTED_TO). Re-gate only after offline
+semantic-preservation tests pass; stop if metrics do not move.
+
+## Multi-axis decision table
 
 | Outcome | Criteria |
 | --- | --- |
-| CLEAR WIN | recall Δ≥+5pp AND suppress Δ≥-1pp AND regressions=0 AND schema/privacy=100% |
+| CLEAR WIN | recall Δ≥+5pp AND suppress Δ≥-1pp AND regressions=0 AND model schema/privacy=100% |
 | SMALL WIN | hybrid threshold (recall Δ≥+2pp, suppress Δ≥-1pp, ≤1 regression) |
 | NO WIN | keep deterministic |
 

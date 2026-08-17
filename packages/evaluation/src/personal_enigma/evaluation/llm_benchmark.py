@@ -17,6 +17,7 @@ Arm B logs ``model_judgement`` (ranked policy surfaces) and ``policy_judgement``
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import time
@@ -36,6 +37,9 @@ from personal_enigma.attention.interruption_policy import (
 from personal_enigma.evaluation.checkpoint_runner import (
     load_checkpoint_snapshot,
     verify_arm_a_integrity,
+)
+from personal_enigma.evaluation.evaluation_transformed_v1_frozen import (
+    snapshot_to_evaluation_transformed_v1_frozen,
 )
 from personal_enigma.evaluation.evaluation_truth import EvaluationTruth
 from personal_enigma.evaluation.metrics.support_fitness import (
@@ -63,12 +67,31 @@ from personal_enigma.reasoning.structured_output import (
     parse_semantic_judge_v1_output,
     validate_evidence_ids,
 )
-from personal_enigma.transformation import TransformedContext
+from personal_enigma.transformation import (
+    DefaultEnigmaTransformer,
+    StubHmacResolver,
+    TransformedContext,
+    candidate_input_from_observation,
+    infer_relations_from_evidence,
+    merge_relations,
+    pseudonymise_remote_text,
+)
+from personal_enigma.transformation.relations import SemanticRelation, relation_to_dict
+
+EvaluationContextMode = Literal[
+    "evaluation_transformed_v1",
+    "evaluation_transformed_v2",
+    "full_synthetic",
+    "transformed",
+]
 
 JudgeArm = Literal["b1", "b2"]
 PROMPT_VERSION = "semantic-judge-v1"
 PROMPT_VERSION_B1 = "judge-v1"
 SURFACE_CONFIDENCE_MIN = 0.5
+# Demo/evaluation only — never use for real Private roots (ADR-005).
+_EVAL_TRANSFORM_HMAC_KEY = b"evaluation-transform-gate-key"
+_EVAL_RESOLVER = StubHmacResolver(_EVAL_TRANSFORM_HMAC_KEY)
 FORBIDDEN_PROMPT_MARKERS = (
     "support_challenges",
     "poor_actions",
@@ -145,16 +168,105 @@ Candidate:
 
 Context snapshot:
 {context_json}
+
+When summary and relations[] disagree, treat relations[] as authoritative for
+dependency, blocker resolution, and actionability transitions. The summary may
+compress or lag; structured relation facts override prose.
 """
 
 
-def assert_prompt_safe(prompt: str) -> None:
+def _evaluation_transformer(*, allow_remote: bool = True) -> DefaultEnigmaTransformer:
+    return DefaultEnigmaTransformer(hmac_key=_EVAL_TRANSFORM_HMAC_KEY, allow_remote=allow_remote)
+
+
+def canonical_json_hash(payload: Any) -> str:
+    """Stable SHA-256 over canonical JSON (sort_keys, compact separators)."""
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def transformed_context_hash(ctx: TransformedContext) -> str:
+    return canonical_json_hash(ctx.model_dump(mode="json"))
+
+
+def serialise_transformed_context_for_judge(
+    ctx: TransformedContext,
+    *,
+    candidate: AttentionCandidateObservation,
+    checkpoint_at: datetime,
+    privacy: Literal["legacy_v1", "remote_safe"],
+    snapshot: CheckpointSnapshot | None = None,
+) -> dict[str, Any]:
+    """Privacy-gated wire shape for semantic judge — sole source for prompt context_json."""
+    wire: dict[str, Any] = {
+        "checkpoint": checkpoint_temporal_facts(checkpoint_at),
+        "summary": ctx.summary,
+        "candidate": candidate_to_dict(candidate, privacy=privacy),
+        "entities": list(ctx.entities),
+        "relations": [relation_to_dict(r) for r in ctx.relations],
+    }
+    if snapshot is not None:
+        wire["memory"] = (
+            {"open_obligation_ids": list(snapshot.memory_state.open_obligation_ids)}
+            if snapshot.memory_state
+            else {}
+        )
+        wire["retrieval"] = [
+            {"query_id": r.query_id, "hits": list(r.hits)} for r in snapshot.retrieval
+        ]
+    return wire
+
+
+@dataclass(frozen=True, slots=True)
+class PromptAuditRecord:
+    checkpoint_id: str
+    context_mode: str
+    candidate_id: str
+    transformed_context_hash: str
+    context_json_hash: str
+    prompt_hash: str
+    model: str
+    rep: int
+    context_json: dict[str, Any] | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "checkpoint_id": self.checkpoint_id,
+            "context_mode": self.context_mode,
+            "candidate_id": self.candidate_id,
+            "transformed_context_hash": self.transformed_context_hash,
+            "context_json_hash": self.context_json_hash,
+            "prompt_hash": self.prompt_hash,
+            "model": self.model,
+            "rep": self.rep,
+        }
+        if self.context_json is not None:
+            out["context_json"] = self.context_json
+        return out
+
+
+def append_prompt_audit(record: PromptAuditRecord, audit_dir: str | Path) -> None:
+    """Append one JSONL audit line (Step 7 proof artifact)."""
+    root = Path(audit_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / "prompt-audit.jsonl"
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record.as_dict(), sort_keys=True) + "\n")
+
+
+def assert_prompt_safe(prompt: str, *, remote_payload: str | None = None) -> None:
     lower = prompt.lower()
     for marker in FORBIDDEN_PROMPT_MARKERS:
         if marker.lower() in lower:
             raise ValueError(
                 f"benchmark prompt must not include evaluator-only marker {marker!r}"
             )
+    if remote_payload is not None:
+        from personal_enigma.transformation.title_sanitisation import (
+            assert_no_raw_identity_in_text,
+        )
+
+        assert_no_raw_identity_in_text(remote_payload)
 
 
 def checkpoint_temporal_facts(at: datetime) -> dict[str, Any]:
@@ -178,20 +290,22 @@ def checkpoint_temporal_facts(at: datetime) -> dict[str, Any]:
     }
 
 
-def snapshot_to_context_dict(snapshot: CheckpointSnapshot) -> dict[str, Any]:
+def legacy_candidate_dict(candidate: AttentionCandidateObservation) -> dict[str, Any]:
+    """Historical v1 — raw titles (ablation column only)."""
+    return {
+        "id": candidate.id,
+        "title": candidate.title,
+        "obligation_ids": candidate.obligation_ids,
+        "evidence_ids": candidate.evidence_ids,
+        "score": candidate.score,
+    }
+
+
+def legacy_snapshot_context_dict(snapshot: CheckpointSnapshot) -> dict[str, Any]:
     return {
         "checkpoint_id": snapshot.checkpoint_id,
         **checkpoint_temporal_facts(snapshot.at),
-        "candidates": [
-            {
-                "id": c.id,
-                "title": c.title,
-                "obligation_ids": c.obligation_ids,
-                "evidence_ids": c.evidence_ids,
-                "score": c.score,
-            }
-            for c in snapshot.candidate_set
-        ],
+        "candidates": [legacy_candidate_dict(c) for c in snapshot.candidate_set],
         "memory": (
             {"open_obligation_ids": list(snapshot.memory_state.open_obligation_ids)}
             if snapshot.memory_state
@@ -203,40 +317,123 @@ def snapshot_to_context_dict(snapshot: CheckpointSnapshot) -> dict[str, Any]:
     }
 
 
-def candidate_to_dict(candidate: AttentionCandidateObservation) -> dict[str, Any]:
+def snapshot_to_context_dict(
+    snapshot: CheckpointSnapshot,
+    *,
+    privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
+) -> dict[str, Any]:
+    if privacy == "legacy_v1":
+        return legacy_snapshot_context_dict(snapshot)
+    return {
+        "checkpoint_id": snapshot.checkpoint_id,
+        **checkpoint_temporal_facts(snapshot.at),
+        "candidates": [remote_safe_candidate_dict(c) for c in snapshot.candidate_set],
+        "memory": (
+            {"open_obligation_ids": list(snapshot.memory_state.open_obligation_ids)}
+            if snapshot.memory_state
+            else {}
+        ),
+        "retrieval": [
+            {"query_id": r.query_id, "hits": list(r.hits)} for r in snapshot.retrieval
+        ],
+    }
+
+
+def remote_safe_candidate_dict(
+    candidate: AttentionCandidateObservation,
+) -> dict[str, Any]:
     return {
         "id": candidate.id,
-        "title": candidate.title,
+        "title": pseudonymise_remote_text(
+            candidate.title, resolver=_EVAL_RESOLVER
+        ),
         "obligation_ids": candidate.obligation_ids,
         "evidence_ids": candidate.evidence_ids,
         "score": candidate.score,
     }
 
 
-def snapshot_to_transformed_context(snapshot: CheckpointSnapshot) -> TransformedContext:
-    candidates = snapshot.candidate_set[:5]
-    parts = [f"Checkpoint {snapshot.checkpoint_id} at {snapshot.at.isoformat()}"]
-    for cand in candidates:
-        parts.append(f"Candidate {cand.id}: {cand.title} score={cand.score:.2f}")
-    entities = [
-        f"OBLIGATION_{oid.replace('obligation_', '').upper()}"
-        for cand in candidates
-        for oid in cand.obligation_ids
+def candidate_to_dict(
+    candidate: AttentionCandidateObservation,
+    *,
+    privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
+) -> dict[str, Any]:
+    if privacy == "legacy_v1":
+        return legacy_candidate_dict(candidate)
+    return remote_safe_candidate_dict(candidate)
+
+
+def _normalise_context_mode(
+    mode: EvaluationContextMode,
+) -> Literal["evaluation_transformed_v1", "evaluation_transformed_v2", "full_synthetic"]:
+    if mode == "full_synthetic":
+        return "full_synthetic"
+    if mode in ("evaluation_transformed_v1", "transformed"):
+        return "evaluation_transformed_v1"
+    return "evaluation_transformed_v2"
+
+
+def _context_for_mode(
+    snapshot: CheckpointSnapshot, mode: EvaluationContextMode
+) -> TransformedContext:
+    normalised = _normalise_context_mode(mode)
+    if normalised == "full_synthetic":
+        return snapshot_to_full_synthetic_context(snapshot)
+    if normalised == "evaluation_transformed_v1":
+        return snapshot_to_evaluation_transformed_v1_frozen(snapshot)
+    return snapshot_to_production_transformed(snapshot)
+
+
+def infer_relations_from_candidate(
+    candidate: AttentionCandidateObservation,
+    *,
+    checkpoint_at: datetime | None = None,
+) -> list[SemanticRelation]:
+    """Infer privacy-safe relations from observable candidate evidence (general patterns)."""
+    groups = [
+        infer_relations_from_evidence(
+            obligation_id=oid,
+            evidence_ids=list(candidate.evidence_ids),
+            checkpoint_at=checkpoint_at,
+        )
+        for oid in candidate.obligation_ids
     ]
-    return TransformedContext(
-        summary=" | ".join(parts),
-        entities=sorted(set(entities)),
-        metadata={
-            "source_type": "evaluation_checkpoint",
-            "checkpoint_id": snapshot.checkpoint_id,
-            "record_id": snapshot.checkpoint_id,
-        },
+    return merge_relations(*groups)
+
+
+def snapshot_to_production_transformed(snapshot: CheckpointSnapshot) -> TransformedContext:
+    """DefaultEnigmaTransformer production path (evaluation uses same code)."""
+    transformer = _evaluation_transformer(allow_remote=True)
+    return transformer.build_remote_attention_context(
+        checkpoint_id=snapshot.checkpoint_id,
+        checkpoint_at=snapshot.at,
+        candidates=[
+            candidate_input_from_observation(c) for c in snapshot.candidate_set[:5]
+        ],
+        context_mode="evaluation_transformed_v2",
         may_transmit_remotely=True,
     )
 
 
+def snapshot_to_evaluation_transformed_v1(snapshot: CheckpointSnapshot) -> TransformedContext:
+    """Frozen historical stub (pre-R-L09 v2)."""
+    return snapshot_to_evaluation_transformed_v1_frozen(snapshot)
+
+
+def snapshot_to_transformed_context(snapshot: CheckpointSnapshot) -> TransformedContext:
+    """Default evaluation transform — production v2 path."""
+    return snapshot_to_production_transformed(snapshot)
+
+
+def _prompt_privacy_for_context(ctx: TransformedContext) -> Literal["legacy_v1", "remote_safe"]:
+    mode = str(ctx.metadata.get("context_mode", ""))
+    if mode == "evaluation_transformed_v1" or ctx.metadata.get("frozen"):
+        return "legacy_v1"
+    return "remote_safe"
+
+
 def snapshot_to_full_synthetic_context(snapshot: CheckpointSnapshot) -> TransformedContext:
-    base = snapshot_to_transformed_context(snapshot)
+    base = snapshot_to_production_transformed(snapshot)
     synthetic = re.sub(
         r"OBLIGATION_([A-Z0-9_]+)",
         lambda m: m.group(1).replace("_", " ").title(),
@@ -247,6 +444,7 @@ def snapshot_to_full_synthetic_context(snapshot: CheckpointSnapshot) -> Transfor
             "summary": synthetic.replace("Candidate item-", "Reminder: ")
             + " | people: Alex, Elena, Maya",
             "entities": ["Alex", "Elena", "Maya"],
+            "metadata": {**base.metadata, "context_mode": "full_synthetic"},
             "may_transmit_remotely": False,
         }
     )
@@ -257,6 +455,7 @@ def build_judge_prompt(
     candidate: AttentionCandidateObservation,
     *,
     attention_only: bool = False,
+    privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
 ) -> str:
     next_action_schema = (
         "null"
@@ -266,32 +465,56 @@ def build_judge_prompt(
             '"estimated_minutes": <int>, "confidence": 0.0-1.0 }'
         )
     )
+    candidate_json = json.dumps(
+        candidate_to_dict(candidate, privacy=privacy), indent=2
+    )
+    context_json = json.dumps(
+        snapshot_to_context_dict(snapshot, privacy=privacy), indent=2
+    )
     prompt = _JUDGE_PROMPT.format(
         next_action_schema=next_action_schema,
-        candidate_json=json.dumps(candidate_to_dict(candidate), indent=2),
-        context_json=json.dumps(snapshot_to_context_dict(snapshot), indent=2),
+        candidate_json=candidate_json,
+        context_json=context_json,
     )
-    assert_prompt_safe(prompt)
+    if privacy == "legacy_v1":
+        assert_prompt_safe(prompt)
+    else:
+        assert_prompt_safe(prompt, remote_payload=candidate_json + context_json)
     return prompt
 
 
 def build_semantic_judge_prompt(
-    snapshot: CheckpointSnapshot,
+    ctx: TransformedContext,
     candidate: AttentionCandidateObservation,
     *,
+    checkpoint_at: datetime,
+    snapshot: CheckpointSnapshot | None = None,
     attention_only: bool = False,
+    privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
 ) -> str:
     next_action_schema = (
         "null"
         if attention_only
         else '{ "title": "<micro-step>", "estimated_minutes": <int> }'
     )
+    context_dict = serialise_transformed_context_for_judge(
+        ctx,
+        candidate=candidate,
+        checkpoint_at=checkpoint_at,
+        privacy=privacy,
+        snapshot=snapshot,
+    )
+    candidate_json = json.dumps(context_dict["candidate"], indent=2)
+    context_json = json.dumps(context_dict, indent=2)
     prompt = _SEMANTIC_JUDGE_PROMPT.format(
         next_action_schema=next_action_schema,
-        candidate_json=json.dumps(candidate_to_dict(candidate), indent=2),
-        context_json=json.dumps(snapshot_to_context_dict(snapshot), indent=2),
+        candidate_json=candidate_json,
+        context_json=context_json,
     )
-    assert_prompt_safe(prompt)
+    if privacy == "legacy_v1":
+        assert_prompt_safe(prompt)
+    else:
+        assert_prompt_safe(prompt, remote_payload=candidate_json + context_json)
     return prompt
 
 
@@ -600,6 +823,7 @@ class CheckpointArmResult:
     latency_ms: float = 0.0
     cost_usd: float = 0.0
     parse_error: str | None = None
+    experiment_invalid: bool = False
     candidate_judgements: list[CandidateJudgement] = field(default_factory=list)
     model_judgement: list[SurfacedAlert] = field(default_factory=list)
     policy_judgement: list[SurfacedAlert] = field(default_factory=list)
@@ -612,6 +836,7 @@ class CheckpointArmResult:
             "latency_ms": self.latency_ms,
             "cost_usd": self.cost_usd,
             "parse_error": self.parse_error,
+            "experiment_invalid": self.experiment_invalid,
             "candidate_judgements": [j.as_dict() for j in self.candidate_judgements],
             "model_judgement": [
                 {
@@ -689,6 +914,7 @@ def _judge_candidate(
     model: str,
     attention_only: bool,
     judge_arm: JudgeArm = "b2",
+    prompt_privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
 ) -> CandidateJudgement:
     if judge_arm == "b2":
         return _judge_candidate_semantic(
@@ -698,8 +924,11 @@ def _judge_candidate(
             context=context,
             model=model,
             attention_only=attention_only,
+            prompt_privacy=prompt_privacy,
         )
-    prompt = build_judge_prompt(snapshot, candidate, attention_only=attention_only)
+    prompt = build_judge_prompt(
+        snapshot, candidate, attention_only=attention_only, privacy=prompt_privacy
+    )
     result = None
     try:
         result = service.reason(context, prompt=prompt, model=model)
@@ -732,8 +961,52 @@ def _judge_candidate_semantic(
     context: TransformedContext,
     model: str,
     attention_only: bool,
+    prompt_privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
+    audit_dir: str | Path | None = None,
 ) -> CandidateJudgement:
-    prompt = build_semantic_judge_prompt(snapshot, candidate, attention_only=attention_only)
+    try:
+        prompt = build_semantic_judge_prompt(
+            context,
+            candidate,
+            checkpoint_at=snapshot.at,
+            snapshot=snapshot,
+            attention_only=attention_only,
+            privacy=prompt_privacy,
+        )
+    except ValueError as exc:
+        return CandidateJudgement(
+            candidate_id=candidate.id,
+            parse_error=f"prompt_build_failed: {exc}",
+        )
+    context_dict = serialise_transformed_context_for_judge(
+        context,
+        candidate=candidate,
+        checkpoint_at=snapshot.at,
+        privacy=prompt_privacy,
+        snapshot=snapshot,
+    )
+    if audit_dir is not None:
+        rep = int(context.metadata.get("rep", 0))
+        ctx_hash = transformed_context_hash(context)
+        ctx_json_hash = canonical_json_hash(context_dict)
+        prompt_hash = canonical_json_hash(prompt)
+        context_mode = str(context.metadata.get("context_mode", "unknown"))
+        append_prompt_audit(
+            PromptAuditRecord(
+                checkpoint_id=snapshot.checkpoint_id,
+                context_mode=context_mode,
+                candidate_id=candidate.id,
+                transformed_context_hash=ctx_hash,
+                context_json_hash=ctx_json_hash,
+                prompt_hash=prompt_hash,
+                model=model,
+                rep=rep,
+                context_json=(
+                    context_dict if prompt_privacy == "remote_safe" else None
+                ),
+            ),
+            audit_dir,
+        )
     result = None
     try:
         result = service.reason(context, prompt=prompt, model=model)
@@ -766,37 +1039,59 @@ def score_arm_b(
     model: str = "payg-gate",
     attention_only: bool = False,
     judge_arm: JudgeArm = "b2",
+    prompt_privacy: Literal["legacy_v1", "remote_safe"] = "remote_safe",
+    audit_dir: str | Path | None = None,
 ) -> CheckpointArmResult:
     ctx = context or snapshot_to_transformed_context(snapshot)
     ctx = ctx.model_copy(
         update={"metadata": {**ctx.metadata, "judge_arm": judge_arm}}
     )
+    effective_privacy = prompt_privacy
+    if prompt_privacy == "remote_safe" and _prompt_privacy_for_context(ctx) == "legacy_v1":
+        effective_privacy = "legacy_v1"
     start = time.perf_counter()
     judgements: list[CandidateJudgement] = []
     total_cost = 0.0
     first_parse_error: str | None = None
+    prompt_build_failed = False
 
     for candidate in snapshot.candidate_set:
-        judgement = _judge_candidate(
-            snapshot,
-            candidate,
-            service=service,
-            context=ctx,
-            model=model,
-            attention_only=attention_only,
-            judge_arm=judge_arm,
-        )
+        if judge_arm == "b2":
+            judgement = _judge_candidate_semantic(
+                snapshot,
+                candidate,
+                service=service,
+                context=ctx,
+                model=model,
+                attention_only=attention_only,
+                prompt_privacy=effective_privacy,
+                audit_dir=audit_dir,
+            )
+        else:
+            judgement = _judge_candidate(
+                snapshot,
+                candidate,
+                service=service,
+                context=ctx,
+                model=model,
+                attention_only=attention_only,
+                judge_arm=judge_arm,
+                prompt_privacy=effective_privacy,
+            )
         judgements.append(judgement)
         if judgement.parse_error and first_parse_error is None:
             first_parse_error = judgement.parse_error
+        if judgement.parse_error and judgement.parse_error.startswith("prompt_build_failed"):
+            prompt_build_failed = True
 
     latency_ms = (time.perf_counter() - start) * 1000.0
 
-    if first_parse_error is not None and all(
+    all_judgements_failed = first_parse_error is not None and all(
         j.output is None and j.semantic_output is None for j in judgements
-    ):
+    )
+    if prompt_build_failed or all_judgements_failed:
         metrics = compute_support_fitness_metrics(
-            truth, alerts=snapshot.alerts, next_action=None, at=snapshot.at
+            truth, alerts=[], next_action=None, at=snapshot.at
         )
         return CheckpointArmResult(
             checkpoint_id=snapshot.checkpoint_id,
@@ -804,6 +1099,7 @@ def score_arm_b(
             metrics=metrics,
             latency_ms=latency_ms,
             parse_error=first_parse_error,
+            experiment_invalid=True,
             candidate_judgements=judgements,
         )
 
@@ -846,7 +1142,7 @@ def run_llm_benchmark(
     baseline_dir: str | Path,
     replay_fixture: str | Path | None = None,
     checkpoint_ids: list[str] | None = None,
-    context_mode: Literal["transformed", "full_synthetic"] = "transformed",
+    context_mode: EvaluationContextMode = "evaluation_transformed_v1",
     attention_only: bool = False,
     judge_arm: JudgeArm = "b2",
 ) -> LlmBenchmarkReport:
@@ -875,10 +1171,11 @@ def run_llm_benchmark(
     for cp_id in checkpoint_ids:
         snapshot = load_checkpoint_snapshot(root / f"{cp_id}.json")
         report.arm_a.append(score_arm_a(snapshot, truth))
-        ctx = (
-            snapshot_to_full_synthetic_context(snapshot)
-            if context_mode == "full_synthetic"
-            else snapshot_to_transformed_context(snapshot)
+        ctx = _context_for_mode(snapshot, context_mode)
+        prompt_privacy = (
+            "legacy_v1"
+            if _normalise_context_mode(context_mode) == "evaluation_transformed_v1"
+            else "remote_safe"
         )
         report.arm_b.append(
             score_arm_b(
@@ -888,11 +1185,13 @@ def run_llm_benchmark(
                 context=ctx,
                 attention_only=attention_only,
                 judge_arm=judge_arm,
+                prompt_privacy=prompt_privacy,
             )
         )
 
     report.arm_a_aggregate = aggregate_support_fitness([r.metrics for r in report.arm_a])
-    report.arm_b_aggregate = aggregate_support_fitness([r.metrics for r in report.arm_b])
+    valid_b = [r for r in report.arm_b if not r.experiment_invalid]
+    report.arm_b_aggregate = aggregate_support_fitness([r.metrics for r in valid_b])
     cases, counts = compute_benchmark_rescue_regression(report.arm_a, report.arm_b)
     report.rescue_regression_cases = cases
     report.rescue_regression_counts = counts
@@ -929,8 +1228,13 @@ __all__ = [
     "benchmark_cost_events",
     "build_candidate_policy_facts",
     "build_judge_prompt",
+    "PromptAuditRecord",
+    "append_prompt_audit",
     "build_semantic_judge_prompt",
+    "canonical_json_hash",
     "checkpoint_temporal_facts",
+    "serialise_transformed_context_for_judge",
+    "transformed_context_hash",
     "filter_semantic_snapshot_policy",
     "filter_snapshot_attention_policy",
     "pick_next_action",

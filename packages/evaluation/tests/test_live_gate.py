@@ -47,7 +47,20 @@ def test_decide_live_architecture_no_win() -> None:
     assert decision == "no_win"
 
 
-def test_live_gate_mock_main_phase(tmp_path: Path, monkeypatch) -> None:
+def test_decide_live_architecture_transport_excluded_from_schema() -> None:
+    decision, rationale = decide_live_architecture(
+        {"critical_recall": 0.9, "must_suppress_accuracy": 1.0},
+        {"critical_recall": 0.96, "must_suppress_accuracy": 1.0},
+        critical_regressions=0,
+        schema_failure_rate=0.0,
+        privacy_failure_rate=0.0,
+        provider_transport_failure_rate=0.05,
+    )
+    assert decision == "clear_win"
+    assert "transport" in rationale.lower()
+
+
+def test_live_gate_mock_main_has_failure_rates(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     result = run_live_gate(
         ground_truth_path=GT,
@@ -59,3 +72,5 @@ def test_live_gate_mock_main_phase(tmp_path: Path, monkeypatch) -> None:
     assert result.main is not None
     assert result.main.checkpoint_ids
     assert result.main.arm_a_aggregate
+    assert hasattr(result.main, "failure_rates")
+    assert result.main.failure_rates.model_schema_failure_rate >= 0.0

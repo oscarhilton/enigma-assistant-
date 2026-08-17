@@ -36,6 +36,10 @@ from personal_enigma.evaluation.reasoning_value_gate import (
     collect_live_gate_evidence,
     write_live_gate_report,
 )
+from personal_enigma.evaluation.v2_hardest_10 import (
+    TripleColumnAblationReport,
+    run_live_triple_column_hardest_10,
+)
 from personal_enigma.reasoning import PaygReasoningService, ReasoningMode
 
 LIVE_REPORT_DIR = Path("reports/reasoning-gate-live")
@@ -381,6 +385,7 @@ class LiveGateRunResult:
     main: LiveBenchmarkReport | None = None
     disagreements: dict[str, Any] | None = None
     ablation: dict[str, Any] | None = None
+    hardest_10_v2: TripleColumnAblationReport | None = None
     evidence: Any = None
     manual_exports: tuple[Path, Path] | None = None
     blocked: bool = False
@@ -391,7 +396,15 @@ def run_live_gate(
     *,
     ground_truth_path: str | Path,
     baseline_dir: str | Path = Path("packages/evaluation/fixtures/baselines/arm-a"),
-    phase: Literal["smoke", "main", "disagreements", "ablation", "report", "all"] = "all",
+    phase: Literal[
+        "smoke",
+        "main",
+        "disagreements",
+        "ablation",
+        "report",
+        "hardest-10-v2",
+        "all",
+    ] = "all",
     smoke_only: bool = False,
     live: bool = False,
     write_report: bool = True,
@@ -422,6 +435,20 @@ def run_live_gate(
                 return result
 
     if smoke_only:
+        return result
+
+    if phase == "hardest-10-v2":
+        try:
+            result.hardest_10_v2 = run_live_triple_column_hardest_10(
+                truth,
+                baseline_dir=baseline_dir,
+                live=live_enabled,
+                ledger=ledger,
+                judge_arm=judge_arm,
+            )
+        except BudgetCapExceededError as exc:
+            result.blocked = True
+            result.block_reason = str(exc)
         return result
 
     if phase in {"main", "all"} and not result.blocked:

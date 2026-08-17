@@ -3,13 +3,14 @@
   "scenario": "quiet-day",
   "recordings": [
     {
-      "request_hash": "57f1a4d0e4b619c4cff8a286dbbf45e243d309a9c7612a7fece50f6302597bc9",
+      "request_hash": "20920b9bbd58af62e616d6e2720abe34e26222154b346473390ae8b17b21693f",
       "scenario_step": "step-0001",
       "model": "payg-demo",
       "prompt": "What would help Alex right now?",
       "context": {
         "summary": "Calendar: Team standup | 2026-03-28T09:00:00+00:00 → 2026-03-28T09:15:00+00:00",
         "entities": [],
+        "relations": [],
         "metadata": {
           "source_type": "calendar_event",
           "record_id": "cal-standup",

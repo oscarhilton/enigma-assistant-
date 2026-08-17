@@ -125,7 +125,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--phase",
-        choices=["smoke", "main", "disagreements", "ablation", "report", "all"],
+        choices=[
+            "smoke",
+            "main",
+            "disagreements",
+            "ablation",
+            "report",
+            "hardest-10-v2",
+            "all",
+        ],
         default="all",
         help="Live gate phase to run (default: all)",
     )
@@ -135,7 +143,36 @@ def build_parser() -> argparse.ArgumentParser:
         default="b2",
         help="Arm B judge path: b1=direct judge-v1, b2=semantic judge + policy (default)",
     )
+    parser.add_argument(
+        "--transform-diff",
+        action="store_true",
+        help="Run R-L09 transform diff (offline, no LLM)",
+    )
+    parser.add_argument(
+        "--checkpoints",
+        default="cp-2026-01-19T10:00,cp-2026-01-20T11:00",
+        help="Comma-separated checkpoint ids for --transform-diff",
+    )
+    parser.add_argument(
+        "--transform-diff-out",
+        type=Path,
+        default=Path("reports/reasoning-gate-live/transform-diff.json"),
+        help="Output path for transform diff report",
+    )
     return parser
+
+
+def _run_transform_diff(args: argparse.Namespace) -> int:
+    from personal_enigma.evaluation.transform_diff import (
+        run_transform_diff,
+        write_transform_diff_report,
+    )
+
+    cp_ids = [c.strip() for c in args.checkpoints.split(",") if c.strip()]
+    reports = run_transform_diff(baseline_dir=args.baseline_dir, checkpoint_ids=cp_ids)
+    out = write_transform_diff_report(reports, output_path=args.transform_diff_out)
+    print(json.dumps({"output": str(out), "checkpoints": cp_ids}, indent=2))
+    return 0
 
 
 def _run_live_gate(args: argparse.Namespace) -> int:
@@ -158,6 +195,8 @@ def _run_live_gate(args: argparse.Namespace) -> int:
         payload["smoke"] = result.smoke.as_dict()
     if result.main is not None:
         payload["main"] = result.main.as_dict()
+    if result.hardest_10_v2 is not None:
+        payload["hardest_10_v2"] = result.hardest_10_v2.as_dict()
     if result.evidence is not None:
         payload["evidence"] = result.evidence.as_dict()
     print(json.dumps(payload, indent=2))
@@ -185,6 +224,8 @@ def _run_reasoning_gate(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.transform_diff:
+        return _run_transform_diff(args)
     if args.reasoning_gate_live:
         return _run_live_gate(args)
     if args.scenario == "reasoning-gate" or args.reasoning_gate:
