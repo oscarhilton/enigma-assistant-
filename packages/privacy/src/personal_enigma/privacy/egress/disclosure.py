@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -90,9 +89,7 @@ class EgressDisclosure(BaseModel):
 
     id: str = Field(default_factory=lambda: uuid4().hex)
     correlation_id: str
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(tz=UTC).isoformat(),
-    )
+    timestamp: str = ""
     purpose: str
     provider: str
     model: str
