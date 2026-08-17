@@ -2,6 +2,12 @@
 
 from personal_enigma.reasoning.client import PaygReasoningService, build_reasoning_client
 from personal_enigma.reasoning.errors import PrivacyGateError, ReasoningDisabledError
+from personal_enigma.reasoning.fireworks_transport import (
+    DEFAULT_FIREWORKS_MODEL,
+    FireworksChatTransport,
+    default_fireworks_model,
+    fireworks_seed,
+)
 from personal_enigma.reasoning.logging import (
     InMemoryUsageLogger,
     NullUsageLogger,
@@ -22,14 +28,21 @@ from personal_enigma.reasoning.replay_transport import (
     ReplayPaygTransport,
 )
 from personal_enigma.reasoning.structured_output import (
+    InvalidEvidenceIdsError,
+    JudgeV1Output,
     LlmJudgeOutput,
     LlmJudgeParseError,
+    parse_judge_v1_output,
     parse_llm_judge_output,
 )
 from personal_enigma.reasoning.transport import MockPaygTransport, NullPaygTransport
 
 __all__ = [
+    "DEFAULT_FIREWORKS_MODEL",
+    "FireworksChatTransport",
     "InMemoryUsageLogger",
+    "InvalidEvidenceIdsError",
+    "JudgeV1Output",
     "LlmJudgeOutput",
     "LlmJudgeParseError",
     "MockPaygTransport",
@@ -50,5 +63,8 @@ __all__ = [
     "UsageLogger",
     "UsageRecord",
     "build_reasoning_client",
+    "default_fireworks_model",
+    "fireworks_seed",
+    "parse_judge_v1_output",
     "parse_llm_judge_output",
 ]
