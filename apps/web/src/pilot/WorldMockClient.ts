@@ -58,6 +58,17 @@ import {
   traceForVerificationFailure,
   type LifeScriptSession,
 } from "./WorldMockLifeScripts";
+import {
+  P03_CALENDAR_WRITE_PROMPT,
+  P03_CALENDAR_WRITE_REPLY,
+  P03_MONDAY_PROMPT,
+  P03_MONDAY_REPLY,
+  P03_REFERENCE_TIME,
+  P03_TOMORROW_PROMPT,
+  P03_TOMORROW_REPLY,
+  P03_WEEKEND_PROMPT,
+  P03_WEEKEND_REPLY,
+} from "./WorldMockCalendar";
 
 /** Distinctive Alex Lab copy — WORLD_SWITCH_02 / CLOCK_01 canaries. */
 export const ALEX_CONVERSATION_CANARY = "ALEX_LAB_CONVERSATION_MUST_NOT_LEAK";
@@ -138,7 +149,7 @@ const ALEX_CONVERSATION: ConversationItem[] = [
 ];
 
 const PRIVATE_ATTENTION: AttentionState = {
-  simulated_time: "2026-08-18T16:45:00+00:00",
+  simulated_time: P03_REFERENCE_TIME,
   checkpoint_id: null,
   needs_you: [],
   context: [],
@@ -355,6 +366,21 @@ export class WorldMockClient implements EnigmaClient {
       this.lifeScript.ceramicsForgotten = true;
       this.lifeScript.retainedCeramics = false;
       return [{ kind: "enigma_message", text: FORGET_ACK, at }];
+    }
+
+    if (this.world === "my_enigma") {
+      if (this.matchesPrompt(normalized, P03_TOMORROW_PROMPT)) {
+        return [{ kind: "enigma_message", text: P03_TOMORROW_REPLY, at }];
+      }
+      if (this.matchesPrompt(normalized, P03_WEEKEND_PROMPT)) {
+        return [{ kind: "enigma_message", text: P03_WEEKEND_REPLY, at }];
+      }
+      if (this.matchesPrompt(normalized, P03_MONDAY_PROMPT)) {
+        return [{ kind: "enigma_message", text: P03_MONDAY_REPLY, at }];
+      }
+      if (this.matchesPrompt(normalized, P03_CALENDAR_WRITE_PROMPT)) {
+        return [{ kind: "enigma_message", text: P03_CALENDAR_WRITE_REPLY, at }];
+      }
     }
 
     return [

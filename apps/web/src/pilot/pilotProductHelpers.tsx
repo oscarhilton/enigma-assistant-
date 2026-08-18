@@ -18,6 +18,18 @@ export async function launchAlexLab(path = "/") {
   });
 }
 
+export async function launchMyEnigma(path = "/") {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+    </MemoryRouter>,
+  );
+  await waitFor(() => {
+    expect(screen.queryByText(/Loading conversation/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("pilot-shell")).toHaveAttribute("data-world", "my_enigma");
+  });
+}
+
 export async function jumpDemoCheckpoint(label: RegExp) {
   fireEvent.click(screen.getByRole("button", { name: /Demo ·/i }));
   await screen.findByText(/Time machine/i);

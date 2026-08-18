@@ -210,8 +210,7 @@ def test_clock_01_alex_clock_cannot_alter_private_temporal_state(
         "/worlds/my_enigma/conversation/message", json={"text": PRIVATE_CANARY}
     )
     assert sent.status_code == 200
-    private_items = client.get("/worlds/my_enigma/conversation").json()["items"]
-    private_at = private_items[0]["at"]
+    assert client.get("/worlds/my_enigma/conversation").json()["items"]
     private_time_before = client.get("/worlds/my_enigma/attention/state").json()[
         "simulated_time"
     ]
@@ -231,7 +230,8 @@ def test_clock_01_alex_clock_cannot_alter_private_temporal_state(
         "simulated_time"
     ]
     assert private_time_after != demo_after
-    assert client.get("/worlds/my_enigma/conversation").json()["items"][0]["at"] == private_at
+    # ADR-040 / P03 — private conversation clears on world switch; clock stays wall time.
+    assert client.get("/worlds/my_enigma/conversation").json()["items"] == []
     before = datetime.fromisoformat(private_time_before)
     after = datetime.fromisoformat(private_time_after)
     assert abs((after - before).total_seconds()) < 60
