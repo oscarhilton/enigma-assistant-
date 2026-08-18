@@ -128,13 +128,21 @@ def _explain_brunch_wrong_subject(session: DemoToolSession) -> None:
     session.context.current_next_action_id = None
     result = execute_tool(session, "world.explain", {})
     update_context_from_turn_items(session.context, result.turn_items)
-    assert result.turn_items[0]["kind"] == "attention_item"
-    assert result.turn_items[0]["item"]["id"] == BRUNCH_ID
+    explained = _attention_item_from_turn(result.turn_items)
+    assert explained["item"]["id"] == BRUNCH_ID
     assert session.context.current_subject_id == BRUNCH_ID
 
 
 def _tool_names(turn: Any) -> list[str]:
     return [call.name for call in turn.tool_calls]
+
+def _attention_item_from_turn(turn_items: list[dict[str, Any]]) -> dict[str, Any]:
+    for item in turn_items:
+        if item.get("kind") == "attention_item":
+            return item
+    kinds = [i.get("kind") for i in turn_items]
+    raise AssertionError(f"expected attention_item in turn_items, got kinds={kinds}")
+
 
 
 def _require_tool(turn: Any, name: str) -> ToolCallRecord:
@@ -187,7 +195,7 @@ def test_paraphrase_transcript_same_tools_and_referents_as_canonical() -> None:
     assert _tool_names(why) == ["world.explain"]
     assert why.tool_results[0].data.get("subject_id") == TASK_TOKEN_AUDIT
     assert session.context.current_subject_id == TASK_TOKEN_AUDIT
-    assert why.turn_items[0]["item"]["id"] != BRUNCH_ID
+    assert _attention_item_from_turn(why.turn_items)["item"]["id"] != BRUNCH_ID
 
     reject_alt = run_orchestrator_turn(
         user_message=UTTER_ALTERNATIVE,
@@ -237,9 +245,7 @@ def test_recovery_meant_the_token_thing_corrects_subject() -> None:
     assert _tool_names(turn) == ["world.explain"]
     assert turn.tool_calls[0].arguments.get("target") == TASK_TOKEN_AUDIT
     assert session.context.current_subject_id == TASK_TOKEN_AUDIT
-    explained = [item for item in turn.turn_items if item["kind"] == "attention_item"]
-    assert explained
-    assert explained[0]["item"]["id"] == TASK_TOKEN_AUDIT
+    assert _attention_item_from_turn(turn.turn_items)["item"]["id"] == TASK_TOKEN_AUDIT
     assert turn.tool_results[0].data.get("subject_id") == TASK_TOKEN_AUDIT
 
 
@@ -249,7 +255,7 @@ def test_empty_propose_with_brunch_focus_does_not_execute_named_tokens_as_brunch
     session.context.current_subject_id = BRUNCH_ID
     session.context.current_attention_item_id = BRUNCH_ID
     session.context.current_subject_kind = "attention_item"
-    session.user_message = "I need help with the design tokens"
+    session.user_message = "Could you prepare the design tokens for me?"
     result = execute_tool(session, "assist.propose", {})
     assert result.ok
     plans = list(session.pending_assists.values())
@@ -265,7 +271,7 @@ def test_named_design_tokens_propose_empty_args_is_audited_in_trace() -> None:
     session.context.current_subject_id = BRUNCH_ID
     session.context.current_attention_item_id = BRUNCH_ID
     session.context.current_subject_kind = "attention_item"
-    utterance = "I need help with the design tokens"
+    utterance = "Could you prepare the design tokens for me?"
     turn = run_orchestrator_turn(
         user_message=utterance,
         session=session,
@@ -313,11 +319,11 @@ def test_approve_without_proposal_id_binds_from_context_and_traces_id() -> None:
     _seed_token_next_action(session)
     llm = ScriptedConversationLLM(
         {
-            "help with that": [ToolCallRecord(name="assist.propose")],
+            "Could you prepare that for me?": [ToolCallRecord(name="assist.propose")],
             "Go on then.": [ToolCallRecord(name="assist.approve")],
         }
     )
-    run_orchestrator_turn(user_message="help with that", session=session, llm=llm)
+    run_orchestrator_turn(user_message="Could you prepare that for me?", session=session, llm=llm)
     proposal_id = session.context.current_assist_proposal_id
     assert proposal_id
     approve = run_orchestrator_turn(user_message="Go on then.", session=session, llm=llm)

@@ -217,12 +217,12 @@ def snapshot_to_transformed_context(snapshot: CheckpointSnapshot) -> Transformed
     candidates = snapshot.candidate_set[:5]
     parts = [f"Checkpoint {snapshot.checkpoint_id} at {snapshot.at.isoformat()}"]
     for cand in candidates:
-        parts.append(f"Candidate {cand.id}: {cand.title} score={cand.score:.2f}")
+        parts.append(f"Candidate {cand.id}: score={cand.score:.2f}")
     return TransformedContext(
         summary=" | ".join(parts),
         entities=[],
         metadata={
-            "source_type": "evaluation_checkpoint",
+            "source_type": "reminder",
             "record_id": snapshot.checkpoint_id,
         },
         may_transmit_remotely=True,

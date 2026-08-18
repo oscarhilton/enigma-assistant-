@@ -15,6 +15,12 @@ _PHONE_RE = re.compile(
     r"(?<!\w)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}(?!\w)"
 )
 _RAW_POSSESSIVE_LEAK = re.compile(r"\b[A-Z][a-z]+'s\b")
+_EVALUATION_LOCAL_METADATA_KEYS = frozenset({
+    "rep",
+    "judge_arm",
+    "checkpoint_id",
+})
+
 _FORBIDDEN_TYPE_MARKERS = (
     "PrivatePerson",
     "PrivateNote",
@@ -54,6 +60,8 @@ def assert_remote_safe(payload: Any) -> TransformedContext:
             "(TransformedContext.may_transmit_remotely is False)"
         )
 
+    payload = _strip_evaluation_local_metadata(payload)
+
     try:
         assert_remote_payload_safe(payload)
         _reject_forbidden_markers(payload)
@@ -63,6 +71,17 @@ def assert_remote_safe(payload: Any) -> TransformedContext:
     except PrivacyInvariantError as exc:
         raise EgressBlockedError(str(exc)) from exc
     return payload
+
+
+
+def _strip_evaluation_local_metadata(context: TransformedContext) -> TransformedContext:
+    """Benchmark harness keys must not ride on the remote wire."""
+    meta = context.metadata
+    if not meta or not _EVALUATION_LOCAL_METADATA_KEYS.intersection(meta):
+        return context
+    clean = {k: v for k, v in meta.items() if k not in _EVALUATION_LOCAL_METADATA_KEYS}
+    return context.model_copy(update={"metadata": clean})
+
 
 
 def _flatten_text(context: TransformedContext) -> str:
