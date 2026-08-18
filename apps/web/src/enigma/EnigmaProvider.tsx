@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -14,6 +15,7 @@ import { useWorld } from "../pilot/WorldProvider";
 import type { EnigmaClient } from "./client";
 import { DemoEnigmaClient } from "./DemoEnigmaClient";
 import { stitchLlmTrace } from "./forensicDump";
+import { isWorldConflictError } from "./readApiJson";
 
 const EnigmaClientContext = createContext<EnigmaClient | null>(null);
 
@@ -66,8 +68,12 @@ function ConversationHost({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const loadBlockedRef = useRef(false);
 
   const refresh = useCallback(async () => {
+    if (loadBlockedRef.current) {
+      return;
+    }
     const [rows, state] = await Promise.all([client.getConversation(), client.getAttentionState()]);
     setItems(rows);
     setAttention(state);
@@ -75,7 +81,10 @@ function ConversationHost({
 
   useEffect(() => {
     let cancelled = false;
+    loadBlockedRef.current = false;
     setLoading(true);
+    setError(null);
+
     void Promise.all([client.getConversation(), client.getAttentionState()])
       .then(([rows, state]) => {
         if (!cancelled) {
@@ -85,7 +94,11 @@ function ConversationHost({
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
-          setError(cause instanceof Error ? cause.message : "Could not load Enigma");
+          const message = cause instanceof Error ? cause.message : "Could not load Enigma";
+          if (isWorldConflictError(message)) {
+            loadBlockedRef.current = true;
+          }
+          setError(message);
         }
       })
       .finally(() => {
@@ -93,13 +106,25 @@ function ConversationHost({
           setLoading(false);
         }
       });
+
+    const safeRefetch = <T,>(run: () => Promise<T>, apply: (value: T) => void) => {
+      if (loadBlockedRef.current) {
+        return;
+      }
+      void run()
+        .then(apply)
+        .catch(() => {
+          // Stale demo routes after a world mismatch must not spam 409 loops.
+        });
+    };
+
     const unsub = client.subscribe((event) => {
       if (event.type === "conversation_updated") {
-        void client.getConversation().then(setItems);
+        safeRefetch(() => client.getConversation(), setItems);
       }
       if (event.type === "attention_changed" || event.type === "status_changed") {
-        void client.getAttentionState().then(setAttention);
-        void client.getConversation().then(setItems);
+        safeRefetch(() => client.getAttentionState(), setAttention);
+        safeRefetch(() => client.getConversation(), setItems);
       }
     });
     return () => {

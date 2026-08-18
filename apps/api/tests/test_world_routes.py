@@ -173,14 +173,22 @@ def test_route_01_demo_rejected_while_my_enigma_active(
     assert client.get("/worlds").json()["active"] == "my_enigma"
     for path, method in (
         ("/demo/conversation", "get"),
+        ("/demo/conversation/message", "post"),
+        ("/demo/assist/any/approve", "post"),
         ("/demo/status", "get"),
         ("/demo/environment", "get"),
         ("/demo/attention/state", "get"),
         ("/demo/reset", "post"),
         ("/demo/timeline/day", "post"),
     ):
-        response = client.get(path) if method == "get" else client.post(path)
+        if method == "get":
+            response = client.get(path)
+        elif path.endswith("/message"):
+            response = client.post(path, json={"text": "hello"})
+        else:
+            response = client.post(path)
         assert response.status_code == 409, path
+        assert "active world" in str(response.json().get("detail", "")).lower()
 
 
 def test_reset_02_private_impossible_through_demo_reset_path(

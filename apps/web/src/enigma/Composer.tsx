@@ -37,14 +37,14 @@ export function Composer({
   return (
     <div className="composer-wrap">
       {error ? (
-        <p className="composer-error" role="alert">
-          {error}
+        <div className="composer-error">
+          <p role="alert">{error}</p>
           {onDismissError ? (
             <button type="button" className="composer-error-dismiss" onClick={onDismissError}>
               Dismiss
             </button>
           ) : null}
-        </p>
+        </div>
       ) : null}
       <form className="composer" onSubmit={(event) => void handleSubmit(event)} aria-busy={busy}>
         <label className="sr-only" htmlFor="enigma-composer">

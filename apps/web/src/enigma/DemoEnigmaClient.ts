@@ -6,6 +6,7 @@ import {
   newDisclosureCorrelationId,
   readDisclosureList,
 } from "./disclosureFetch";
+import { readApiJson } from "./readApiJson";
 import type {
   AssistProposal,
   AssistResult,
@@ -23,19 +24,6 @@ const API_BASE =
 
 const LOCAL_API_TOKEN =
   (import.meta.env.VITE_ENIGMA_API_TOKEN as string | undefined) ?? "local-dev-token";
-
-async function readJson<T>(response: Response): Promise<T> {
-  const url = response.url || "(unknown url)";
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${url}`);
-  }
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error(`API returned HTML / not JSON (${response.status}) ${url}`);
-  }
-}
 
 export class DemoEnigmaClient implements EnigmaClient {
   private handlers = new Set<EnigmaEventHandler>();
@@ -56,14 +44,14 @@ export class DemoEnigmaClient implements EnigmaClient {
   }
 
   async getConversation(): Promise<ConversationItem[]> {
-    const body = await readJson<{ items: ConversationItem[] }>(
+    const body = await readApiJson<{ items: ConversationItem[] }>(
       await fetch(`${API_BASE}/demo/conversation`),
     );
     return body.items;
   }
 
   async sendMessage(text: string): Promise<ConversationTurn> {
-    const body = await readJson<ConversationTurn>(
+    const body = await readApiJson<ConversationTurn>(
       await fetch(`${API_BASE}/demo/conversation/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,17 +63,17 @@ export class DemoEnigmaClient implements EnigmaClient {
   }
 
   async getAttentionState(): Promise<AttentionState> {
-    return readJson<AttentionState>(await fetch(`${API_BASE}/demo/attention/state`));
+    return readApiJson<AttentionState>(await fetch(`${API_BASE}/demo/attention/state`));
   }
 
   async getQualificationDebug(itemId: string): Promise<QualificationDebug> {
-    return readJson<QualificationDebug>(
+    return readApiJson<QualificationDebug>(
       await fetch(`${API_BASE}/demo/attention/${itemId}/qualification-debug`),
     );
   }
 
   async getProvenance(itemId: string): Promise<ProvenanceView> {
-    const body = await readJson<{
+    const body = await readApiJson<{
       item_id: string;
       title: string;
       headline: string;
@@ -116,7 +104,7 @@ export class DemoEnigmaClient implements EnigmaClient {
   }
 
   async approveAssist(proposalId: string): Promise<AssistResult> {
-    const body = await readJson<{ ok: boolean; message: string }>(
+    const body = await readApiJson<{ ok: boolean; message: string }>(
       await fetch(`${API_BASE}/demo/assist/${proposalId}/approve`, { method: "POST" }),
     );
     this.emit({ type: "conversation_updated" });
@@ -125,7 +113,7 @@ export class DemoEnigmaClient implements EnigmaClient {
   }
 
   async jumpCheckpoint(checkpointId: string): Promise<void> {
-    const body = await readJson<{ events?: DemoEvent[]; checkpoint_id: string }>(
+    const body = await readApiJson<{ events?: DemoEvent[]; checkpoint_id: string }>(
       await fetch(`${API_BASE}/demo/timeline/checkpoint/${checkpointId}`, { method: "POST" }),
     );
     this.emit({ type: "attention_changed", checkpoint_id: body.checkpoint_id });
@@ -137,14 +125,14 @@ export class DemoEnigmaClient implements EnigmaClient {
   }
 
   async listCheckpoints(): Promise<{ id: string; at: string; label: string }[]> {
-    const body = await readJson<{ checkpoints: { id: string; at: string; label: string }[] }>(
+    const body = await readApiJson<{ checkpoints: { id: string; at: string; label: string }[] }>(
       await fetch(`${API_BASE}/demo/checkpoints`),
     );
     return body.checkpoints;
   }
 
   async getDemoEvents(): Promise<DemoEvent[]> {
-    const body = await readJson<{ events: DemoEvent[] }>(await fetch(`${API_BASE}/demo/events`));
+    const body = await readApiJson<{ events: DemoEvent[] }>(await fetch(`${API_BASE}/demo/events`));
     return body.events;
   }
 
