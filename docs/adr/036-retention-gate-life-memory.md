@@ -91,7 +91,13 @@ KNOWN | POSSIBLE | STALE | CONFLICTED | EXPIRING
 
 `MemoryInventory` (`packages/domain/memory_inventory.py`) compiles current life-memory from gated vault rows. It does not persist, decide retention, or replace SEC-06. Forgotten rows are absent because forget is SQL DELETE. Superseded rows remain in the vault for lineage but are absent from **current** inventory.
 
-**Recorded finding (slice 4 freeze, not a second store):** the projector also hides elapsed-TTL rows before `expire_ttl()` runs, so inventory can look forgotten while descendants still sit in `derived_records`. C30 must not treat inventory absence as proof that GC ran. The projector is not a retention policy; inventory owns no extra state.
+**TTL projection vs propagation (invariant):** **NO LONGER CURRENT ≠ FULLY FORGOTTEN.**
+
+> TTL expiry removes an item from current-memory projections at validity expiry; governed forgetting and derivative invalidation complete when the expiry propagation path runs. Projection expiry must never be reported as completed deletion.
+
+Inventory projection hides elapsed TTL immediately. Vault/source rows may still physically exist until `expire_ttl` runs. Derived descendants may still exist until governed expiry propagation executes. C30 must not treat inventory absence as proof that GC ran or that deletion completed. The projector is not a retention policy; inventory owns no extra state.
+
+Future crypto strengthening (not this ADR’s implementation): validity expires → current projections stop using it → expiry worker propagates invalidation → retained records removed → future crypto layer destroys relevant key material.
 
 **The vault remembers. The inventory explains.**
 
@@ -123,7 +129,7 @@ only then richer Life Graph UI (C30)
 - Evidence packs and respond grounding remain ephemeral; they do not write durable memory.
 - Freeze tests (Ceramics, Detective, Forget, Third-party, Purpose-expiry) gate future Life Graph work.
 - C29 slices 1–4 are frozen: establish → retain → persist → expire/forget/correct → inspect. Brain UI, semantic recall, and crypto are not C29.
-- C30 Brain UI must compile from `MemoryInventory` + `DurableAssertionStore` + SEC-06 vault rows, not invent parallel truth. Inventory absence is not proof that GC ran.
+- C30 Brain UI must compile from `MemoryInventory` + `DurableAssertionStore` + SEC-06 vault rows, not invent parallel truth. Projection expiry is not completed deletion (**NO LONGER CURRENT ≠ FULLY FORGOTTEN**).
 - Slice 4 freeze tests (Why, Correction, Forget, Detective, No-raw-source, Epistemic display) gate that UI.
 
 ## Non-goals

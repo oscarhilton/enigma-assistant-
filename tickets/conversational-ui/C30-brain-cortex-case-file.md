@@ -18,7 +18,7 @@ Project one serious substrate into three inspectable views:
 - Cortex: what Enigma is doing and why
 - Case File: what this thread is about
 
-C29 `MemoryInventory` is the Brain read model. Compile from it; do not invent a second store. Inventory absence is **not** proof that GC ran: the projector also hides elapsed-TTL rows before `expire_ttl()`, while descendants may still sit in `derived_records`. Forget is SQL DELETE. **The vault remembers. The inventory explains.**
+C29 `MemoryInventory` is the Brain read model. Compile from it; do not invent a second store. **NO LONGER CURRENT ≠ FULLY FORGOTTEN:** TTL expiry hides an item from inventory immediately; vault rows and descendants may still exist until `expire_ttl` / expiry propagation run. Projection expiry is not completed deletion. Forget is SQL DELETE. **The vault remembers. The inventory explains.**
 
 ## Deliverables
 

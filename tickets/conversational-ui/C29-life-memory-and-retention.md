@@ -124,6 +124,7 @@ THE Goose is **presentation-only**. It may retrieve retained facts for display l
 6. **Deletion must not rewrite history** — audit records ids; no deleted payload content
 7. **Forget does not mutate epistemic class** — unavailable ≠ false; re-establishment creates a new row with its own status and lineage
 8. **Deletion is not an epistemic blacklist** — the same proposition may be retained again from later independent evidence
+9. **NO LONGER CURRENT ≠ FULLY FORGOTTEN** — TTL expiry removes an item from current-memory projections at validity expiry; governed forgetting and derivative invalidation complete when the expiry propagation path runs. Projection expiry must never be reported as completed deletion. Inventory hides elapsed TTL immediately; vault/source rows may still physically exist until `expire_ttl` runs; derived descendants may still exist until governed expiry propagation executes. Future crypto (not C29): validity expires → current projections stop using it → expiry worker propagates invalidation → retained records removed → crypto layer destroys relevant key material.
 
 ### Freeze-readiness notes (slice 3)
 
@@ -182,7 +183,13 @@ Inventory API is slice 4 (this freeze). Brain UI / Goose memory UI remain C30 / 
 
 Lifecycle complete: establish → retain → persist → expire/forget/correct → inspect.
 
-**Recorded finding (not a blocker, not a second store):** the inventory projector also hides elapsed-TTL rows before `expire_ttl()` runs, so inventory can look forgotten while descendants still sit in `derived_records`. Forget is SQL DELETE. C30 must not treat inventory absence as proof that GC ran. Do not add inventory-owned state. Do not make the projector a retention policy.
+**TTL projection vs propagation (freeze invariant):**
+
+> TTL expiry removes an item from current-memory projections at validity expiry; governed forgetting and derivative invalidation complete when the expiry propagation path runs. Projection expiry must never be reported as completed deletion.
+
+**NO LONGER CURRENT ≠ FULLY FORGOTTEN.** Inventory projection hides elapsed TTL immediately. Vault/source state may still physically exist until `expire_ttl` runs. Derived descendants may still exist until governed expiry propagation executes. That is acceptable as long as the system does not confuse “not currently visible” with “fully forgotten.” Forget remains SQL DELETE. C30 must not treat inventory absence as proof that GC ran. Do not add inventory-owned state. Do not make the projector a retention policy.
+
+Future crypto strengthening (not implemented): validity expires → current projections stop using it → expiry worker propagates invalidation → retained records removed → future crypto layer destroys relevant key material.
 
 Remaining Brain UI / semantic recall / crypto / Goose choreography are **not** C29.
 
