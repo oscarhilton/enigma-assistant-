@@ -1275,33 +1275,29 @@ def _source_context_earned(utterance: str) -> bool:
 def _turn_contract_satisfaction(
     context: ConversationContext, request_kind: RequestKind | None
 ) -> Literal["unknown", "partial", "satisfied", "unsatisfied"]:
-    handoff = context.handoff
-    if handoff is not None and handoff.current_goal == request_kind:
-        if handoff.unresolved:
-            return "partial" if handoff.progress_made else "unsatisfied"
-        if handoff.progress_made:
-            return "satisfied"
     capsule = context.live_grounded_frame()
     if capsule is None:
+        handoff = context.handoff
+        if handoff is not None and handoff.current_goal == request_kind and handoff.unresolved:
+            return "partial" if handoff.progress_made else "unsatisfied"
         return "unknown"
     unresolved = capsule.unresolved_request
     if unresolved is not None and unresolved.kind == request_kind:
         return "partial" if unresolved.status == "PARTIAL" else "unsatisfied"
     if capsule.last_outcome is not None and capsule.last_outcome.request_satisfied:
         return "satisfied"
+    handoff = context.handoff
+    if handoff is not None and handoff.current_goal == request_kind and handoff.unresolved:
+        return "partial" if handoff.progress_made else "unsatisfied"
     return "unknown"
 
 
-def _evidence_available_labels(
-    used_providers: list[str], summary: dict[str, Any], handoff: TurnHandoff | None
-) -> tuple[str, ...]:
+def _evidence_available_labels(used_providers: list[str], summary: dict[str, Any]) -> tuple[str, ...]:
     labels: list[str] = []
     if "current_subject_id" in summary:
         labels.append("current_subject")
     if "conversation_capsule" in summary:
         labels.append("capsule_frame")
-    if handoff is not None and handoff.progress_made:
-        labels.append("handoff_progress")
     mapping = {
         "recent_dialogue": "dialogue_context",
         "attention_working_set": "attention_working_set",
@@ -1369,9 +1365,7 @@ def build_turn_contract(
         current_satisfaction=_turn_contract_satisfaction(
             session.context, interpretation.request_kind
         ),
-        evidence_available=_evidence_available_labels(
-            used_providers, summary, session.context.handoff
-        ),
+        evidence_available=_evidence_available_labels(used_providers, summary),
         evidence_still_obtainable=_evidence_obtainable_labels(tool_names),
         capabilities_available=tool_names,
         authority_level=interpretation.authority,
@@ -1568,22 +1562,29 @@ def compile_remote_context(
 
     tool_names = tools_for_interpretation(interp)
     capsule = session.context.live_grounded_frame()
-    capsule_view = capsule.public_view() if capsule is not None else None
+    include_private_continuity = interp.evidence_domain == "PRIVATE_WORLD"
+    capsule_view = (
+        capsule.public_view() if capsule is not None and include_private_continuity else None
+    )
     handoff_view = (
-        session.context.handoff.public_view() if session.context.handoff is not None else None
+        session.context.handoff.public_view()
+        if session.context.handoff is not None and include_private_continuity
+        else None
     )
-    if capsule_view and interp.profile not in {"GENERAL_KNOWLEDGE"}:
+    if capsule_view:
         summary["conversation_capsule"] = capsule_view
-    if handoff_view and interp.profile != "GENERAL_KNOWLEDGE":
+    if handoff_view:
         summary["conversation_handoff"] = handoff_view
-    turn_contract = build_turn_contract(
-        session=session,
-        interpretation=interp,
-        tool_names=tool_names,
-        used_providers=used,
-        summary=summary,
-    )
-    summary["turn_contract"] = turn_contract.public_view()
+    turn_contract = None
+    if include_private_continuity:
+        turn_contract = build_turn_contract(
+            session=session,
+            interpretation=interp,
+            tool_names=tool_names,
+            used_providers=used,
+            summary=summary,
+        )
+        summary["turn_contract"] = turn_contract.public_view()
     working_set = {
         "profile": interp.profile,
         "evidence_domain": interp.evidence_domain,
@@ -1598,12 +1599,13 @@ def compile_remote_context(
         "source": interp.constraints.source,
         "capsule": capsule_view,
         "handoff": handoff_view,
-        "turn_contract": turn_contract.public_view(),
         "capability_contract": build_capability_contract(tool_names),
         "fetch_mission": {
             "planned_tools": planned_tools_for_kind(interp.request_kind),
         },
     }
+    if turn_contract is not None:
+        working_set["turn_contract"] = turn_contract.public_view()
     if interp.constraints.period and "temporal_constraint" not in summary:
         summary["temporal_constraint"] = interp.constraints.period
     if interp.constraints.scope:

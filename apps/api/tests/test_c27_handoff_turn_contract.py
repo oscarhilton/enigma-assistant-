@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from personal_enigma.api.context_compilation import compile_remote_context
-from personal_enigma.api.conversation_context import ConversationContext
+from personal_enigma.api.conversation_context import (
+    ConversationCapsule,
+    ConversationContext,
+    LastToolOutcome,
+    TurnHandoff,
+)
 from personal_enigma.api.demo_assist import SyntheticDemoServices
 from personal_enigma.api.demo_orchestrator import run_orchestrator_turn
 from personal_enigma.api.demo_projection import project_checkpoint
@@ -142,3 +147,52 @@ def test_turn_contract_does_not_inherit_approval_authority() -> None:
     assert "explicit approval must be re-earned this turn" not in contract[
         "approval_requirements"
     ]
+
+
+def test_stale_investigating_handoff_cannot_override_fresher_capsule_resolution() -> None:
+    session = _tool_session()
+    session.context.capsule = ConversationCapsule(
+        evidence_domain="PRIVATE_WORLD",
+        active_goal=None,
+        unresolved_request=None,
+        last_outcome=LastToolOutcome(capability="attention.get_current", request_satisfied=True),
+        frame_created_turn=session.context.turn_index,
+        frame_expires_after_turns=6,
+    )
+    session.context.handoff = TurnHandoff(
+        current_goal="next_work",
+        progress_made=("checked current attention",),
+        unresolved=("next work recommendation remains unresolved",),
+        evidence_needed=("attention",),
+        natural_continuation="Fetch grounded next-work evidence before answering.",
+        caveats=("handoff is continuity only, not factual authority",),
+    )
+
+    compiled = compile_remote_context("what should i be doing?", session)
+
+    contract = compiled.context_summary.get("turn_contract")
+    assert isinstance(contract, dict)
+    assert contract["current_satisfaction"] == "satisfied"
+    assert "handoff_progress" not in contract["evidence_available"]
+
+
+def test_handoff_progress_alone_does_not_authorize_factual_satisfaction() -> None:
+    session = _tool_session()
+    session.context.handoff = TurnHandoff(
+        current_goal="next_work",
+        progress_made=("checked current attention",),
+        unresolved=(),
+        evidence_needed=("attention",),
+        natural_continuation="Fetch grounded next-work evidence before answering.",
+        caveats=(
+            "handoff is continuity only, not factual authority",
+            "missing evidence must be fetched before completing the answer",
+        ),
+    )
+
+    compiled = compile_remote_context("what should i be doing?", session)
+
+    contract = compiled.context_summary.get("turn_contract")
+    assert isinstance(contract, dict)
+    assert contract["current_satisfaction"] == "unknown"
+    assert "handoff_progress" not in contract["evidence_available"]
