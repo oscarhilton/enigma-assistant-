@@ -59,6 +59,7 @@ from personal_enigma.api.demo_intents import (
     build_waiting_turn,
     waiting_items,
 )
+from personal_enigma.api.demo_projection import project_checkpoint
 from personal_enigma.api.intent_router import TimeExpression
 from personal_enigma.api.speech_acts import (
     classify_speech_act,
@@ -250,6 +251,31 @@ class DemoToolSession:
     assist_advances: dict[str, NextActionView] = field(default_factory=dict)
     attestations: list[UserAttestation] = field(default_factory=list)
     chat_index: DemoChatIndex = field(default_factory=DemoChatIndex)
+    base_state: AttentionState | None = None
+
+
+def _frozen_base_state(session: DemoToolSession) -> AttentionState:
+    """Frozen checkpoint projection. Never treat an already-overlaid view as base."""
+    if session.base_state is not None:
+        return session.base_state
+    checkpoint_id = session.checkpoint_id
+    if checkpoint_id:
+        try:
+            session.base_state = project_checkpoint(checkpoint_id).state
+            return session.base_state
+        except (FileNotFoundError, KeyError, ValueError):
+            pass
+    session.base_state = session.state.model_copy(deep=True)
+    return session.base_state
+
+
+def _apply_session_overlay(session: DemoToolSession) -> None:
+    """Always overlay the frozen checkpoint, never a previously stripped copy."""
+    session.state = overlay_session_world(
+        _frozen_base_state(session),
+        session.completed_item_ids,
+        session.assist_advances,
+    )
 
 
 def tool_schemas() -> list[dict[str, Any]]:
@@ -664,7 +690,9 @@ def bind_world_attestation(
             model_arguments=model_arguments,
             executed_arguments=executed,
         )
-    named = match_named_referent(utterance, referent_candidates(session.state))
+    named = match_named_referent(
+        utterance, referent_candidates(_frozen_base_state(session))
+    )
     if named:
         executed = {"target_id": named, "state": attested_state}
         return executed, _resolution(
@@ -710,6 +738,11 @@ def bind_authority_arguments(
         return bind_assist_approve(session, arguments)
     if name == ATTESTATION_TOOL:
         return bind_world_attestation(session, arguments, user_message=user_message)
+    if name == "agenda.get":
+        executed = dict(arguments)
+        if not executed.get("period") and session.context.temporal_constraint:
+            executed["period"] = session.context.temporal_constraint
+        return executed, None
     return dict(arguments), None
 
 
@@ -733,6 +766,9 @@ def execute_tool(
         )
 
     if name == "next_action.get":
+        _apply_session_overlay(session)
+        state = session.state
+        reconcile_action_focus(ctx, state)
         turn = build_next_turn(state, at)
         actions = [row.model_dump(mode="json") for row in state.next_actions]
         return ToolExecutionResult(
@@ -742,6 +778,9 @@ def execute_tool(
         )
 
     if name == "next_action.get_alternatives":
+        _apply_session_overlay(session)
+        state = session.state
+        reconcile_action_focus(ctx, state)
         turn = build_alternate_task_turn(state, ctx, at)
         alternate = pick_alternate_next_action(state, set(ctx.suppressed_next_action_ids))
         data: dict[str, Any] = {"alternate": None}
@@ -1073,11 +1112,7 @@ def execute_tool(
                 completed_item_ids=session.completed_item_ids,
                 advances=session.assist_advances,
             )
-            session.state = overlay_session_world(
-                session.state,
-                session.completed_item_ids,
-                session.assist_advances,
-            )
+            _apply_session_overlay(session)
             reconcile_action_focus(ctx, session.state)
         result = assist_result_item(proposal_id=proposal_id, ok=ok, message=message, at=at)
         session.pending_assists.pop(proposal_id, None)
@@ -1107,7 +1142,7 @@ def execute_tool(
                 data={"reason": "unresolved_target"},
                 turn_items=turn,
             )
-        title = attestation_title(state, target_id)
+        title = attestation_title(_frozen_base_state(session), target_id)
         if ctx.current_subject_id != target_id:
             ctx.current_subject_id = target_id
             ctx.current_attention_item_id = target_id
@@ -1121,11 +1156,7 @@ def execute_tool(
             at=at,
             utterance=session.user_message,
         )
-        session.state = overlay_session_world(
-            session.state,
-            session.completed_item_ids,
-            session.assist_advances,
-        )
+        _apply_session_overlay(session)
         reconcile_action_focus(ctx, session.state)
         if parsed_attest.state == "COMPLETED":
             text = f"Noted — I'll treat {title} as done."
