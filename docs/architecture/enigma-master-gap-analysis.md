@@ -132,4 +132,4 @@ establish → retain → persist → expire / forget / correct → inspect
 
 > Recall may find governed memory. It may not create, promote, resurrect, or retain it.
 
-**Then:** C30 Brain / Cortex / Case File UI compiles from this inventory.
+**Then:** C30 Brain / Cortex / Case File UI compiles from this inventory. Crypto key destruction remains later; it is not C32 slice A.

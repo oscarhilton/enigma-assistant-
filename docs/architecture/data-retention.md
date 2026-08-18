@@ -47,6 +47,10 @@ The gate answers whether an established assertion deserves persistence — for h
 
 Inventory hides elapsed TTL immediately. Vault/source rows may still physically exist until `expire_ttl` runs. Derived descendants may still exist until governed expiry propagation executes. Inventory absence is not completed deletion, and C30 must not treat it as such. Future crypto (not implemented here): validity expires → current projections stop using it → expiry worker propagates invalidation → retained records removed → future crypto layer destroys relevant key material.
 
+## Semantic recall (index, not memory)
+
+[C32](../../tickets/conversational-ui/C32-semantic-recall.md) / [ADR-037](../adr/037-semantic-recall-index-not-memory.md) adds local candidate lookup over **reduced** retained assertions. Vectors address governed assertion IDs. Current inventory / retained / valid state is checked **after** retrieval. An embedding hit is never usable memory. Forgotten or no-longer-current items must not be resurrected by a stale index. Later independent evidence may mint a new assertion; recall may find that new id. Crypto key destruction remains a later slice.
+
 ## Prominent invariant
 
 > **No retained derivative may outlive its justification merely because it is derived.**

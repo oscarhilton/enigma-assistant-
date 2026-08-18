@@ -686,6 +686,12 @@ requires-dist = [{ name = "pydantic", specifier = ">=2.10.0" }]
 name = "personal-enigma-embeddings"
 version = "0.1.0"
 source = { editable = "packages/embeddings" }
+dependencies = [
+    { name = "personal-enigma-domain" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "personal-enigma-domain", editable = "packages/domain" }]
 
 [[package]]
 name = "personal-enigma-evaluation"

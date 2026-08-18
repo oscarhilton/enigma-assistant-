@@ -1,4 +1,4 @@
-# Conversational UI programme (C00–C31)
+# Conversational UI programme (C00–C32)
 
 **Status:** MVP green (C00–C07 on Alex) · **C09 harness green / LLM 🟡** — C08 deferred · **C09b specified** (focus vs radar; C09 implements) · **C10 deferred** (scaffold landed; r3f + live feeds after SEC-04 event plumbing; not on HomePage) · **C11 future** (tone memory after C09 LLM proof) · **C12 landed** (Life Scripts CLI; first episodes green · PR [#89](https://github.com/oscarhilton/enigma-assistant-/pull/89) Python CI red) · **C13 todo** (repeat the same life against Fireworks) · **C14 done** (v0 activity strip merged [#90](https://github.com/oscarhilton/enigma-assistant-/pull/90); SSE/assistant-ui remaining) · **C09c landed · frozen** (conversation capsule; ADR-030) · **C15 in_progress** (ADR-029 handoff / `"ffs"` AC local; not in [#92](https://github.com/oscarhilton/enigma-assistant-/pull/92); C09c frozen) · **C16 in_progress** (attested completion invalidates next-action) · **C17–C22 todo/future** · **C23 landed · frozen as a specification** (gate red until C16–C21) · **C24 future** (read-only evidence worker after P0; [ADR-033](../../docs/adr/033-bounded-subtask-workers.md)) · **C25 in_progress** (evidence coverage bundle + courier / Goose projection; [ADR-034](../../docs/adr/034-evidence-coverage-bundle.md))  
 **Programme observability:** UI 🟢 frozen · Disclosure 🟢 active · Cortex 💤 deferred · Conversation activity 🟡 v0 strip + courier (not SSE)  
@@ -97,6 +97,7 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C29](./C29-life-memory-and-retention.md) | Life memory, retention gate, and third-party ethics | **done · frozen** (slices 1–4 lifecycle) |
 | [C30](./C30-brain-cortex-case-file.md) | Brain, Cortex, and Case File projections | **todo** |
 | [C31](./C31-goose-work-projection-and-proactivity.md) | Goose work projection and proactivity timing | **todo** |
+| [C32](./C32-semantic-recall.md) | Semantic recall slice A (index + governed-memory filter) | **in_progress** |
 
 ## First milestone (Alex)
 
