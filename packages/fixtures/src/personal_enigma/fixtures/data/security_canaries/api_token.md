@@ -1,0 +1,10 @@
+FICTIONAL_SYNTHETIC_CANARY_ENIGMA_FIXTURE_ONLY
+
+Rotate these fictional credentials immediately in any real environment.
+
+Local dev vault (synthetic):
+ENIGMA_DEMO_API_KEY=sk_test_FAKE_SECRET_SYNTHETIC_CANARY_123
+DEMO_CLOUD_SECRET=SYNTHETIC_CANARY_PASSWORD_DemoOnly_NeverReal
+db_password=SYNTHETIC_CANARY_PASSWORD_DemoOnly_NeverReal
+
+These are password-shaped canaries for SEC-02 egress wire assertions only.

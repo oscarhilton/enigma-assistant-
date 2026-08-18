@@ -56,6 +56,10 @@ htmlcov/
 
 # Local data
 data/
+# Packaged fixture bodies (security canaries + demo semantic checkpoints)
+!packages/fixtures/src/personal_enigma/fixtures/data/
+!packages/fixtures/src/personal_enigma/fixtures/data/**/
+!packages/fixtures/src/personal_enigma/fixtures/data/**
 *.db
 *.sqlite
 *.sock
