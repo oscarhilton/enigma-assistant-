@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `future` |
+| Status | `in_progress` |
 | Branch | `ticket/P02-alex-life-scripts-as-product-tests` |
 | Domain | `pilot` |
 | Programme | [PILOT-01](./README.md) |
@@ -41,3 +41,10 @@ That class of bug: “architecturally correct, but I have absolutely no idea wha
 - New Goose motions, Shadows, speech, affection
 - Connecting Oscar’s mailbox
 - Calendar writes
+
+## Acceptance criteria
+
+- [x] Brunch Life Script replayed through the **pilot shell** (not evaluation YAML): Alex Lab → Jan 20 fixture → unresolved brunch on Today → Case → “what did I book?” distinguishes calendar event from reservation → Goose only if AgentWork exists → Why explains evidence
+- [x] Same app shell as P01 — no second Alex frontend
+- [ ] Monday/Maya, HONK HONK, verification failure, Forget — deferred (capacity); C37 Goose covered in the Brunch script (`possible_fix: NOT YET` unchanged)
+
