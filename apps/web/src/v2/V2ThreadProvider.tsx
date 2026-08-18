@@ -14,7 +14,13 @@ import {
   saveActiveThreadId,
   saveThreads,
 } from "./threadStorage";
-import { createThread, NEW_CHAT_TITLE, threadTitleFromMessage, type V2Thread } from "./threadTypes";
+import {
+  createThread,
+  NEW_CHAT_TITLE,
+  reconcileThreadTitleOnItemsChange,
+  threadTitleFromMessage,
+  type V2Thread,
+} from "./threadTypes";
 
 type V2ThreadContextValue = {
   threads: V2Thread[];
@@ -74,9 +80,13 @@ export function V2ThreadProvider({ children }: { children: ReactNode }) {
     (items: ConversationItem[]) => {
       const now = new Date().toISOString();
       setState((current) => {
-        const nextThreads = current.threads.map((thread) =>
-          thread.id === current.activeThreadId ? { ...thread, items, updatedAt: now } : thread,
-        );
+        const nextThreads = current.threads.map((thread) => {
+          if (thread.id !== current.activeThreadId) {
+            return thread;
+          }
+          const title = reconcileThreadTitleOnItemsChange(thread.items, items, thread.title);
+          return { ...thread, items, title, updatedAt: now };
+        });
         saveThreads(world, nextThreads);
         return { ...current, threads: nextThreads };
       });

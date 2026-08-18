@@ -22,8 +22,11 @@ export async function launchV2AlexLab(path = "/v2") {
 }
 
 export async function jumpV2DemoCheckpoint(label: RegExp) {
-  fireEvent.click(screen.getByRole("button", { name: /Demo ·/i }));
-  await screen.findByText(/Time machine/i);
+  if (!screen.queryByText(/Time machine/i)) {
+    const demoButton = await screen.findByRole("button", { name: /Demo ·/i });
+    fireEvent.click(demoButton);
+    await screen.findByText(/Time machine/i);
+  }
   const buttons = await screen.findAllByRole("button", { name: label });
   const checkpoint =
     buttons.find((button) => button.hasAttribute("aria-pressed")) ?? buttons[buttons.length - 1]!;
