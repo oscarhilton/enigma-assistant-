@@ -2,10 +2,17 @@
 
 Uses SEC-06 ``derived_source_deps`` lineage. TTL expiry invokes the same
 cascade as explicit forget — governed forgetting, not a side-channel cleanup.
+
+Forgetting is semantic: unjustified rows are deleted from ``derived_records``.
+Survivors lose forgotten lineage refs. Forget never writes a negation.
+
+Current memory is the vault derived table after that cascade — not a hide-filter.
+Cryptographic page-shredding of SQLCipher ciphertext is a later storage layer.
 """
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from sqlite3 import Connection as SqlCipherConnection
 
@@ -13,6 +20,7 @@ from personal_enigma.api.storage.derived import (
     append_forget_audit,
     delete_derived_record,
     get_derived_record,
+    insert_derived_record,
     list_all_derived_records,
     list_derived_records_for_source,
 )
@@ -25,6 +33,9 @@ from personal_enigma.api.storage.retention_vault import (
 )
 from personal_enigma.domain.retention import DerivedRecord
 from personal_enigma.domain.retention_gate import ForgetCascadeResult
+
+_TRIGGER_FORGET = "forget"
+_TRIGGER_TTL = "ttl_expiry"
 
 
 def refs_for_assertion(assertion_id: str) -> frozenset[str]:
@@ -46,18 +57,35 @@ def _assertion_id_from_lineage_ref(ref: str) -> str | None:
     return None
 
 
+def _is_self_ref(ref: str, record_id: str) -> bool:
+    if ref == record_id:
+        return True
+    assertion_id = _assertion_id_from_lineage_ref(ref)
+    return assertion_id == record_id
+
+
 def _remaining_lineage_sources(
+    *,
+    record_id: str,
     derived_from: list[str],
     forgotten_refs: frozenset[str],
     active_assertion_ids: frozenset[str],
     active_source_ids: frozenset[str],
+    active_derived_ids: frozenset[str],
 ) -> list[str]:
-    """Sources that still justify a derived row after forgetting."""
+    """Sources that still justify a derived row after forgetting.
+
+    Independent justification is a live retained assertion, a live source
+    record, or another live derived row. Self-refs and dangling evidence
+    tokens (``EV_*`` strings with no backing row) are not justification.
+    """
     remaining: list[str] = []
     for ref in derived_from:
         if ref in forgotten_refs:
             continue
         if ref.startswith("retention_decision:"):
+            continue
+        if _is_self_ref(ref, record_id):
             continue
         assertion_id = _assertion_id_from_lineage_ref(ref)
         if assertion_id is not None:
@@ -70,8 +98,9 @@ def _remaining_lineage_sources(
         if ref in active_source_ids:
             remaining.append(ref)
             continue
-        # External evidence / provenance — independent justification.
-        remaining.append(ref)
+        if ref in active_derived_ids:
+            remaining.append(ref)
+            continue
     return remaining
 
 
@@ -97,6 +126,13 @@ def _collect_dependent_record_ids(
     return dependents
 
 
+def _forgotten_refs_for(assertion_id: str, deleted_ids: set[str]) -> frozenset[str]:
+    refs: set[str] = set(refs_for_assertion(assertion_id))
+    for deleted_id in deleted_ids:
+        refs.update(refs_for_assertion(deleted_id))
+    return frozenset(refs)
+
+
 def resolve_retained_assertion_forget_plan(
     conn: SqlCipherConnection,
     assertion_id: str,
@@ -116,15 +152,22 @@ def resolve_retained_assertion_forget_plan(
             if aid not in to_delete and aid != assertion_id
         )
         active_sources = frozenset(_existing_source_ids(conn))
+        active_derived = frozenset(
+            record.id
+            for record in list_all_derived_records(conn)
+            if record.id not in to_delete and record.id != assertion_id
+        )
 
         for record in list_all_derived_records(conn):
             if record.id not in candidates or record.id in to_delete:
                 continue
             remaining = _remaining_lineage_sources(
-                record.lineage.derived_from,
-                frozenset(forgotten_refs),
-                active_assertions,
-                active_sources,
+                record_id=record.id,
+                derived_from=record.lineage.derived_from,
+                forgotten_refs=frozenset(forgotten_refs),
+                active_assertion_ids=active_assertions,
+                active_source_ids=active_sources,
+                active_derived_ids=active_derived,
             )
             if not remaining:
                 to_delete.add(record.id)
@@ -152,11 +195,39 @@ def _classify_record_id(
     return "derivative"
 
 
+def _strip_forgotten_justification(
+    conn: SqlCipherConnection,
+    *,
+    to_delete: set[str],
+    forgotten_refs: frozenset[str],
+) -> None:
+    """Survivors keep independent evidence and lose forgotten lineage refs."""
+    for record in list_all_derived_records(conn):
+        if record.id in to_delete:
+            continue
+        remaining = [ref for ref in record.lineage.derived_from if ref not in forgotten_refs]
+        if remaining == record.lineage.derived_from:
+            continue
+        updated = record.model_copy(
+            update={
+                "lineage": record.lineage.model_copy(update={"derived_from": remaining}),
+            }
+        )
+        insert_derived_record(conn, updated)
+
+
 def forget_retained_assertion_with_propagation(
     conn: SqlCipherConnection,
     assertion_id: str,
+    *,
+    trigger: str = _TRIGGER_FORGET,
 ) -> ForgetCascadeResult:
-    """Forget a retained assertion and invalidate unjustified derivatives."""
+    """Forget a retained assertion and invalidate unjustified derivatives.
+
+    Deletes unjustified rows. Does not insert a contradictory assertion —
+    unavailable is not false, and later independent evidence may re-establish
+    the same proposition with a new id and lineage.
+    """
     to_delete, to_survive = resolve_retained_assertion_forget_plan(conn, assertion_id)
 
     deleted_assertions: list[str] = []
@@ -167,6 +238,11 @@ def forget_retained_assertion_with_propagation(
             deleted_assertions.append(record_id)
         else:
             deleted_derivatives.append(record_id)
+
+    forgotten_refs = _forgotten_refs_for(assertion_id, to_delete)
+    _strip_forgotten_justification(
+        conn, to_delete=to_delete, forgotten_refs=forgotten_refs
+    )
 
     for record_id in sorted(to_delete, reverse=True):
         delete_derived_record(conn, record_id)
@@ -188,7 +264,7 @@ def forget_retained_assertion_with_propagation(
         deleted_assertion_ids=deleted_assertions,
         deleted_derived_ids=deleted_derivatives,
         audit_id=audit_id,
-        trigger="forget",
+        trigger=trigger,
     )
 
 
@@ -226,19 +302,33 @@ def expire_retained_assertions(
     *,
     now: datetime | None = None,
 ) -> list[ForgetCascadeResult]:
-    """TTL expiry — same forget cascade as explicit deletion."""
+    """TTL expiry — same forget cascade as explicit deletion, not a cleanup DELETE."""
     results: list[ForgetCascadeResult] = []
     for assertion_id in find_expired_retained_assertion_ids(conn, now=now):
-        result = forget_retained_assertion_with_propagation(conn, assertion_id)
-        results.append(result.model_copy(update={"trigger": "ttl_expiry"}))
+        results.append(
+            forget_retained_assertion_with_propagation(
+                conn,
+                assertion_id,
+                trigger=_TRIGGER_TTL,
+            )
+        )
     return results
+
+
+def list_current_memory_records(conn: SqlCipherConnection) -> list[DerivedRecord]:
+    """Every derived row still in the vault.
+
+    Forgotten/expired rows are deleted from ``derived_records``. This is the
+    current-memory surface — not a filtered projection that hides live rows.
+    """
+    return list_all_derived_records(conn)
 
 
 def list_current_retained_records(conn: SqlCipherConnection) -> list[DerivedRecord]:
     """Retained assertion vault rows still recoverable as current memory."""
     return [
         record
-        for record in list_all_derived_records(conn)
+        for record in list_current_memory_records(conn)
         if is_retained_assertion_record(record)
     ]
 
@@ -270,3 +360,28 @@ def find_current_retained_by_content(
             continue
         matches.append(record)
     return matches
+
+
+def _record_search_blob(record: DerivedRecord) -> str:
+    return json.dumps(
+        {
+            "id": record.id,
+            "payload": record.payload,
+            "derived_from": record.lineage.derived_from,
+        },
+        sort_keys=True,
+        default=str,
+    )
+
+
+def current_memory_record_ids_mentioning(
+    conn: SqlCipherConnection,
+    needle: str,
+) -> list[str]:
+    """Ids of current derived rows whose payload or lineage mentions ``needle``."""
+    lowered = needle.lower()
+    hits: list[str] = []
+    for record in list_current_memory_records(conn):
+        if lowered in _record_search_blob(record).lower():
+            hits.append(record.id)
+    return hits

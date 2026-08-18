@@ -103,21 +103,31 @@ THE Goose is **presentation-only**. It may retrieve retained facts for display l
 
 - [x] `retention_forget.py` — `resolve_retained_assertion_forget_plan()`, `forget_retained_assertion_with_propagation()`
 - [x] Transitive lineage cascade via SEC-06 `derived_source_deps` (not payload-only children)
-- [x] Independent evidence survives (`EV_*`, source records, other retained assertions)
-- [x] TTL expiry (`expire_retained_assertions()`) — same semantics as explicit forget
-- [x] Current-memory helpers (`list_current_retained_records`, `find_current_retained_by_content`)
+- [x] Independent evidence survives (`EV_*` only if a live source/assertion/derived row; dangling tokens do not save exclusive descendants)
+- [x] TTL expiry (`expire_retained_assertions()`) — same cascade function as explicit forget (`trigger=ttl_expiry`)
+- [x] Current memory is the vault derived table after semantic delete (`list_current_memory_records`, `current_memory_record_ids_mentioning`) — not a hide-filter on retained rows
+- [x] Survivors lose forgotten lineage refs (propagate invalidation)
 - [x] Forget audit metadata — ids only, never deleted private content
-- [x] Freeze tests in `apps/api/tests/test_c29_forget_propagation.py` (Ceramics cascade, TTL expiry, Re-establishment)
+- [x] Freeze tests in `apps/api/tests/test_c29_forget_propagation.py` (Ceramics cascade + grandchild, TTL expiry, Re-establishment, independent-evidence execution)
 
 ### Slice 3 invariants (enforced in code + tests)
 
-1. **Forgetting is semantic** — derived rows deleted from vault, not hidden from one projection
-2. **Lineage determines invalidation** — B justified only by A → forget(A) deletes B
-3. **Independent evidence survives** — multi-source rows survive partial forget
-4. **TTL expiry = governed forgetting** — `expire_retained_assertions()` reuses forget cascade
-5. **Expired memory cannot appear as current** — deleted rows absent from current-memory queries
+1. **Forgetting is semantic** — unjustified derived rows are deleted from `derived_records`, not hidden from one projection
+2. **Lineage determines invalidation** — B justified only by A → forget(A) deletes B (self-refs and dangling `EV_*` are not independent evidence)
+3. **Independent evidence survives** — live source records / other retained assertions keep the row; forgotten parent refs are stripped from lineage
+4. **TTL expiry = governed forgetting** — `expire_retained_assertions()` calls `forget_retained_assertion_with_propagation(..., trigger="ttl_expiry")`
+5. **Expired / forgotten memory cannot appear as current** — deleted rows absent from `list_current_memory_records` (all derived rows, not just retained assertions)
 6. **Deletion must not rewrite history** — audit records ids; no deleted payload content
-7. **Forget does not mutate epistemic class** — re-establishment creates new row with its own status
+7. **Forget does not mutate epistemic class** — unavailable ≠ false; re-establishment creates a new row with its own status and lineage
+8. **Deletion is not an epistemic blacklist** — the same proposition may be retained again from later independent evidence
+
+### Freeze-readiness notes (slice 3)
+
+Semantic freeze line: `retain → derive → forget / expire → propagate invalidation → current memory no longer exposes unjustified descendants`.
+
+Physical vs logical: C29 forget is **SQL DELETE of derived rows** (plus lineage rewrite on survivors). SQLCipher page encryption remains; there is **no per-row key destruction or VACUUM shred**. Freeze readiness at this layer is: forgotten content cannot participate in current memory or reconstruct unjustified descendants. Cryptographic destruction of residual ciphertext is a later storage-hardening layer — this slice does not pretend to provide it.
+
+Inventory API / Brain / Goose memory UI remain slice 4+ / C30 / C31.
 
 ### Slice 4+
 
@@ -152,7 +162,7 @@ Enigma can retain useful concrete facts for the user while refusing to turn othe
 ```bash
 uv run pytest packages/domain/tests/test_retention_gate.py apps/api/tests/test_c29_retention_freeze.py apps/api/tests/test_c29_retention_vault_bridge.py apps/api/tests/test_c29_forget_propagation.py -q
 uv run ruff check packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/durable_assertions.py apps/api/src/personal_enigma/api/storage/retention_vault.py apps/api/src/personal_enigma/api/storage/retention_forget.py
-uv run basedpyright packages/domain/src/personal_enigma/domain/retention_gate.py
+uv run basedpyright packages/domain/src/personal_enigma/domain/retention_gate.py apps/api/src/personal_enigma/api/storage/retention_forget.py
 ```
 
 Regression: SEC-06 forget/lineage tests must remain green (`apps/api/tests/test_sec06_forget_lineage.py`).

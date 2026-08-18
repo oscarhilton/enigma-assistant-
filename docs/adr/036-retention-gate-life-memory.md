@@ -76,6 +76,8 @@ Third-party retention is limited to **concrete, user-owned purposes** (e.g. "May
 
 When a C29 decision is `DURABLE` or `TTL`, a later slice maps it to `DerivedRecord` + `LineageMetadata` using existing SEC-06 fields — no parallel forget graph.
 
+Slice 3 forgetting is **semantic invalidation**: delete unjustified `derived_records` rows and strip forgotten lineage refs from survivors. It is not cryptographic destruction of SQLCipher pages. Residual ciphertext after `DELETE` is a later storage-hardening concern; freeze readiness at this layer is that forgotten content cannot participate in current memory.
+
 ## Implementation dependency order
 
 ```text

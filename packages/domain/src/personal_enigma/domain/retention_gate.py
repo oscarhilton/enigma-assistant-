@@ -144,7 +144,12 @@ class RetentionDecision(BaseModel):
 
 
 class ForgetCascadeResult(BaseModel):
-    """Ids removed when a retained assertion is forgotten — content never logged."""
+    """Ids removed when a retained assertion is forgotten — content never logged.
+
+    Forget deletes recoverability. It does not write a negation of the forgotten
+    proposition. Later independent evidence may re-establish the same content
+    with a new assertion id and lineage.
+    """
 
     root_assertion_id: str
     deleted_assertion_ids: list[str] = Field(default_factory=list)

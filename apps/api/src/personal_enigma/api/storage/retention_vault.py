@@ -256,6 +256,13 @@ class VaultDurableAssertionStore:
 
         return list_current_retained_records(self._vault._conn)
 
+    def list_current_memory(self) -> list[DerivedRecord]:
+        from personal_enigma.api.storage.retention_forget import (
+            list_current_memory_records,
+        )
+
+        return list_current_memory_records(self._vault._conn)
+
     def list_retained_ids(self) -> list[str]:
         return list_retained_assertion_ids(self._vault._conn)
 
