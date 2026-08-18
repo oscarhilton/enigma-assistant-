@@ -9,16 +9,16 @@ import pytest
 
 from personal_enigma.fixtures.alex_security_canaries import (
     GREP_TARGETS,
-    GrepTargetId,
     PACK_ID,
+    GrepTargetId,
     forbidden_on_wire_sentinels,
     grep_directory_for_sentinels,
     reconstructability_probe_sentinels,
     security_canary_manifest,
 )
 from personal_enigma.fixtures.alex_sensitive_canaries import (
-    ALL_CANARY_SENTINELS,
     ALEX_SENSITIVE_CANARIES,
+    ALL_CANARY_SENTINELS,
     assert_canary_pack_complete,
 )
 

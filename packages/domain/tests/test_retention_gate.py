@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import pytest
-
 from personal_enigma.domain.durable_assertions import InMemoryDurableAssertionStore
 from personal_enigma.domain.grounding import (
     AssertionKind,

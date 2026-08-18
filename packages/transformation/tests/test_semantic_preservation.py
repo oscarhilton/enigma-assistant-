@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from personal_enigma.transformation.protocol import TransformedContext
-from personal_enigma.transformation.relations import SemanticRelation
 from personal_enigma.transformation.semantic_preservation import (
     SemanticPreservationExpectation,
     assert_semantic_preservation,

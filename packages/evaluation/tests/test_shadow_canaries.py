@@ -9,9 +9,9 @@ import pytest
 from personal_enigma.evaluation.semantic_leakage import SemanticLeakageScorer
 from personal_enigma.fixtures.alex_security_canaries import (
     GREP_TARGETS,
-    GrepTargetId,
     PACK_DESCRIPTION,
     PACK_ID,
+    GrepTargetId,
     grep_directory_for_sentinels,
     reconstructability_probe_sentinels,
     security_canary_manifest,

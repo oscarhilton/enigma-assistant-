@@ -19,7 +19,7 @@ from personal_enigma.domain import (
     SourceType,
 )
 from personal_enigma.identity import EntityResolver
-from personal_enigma.privacy import PrivacyLevel, default_level_for_source
+from personal_enigma.privacy.levels import PrivacyLevel, default_level_for_source
 from personal_enigma.transformation.attention_context import AttentionCandidateInput
 from personal_enigma.transformation.context_relations import with_relations
 from personal_enigma.transformation.passages import extract_minimal_passage

@@ -6,6 +6,18 @@ from personal_enigma.privacy.allowlist import (
     REMOTE_PAYLOAD_ALLOWLIST_DOC,
     REMOTE_PAYLOAD_TOP_LEVEL_KEYS,
 )
+from personal_enigma.privacy.egress import (
+    AuditedEgressGate,
+    EgressBlockedError,
+    EgressDisclosure,
+    PrivateDerived,
+    PrivateRaw,
+    RemoteSafeContext,
+    assert_remote_safe,
+    build_audited_egress_gate,
+    get_audited_egress_gate,
+    set_audited_egress_gate,
+)
 from personal_enigma.privacy.inspector import InspectionResult, inspect_transformed_context
 from personal_enigma.privacy.invariants import (
     PrivacyInvariantError,
@@ -30,18 +42,6 @@ from personal_enigma.privacy.safe_logging import (
     format_safe_log_event,
     redact_string,
     safe_log_fields,
-)
-from personal_enigma.privacy.egress import (
-    AuditedEgressGate,
-    EgressBlockedError,
-    EgressDisclosure,
-    PrivateDerived,
-    PrivateRaw,
-    RemoteSafeContext,
-    assert_remote_safe,
-    build_audited_egress_gate,
-    get_audited_egress_gate,
-    set_audited_egress_gate,
 )
 
 __all__ = [
