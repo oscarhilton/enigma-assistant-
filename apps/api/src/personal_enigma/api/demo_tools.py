@@ -710,6 +710,11 @@ def bind_authority_arguments(
         return bind_assist_approve(session, arguments)
     if name == ATTESTATION_TOOL:
         return bind_world_attestation(session, arguments, user_message=user_message)
+    if name == "agenda.get":
+        executed = dict(arguments)
+        if not executed.get("period") and session.context.temporal_constraint:
+            executed["period"] = session.context.temporal_constraint
+        return executed, None
     return dict(arguments), None
 
 

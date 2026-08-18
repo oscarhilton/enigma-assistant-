@@ -29,17 +29,20 @@ from typing import Any, Literal, Protocol
 from personal_enigma.api.conversation_context import (
     RECENT_DIALOGUE_LIMIT,
     ConversationContext,
+    RequestKind,
+    families_for_request_kind,
     match_named_referent,
     project_recent_dialogue_for_egress,
     referent_candidates,
     remember_turn_local_constraint,
 )
 from personal_enigma.api.demo_intents import build_support_payload
-from personal_enigma.api.demo_tools import tool_schemas
+from personal_enigma.api.demo_tools import DENIED_REMOTE_CAPABILITIES, tool_schemas
 from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
 from personal_enigma.api.speech_acts import (
     SpeechAct,
     classify_speech_act,
+    is_attribute_request,
     is_support_not_authority,
 )
 from personal_enigma.attention.projection import AttentionState
@@ -139,6 +142,38 @@ _GENERIC_EXPLANATION = re.compile(
     r"|what is (?:a |an |the )?(?!on\b|next\b|urgent\b|important\b))",
     re.IGNORECASE | re.DOTALL,
 )
+_HELP_CUE = re.compile(
+    r"\b(help|who do i ask|ask for)\b",
+    re.IGNORECASE,
+)
+_AGENDA_CUE = re.compile(
+    r"\b(what(?:['’]?s|s)? on|what else is on|on today|on this|agenda|calendar|schedule)\b",
+    re.IGNORECASE,
+)
+_NEXT_WORK_CUE = re.compile(
+    r"\b("
+    r"free time|what should i do|what should i be doing|"
+    r"working on next|any other tasks?|what else"
+    r")\b",
+    re.IGNORECASE,
+)
+_CATCH_UP_CUE = re.compile(
+    r"\b("
+    r"what have i missed|what did i miss|catch up|"
+    r"missed at work|need more data|something at work"
+    r")\b",
+    re.IGNORECASE,
+)
+_IMPORTANT_CUE = re.compile(r"\bimportant\b", re.IGNORECASE)
+_PHATIC = re.compile(
+    r"^\s*(hey|hi|hello|wait|:\)|thanks|thank you|ok|okay|cool|lol)\s*[!\.]*\s*$",
+    re.IGNORECASE,
+)
+_FRUSTRATION = re.compile(
+    r"^\s*(ffs+|ugh+|argh+|come on|seriously|for fuck['’]?s sake"
+    r"|this is (?:useless|pointless)|just tell me)\s*[!\.?]*\s*$",
+    re.IGNORECASE,
+)
 _FOCUS_NOW = re.compile(
     r"\b(focus(?:ed)? on|what should i (?:be )?(?:doing|focused)|"
     r"should be focused|what i should be focused)\b",
@@ -198,7 +233,11 @@ BASE_CONSTITUTION = (
 _PROFILE_INSTRUCTIONS: dict[str, str] = {
     "CONVERSATION": (
         "Ordinary conversation. No private-world facts. No tools. "
-        "recent_dialogue is anaphora only, not truth."
+        "recent_dialogue is anaphora only, not truth. "
+        "If the user asks for verified private-world details you cannot ground, "
+        "recall only what was explicitly said in recent_dialogue with humility "
+        "and say you need to check supporting evidence — never invent venues, "
+        "addresses, menus, prices, or commercial facts."
     ),
     "GENERAL_KNOWLEDGE": (
         "General knowledge. Private context: NONE. Tools: NONE. "
@@ -442,6 +481,42 @@ class RequestInterpretation:
     speech_act: SpeechAct
     constraints: RequestConstraints
     capability_families: tuple[str, ...]
+    request_kind: RequestKind | None = None
+    frame_inherited: bool = False
+
+
+_PRIVATE_SUBJECT_KINDS = frozenset({"attention_item", "next_action", "obligation"})
+_NAMED_UNAVAILABLE_CAPABILITIES: tuple[str, ...] = (
+    "timer.start",
+    "timer",
+    "email.send",
+    "gmail.send",
+    "whatsapp.send",
+    "reservation.confirm",
+    "reservation.book",
+    *DENIED_REMOTE_CAPABILITIES,
+)
+
+
+def _resolved_private_subject(session: _SessionLike | None) -> bool:
+    if session is None:
+        return False
+    subject_id = session.context.current_subject_id
+    if not subject_id:
+        return False
+    kind = session.context.current_subject_kind
+    if kind is None:
+        return subject_id.startswith("item-")
+    return kind in _PRIVATE_SUBJECT_KINDS
+
+
+def build_capability_contract(
+    allowed_tools: tuple[str, ...] | list[str],
+) -> dict[str, list[str]]:
+    allowed = list(allowed_tools)
+    allowed_set = set(allowed)
+    unavailable = [name for name in _NAMED_UNAVAILABLE_CAPABILITIES if name not in allowed_set]
+    return {"allowed": allowed, "unavailable": unavailable}
 
 
 @dataclass(frozen=True)
@@ -691,35 +766,237 @@ def _profile_for(domain: EvidenceDomain, authority: Authority) -> RequestProfile
     return "CONVERSATION"
 
 
+
+
+def is_generic_knowledge_utterance(utterance: str) -> bool:
+    return _is_generic_knowledge(utterance)
+
+
+def profile_for_axes(domain: EvidenceDomain, authority: Authority) -> RequestProfileName:
+    return _profile_for(domain, authority)
+
+
+def _is_frustration(utterance: str, act: SpeechAct) -> bool:
+    if act in {"USER_ATTESTATION", "PREPARE", "ACTION_REQUEST", "APPROVAL"}:
+        return False
+    if _is_generic_knowledge(utterance) or _PHATIC.search(utterance) is not None:
+        return False
+    return _FRUSTRATION.search(utterance) is not None
+
+
+def _is_phatic(utterance: str, act: SpeechAct) -> bool:
+    if act in {"USER_ATTESTATION", "PREPARE", "ACTION_REQUEST", "SUPPORT", "APPROVAL"}:
+        return False
+    if _is_frustration(utterance, act):
+        return False
+    return _PHATIC.search(utterance) is not None or act == "ORDINARY_CONVERSATION" and (
+        len(utterance.strip()) <= 3 and utterance.strip().casefold() not in {"and", "ffs"}
+    )
+
+
+def _request_kind_from_user_text(text: str) -> RequestKind | None:
+    constraints = _infer_constraints(text, None)
+    hay = text.casefold()
+    if constraints.source or any(needle in hay for needle in ("email", "inbox", "mail")):
+        if constraints.source or _IMPORTANT_CUE.search(text) or "inspect" in hay:
+            return "important_from_source"
+    if _IMPORTANT_CUE.search(text) and (
+        "what matters" in hay or "what's important" in hay or "whats important" in hay
+    ):
+        return "important_from_source"
+    if _CATCH_UP_CUE.search(text):
+        return "catch_up"
+    if constraints.period or _AGENDA_CUE.search(text):
+        if _NEXT_WORK_CUE.search(text) and not _AGENDA_CUE.search(text):
+            return "next_work"
+        return "agenda"
+    if _NEXT_WORK_CUE.search(text) or _FOCUS_NOW.search(text):
+        return "next_work"
+    if _has_private_world_cues(text, None):
+        return "next_work"
+    return None
+
+
+def _unsatisfied_private_request(
+    session: _SessionLike | None,
+    frame: Any,
+) -> tuple[RequestKind | None, RequestConstraints | None]:
+    retained = frame
+    if retained is None and session is not None:
+        retained = session.context.capsule
+    unresolved = getattr(retained, "unresolved_request", None) if retained is not None else None
+    if unresolved is not None:
+        return unresolved.kind, RequestConstraints(
+            period=getattr(retained, "temporal_constraint", None),
+            scope=getattr(retained, "scope", None),
+            source=getattr(retained, "source", None),
+        )
+    if session is None:
+        return None, None
+    for row in reversed(session.context.recent_dialogue):
+        if getattr(row, "role", None) != "user":
+            continue
+        text = getattr(row, "text", "") or ""
+        kind = _request_kind_from_user_text(text)
+        if kind is not None:
+            return kind, _infer_constraints(text, None)
+    return None, None
+
+
+def _should_inherit_frame(
+    *,
+    utterance: str,
+    act: SpeechAct,
+    fresh_domain: EvidenceDomain,
+    frame: Any,
+) -> bool:
+    if frame is None or frame.evidence_domain != "PRIVATE_WORLD":
+        return False
+    if _is_generic_knowledge(utterance):
+        return False
+    if act in {"USER_ATTESTATION", "PREPARE", "ACTION_REQUEST", "APPROVAL"}:
+        return False
+    if fresh_domain == "PRIVATE_WORLD":
+        return False
+    if frame.unresolved_request is not None:
+        return True
+    if _is_phatic(utterance, act):
+        return False
+    return fresh_domain in {"GENERAL_KNOWLEDGE", "CONVERSATION_ONLY"}
+
+
+def _inherit_constraints(constraints: RequestConstraints, frame: Any) -> RequestConstraints:
+    return RequestConstraints(
+        period=constraints.period or frame.temporal_constraint,
+        scope=constraints.scope or frame.scope,
+        source=constraints.source or frame.source,
+    )
+
+
+def _infer_request_kind(
+    *,
+    utterance: str,
+    domain: EvidenceDomain,
+    authority: Authority,
+    constraints: RequestConstraints,
+    families: tuple[str, ...],
+    frame: Any,
+    inherited: bool,
+) -> RequestKind | None:
+    if authority == "ATTEST":
+        return "attest"
+    if domain == "PRIVATE_WORLD" and is_attribute_request(utterance):
+        return "subject_details"
+    unresolved = frame.unresolved_request if frame is not None else None
+    if inherited and unresolved is not None:
+        return unresolved.kind
+    if _CATCH_UP_CUE.search(utterance):
+        return "catch_up"
+    if _FOCUS_NOW.search(utterance) or (
+        _NEXT_WORK_CUE.search(utterance) and not _HELP_CUE.search(utterance)
+    ):
+        return "next_work"
+    if constraints.source or "source" in families or _IMPORTANT_CUE.search(utterance):
+        if constraints.source or _IMPORTANT_CUE.search(utterance):
+            return "important_from_source"
+    if authority == "SUPPORT" or _HELP_CUE.search(utterance):
+        return "support_explain"
+    if constraints.period or _AGENDA_CUE.search(utterance) or "agenda" in families:
+        if _NEXT_WORK_CUE.search(utterance) and not _AGENDA_CUE.search(utterance):
+            return "next_work"
+        return "agenda"
+    if _NEXT_WORK_CUE.search(utterance) or "attention" in families:
+        return "next_work"
+    if domain == "PRIVATE_WORLD":
+        return "next_work"
+    return None
+
 def interpret_request(
     utterance: str,
     session: _SessionLike | None = None,
 ) -> RequestInterpretation:
-    """Interpret locally: domain, then authority, then candidate families.
-
-    Profile is the authority/evidence regime. It does not pick the exact tool
-    before families are visible. Frozen intent_router is a positive private-world
-    signal, not a QUESTION → GENERAL_KNOWLEDGE dump.
-    """
     act = classify_speech_act(utterance)
-    domain = _infer_evidence_domain(utterance, session, act)
+    fresh_domain = _infer_evidence_domain(utterance, session, act)
+    constraints = _infer_constraints(utterance, session)
+    frame = session.context.live_grounded_frame() if session is not None else None
+    inherited = _should_inherit_frame(
+        utterance=utterance,
+        act=act,
+        fresh_domain=fresh_domain,
+        frame=frame,
+    )
+    domain: EvidenceDomain = fresh_domain
+    if inherited and frame is not None:
+        domain = "PRIVATE_WORLD"
+        constraints = _inherit_constraints(constraints, frame)
+    elif frame is not None and not _is_generic_knowledge(utterance):
+        constraints = _inherit_constraints(constraints, frame)
+
     authority = _infer_authority(utterance, act, domain, session)
+    if inherited and _HELP_CUE.search(utterance) and act not in {"ACTION_REQUEST", "PREPARE"}:
+        authority = "SUPPORT"
     if domain in {"GENERAL_KNOWLEDGE", "CONVERSATION_ONLY"}:
         authority = "NONE"
-    constraints = _infer_constraints(utterance, session)
-    families = _infer_capability_families(
+    recovered_kind: RequestKind | None = None
+    if (
+        domain in {"GENERAL_KNOWLEDGE", "CONVERSATION_ONLY"}
+        and not _is_generic_knowledge(utterance)
+        and _is_frustration(utterance, act)
+    ):
+        recovered_kind, recovered_constraints = _unsatisfied_private_request(session, frame)
+        if recovered_kind is not None:
+            domain = "PRIVATE_WORLD"
+            authority = "READ"
+            inherited = True
+            if recovered_constraints is not None:
+                constraints = RequestConstraints(
+                    period=constraints.period or recovered_constraints.period,
+                    scope=constraints.scope or recovered_constraints.scope,
+                    source=constraints.source or recovered_constraints.source,
+                )
+    if (
+        session is not None
+        and _resolved_private_subject(session)
+        and act == "QUESTION"
+        and not _is_generic_knowledge(utterance)
+        and is_attribute_request(utterance)
+    ):
+        domain = "PRIVATE_WORLD"
+        authority = "READ"
+        if frame is not None:
+            constraints = _inherit_constraints(constraints, frame)
+    families = list(
+        _infer_capability_families(
+            domain=domain,
+            authority=authority,
+            utterance=utterance,
+            constraints=constraints,
+        )
+    )
+    kind = _infer_request_kind(
+        utterance=utterance,
         domain=domain,
         authority=authority,
-        utterance=utterance,
         constraints=constraints,
+        families=tuple(families),
+        frame=frame,
+        inherited=inherited,
     )
+    if inherited and kind is None and frame is not None and frame.unresolved_request is not None:
+        kind = frame.unresolved_request.kind
+    if kind is None and recovered_kind is not None:
+        kind = recovered_kind
+    families.extend(families_for_request_kind(kind))
+    families = list(dict.fromkeys(families))
     return RequestInterpretation(
         evidence_domain=domain,
         authority=authority,
         profile=_profile_for(domain, authority),
         speech_act=act,
         constraints=constraints,
-        capability_families=families,
+        capability_families=tuple(families),
+        request_kind=kind,
+        frame_inherited=inherited,
     )
 
 
@@ -1031,13 +1308,14 @@ def compile_remote_context(
     session: _SessionLike,
     *,
     profile: RequestProfileName | None = None,
+    interpretation: RequestInterpretation | None = None,
 ) -> CompiledRemoteContext:
     """SELECT requirements → fetch allowed contexts → TRANSFORM → compile prompt.
 
     Internally this is context compilation / context selection, not prompt pruning.
     Profile is the authority/evidence regime. Candidate families decide tools.
     """
-    interp = interpret_request(utterance, session)
+    interp = interpretation if interpretation is not None else interpret_request(utterance, session)
     if profile is not None:
         interp = RequestInterpretation(
             evidence_domain=interp.evidence_domain,
@@ -1046,6 +1324,8 @@ def compile_remote_context(
             speech_act=interp.speech_act,
             constraints=interp.constraints,
             capability_families=interp.capability_families,
+            request_kind=interp.request_kind,
+            frame_inherited=interp.frame_inherited,
         )
     _remember_constraints(session, interp.constraints)
     spec = profile_spec(interp.profile)
@@ -1069,11 +1349,20 @@ def compile_remote_context(
         used.append(name)
 
     tool_names = tools_for_interpretation(interp)
+    capsule = session.context.live_grounded_frame()
+    include_private_continuity = interp.evidence_domain == "PRIVATE_WORLD"
+    capsule_view = (
+        capsule.public_view() if capsule is not None and include_private_continuity else None
+    )
+    if capsule_view:
+        summary["conversation_capsule"] = capsule_view
     working_set = {
         "profile": interp.profile,
         "evidence_domain": interp.evidence_domain,
         "authority": interp.authority,
         "speech_act": interp.speech_act,
+        "request_kind": interp.request_kind,
+        "frame_inherited": interp.frame_inherited,
         "capability_families": list(interp.capability_families),
         "recent_dialogue_turns": len(summary.get("recent_dialogue") or []),
         "current_subject_id": summary.get("current_subject_id"),
@@ -1081,6 +1370,8 @@ def compile_remote_context(
         "temporal_constraint": interp.constraints.period or summary.get("temporal_constraint"),
         "scope": interp.constraints.scope,
         "source": interp.constraints.source,
+        "capsule": capsule_view,
+        "capability_contract": build_capability_contract(tool_names),
         "providers": list(used),
         "tools": list(tool_names),
     }
@@ -1132,11 +1423,14 @@ __all__ = [
     "RequestInterpretation",
     "RequestProfile",
     "RequestProfileName",
+    "build_capability_contract",
     "build_compiled_turn_manifest",
     "compile_remote_context",
     "compile_system_prompt",
     "compiled_envelope_blob",
     "interpret_request",
+    "is_generic_knowledge_utterance",
+    "profile_for_axes",
     "profile_spec",
     "select_request_profile",
     "tool_schemas_for",
