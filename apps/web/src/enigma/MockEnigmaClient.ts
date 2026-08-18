@@ -27,6 +27,12 @@ export class MockEnigmaClient implements EnigmaClient {
     return () => this.handlers.delete(handler);
   }
 
+  private emit(event: Parameters<EnigmaEventHandler>[0]): void {
+    for (const handler of this.handlers) {
+      handler(event);
+    }
+  }
+
   async getConversation(): Promise<ConversationItem[]> {
     return structuredClone(this.conversation);
   }

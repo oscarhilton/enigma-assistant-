@@ -10,7 +10,6 @@ Load only via ``alex_security_overlay`` (opt-in); never part of behavioural trut
 
 from __future__ import annotations
 
-import subprocess
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -117,22 +116,24 @@ def grep_directory_for_sentinels(
     root: Path,
     sentinels: tuple[str, ...] | None = None,
 ) -> list[tuple[Path, str]]:
-    """Return (path, sentinel) hits under *root* — empty list means PASS for shadow/egress."""
+    """Return (path, sentinel) hits under *root* — empty list means PASS for shadow/egress.
+
+    Literal substring search (same as ``rg -F``). Does not require ripgrep on PATH
+    so SEC canary CI runs on GitHub-hosted runners.
+    """
     needles = sentinels or ALL_CANARY_SENTINELS
     hits: list[tuple[Path, str]] = []
-    for sentinel in needles:
-        result = subprocess.run(
-            ["rg", "-F", sentinel, str(root)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            for line in result.stdout.splitlines():
-                if ":" not in line:
-                    continue
-                file_part, _ = line.split(":", 1)
-                hits.append((Path(file_part), sentinel))
+    if not root.exists():
+        return hits
+    files = [root] if root.is_file() else [path for path in root.rglob("*") if path.is_file()]
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for sentinel in needles:
+            if sentinel in text:
+                hits.append((path, sentinel))
     return hits
 
 

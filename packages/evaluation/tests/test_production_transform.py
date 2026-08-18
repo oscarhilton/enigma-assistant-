@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from pathlib import Path
 
 from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
 from personal_enigma.evaluation.llm_benchmark import (
-    snapshot_to_production_transformed,
     snapshot_to_context_dict,
+    snapshot_to_production_transformed,
 )
 from personal_enigma.reasoning.privacy_gate import assert_remote_safe
 from personal_enigma.transformation import DefaultEnigmaTransformer

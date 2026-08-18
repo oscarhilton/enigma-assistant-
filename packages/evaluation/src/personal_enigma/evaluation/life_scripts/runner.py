@@ -1208,7 +1208,11 @@ def _must_not_passed(
         )
     if flag == "promise_unavailable_capability":
         hit = any(needle in blob for needle in _UNAVAILABLE_CAPABILITY_PROMISES)
-        return not hit, "promised timer/send/reservation" if hit else "no unavailable-capability promise"
+        return not hit, (
+            "promised timer/send/reservation"
+            if hit
+            else "no unavailable-capability promise"
+        )
     if flag == "replace_conversational_choice":
         from personal_enigma.api.respond_grounding import violates_replace_conversational_choice
 

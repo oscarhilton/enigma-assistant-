@@ -35,7 +35,6 @@ from personal_enigma.api.conversation_context import (
     RECENT_DIALOGUE_LIMIT,
     ConversationContext,
     RequestKind,
-    TurnHandoff,
     families_for_request_kind,
     match_named_referent,
     project_recent_dialogue_for_egress,
@@ -1292,7 +1291,9 @@ def _turn_contract_satisfaction(
     return "unknown"
 
 
-def _evidence_available_labels(used_providers: list[str], summary: dict[str, Any]) -> tuple[str, ...]:
+def _evidence_available_labels(
+    used_providers: list[str], summary: dict[str, Any]
+) -> tuple[str, ...]:
     labels: list[str] = []
     if "current_subject_id" in summary:
         labels.append("current_subject")

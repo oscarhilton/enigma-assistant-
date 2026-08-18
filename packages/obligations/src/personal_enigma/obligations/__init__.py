@@ -1,8 +1,8 @@
 """Cross-source obligation merging and commitment tracking."""
 
 from personal_enigma.obligations.chat_extract import (
-    ChatExtractKind,
     ChatExtraction,
+    ChatExtractKind,
     ChatWorldState,
     DerivedFact,
     WaitingOn,
