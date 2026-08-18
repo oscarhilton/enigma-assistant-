@@ -27,12 +27,12 @@ describe("UI2-06 world isolation (v2 shell)", () => {
     expect(goose).toHaveAttribute("data-motion", "return");
     fireEvent.click(screen.getByRole("button", { name: /explain checked why this matters/i }));
     await waitFor(() => {
-      expect(screen.getByTestId("v2-work-explanation")).toBeInTheDocument();
+      expect(screen.getByTestId("v2-inspect-sheet")).toBeInTheDocument();
     });
 
     await switchV2World("my_enigma");
     expect(screen.queryByTestId("surface-goose")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("v2-work-explanation")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("v2-inspect-sheet")).not.toBeInTheDocument();
   });
 
   it("CASE_01 — case selected in world A cannot remain selected as if valid in B", async () => {
