@@ -12,7 +12,6 @@ import { buildCopyBundle } from "./copyBundles";
 import type { CopyTier, ForensicModel } from "./types";
 import { ForensicSectionCard } from "./ForensicSectionCard";
 import { useStreamTrace } from "../StreamTraceProvider";
-import { formatLane } from "../streamTrace";
 
 function TurnSnapshotBar({
   model,
@@ -170,22 +169,12 @@ function SectionsGrid({ model }: { model: ForensicModel }) {
         testId="section-streaming-trace"
       >
         {model.streamingTrace.data ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div data-testid="streaming-trace-prose">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                ASSISTANT OUTPUT
-              </p>
-              <p className="mt-1 font-mono text-sm">{formatLane(model.streamingTrace.data.prose.steps)}</p>
-            </div>
-            <div data-testid="streaming-trace-work">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                AGENT WORK
-              </p>
-              <p className="mt-1 font-mono text-sm">
-                {formatLane(model.streamingTrace.data.agentWork.steps)}
-              </p>
-            </div>
-          </div>
+          <pre
+            className="mt-1 overflow-x-auto whitespace-pre font-mono text-sm"
+            data-testid="streaming-trace-timeline"
+          >
+            {model.streamingTrace.data.formatted}
+          </pre>
         ) : null}
       </ForensicSectionCard>
 

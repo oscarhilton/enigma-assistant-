@@ -96,6 +96,7 @@ function TraceReadout() {
     <div>
       <span data-testid="trace-prose">{lastTrace ? lastTrace.prose.steps.join(",") : "none"}</span>
       <span data-testid="trace-work">{lastTrace ? lastTrace.agentWork.steps.join(",") : "none"}</span>
+      <pre data-testid="trace-timeline">{lastTrace?.formatted ?? "none"}</pre>
     </div>
   );
 }
@@ -227,6 +228,10 @@ describe("UI2-02 streaming", () => {
     await waitFor(() => {
       expect(screen.getByTestId("trace-work").textContent).toBe("investigating,handled");
       expect(screen.getByTestId("trace-prose").textContent).toBe("chunk,chunk,complete");
+      expect(screen.getByTestId("trace-timeline").textContent).toContain("STREAM TRACE");
+      expect(screen.getByTestId("trace-timeline").textContent).toContain("WORK");
+      expect(screen.getByTestId("trace-timeline").textContent).toContain("PROSE");
+      expect(screen.getByTestId("trace-timeline").textContent).toContain("TURN");
     });
     expect(screen.getByTestId("trace-work").textContent).not.toContain("chunk");
     expect(screen.getByTestId("trace-prose").textContent).not.toContain("investigating");
@@ -338,5 +343,6 @@ describe("UI2-02 streaming", () => {
     await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("false"));
     expect(screen.getByTestId("trace-prose").textContent).toBe("none");
     expect(screen.getByTestId("trace-work").textContent).toBe("none");
+    expect(screen.getByTestId("trace-timeline").textContent).toBe("none");
   });
 });

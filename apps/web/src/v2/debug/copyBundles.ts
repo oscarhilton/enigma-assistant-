@@ -39,6 +39,20 @@ function capturedOrNot<T>(section: ForensicSection<T>): unknown {
   return NOT_CAPTURED;
 }
 
+function streamingTraceForCopy(model: ForensicModel): unknown {
+  if (model.streamingTrace.status !== "wired" || !model.streamingTrace.data) {
+    return NOT_CAPTURED;
+  }
+  return {
+    timeline: model.streamingTrace.data.timeline,
+    formatted: model.streamingTrace.data.formatted,
+    lanes: {
+      prose: model.streamingTrace.data.prose,
+      agent_work: model.streamingTrace.data.agentWork,
+    },
+  };
+}
+
 function sectionSummary(model: ForensicModel) {
   return {
     user_input: model.userInput.status === "wired" ? "present" : model.userInput.status,
@@ -122,7 +136,7 @@ export function buildCopyBundle(model: ForensicModel, tier: CopyTier): string {
           excluded: model.remotePayload.data.disclosure?.excluded ?? model.notDisclosed.data.excluded,
           field_summary: model.remotePayload.data.disclosure?.payload_field_summary ?? null,
         },
-        streaming_trace: capturedOrNot(model.streamingTrace),
+        streaming_trace: streamingTraceForCopy(model),
         memory: capturedOrNot(model.memory),
         why_not: capturedOrNot(model.whyNot),
       }),

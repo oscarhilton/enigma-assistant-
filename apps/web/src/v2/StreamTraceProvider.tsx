@@ -1,10 +1,9 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { projectStreamTrace, type StreamingTraceProjection } from "./streamTrace";
-import type { ConversationStreamEvent } from "./streamTypes";
+import { projectStreamTrace, type CapturedStreamEvent, type StreamingTraceProjection } from "./streamTrace";
 
 type StreamTraceContextValue = {
   lastTrace: StreamingTraceProjection | null;
-  captureStreamEvents: (events: ConversationStreamEvent[]) => void;
+  captureStreamEvents: (events: CapturedStreamEvent[]) => void;
 };
 
 const StreamTraceContext = createContext<StreamTraceContextValue>({
@@ -14,7 +13,7 @@ const StreamTraceContext = createContext<StreamTraceContextValue>({
 
 export function StreamTraceProvider({ children }: { children: ReactNode }) {
   const [lastTrace, setLastTrace] = useState<StreamingTraceProjection | null>(null);
-  const captureStreamEvents = useCallback((events: ConversationStreamEvent[]) => {
+  const captureStreamEvents = useCallback((events: CapturedStreamEvent[]) => {
     setLastTrace(projectStreamTrace(events));
   }, []);
   const value = useMemo(

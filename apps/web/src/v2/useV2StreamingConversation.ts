@@ -10,6 +10,7 @@ import { useWorld } from "../pilot/WorldProvider";
 import { streamConversationMessage } from "./conversationStreamClient";
 import { gooseFromAgentWork } from "./gooseFromAgentWork";
 import { useStreamTrace } from "./StreamTraceProvider";
+import type { CapturedStreamEvent } from "./streamTrace";
 import type { ConversationStreamEvent } from "./streamTypes";
 import { appendStreamingText, type V2MessageRow } from "./V2ConversationViewport";
 
@@ -118,6 +119,7 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
   }, []);
 
   const cancel = useCallback(() => {
+    // Abort prose/fetch only — AgentWork is not cleared here.
     abortRef.current?.abort();
   }, []);
 
@@ -137,7 +139,7 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
       setStreamingText("");
       turnCompleteRef.current = false;
       lastTextRef.current = text;
-      const captured: ConversationStreamEvent[] = [];
+      const captured: CapturedStreamEvent[] = [];
       const pending: ConversationItem = {
         kind: "user_message",
         text,
@@ -157,7 +159,7 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
         const outcome = await streamConversationMessage(text, {
           signal: controller.signal,
           onEvent: (event) => {
-            captured.push(event);
+            captured.push({ capturedAt: Date.now(), event });
             captureStreamEvents(captured);
             if (event.type === "agent_work") {
               setAgentWork(event.data);
@@ -181,6 +183,7 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
         if (outcome === "aborted") {
           setStreamingText("");
           setGenerationStopped(true);
+          // Retain agentWork — last server snapshot stays for Goose.
           try {
             await session.refresh();
           } catch {
