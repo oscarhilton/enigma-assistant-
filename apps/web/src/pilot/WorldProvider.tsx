@@ -1,5 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { switchWorld as switchWorldApi } from "./api";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { fetchWorlds, switchWorld as switchWorldApi } from "./api";
 import { WORLD_LABELS, type WorldId } from "./types";
 
 type WorldContextValue = {
@@ -18,6 +26,13 @@ function defaultWorld(): WorldId {
   return "my_enigma";
 }
 
+function parseActiveWorld(value: string | undefined): WorldId | null {
+  if (value === "alex_lab" || value === "my_enigma") {
+    return value;
+  }
+  return null;
+}
+
 export function WorldProvider({
   children,
   initialWorld,
@@ -27,11 +42,35 @@ export function WorldProvider({
   initialWorld?: WorldId;
   persistToApi?: boolean;
 }) {
-  const [world, setWorld] = useState<WorldId>(initialWorld ?? defaultWorld());
+  const [world, setWorld] = useState<WorldId | null>(
+    persistToApi ? null : (initialWorld ?? defaultWorld()),
+  );
+
+  useEffect(() => {
+    if (!persistToApi) {
+      return;
+    }
+    let cancelled = false;
+    void fetchWorlds()
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+        setWorld(parseActiveWorld(payload.active) ?? initialWorld ?? defaultWorld());
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWorld(initialWorld ?? defaultWorld());
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialWorld, persistToApi]);
 
   const switchWorld = useCallback(
     async (next: WorldId) => {
-      if (next === world) {
+      if (world == null || next === world) {
         return;
       }
       if (persistToApi) {
@@ -43,13 +82,24 @@ export function WorldProvider({
   );
 
   const value = useMemo(
-    () => ({
-      world,
-      label: WORLD_LABELS[world],
-      switchWorld,
-    }),
+    () =>
+      world == null
+        ? null
+        : {
+            world,
+            label: WORLD_LABELS[world],
+            switchWorld,
+          },
     [switchWorld, world],
   );
+
+  if (world == null || value == null) {
+    return (
+      <div className="pilot-shell" data-testid="world-hydrating">
+        Loading world…
+      </div>
+    );
+  }
 
   return <WorldContext.Provider value={value}>{children}</WorldContext.Provider>;
 }
