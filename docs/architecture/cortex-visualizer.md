@@ -28,6 +28,14 @@ Cortex wakes after SEC-04 gives stable ingestion lifecycle events.
 
 Instrument panel, not control plane. No clicking nodes to mutate world model, approve assist, or alter attention.
 
+## Frozen rule (shared investigation)
+
+> **Resolve shared uncertainty once, then propagate the result to every dependent concern.**
+>
+> **Do not duplicate investigation merely because the same uncertainty appears in multiple pieces of work.**
+
+Identity is the **uncertainty itself**, not vaguely similar tasks. When two questions are the same epistemic dependency is left unanswered. Squeeze only when real pilot behaviour makes failing to recognise it visibly wasteful. THE Goose is not omniscient; one piece of real work can have three dependents. Event Spine already has most of the grammar.
+
 ## Read-only invariant
 
 ```
