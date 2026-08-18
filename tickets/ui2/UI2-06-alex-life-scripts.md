@@ -30,6 +30,8 @@
 
 **Checkpoint jump:** wholesale conversation replace must reconcile sidebar title — otherwise a prior thread label (e.g. ceramics) survives as an unjustified derivative after Alex Lab time-machine reset.
 
+**Boot level 1 only** ([data-boot.md](../../docs/architecture/data-boot.md)). Hugging Face full Alex corpus is **out of scope**. Do not download HF. Do not fold messy synthetic life into these five scripts. Full-life reprime is [P04](../pilot/P04-alex-full-life-reprime.md), not this ticket.
+
 **Freeze bar:**
 
 > Every constitutional Life Script must work in UI2, and every failure must produce a useful forensic snapshot without requiring console archaeology.
@@ -82,3 +84,4 @@ Agents implementing UI2-06 should be able to reproduce and diagnose failures thr
 ## Privacy constraints
 
 - Alex Lab only for synthetic scripts; My Enigma not used for Life Script replay
+- Hugging Face corpus / prebuilt Alex memory dump is out of scope (P04)
