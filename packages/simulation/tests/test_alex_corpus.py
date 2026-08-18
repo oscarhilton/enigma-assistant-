@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from personal_enigma.simulation import SimulationEngine, load_scenario
@@ -20,6 +21,19 @@ def test_alex_v1_loads_three_weeks() -> None:
     assert sources >= {"mail", "calendar", "reminders", "notes", "contacts"}
     assert (ALEX / "ground_truth" / "obligations.yaml").is_file()
     assert (ALEX / "entities" / "contacts.yaml").is_file()
+
+
+def test_alex_v1_0_2_1_stays_january() -> None:
+    """D08f month dirs are scaffold; 0.2.1 must not ingest nested YAML."""
+    pkg = load_scenario(ALEX)
+    latest = max(event.at for event in pkg.events)
+    assert latest.date() <= date(2026, 1, 25)
+    nested = list((ALEX / "timeline").glob("2026-0*/*.yaml"))
+    assert nested, "expected D08f month scaffold under timeline/YYYY-MM/"
+    nested_ids = {path.stem for path in nested}
+    loaded_ids = {event.id for event in pkg.events}
+    assert "f12-cal-maya-1-1" not in loaded_ids
+    assert "2026-02-12" in nested_ids
 
 
 def test_alex_v1_replay_deterministic(tmp_path: Path) -> None:

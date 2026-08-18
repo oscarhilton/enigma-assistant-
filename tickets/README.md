@@ -103,14 +103,14 @@ Shared protocol types (`packages/ingestion/.../protocol.py`) are owned by M01-er
 
 Milestone map: [docs/architecture/milestone-map.md](../docs/architecture/milestone-map.md).  
 Demo Mode architecture: [docs/architecture/demo-mode.md](../docs/architecture/demo-mode.md).  
-Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; do not invent a top-level D13 for corpus).  
+Background corpus: [docs/architecture/demo-corpus.md](../docs/architecture/demo-corpus.md) (D08a–e; six-month ordinary Alex is [D08f](./demo-scenario/D08f-alex-six-month.md) — version bump of `alex-v1`, not a top-level D13 and not `alex-v2`).  
 Shadow Mode: [docs/architecture/shadow-mode.md](../docs/architecture/shadow-mode.md) (S01–S06 after `v0.2.0-demo`).  
 Shadow evaluation rubric: [docs/architecture/shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) (seven post-Alex questions · SE01–SE03).  
 Shadow silence evaluation: [docs/architecture/shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) (SUPPRESS as prediction · SE04–SE10 · [ADR-009](../docs/adr/009-silence-as-prediction.md)).  
 Open-loop commitments: [docs/architecture/open-loop-commitments.md](../docs/architecture/open-loop-commitments.md) (SE11).  
 Attention surface (Phase 2.5 wind-tunnel / F-* naming): [docs/architecture/attention-surface.md](../docs/architecture/attention-surface.md).  
 Next Action (NEEDS YOU / WORTH DOING / CAN WAIT): [docs/architecture/next-action.md](../docs/architecture/next-action.md) · [ADR-010](../docs/adr/010-next-action-not-attention.md) · [M20](./domain-model/M20-next-action-schemas.md) · [N01](./next-action/N01-scorer-stub.md)–[N03](./next-action/N03-preference-learning.md).  
-Support fitness / Alex v2: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) (V2-EF-02 stretch after gate).  
+Support fitness overlay: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) ([V2-EF-02](./demo-scenario/V2-EF-02-ef-arc-authoring.md) stretch after gate — contracts on D08f threads, **not** a second Alex package).  
 **Reasoning Value Gate:** [reasoning-value-gate.md](../docs/demo/reasoning-value-gate.md) (R01–R07); [ADR-012](../docs/adr/012-reasoning-value-gate-decision.md).  
 **Superseded by R01–R04:** [V2-EF-01](./demo-scenario/V2-EF-01-support-contract-design.md) → R01 · [EF-01](./demo-evaluation/EF-01-support-fitness-evaluator.md) → R04 · [D14](./demo-evaluation/D14-llm-judge-benchmark.md) → R03 — do not claim separately.  
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
@@ -125,6 +125,7 @@ Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).
 | [D08c](./demo-scenario/D08c-background-integration.md) | `done` | Canonical+background merge; A/B recall hook |
 | [D08d](./demo-scenario/D08d-noise-layer.md) | `done` | Machine sludge + quiet-day (≠ D08c) |
 | [D08e](./demo-scenario/D08e-canonical-scale.md) | `done` | Scale ladder + curve shapes → Phase 2.5 |
+| [D08f](./demo-scenario/D08f-alex-six-month.md) | `todo` | Six-month **ordinary events** in `alex-v1` (version bump; not `alex-v2`). Months: [D08f-02](./demo-scenario/D08f-02-february.md)…[D08f-06](./demo-scenario/D08f-06-june.md) · scripts [D08f-scripts](./demo-scenario/D08f-scripts.md) |
 
 Architecture freeze preferred at `f404597` unless D08c proves a structural failure.
 

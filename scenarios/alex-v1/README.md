@@ -8,7 +8,7 @@ Canonical Demo Mode scenario package for **Alex Morgan** (fictional).
 | --- | --- |
 | Version | `0.2.1` |
 | Status | `benchmark` |
-| Span | 3 weeks (2026-01-05 → 2026-01-25) |
+| Span | 3 weeks (2026-01-05 → 2026-01-25) in 0.2.1. Six-month ordinary events (2026-01 → 2026-06) is the [D08f](../../tickets/demo-scenario/D08f-alex-six-month.md) version bump — nested month dirs are scaffold, **not loaded** until 0.3.0. |
 
 ## Immutability
 
@@ -18,7 +18,7 @@ Once released as a benchmark, treat the package as **immutable**.
 - **v0.2.1** is an evaluator-correction release: additive `ground_truth/` only
   (obligations, support contracts, windows) — no timeline edits.
 - Ship changes by bumping `version` in `scenario.yaml` while keeping package id / directory `alex-v1`.
-- Only introduce a new directory (new manifest `id`) if the corpus is intentionally forked into a separate package.
+- Only introduce a new directory (new manifest `id`) if the corpus is intentionally forked into a separate package. **Do not** fork Alex into `scenarios/alex-v2/` for six months — that is a version bump here ([D08f](../../tickets/demo-scenario/D08f-alex-six-month.md)).
 
 ## Layout
 
@@ -27,7 +27,8 @@ scenario.yaml      Package metadata
 persona.yaml       Declarative fictional persona
 background.yaml    Demo/canonical background density (evaluator metadata)
 entities/          Contacts roster
-timeline/          week-01.yaml … week-03.yaml
+timeline/          week-01.yaml … week-03.yaml (0.2.1 January)
+                   2026-01/ … 2026-06/  (D08f scaffold; source events only; ignored until 0.3.0)
 content/           Email / notes bodies
 ground_truth/      Obligations, commitments, windows, checkpoints, background signals
 attacks/           Adversarial packs (D9)

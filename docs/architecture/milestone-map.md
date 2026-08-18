@@ -36,7 +36,7 @@ Each milestone is a ticket under `tickets/<domain>/`. Do not reopen MVP architec
 
 ---
 
-## Phase 2 — Demo Mode — complete (D01–D12); corpus extension via D08a–e
+## Phase 2 — Demo Mode — complete (D01–D12); corpus extension via D08a–f
 
 Architecture: [demo-mode.md](./demo-mode.md) · [demo-corpus.md](./demo-corpus.md).  
 Branches: `ticket/Dxx-slug` (or `ticket/corpus-background-integration` for corpus foundation).  
@@ -59,6 +59,7 @@ Do **not** invent a top-level milestone for background corpus. Extend D03–D12 
 | D08c | Background integration (canonical + corpus) | `done` | [D08c](../../tickets/demo-scenario/D08c-background-integration.md) |
 | D08d | Noise layer (machine sludge) | `done` | [D08d](../../tickets/demo-scenario/D08d-noise-layer.md) |
 | D08e | Canonical scale profile (curves) | `done` | [D08e](../../tickets/demo-scenario/D08e-canonical-scale.md) |
+| D08f | Six-month ordinary life (`alex-v1` version bump) | `todo` | [D08f](../../tickets/demo-scenario/D08f-alex-six-month.md) |
 | D09 | Adversarial / privacy scenario pack | `done` | [D09](../../tickets/demo-scenario/D09-adversarial.md) |
 | D10 | Demo UI + explainability | `done` | [D10](../../tickets/demo-ui/D10-demo-ui.md) |
 | D11 | Provider recording + deterministic replay | `done` | [D11](../../tickets/demo-evaluation/D11-replay-provider.md) |
@@ -115,7 +116,7 @@ adversarial  UI     replay
 - D08 consumes D01–D07 — it is not “invent a life and patch the platform.”
 - Background corpus: **Story creates meaning. Corpus creates noise.** Public Demo only `SYNTHETIC_CONFIRMED` ([ADR-007](../adr/007-demo-corpus-provenance.md)).
 - Prefer architecture freeze at **`f404597`** unless D08c exposes a structural failure; favour evaluation depth over cleverness.
-- **D08c** is the first scientific gate (A/B spine vs background + artefacts). **D08d** = machine noise / quiet-day. **D08e** = scale curves to ~5k.
+- **D08c** is the first scientific gate (A/B spine vs background + artefacts). **D08d** = machine noise / quiet-day. **D08e** = scale curves to ~5k. **D08f** = six-month ordinary events in the same `alex-v1` package (not `alex-v2`).
 - Hold F-* tickets until D08c is green; then claim in the order documented in [tickets/README.md](../../tickets/README.md).
 - **Phase 2.5 exit** (PASS at `v0.2.0-demo`): see [demo-corpus.md](./demo-corpus.md#phase-25-exit--shadow-mode).
 - **Attention surface wind-tunnel** (alex-v1 dump → ~2 cards not 11): [attention-surface.md](./attention-surface.md).
@@ -129,7 +130,7 @@ Second benchmark dimension: **given what matters, did Enigma offer help that red
 
 | # | Milestone | Status | Ticket |
 | --- | --- | --- | --- |
-| V2-EF-02 | Alex v2 longitudinal arcs (stretch: 3 arcs) | `todo` (after R07) | [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) |
+| V2-EF-02 | Support-contract overlay on six-month Alex (stretch; not `alex-v2`) | `todo` (after R07 + D08f events) | [V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md) |
 | V2-EF-01 | Support contract schema + v1 catalogue | `superseded` → R01 | [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md) |
 | EF-01 | Support fitness evaluator (D07 extension) | `superseded` → R04 | [EF-01](../../tickets/demo-evaluation/EF-01-support-fitness-evaluator.md) |
 | D14 | LLM judge benchmark (structured attention + next_action) | `superseded` → R03 | [D14](../../tickets/demo-evaluation/D14-llm-judge-benchmark.md) |
@@ -137,11 +138,11 @@ Second benchmark dimension: **given what matters, did Enigma offer help that red
 ### Three squeezes (+ Contextual Next Action)
 
 1. Reasoning LLM at “what does this mean?” (M03, M15–M16)
-2. Longitudinal memory — 12-month Alex v2 ([V2-EF-02](../../tickets/demo-scenario/V2-EF-02-ef-arc-authoring.md))
+2. Longitudinal memory — six-month ordinary Alex in `alex-v1` ([D08f](../../tickets/demo-scenario/D08f-alex-six-month.md)); V2-EF-02 is support-contract overlay, not a second package
 3. Shadow Mode behavioural feedback ([shadow-mode-questions.md](./shadow-mode-questions.md))
 4. Contextual Next Action — support contracts + EF-01 before runtime product surface
 
-Claim order: **V2-EF-01** → **V2-EF-02** ∥ **EF-01** (after schema) → **D14** (after EF-01 scorer types). Do not edit `scenarios/alex-v1/` or `packages/attention/**` for this track.
+Claim order: **V2-EF-01** → **V2-EF-02** ∥ **EF-01** (after schema) → **D14** (after EF-01 scorer types). V2-EF-02 must **not** create `scenarios/alex-v2/` or rewrite D08f source months; do not edit `packages/attention/**`.
 
 > **Superseded for active work:** [V2-EF-01](../../tickets/demo-scenario/V2-EF-01-support-contract-design.md), [EF-01](../../tickets/demo-evaluation/EF-01-support-fitness-evaluator.md), and [D14](../../tickets/demo-evaluation/D14-llm-judge-benchmark.md) are consolidated into the **Reasoning Value Gate** track (R01–R04). Claim R* tickets instead.
 
@@ -183,7 +184,7 @@ R03 LLM judge   R04 Support fitness (absorbs EF-01; absorbs D14 scoring arm)
     R07 Exit report → ADR-012 decision
            │
            ▼ (stretch, after gate)
-    V2-EF-02 three longitudinal arcs only
+    V2-EF-02 support contracts on D08f threads (not alex-v2)
 ```
 
 **Hard rules**

@@ -51,7 +51,7 @@ Forbidden payload keys: `obligation(s)`, `commitment(s)`, `attention_item(s)`.
 ## Feature packs
 
 Tiny packs under `scenarios/feature/` (≈5–10 events) exercise single behaviours
-for CI. Canonical life corpus is `scenarios/alex-v1/` (D08).
+for CI. Canonical life corpus is `scenarios/alex-v1/` (D08). 0.2.1 is three January weeks. Six months of ordinary events is a **version bump** of the same package ([D08f](../tickets/demo-scenario/D08f-alex-six-month.md)) — nested `timeline/YYYY-MM/` dirs; not a second `alex-v2` fork. Do not create `ALEX_BIOGRAPHY.md`.
 
 ## Adversarial packs (D09)
 

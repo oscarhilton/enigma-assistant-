@@ -26,6 +26,22 @@ export default defineConfig({
           }
         },
       },
+      // Private FastAPI routes (egress disclosures, retention). Without this,
+      // same-origin fetch("/private/...") hits Vite's SPA fallback (index.html)
+      // and the UI crashes with `Unexpected token '<'`.
+      "/private": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        bypass(req) {
+          const accept = req.headers.accept;
+          const acceptHeader = Array.isArray(accept)
+            ? accept.join(",")
+            : (accept ?? "");
+          if (acceptHeader.includes("text/html")) {
+            return "/index.html";
+          }
+        },
+      },
     },
   },
   plugins: [react()],
