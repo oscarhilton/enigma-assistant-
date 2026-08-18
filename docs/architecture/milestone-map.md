@@ -278,8 +278,11 @@ S06 Exit criteria (before Private notifications)
 Architecture: [ADR-040](../adr/040-product-worlds-same-enigma.md) · tickets [pilot/](../../tickets/pilot/).  
 Invariant: Alex Lab and My Enigma share one shell; they never share storage roots or HMAC keys ([ADR-005](../adr/005-demo-private-storage-roots.md)).
 
-| # | Milestone | Status | Ticket |
-| --- | --- | --- | --- |
-| P01 | World isolation + pilot shell | `in_progress` | [P01](../../tickets/pilot/P01-world-isolation-pilot-shell.md) |
-| P02 | Alex Life Scripts as browser product tests | `future` | [P02](../../tickets/pilot/P02-alex-life-scripts-as-product-tests.md) |
-| P03 | Calendar READ + SUPPORT (no writes) | `future` | [P03](../../tickets/pilot/P03-calendar-read-support.md) |
+Data boot is three levels ([data-boot.md](./data-boot.md) · [ADR-042](../adr/042-three-level-data-boot.md)). P02 / UI2-06 are **Level 1** only. Hugging Face full-life reprime is **P04**, not UI2-06.
+
+| # | Milestone | Status | Ticket | Boot level |
+| --- | --- | --- | --- | --- |
+| P01 | World isolation + pilot shell | `done` | [P01](../../tickets/pilot/P01-world-isolation-pilot-shell.md) | — |
+| P02 | Alex Life Scripts as browser product tests | `done` | [P02](../../tickets/pilot/P02-alex-life-scripts-as-product-tests.md) | **1** constitutional |
+| P04 | Alex Full-Life Reprime (HF messy synthetic life) | `todo` | [P04](../../tickets/pilot/P04-alex-full-life-reprime.md) | **2** noisy life — not UI2-06 |
+| P03 | Calendar READ + SUPPORT (no writes) | `in_progress` | [P03](../../tickets/pilot/P03-calendar-read-support.md) | **3** My Enigma |

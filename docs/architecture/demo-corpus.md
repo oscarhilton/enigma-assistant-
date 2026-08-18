@@ -28,6 +28,8 @@ Demo Mode has two jobs: model a coherent fictional person over time, and prove E
 
 Canonical remains authoritative. Corpus provides **density**, not meaning. Ground truth stays evaluator-only.
 
+**Not Level 2 full-life reprime.** FinePersonas-around-spine is Demo Mode background density. Booting Alex Lab from a Hugging Face *messy full life* (email / WhatsApp / calendar / history through normal ingest) is [P04](../../tickets/pilot/P04-alex-full-life-reprime.md) — see [data-boot.md](./data-boot.md). Do not download HF to run Level 1 Life Scripts. Do not treat a corpus dump as a prebuilt Alex brain.
+
 ## FinePersonas role
 
 Primary synthetic background correspondence: Argilla
