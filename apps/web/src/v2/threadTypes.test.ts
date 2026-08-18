@@ -9,7 +9,17 @@ import {
 const ATTENTION_HEAD: ConversationItem = {
   kind: "attention_summary",
   at: "2026-01-19T10:00:00.000Z",
-  state: { needs_you: [], context: [], simulated_time: "2026-01-19T10:00:00.000Z" },
+  state: {
+    needs_you: [],
+    context: [],
+    next_actions: [],
+    simulated_time: "2026-01-19T10:00:00.000Z",
+    presentation: {
+      chat_opening_count: 0,
+      notification_slot_count: 0,
+      proactive_silence: true,
+    },
+  },
 };
 
 const USER_CERAMICS: ConversationItem = {
@@ -21,7 +31,7 @@ const USER_CERAMICS: ConversationItem = {
 describe("reconcileThreadTitleOnItemsChange", () => {
   it("keeps dialogue label after in-thread forget (append-only)", () => {
     const before = [ATTENTION_HEAD, USER_CERAMICS];
-    const after = [
+    const after: ConversationItem[] = [
       ...before,
       { kind: "enigma_message", text: "Okay — dropped.", at: "2026-01-19T10:02:00.000Z" },
     ];
@@ -30,7 +40,7 @@ describe("reconcileThreadTitleOnItemsChange", () => {
   });
 
   it("resets title on checkpoint wholesale replace", () => {
-    const before = [
+    const before: ConversationItem[] = [
       ATTENTION_HEAD,
       USER_CERAMICS,
       { kind: "enigma_message", text: "Got it.", at: "2026-01-19T10:01:30.000Z" },
