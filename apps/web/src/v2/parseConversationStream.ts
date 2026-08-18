@@ -59,30 +59,61 @@ export function parseSseBlock(block: string): ConversationStreamEvent | null {
 /** Parse an Enigma-native SSE body into typed conversation stream events. */
 export async function* parseConversationStream(
   body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal,
 ): AsyncGenerator<ConversationStreamEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      buffer += decoder.decode();
-      break;
+  const readChunk = (): Promise<ReadableStreamReadResult<Uint8Array>> => {
+    if (signal?.aborted) {
+      return Promise.reject(Object.assign(new Error("Aborted"), { name: "AbortError" }));
     }
-    buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split("\n\n");
-    buffer = parts.pop() ?? "";
-    for (const part of parts) {
-      const event = parseSseBlock(part);
+    if (!signal) {
+      return reader.read();
+    }
+    return new Promise((resolve, reject) => {
+      const onAbort = () => {
+        signal.removeEventListener("abort", onAbort);
+        void reader.cancel();
+        reject(Object.assign(new Error("Aborted"), { name: "AbortError" }));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      reader.read().then(
+        (result) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(result);
+        },
+        (error: unknown) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(error);
+        },
+      );
+    });
+  };
+  try {
+    while (true) {
+      const { done, value } = await readChunk();
+      if (done) {
+        buffer += decoder.decode();
+        break;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() ?? "";
+      for (const part of parts) {
+        const event = parseSseBlock(part);
+        if (event) {
+          yield event;
+        }
+      }
+    }
+    if (buffer.trim()) {
+      const event = parseSseBlock(buffer);
       if (event) {
         yield event;
       }
     }
-  }
-  if (buffer.trim()) {
-    const event = parseSseBlock(buffer);
-    if (event) {
-      yield event;
-    }
+  } finally {
+    reader.releaseLock();
   }
 }

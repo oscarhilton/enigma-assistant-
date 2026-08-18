@@ -24,15 +24,29 @@
 ## Acceptance criteria
 
 - [x] Incremental token/chunk rendering in v2 message list
-- [x] Cancel in-flight turn
+- [x] Cancel in-flight turn (Stop generating response — not cancel underlying work)
 - [x] Reconnect / resume semantics documented and tested
 - [x] AgentWork stream independent from text stream (Goose updates without waiting for text)
 - [x] v1 remains non-streaming
 
+## Cancel semantics (frozen)
+
+**Stop generating response ≠ cancel underlying work** unless the work itself is explicitly cancellable.
+
+When the user hits Stop during streaming:
+
+- Abort the fetch / prose stream (stop rendering new tokens).
+- Do **not** reset AgentWork — Goose reflects the last `agent_work` event received, not idle, unless the server sends that.
+- UI copy: "Stopped generating response" (not "Cancelled work").
+- Server emits **nothing** on client abort today — the client must not fabricate work cancellation.
+- Reconcile durable state via GET `/worlds/my_enigma/conversation` after Stop (`session.refresh()`).
+
 ## Test plan
 
 - Stream renders partial text before turn completes
-- Cancel aborts fetch and clears busy state
+- Stop aborts prose fetch and clears busy state without resetting AgentWork
+- Stop during prose preserves last `agent_work` Goose motion (e.g. `return`)
+- Composer shows generation-stopped copy, not work-cancel wording
 - Goose motion can update while text still streaming
 
 ## Privacy constraints

@@ -20,6 +20,7 @@ export function V2Shell() {
     busy,
     error,
     disconnected,
+    generationStopped,
     sendMessage,
     cancel,
     reconnect,
@@ -83,6 +84,7 @@ export function V2Shell() {
           disabled={loading}
           busy={busy}
           disconnected={disconnected}
+          generationStopped={generationStopped}
           error={error}
           onDismissError={clearError}
         />

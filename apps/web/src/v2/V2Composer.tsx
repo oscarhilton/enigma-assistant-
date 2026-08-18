@@ -9,11 +9,12 @@ type Props = {
   disabled?: boolean;
   busy?: boolean;
   disconnected?: boolean;
+  generationStopped?: boolean;
   error?: string | null;
   onDismissError?: () => void;
 };
 
-/** Bottom composer — streaming send, Stop cancel, Reconnect after drop. */
+/** Stop aborts prose generation, not underlying AgentWork. */
 export function V2Composer({
   onSend,
   onCancel,
@@ -21,6 +22,7 @@ export function V2Composer({
   disabled = false,
   busy = false,
   disconnected = false,
+  generationStopped = false,
   error = null,
   onDismissError,
 }: Props) {
@@ -63,6 +65,12 @@ export function V2Composer({
           ) : null}
         </p>
       ) : null}
+      {generationStopped ? (
+        <p className="mb-2 text-sm text-muted-foreground" data-testid="v2-generation-stopped">
+          Stopped generating response. Underlying work may still have completed — use Reconnect if
+          the thread looks incomplete.
+        </p>
+      ) : null}
       <form
         className="flex gap-2 max-w-3xl mx-auto"
         onSubmit={(event) => void handleSubmit(event)}
@@ -85,6 +93,8 @@ export function V2Composer({
             type="button"
             variant="outline"
             data-testid="v2-composer-stop"
+            title="Stop generating response (does not cancel underlying work)"
+            aria-label="Stop generating response"
             onClick={() => onCancel?.()}
           >
             Stop

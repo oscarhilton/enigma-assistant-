@@ -19,6 +19,8 @@ export type V2StreamingConversation = {
   busy: boolean;
   error: string | null;
   disconnected: boolean;
+  /** True after Stop — prose aborted; AgentWork unchanged. */
+  generationStopped: boolean;
   gooseLicence: GoosePixelLicence;
   client: ReturnType<typeof useEnigmaConversation>["client"];
   sendMessage: (text: string) => Promise<boolean>;
@@ -27,6 +29,12 @@ export type V2StreamingConversation = {
   clearError: () => void;
 };
 
+/**
+ * Cancel semantics (UI2-02): Stop generating response ≠ cancel underlying work.
+ * Stop aborts fetch/prose only; AgentWork keeps the last `agent_work` snapshot.
+ * Server emits nothing on client abort — we do not fabricate idle/complete.
+ * GET conversation (refresh) reconciles durable state after Stop or drop.
+ */
 export function useV2StreamingConversation(): V2StreamingConversation {
   const { world } = useWorld();
   const session = useEnigmaConversation();
@@ -35,6 +43,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
   const [agentWork, setAgentWork] = useState<AgentWorkSnapshot | null>(null);
   const [busy, setBusy] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
+  const [generationStopped, setGenerationStopped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastTextRef = useRef<string | null>(null);
@@ -65,6 +74,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
   }, []);
 
   const cancel = useCallback(() => {
+    // Abort prose/fetch only — AgentWork is not cleared here.
     abortRef.current?.abort();
   }, []);
 
@@ -76,6 +86,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
       }
       setBusy(true);
       setDisconnected(false);
+      setGenerationStopped(false);
       setError(null);
       setStreamingText("");
       turnCompleteRef.current = false;
@@ -120,8 +131,13 @@ export function useV2StreamingConversation(): V2StreamingConversation {
         });
         if (outcome === "aborted") {
           setStreamingText("");
-          setAgentWork(null);
-          setItems((current) => current.filter((item) => item !== pending));
+          setGenerationStopped(true);
+          // Retain agentWork — last server snapshot stays for Goose.
+          try {
+            await session.refresh();
+          } catch {
+            /* Reconnect can retry refresh */
+          }
           return false;
         }
         if (outcome === "disconnected") {
@@ -140,6 +156,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
   const reconnect = useCallback(async () => {
     setDisconnected(false);
     setError(null);
+    setGenerationStopped(false);
     try {
       await session.refresh();
     } catch {
@@ -159,6 +176,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
     busy: busy || (world !== "my_enigma" && session.busy),
     error: error ?? session.error,
     disconnected,
+    generationStopped,
     gooseLicence,
     client: session.client,
     sendMessage,

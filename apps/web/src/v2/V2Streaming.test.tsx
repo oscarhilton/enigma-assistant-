@@ -65,7 +65,11 @@ function delayedSse(): {
       controller?.enqueue(encoder.encode(chunk));
     },
     close() {
-      controller?.close();
+      try {
+        controller?.close();
+      } catch {
+        /* reader.cancel() may have already closed the stream */
+      }
     },
   };
 }
@@ -92,6 +96,7 @@ function StreamingHarness({ autoSend }: { autoSend?: string }) {
     <div>
       <span data-testid="busy">{String(session.busy)}</span>
       <span data-testid="disconnected">{String(session.disconnected)}</span>
+      <span data-testid="generation-stopped">{String(session.generationStopped)}</span>
       <span data-testid="streaming-text">{session.streamingText}</span>
       <span data-testid="goose-motion">{session.gooseLicence.motion}</span>
       <button type="button" onClick={() => session.cancel()}>
@@ -202,7 +207,7 @@ describe("UI2-02 streaming", () => {
     await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("false"));
   });
 
-  it("cancel aborts fetch and clears busy state", async () => {
+  it("Stop aborts prose without resetting AgentWork", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
@@ -215,8 +220,47 @@ describe("UI2-02 streaming", () => {
     );
     render(wrap(<StreamingHarness autoSend="ping" />));
     await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("true"));
+    await waitFor(() => expect(screen.getByTestId("goose-motion").textContent).toBe("walk"));
     fireEvent.click(screen.getByText("cancel-harness"));
     await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("false"));
+    expect(screen.getByTestId("streaming-text").textContent).toBe("");
+    expect(screen.getByTestId("goose-motion").textContent).toBe("walk");
+    expect(screen.getByTestId("generation-stopped").textContent).toBe("true");
+  });
+
+  it("Stop during prose keeps last agent_work — no fabricated work cancel", async () => {
+    const delayed = delayedSse();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).includes(CONVERSATION_STREAM_PATH)) {
+          return delayed.response;
+        }
+        throw new Error(`unexpected fetch ${String(input)}`);
+      }),
+    );
+    render(wrap(<StreamingHarness autoSend="What's on tomorrow?" />));
+    await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("true"));
+    delayed.push(
+      'event: agent_work\ndata: {"exists":true,"phase":"complete","semantic_token":"Checked your week","inspect_labels":["Checked your week"]}\n\n',
+    );
+    await waitFor(() => expect(screen.getByTestId("goose-motion").textContent).toBe("return"));
+    delayed.push('event: prose\ndata: {"delta":"Team "}\n\n');
+    await waitFor(() => expect(screen.getByTestId("streaming-text").textContent).toBe("Team "));
+    fireEvent.click(screen.getByText("cancel-harness"));
+    await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("false"));
+    expect(screen.getByTestId("streaming-text").textContent).toBe("");
+    expect(screen.getByTestId("goose-motion").textContent).toBe("return");
+    expect(screen.getByTestId("generation-stopped").textContent).toBe("true");
+    delayed.close();
+  });
+
+  it("composer shows generation-stopped copy, not work-cancel wording", () => {
+    render(
+      <V2Composer onSend={async () => undefined} generationStopped onReconnect={async () => undefined} />,
+    );
+    expect(screen.getByTestId("v2-generation-stopped")).toHaveTextContent("Stopped generating response");
+    expect(screen.getByTestId("v2-generation-stopped").textContent).not.toMatch(/cancel.*work/i);
   });
 
   it("reconnect retries when turn_complete never arrived", async () => {

@@ -8,6 +8,12 @@ export const CONVERSATION_STREAM_PATH = "/worlds/my_enigma/conversation/message/
 export type StreamOutcome = "complete" | "aborted" | "disconnected";
 
 /**
+ * Cancel semantics (UI2-02):
+ *
+ * Stop aborts the fetch / prose stream only. The server does **not** emit an
+ * event on client abort — the client must not reset AgentWork or imply work was
+ * cancelled. Reconcile durable state via GET conversation after Stop.
+ *
  * Reconnect / resume semantics (UI2-02):
  *
  * The SSE stream is **not** byte-offset resumable. Core commits the turn
@@ -51,7 +57,7 @@ export async function streamConversationMessage(
       options.onEvent({ type: "error", data: { message: "Stream had no body" } });
       return "disconnected";
     }
-    for await (const event of parseConversationStream(response.body)) {
+    for await (const event of parseConversationStream(response.body, options.signal)) {
       if (options.signal?.aborted) {
         return "aborted";
       }
