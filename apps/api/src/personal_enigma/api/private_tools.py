@@ -44,6 +44,7 @@ PRIVATE_DENIED_TOOL_NAMES: frozenset[str] = frozenset(
         "source.quote",
         "gmail.search",
         "gmail.send",
+        "calendar.sync",
     )
 )
 

@@ -1,0 +1,16 @@
+scenario: goose_calibration_hardware
+status: pending_operator
+observed:
+  bridge_reachable: false
+  bridge_url: http://127.0.0.1:8765/health
+  note: Apple Bridge not running at plan execution time; operator must run docs/pilot/goose-calibration-hardware.md on macOS with bridge live.
+problem: true
+severity: low
+possible_fix: NOT YET
+next_steps:
+  - Start apple-bridge with ENIGMA_BRIDGE_TOKEN
+  - Set ENIGMA_PILOT_APPLE_CALENDAR_IDS
+  - Create Goose Calibration event tomorrow 14:30
+  - POST /worlds/my_enigma/calendar/sync
+  - Run three boring pilot questions
+  - Mark P03 done when checklist passes

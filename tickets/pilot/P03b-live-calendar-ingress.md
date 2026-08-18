@@ -2,15 +2,13 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (CI slice #110) |
 | Branch | `ticket/P03b-live-calendar-ingress` |
 | Domain | `pilot` |
 | Programme | [PILOT-01](./README.md) |
 | Parent | [P03](./P03-calendar-read-support.md) (`in_progress` — **not done**) |
 
-P03a ([#109](https://github.com/oscarhilton/enigma-assistant-/pull/109), `9f76394`) froze the **fixture/store → reduced facts → Tomorrow/Weekend/Availability** path. P03b proves a **real** calendar event can enter that same path through intended live ingress.
-
-Live hardware (Apple Bridge / Google OAuth) cannot be proven in CI. This ticket stays open until one actual event is observed on a machine with the bridge. The CI slice only proves the production route is **not fixture-only**.
+Live hardware proof moved to [P03c](./P03c-apple-live-ingress.md). CI slice merged in [#110](https://github.com/oscarhilton/enigma-assistant-/pull/110).
 
 ## Intent
 
