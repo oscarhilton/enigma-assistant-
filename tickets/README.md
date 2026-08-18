@@ -25,7 +25,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), `ticket/Cxx-slug` (Conversational UI), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field. Do not claim `future` tickets.
+3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), `ticket/Cxx-slug` (Conversational UI), `ticket/Pxx-slug` (PILOT-01 / My Enigma), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field. Do not claim `future` tickets.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
@@ -79,13 +79,14 @@ Existing in-repo `.worktrees/` checkouts are legacy; prefer sibling `../enigma-w
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
 | demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md)–[D18](./demo-ui/D18-demo-next-action.md)) — **frozen** for new polish beyond claimed tickets |
 | conversational-ui | [conversational-ui/](./conversational-ui/) | Conversational home + EnigmaClient ([C00](./conversational-ui/C00-demo-attention-projection.md)–[C08](./conversational-ui/C08-live-enigma-client.md)); [C09](./conversational-ui/C09-llm-conversational-boundary.md) LLM boundary; [C11](./conversational-ui/C11-tone-memory.md) tone memory (`future`); [C12](./conversational-ui/C12-life-scripts.md) Life Scripts; [C14](./conversational-ui/C14-conversation-activity-stream.md) activity stream; [C38](./conversational-ui/C38-shared-uncertainty-collapse.md) shared uncertainty collapse (`future`); [C39](./conversational-ui/C39-handoff-working-conclusion.md) handoff working conclusion (`future`); [architecture doc](../docs/architecture/conversational-ui.md) · [ADR-020](../docs/adr/020-llm-conversational-boundary-not-truth.md) |
+| pilot | [pilot/](./pilot/) | PILOT-01 My Enigma — same product, two worlds ([P01](./pilot/P01-world-isolation-pilot-shell.md) isolation + shell · [P02](./pilot/P02-alex-life-scripts-as-product-tests.md) / [P03](./pilot/P03-calendar-read-support.md) `future`); [ADR-040](../docs/adr/040-product-worlds-same-enigma.md) |
 | shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval (SE01–SE03) + silence track (SE04–SE10) + open-loop dues (SE11); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) · [shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) · [ADR-009](../docs/adr/009-silence-as-prediction.md). SE* must not edit `EnvironmentMode`. |
 
 ## Programme state (2026-08-18)
 
 #103: observational infrastructure, no poultry expansion.
 C36: intentionally unclaimed.
-Next major programme: PILOT-01 — turn the simulator into a pilotable application (My Enigma).
+**PILOT-01 started** at [P01](./pilot/P01-world-isolation-pilot-shell.md) — World Isolation + Pilot Shell (`ticket/P01-world-isolation`). Same Enigma, two worlds, hard storage/HMAC boundary ([ADR-040](../docs/adr/040-product-worlds-same-enigma.md)). P02 (Life Scripts as browser tests) and P03 (Calendar READ+SUPPORT) stay `future`.
 
 Two tracks, not to contaminate:
 C37 — Is THE Goose telling the truth about work?

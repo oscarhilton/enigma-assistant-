@@ -270,3 +270,16 @@ S06 Exit criteria (before Private notifications)
 - Every silence is a logged prediction ([ADR-009](../adr/009-silence-as-prediction.md)); empty UI ≠ exit evidence ([shadow-silence-evaluation.md](./shadow-silence-evaluation.md)).
 - SE* tickets soft-depend on S01–S06 / earlier SE*; they must not re-implement env/banner/storage.
 - Do not edit Demo attention freeze / D15 card UX from silence tickets; do not start Gmail OAuth from this track.
+
+---
+
+## PILOT-01 — My Enigma (same product, two worlds)
+
+Architecture: [ADR-040](../adr/040-product-worlds-same-enigma.md) · tickets [pilot/](../../tickets/pilot/).  
+Invariant: Alex Lab and My Enigma share one shell; they never share storage roots or HMAC keys ([ADR-005](../adr/005-demo-private-storage-roots.md)).
+
+| # | Milestone | Status | Ticket |
+| --- | --- | --- | --- |
+| P01 | World isolation + pilot shell | `in_progress` | [P01](../../tickets/pilot/P01-world-isolation-pilot-shell.md) |
+| P02 | Alex Life Scripts as browser product tests | `future` | [P02](../../tickets/pilot/P02-alex-life-scripts-as-product-tests.md) |
+| P03 | Calendar READ + SUPPORT (no writes) | `future` | [P03](../../tickets/pilot/P03-calendar-read-support.md) |

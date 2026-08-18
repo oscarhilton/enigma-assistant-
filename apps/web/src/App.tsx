@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { NavLink, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import {
   DemoAttentionPage,
   DemoLayout,
@@ -9,10 +9,12 @@ import {
   DemoSuppressedPage,
   DemoWhyPage,
 } from "./demo";
+import { EnigmaProvider } from "./enigma/EnigmaProvider";
 import { ChatPage } from "./pages/ChatPage";
 import { HomePage } from "./pages/HomePage";
 import { PrivacyInspectorPage } from "./pages/PrivacyInspectorPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { CasesSurface, PilotShell, WorldProvider, useWorld } from "./pilot";
 import { ShadowModeBanner } from "./shadow";
 
 function PersistentModeBanners() {
@@ -32,16 +34,25 @@ function PersistentModeBanners() {
   );
 }
 
-export function App() {
+function PilotLayout() {
+  const { world } = useWorld();
+  // ADR-040: remount world-derived React state on switch (conversation, Today, Cases, Goose).
+  return (
+    <EnigmaProvider key={world}>
+      <PilotShell />
+    </EnigmaProvider>
+  );
+}
+
+function SecondaryShell() {
   return (
     <div className="shell">
-      <PersistentModeBanners />
       <header className="topbar">
         <NavLink to="/" className="brand">
-          personal-enigma
+          Enigma
         </NavLink>
         <nav>
-          <NavLink to="/">Home</NavLink>
+          <NavLink to="/">Today</NavLink>
           <NavLink to="/settings">Settings</NavLink>
           <NavLink to="/privacy">Privacy</NavLink>
           <NavLink to="/chat">Chat</NavLink>
@@ -49,8 +60,22 @@ export function App() {
         </nav>
       </header>
       <main>
-        <Routes>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <WorldProvider persistToApi={import.meta.env.MODE !== "test"}>
+      <PersistentModeBanners />
+      <Routes>
+        <Route element={<PilotLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/cases" element={<CasesSurface />} />
+        </Route>
+        <Route element={<SecondaryShell />}>
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/privacy" element={<PrivacyInspectorPage />} />
           <Route path="/chat" element={<ChatPage />} />
@@ -62,8 +87,8 @@ export function App() {
             <Route path="suppressed" element={<DemoSuppressedPage />} />
             <Route path="why/:itemId" element={<DemoWhyPage />} />
           </Route>
-        </Routes>
-      </main>
-    </div>
+        </Route>
+      </Routes>
+    </WorldProvider>
   );
 }

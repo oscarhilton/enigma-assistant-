@@ -33,6 +33,14 @@ from personal_enigma.simulation.scenario import (
     try_load_scenario,
 )
 from personal_enigma.simulation.scenario_rng import scenario_rng
+from personal_enigma.simulation.worlds import (
+    WorldHandle,
+    WorldId,
+    WorldIsolationError,
+    WorldRegistry,
+    default_world_from_env,
+    parse_world_id,
+)
 
 __all__ = [
     "DEMO_BANNER_TEXT",
@@ -53,11 +61,17 @@ __all__ = [
     "SimulationEngine",
     "SimulationEvent",
     "SystemClock",
+    "WorldHandle",
+    "WorldId",
+    "WorldIsolationError",
+    "WorldRegistry",
     "assert_source_allowed_for_mode",
     "build_environment",
+    "default_world_from_env",
     "discover_scenarios",
     "environment_mode_from_env",
     "load_scenario",
+    "parse_world_id",
     "refuse_demo_data_migration",
     "scenario_rng",
     "storage_root_for",

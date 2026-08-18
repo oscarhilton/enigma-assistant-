@@ -7,49 +7,65 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { PrivateWorldClient } from "../pilot/PrivateWorldClient";
+import type { WorldId } from "../pilot/types";
+import { WorldMockClient } from "../pilot/WorldMockClient";
+import { useWorld } from "../pilot/WorldProvider";
 import type { EnigmaClient } from "./client";
 import { DemoEnigmaClient } from "./DemoEnigmaClient";
 import { stitchLlmTrace } from "./forensicDump";
-import { MockEnigmaClient } from "./MockEnigmaClient";
 
 const EnigmaClientContext = createContext<EnigmaClient | null>(null);
 
-function resolveClient(): EnigmaClient {
-  const mode = import.meta.env.VITE_ENIGMA_MODE as string | undefined;
-  if (mode === "demo") {
+type ConversationSession = {
+  items: Awaited<ReturnType<EnigmaClient["getConversation"]>>;
+  attention: Awaited<ReturnType<EnigmaClient["getAttentionState"]>> | null;
+  loading: boolean;
+  busy: boolean;
+  error: string | null;
+  selectedCaseId: string | null;
+  selectCase: (id: string | null) => void;
+  clearError: () => void;
+  sendMessage: (text: string) => Promise<void>;
+  approveAssist: (proposalId: string) => Promise<void>;
+  refresh: () => Promise<void>;
+  client: EnigmaClient;
+};
+
+const ConversationContext = createContext<ConversationSession | null>(null);
+
+function resolveClient(world: WorldId): EnigmaClient {
+  if (import.meta.env.MODE === "test") {
+    return WorldMockClient.forWorld(world);
+  }
+  if (world === "alex_lab") {
     return new DemoEnigmaClient();
   }
-  return new MockEnigmaClient();
+  return new PrivateWorldClient();
 }
 
-export function EnigmaProvider({
-  children,
-  client,
-}: {
-  children: ReactNode;
-  client?: EnigmaClient;
-}) {
-  const value = useMemo(() => client ?? resolveClient(), [client]);
-  return <EnigmaClientContext.Provider value={value}>{children}</EnigmaClientContext.Provider>;
-}
-
-export function useEnigmaClient(): EnigmaClient {
-  const client = useContext(EnigmaClientContext);
-  if (!client) {
-    throw new Error("useEnigmaClient requires EnigmaProvider");
+function useOptionalWorldId(): WorldId {
+  try {
+    return useWorld().world;
+  } catch {
+    const mode = import.meta.env.VITE_ENIGMA_MODE as string | undefined;
+    return mode === "demo" ? "alex_lab" : "my_enigma";
   }
-  return client;
 }
 
-export function useEnigmaConversation() {
-  const client = useEnigmaClient();
-  const [items, setItems] = useState<Awaited<ReturnType<EnigmaClient["getConversation"]>>>([]);
-  const [attention, setAttention] = useState<Awaited<ReturnType<EnigmaClient["getAttentionState"]>> | null>(
-    null,
-  );
+function ConversationHost({
+  client,
+  children,
+}: {
+  client: EnigmaClient;
+  children: ReactNode;
+}) {
+  const [items, setItems] = useState<ConversationSession["items"]>([]);
+  const [attention, setAttention] = useState<ConversationSession["attention"]>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const [rows, state] = await Promise.all([client.getConversation(), client.getAttentionState()]);
@@ -92,49 +108,111 @@ export function useEnigmaConversation() {
     };
   }, [client]);
 
-  async function sendMessage(text: string) {
-    setBusy(true);
-    setError(null);
-    try {
-      const turn = await client.sendMessage(text);
-      await refresh();
-      setItems((current) => stitchLlmTrace(current, turn.llm_trace ?? turn.debug));
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : "Message failed");
-      throw cause;
-    } finally {
-      setBusy(false);
-    }
-  }
+  const sendMessage = useCallback(
+    async (text: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const turn = await client.sendMessage(text);
+        await refresh();
+        setItems((current) => stitchLlmTrace(current, turn.llm_trace ?? turn.debug));
+      } catch (cause: unknown) {
+        setError(cause instanceof Error ? cause.message : "Message failed");
+        throw cause;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [client, refresh],
+  );
 
-  async function approveAssist(proposalId: string) {
-    setBusy(true);
-    setError(null);
-    try {
-      await client.approveAssist(proposalId);
-      await refresh();
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : "Approval failed");
-      throw cause;
-    } finally {
-      setBusy(false);
-    }
-  }
+  const approveAssist = useCallback(
+    async (proposalId: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        await client.approveAssist(proposalId);
+        await refresh();
+      } catch (cause: unknown) {
+        setError(cause instanceof Error ? cause.message : "Approval failed");
+        throw cause;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [client, refresh],
+  );
 
-  function clearError() {
+  const clearError = useCallback(() => {
     setError(null);
-  }
+  }, []);
 
-  return {
-    items,
-    attention,
-    loading,
-    busy,
-    error,
-    clearError,
-    sendMessage,
-    approveAssist,
-    refresh,
-    client,
-  };
+  const selectCase = useCallback((id: string | null) => {
+    setSelectedCaseId(id);
+  }, []);
+
+  const session = useMemo(
+    () => ({
+      items,
+      attention,
+      loading,
+      busy,
+      error,
+      selectedCaseId,
+      selectCase,
+      clearError,
+      sendMessage,
+      approveAssist,
+      refresh,
+      client,
+    }),
+    [
+      approveAssist,
+      attention,
+      busy,
+      clearError,
+      client,
+      error,
+      items,
+      loading,
+      refresh,
+      selectCase,
+      selectedCaseId,
+      sendMessage,
+    ],
+  );
+
+  return <ConversationContext.Provider value={session}>{children}</ConversationContext.Provider>;
+}
+
+export function EnigmaProvider({
+  children,
+  client,
+}: {
+  children: ReactNode;
+  client?: EnigmaClient;
+}) {
+  const world = useOptionalWorldId();
+  const value = useMemo(() => client ?? resolveClient(world), [client, world]);
+  return (
+    <EnigmaClientContext.Provider value={value}>
+      <ConversationHost client={value}>{children}</ConversationHost>
+    </EnigmaClientContext.Provider>
+  );
+}
+
+export function useEnigmaClient(): EnigmaClient {
+  const client = useContext(EnigmaClientContext);
+  if (!client) {
+    throw new Error("useEnigmaClient requires EnigmaProvider");
+  }
+  return client;
+}
+
+export function useEnigmaConversation(): ConversationSession {
+  const session = useContext(ConversationContext);
+  if (!session) {
+    throw new Error("useEnigmaConversation requires EnigmaProvider");
+  }
+  return session;
 }

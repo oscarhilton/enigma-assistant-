@@ -72,6 +72,22 @@ Apple Bridge is trusted local software. It does not call an LLM and does not exp
 | `packages/evaluation` | Demo / Shadow evaluation runner / metrics |
 | `scenarios/` | Immutable Demo scenario packages (e.g. `alex-v1`) |
 
+## Product worlds (PILOT-01)
+
+Alex Lab and My Enigma are the **same Enigma** against different worlds — not a demo app vs a real app ([ADR-040](../adr/040-product-worlds-same-enigma.md)):
+
+```text
+                        ENIGMA
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+          ALEX LAB                 MY ENIGMA
+       deterministic              real governed
+       synthetic world               world
+```
+
+Same shell (Today, Cases, Assistant, THE Goose). Different adapters, storage roots, clocks, and identities. Demo never shares Private HMAC / PERSON_* keys ([ADR-005](../adr/005-demo-private-storage-roots.md)).
+
 See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.  
 Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).  
 Background email corpus: [demo-corpus.md](./demo-corpus.md).  
