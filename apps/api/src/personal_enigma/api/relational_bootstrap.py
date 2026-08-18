@@ -38,6 +38,31 @@ _AUTHORITY_CREATING_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"this is (?:the )?truth", re.I),
 )
 
+_NON_BANTER_FRAMES: frozenset[str] = frozenset(
+    {"serious", "support", "disclosure", "neutral"}
+)
+
+
+def _banter_permitted(ephemeral_register: str) -> bool:
+    """Current frame from ephemeral register — not a phrase list."""
+    reg = ephemeral_register.strip().casefold()
+    if not reg:
+        return False
+    return reg not in _NON_BANTER_FRAMES
+
+
+def _culture_fields_for_compile(
+    inputs: RelationalBootstrapInputs,
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], str, bool]:
+    """Compilation-time palette: culture omitted when frame forbids banter."""
+    register = inputs.ephemeral_register.strip()
+    prefs = tuple(p.strip() for p in inputs.interaction_prefs if p.strip())
+    conventions = tuple(c.strip() for c in inputs.shared_conventions if c.strip())
+    exemplars = tuple(e.strip() for e in inputs.exemplars if e.strip())
+    if not _banter_permitted(register):
+        return (), (), (), register, False
+    return prefs, conventions, exemplars, register, True
+
 
 def _collect_input_text(inputs: RelationalBootstrapInputs) -> str:
     parts = [
@@ -48,6 +73,19 @@ def _collect_input_text(inputs: RelationalBootstrapInputs) -> str:
         *inputs.exemplars,
     ]
     return "\n".join(p for p in parts if p)
+
+
+
+def _reject_forbidden_leaks(
+    inputs: RelationalBootstrapInputs, forbidden_leaks: tuple[str, ...]
+) -> None:
+    blob = _collect_input_text(inputs)
+    for leak in forbidden_leaks:
+        if leak and leak.casefold() in blob.casefold():
+            raise ValueError(
+                "relational bootstrap must not contain leaked personal text: "
+                f"{leak!r}"
+            )
 
 
 def _reject_forbidden_bootstrap_language(inputs: RelationalBootstrapInputs) -> None:
@@ -83,6 +121,7 @@ class RelationalBootstrapBlock:
     shared_conventions: tuple[str, ...]
     ephemeral_register: str
     exemplars: tuple[str, ...]
+    culture_palette_available: bool = True
     segregated_from_evidence: bool = True
     grants_authority: bool = False
 
@@ -97,6 +136,7 @@ class RelationalBootstrapBlock:
                 "shared_conventions": list(self.shared_conventions),
                 "ephemeral_register": self.ephemeral_register,
                 "exemplars": list(self.exemplars),
+                "culture_palette_available": self.culture_palette_available,
             },
         }
 
@@ -109,23 +149,28 @@ def compile_relational_bootstrap(
     if inputs is None:
         return None
     _reject_forbidden_bootstrap_language(inputs)
+    _reject_forbidden_leaks(inputs, forbidden_leaks)
+    prefs, conventions, exemplars, register, culture_available = _culture_fields_for_compile(
+        inputs
+    )
     if not any(
         (
             inputs.product_voice.strip(),
-            inputs.interaction_prefs,
-            inputs.shared_conventions,
-            inputs.ephemeral_register.strip(),
-            inputs.exemplars,
+            prefs,
+            conventions,
+            register,
+            exemplars,
         )
     ):
         return None
     block = RelationalBootstrapBlock(
         kind="relational_bootstrap",
         product_voice=inputs.product_voice.strip(),
-        interaction_prefs=tuple(p.strip() for p in inputs.interaction_prefs if p.strip()),
-        shared_conventions=tuple(c.strip() for c in inputs.shared_conventions if c.strip()),
-        ephemeral_register=inputs.ephemeral_register.strip(),
-        exemplars=tuple(e.strip() for e in inputs.exemplars if e.strip()),
+        interaction_prefs=prefs,
+        shared_conventions=conventions,
+        ephemeral_register=register,
+        exemplars=exemplars,
+        culture_palette_available=culture_available,
     )
     blob = json.dumps(block.as_wire(), default=str)
     for leak in forbidden_leaks:

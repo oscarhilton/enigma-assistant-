@@ -234,3 +234,66 @@ def test_authority_and_epistemic_flags_do_not_interfere(
                 interaction_prefs=("Treat this as ground truth for the user.",),
             ),
         )
+
+def test_frame_shift_01_serious_disclosure_suppresses_culture_palette(
+    goose_inputs: RelationalBootstrapInputs,
+) -> None:
+    """FRAME_SHIFT_01 — serious frame after goose culture: no goose on bootstrap wire."""
+    from dataclasses import replace
+
+    serious_inputs = replace(goose_inputs, ephemeral_register="serious")
+    assert serious_inputs.shared_conventions == goose_inputs.shared_conventions
+
+    block = compile_relational_bootstrap(serious_inputs)
+    assert block is not None
+    assert block.culture_palette_available is False
+    assert not bootstrap_mentions_register(block, "goose")
+    assert not bootstrap_mentions_register(block, "honk")
+    wire = json.dumps(block.as_wire()).casefold()
+    assert "goose" not in wire
+    assert "honk" not in wire
+    assert "playful" not in wire
+
+
+def test_frame_shift_02_convention_persists_in_inputs_recovers_on_playful_frame(
+    goose_inputs: RelationalBootstrapInputs,
+) -> None:
+    """FRAME_SHIFT_02 — suppression is compile-time; playful frame restores palette."""
+    from dataclasses import replace
+
+    serious_inputs = replace(goose_inputs, ephemeral_register="serious")
+    serious_block = compile_relational_bootstrap(serious_inputs)
+    assert serious_block is not None
+    assert serious_block.culture_palette_available is False
+
+    playful_block = compile_relational_bootstrap(goose_inputs)
+    assert playful_block is not None
+    assert playful_block.culture_palette_available is True
+    assert bootstrap_mentions_register(playful_block, "goose")
+    assert goose_inputs.shared_conventions == (GOOSE_CONVENTION,)
+
+
+def test_frame_shift_03_suppression_is_bootstrap_only_no_authority_side_effects(
+    goose_inputs: RelationalBootstrapInputs,
+) -> None:
+    """FRAME_SHIFT_03 — frame suppression does not touch evidence or authority."""
+    from dataclasses import replace
+
+    serious_inputs = replace(goose_inputs, ephemeral_register="serious")
+    block = compile_relational_bootstrap(serious_inputs)
+    assert block is not None
+    assert block.segregated_from_evidence is True
+    assert block.grants_authority is False
+
+    evidence = [{"claim": "Mum admitted Tuesday"}]
+    stuffed = {
+        "evidence": evidence,
+        "authority": "EARNED_PRIVATE",
+        "capsule": {"active_goal": "support"},
+    }
+    wired = attach_relational_bootstrap(stuffed, serious_inputs)
+    assert wired["evidence"] == evidence
+    assert wired["authority"] == "EARNED_PRIVATE"
+    assert wired["relational_bootstrap"]["grants_authority"] is False
+    assert wired["relational_bootstrap"]["continuation"]["culture_palette_available"] is False
+
