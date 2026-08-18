@@ -1,6 +1,6 @@
 # ADR-037: Semantic recall is an index, never a truth store
 
-**Status:** Accepted  
+**Status:** Accepted · **frozen** (slice A, 2026-08-18, `9eb7477`)  
 **Date:** 2026-08-18
 
 > **Recall may find governed memory. It may not create, promote, resurrect, or retain it.**

@@ -97,7 +97,7 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C29](./C29-life-memory-and-retention.md) | Life memory, retention gate, and third-party ethics | **done · frozen** (slices 1–4 lifecycle) |
 | [C30](./C30-brain-cortex-case-file.md) | Brain, Cortex, and Case File projections | **todo** |
 | [C31](./C31-goose-work-projection-and-proactivity.md) | Goose work projection and proactivity timing | **todo** |
-| [C32](./C32-semantic-recall.md) | Semantic recall slice A (index + governed-memory filter) | **in_progress** |
+| [C32](./C32-semantic-recall.md) | Semantic recall slice A (index + governed-memory filter) | **done · frozen** (slice A · [#96](https://github.com/oscarhilton/enigma-assistant-/pull/96)) |
 
 ## First milestone (Alex)
 

@@ -1,6 +1,6 @@
 # C32 — Semantic recall slice A (index + governed-memory filter)
 
-**Status:** in_progress  
+**Status:** done · **frozen** (slice A · [#96](https://github.com/oscarhilton/enigma-assistant-/pull/96))  
 **Branch:** `ticket/C32-semantic-recall`  
 **Domain:** conversational-ui  
 **May edit:** `packages/domain/src/personal_enigma/domain/semantic_recall.py`, `packages/domain/src/personal_enigma/domain/__init__.py`, `packages/domain/tests/test_semantic_recall.py`, `packages/embeddings/**`, `apps/api/src/personal_enigma/api/storage/semantic_recall.py`, `apps/api/tests/test_c32_vault_semantic_recall.py`, `docs/adr/037-*.md`, `docs/architecture/data-retention.md`, `docs/architecture/enigma-master-gap-analysis.md`, `tickets/conversational-ui/**`, `tickets/README.md`
@@ -88,6 +88,20 @@ If that order ever becomes “embedding hit = usable memory,” this slice has f
 ## Definition of done
 
 Recall can be wrong about relevance and still cannot be wrong about what is current governed memory.
+
+## Freeze (2026-08-18)
+
+**Frozen at** `9eb7477`. Slice A freeze review: **PASS.**
+
+**Freeze question:** Can recall be wrong about relevance without ever being wrong about what Enigma may treat as current memory? **Yes.**
+
+Pipeline (only legal order): approximate retrieval → candidate assertion IDs → governed-memory lookup → current / retained / valid check → only then expose. An embedding hit is never usable memory.
+
+Ceramics: retain → index finds it; forget → stale index entry may still exist; query ceramics → candidate may be returned internally → governed-memory filter rejects it → Enigma never receives it as current memory.
+
+Inverse: forget is not a semantic blacklist; later genuine re-establishment is new lineage and may be recalled.
+
+Remaining crypto slice B, C30 Brain UI, and C31 Goose are **not** this slice.
 
 ## Test plan
 

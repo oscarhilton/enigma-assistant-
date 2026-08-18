@@ -49,7 +49,7 @@ Inventory hides elapsed TTL immediately. Vault/source rows may still physically 
 
 ## Semantic recall (index, not memory)
 
-[C32](../../tickets/conversational-ui/C32-semantic-recall.md) / [ADR-037](../adr/037-semantic-recall-index-not-memory.md) adds local candidate lookup over **reduced** retained assertions. Vectors address governed assertion IDs. Current inventory / retained / valid state is checked **after** retrieval. An embedding hit is never usable memory. Forgotten or no-longer-current items must not be resurrected by a stale index. Later independent evidence may mint a new assertion; recall may find that new id. Crypto key destruction remains a later slice.
+[C32](../../tickets/conversational-ui/C32-semantic-recall.md) / [ADR-037](../adr/037-semantic-recall-index-not-memory.md) (slice A **frozen**) adds local candidate lookup over **reduced** retained assertions. Vectors address governed assertion IDs. Current inventory / retained / valid state is checked **after** retrieval. An embedding hit is never usable memory. Forgotten or no-longer-current items must not be resurrected by a stale index. Later independent evidence may mint a new assertion; recall may find that new id. Crypto key destruction remains a later slice.
 
 ## Prominent invariant
 
