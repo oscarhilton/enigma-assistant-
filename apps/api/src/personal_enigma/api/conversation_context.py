@@ -125,6 +125,103 @@ _PENDING_ACT_TTL: dict[str, int] = {
     "CLARIFY_CONFIRMATION": 1,
 }
 
+# Grounded conversational frame decays. Requests resolve independently.
+_FRAME_TTL_TURNS = 6
+
+RequestKind = Literal[
+    "agenda",
+    "next_work",
+    "catch_up",
+    "important_from_source",
+    "support_explain",
+    "subject_details",
+    "attest",
+]
+RequestSatisfaction = Literal["SATISFIED", "PARTIAL", "UNSATISFIED"]
+UnresolvedRequestStatus = Literal["UNANSWERED", "PARTIAL"]
+CapsuleEvidenceDomain = Literal[
+    "PRIVATE_WORLD",
+    "GENERAL_KNOWLEDGE",
+    "EXTERNAL_WORLD",
+    "CONVERSATION_ONLY",
+]
+CapsuleAuthority = Literal[
+    "NONE",
+    "READ",
+    "SUPPORT",
+    "ATTEST",
+    "PREPARE",
+    "APPROVE",
+    "EXECUTE",
+]
+
+
+@dataclass(frozen=True)
+class UnresolvedRequest:
+    """The conversational request still in play — not world truth."""
+
+    kind: RequestKind
+    status: UnresolvedRequestStatus
+
+
+@dataclass(frozen=True)
+class LastToolOutcome:
+    """Tool plumbing vs whether the human request was answered."""
+
+    capability: str | None
+    request_satisfied: bool
+
+
+@dataclass(frozen=True)
+class RepairState:
+    misunderstanding_signalled: bool = False
+
+
+@dataclass(frozen=True)
+class ConversationCapsule:
+    """Ephemeral discourse state for the next utterance."""
+
+    active_goal: RequestKind | None = None
+    previous_authority: CapsuleAuthority | None = None
+    unresolved_request: UnresolvedRequest | None = None
+    last_outcome: LastToolOutcome | None = None
+    repair_state: RepairState | None = None
+    evidence_domain: CapsuleEvidenceDomain | None = None
+    temporal_constraint: str | None = None
+    scope: str | None = None
+    source: str | None = None
+    current_subject_id: str | None = None
+    frame_created_turn: int = 0
+    frame_expires_after_turns: int = _FRAME_TTL_TURNS
+
+    def public_view(self) -> dict[str, Any]:
+        unresolved = None
+        if self.unresolved_request is not None:
+            unresolved = {
+                "kind": self.unresolved_request.kind,
+                "status": self.unresolved_request.status,
+            }
+        last = None
+        if self.last_outcome is not None:
+            last = {
+                "capability": self.last_outcome.capability,
+                "request_satisfied": self.last_outcome.request_satisfied,
+            }
+        return {
+            "active_goal": self.active_goal,
+            "evidence_domain": self.evidence_domain,
+            "temporal_frame": self.temporal_constraint,
+            "scope": self.scope,
+            "source_scope": self.source,
+            "unresolved_request": unresolved,
+            "last_outcome": last,
+        }
+
+    @property
+    def authority(self) -> CapsuleAuthority | None:
+        """Previous-turn metadata. Never a grant."""
+        return self.previous_authority
+
 
 @dataclass(frozen=True)
 class PendingConfirmation:
@@ -198,6 +295,7 @@ class ConversationContext:
     last_intent: ConversationIntent | None = None
     # Interpretive working memory — not world truth, not tone memory, not a biography.
     recent_dialogue: list[DialogueTurn] = field(default_factory=list)
+    capsule: ConversationCapsule | None = None
     # Set for this user turn only; never a durable trait.
     named_referent_changed_this_turn: bool = False
     turn_local_recorded_this_turn: bool = False
@@ -211,6 +309,18 @@ class ConversationContext:
         if age > pending.expires_after_turns:
             return None
         return pending
+
+    def live_grounded_frame(self) -> ConversationCapsule | None:
+        capsule = self.capsule
+        if capsule is None or capsule.evidence_domain != "PRIVATE_WORLD":
+            return None
+        age = self.turn_index - capsule.frame_created_turn
+        if age > capsule.frame_expires_after_turns:
+            return None
+        return capsule
+
+    def live_capsule(self) -> ConversationCapsule | None:
+        return self.live_grounded_frame()
 
     def set_pending_confirmation(
         self,
@@ -242,6 +352,8 @@ class ConversationContext:
             self.pending_dialogue_act = None
         else:
             self.pending_dialogue_act = live.kind
+        if self.live_grounded_frame() is None:
+            self.capsule = None
 
     def remember_dialogue_turn(self, turn: DialogueTurn) -> None:
         """Append a turn and drop anything older than ``RECENT_DIALOGUE_LIMIT``."""
@@ -626,6 +738,147 @@ def capture_turn_local_location(utterance: str) -> str | None:
     return value
 
 
+
+
+_KIND_FAMILIES: dict[RequestKind, tuple[str, ...]] = {
+    "agenda": ("agenda",),
+    "next_work": ("attention", "agenda"),
+    "catch_up": ("attention", "explain", "agenda"),
+    "important_from_source": ("source", "attention"),
+    "support_explain": ("explain", "attention"),
+    "subject_details": ("explain", "source", "attention"),
+    "attest": ("attestation",),
+}
+
+_AUTHORITATIVE_QUERY_TOOLS = frozenset(
+    {
+        "agenda.get",
+        "attention.get_current",
+        "next_action.get",
+        "next_action.get_alternatives",
+    }
+)
+
+
+def families_for_request_kind(kind: RequestKind | None) -> tuple[str, ...]:
+    if kind is None:
+        return ()
+    return _KIND_FAMILIES[kind]
+
+
+def assess_request_satisfaction(
+    kind: RequestKind | None,
+    ok_tool_names: list[str] | tuple[str, ...],
+) -> RequestSatisfaction:
+    names = set(ok_tool_names)
+    if kind is None:
+        return "SATISFIED"
+    if kind == "agenda":
+        return "SATISFIED" if "agenda.get" in names else "UNSATISFIED"
+    if kind == "important_from_source":
+        if names & _AUTHORITATIVE_QUERY_TOOLS:
+            return "SATISFIED"
+        if "source.recent" in names:
+            return "PARTIAL"
+        return "UNSATISFIED"
+    if kind == "next_work":
+        return "SATISFIED" if names & _AUTHORITATIVE_QUERY_TOOLS else "UNSATISFIED"
+    if kind == "catch_up":
+        required = {"attention.get_current", "agenda.get"}
+        if required.issubset(names):
+            return "SATISFIED"
+        if names & _AUTHORITATIVE_QUERY_TOOLS:
+            return "PARTIAL"
+        return "UNSATISFIED"
+    if kind == "attest":
+        return "SATISFIED" if "world.record_user_attestation" in names else "UNSATISFIED"
+    if kind == "support_explain":
+        if "world.explain" in names or names & _AUTHORITATIVE_QUERY_TOOLS:
+            return "SATISFIED"
+        return "UNSATISFIED"
+    if kind == "subject_details":
+        if "world.explain" in names:
+            return "SATISFIED"
+        if "source.recent" in names:
+            return "PARTIAL"
+        return "UNSATISFIED"
+    return "PARTIAL"
+
+
+def reduce_conversation_capsule(
+    context: ConversationContext,
+    *,
+    evidence_domain: str,
+    authority: str,
+    request_kind: RequestKind | None,
+    satisfaction: RequestSatisfaction,
+    temporal_constraint: str | None,
+    scope: str | None = None,
+    source: str | None = None,
+    last_capability: str | None = None,
+    repair: bool = False,
+) -> None:
+    if evidence_domain == "GENERAL_KNOWLEDGE":
+        context.capsule = None
+        return
+    if evidence_domain != "PRIVATE_WORLD":
+        return
+
+    if request_kind not in {
+        "agenda",
+        "next_work",
+        "catch_up",
+        "important_from_source",
+        "support_explain",
+        "subject_details",
+        "attest",
+    }:
+        request_kind = None
+    previous = context.capsule
+    frame_created = context.turn_index
+    if (
+        previous is not None
+        and previous.evidence_domain == "PRIVATE_WORLD"
+        and previous.temporal_constraint == (temporal_constraint or previous.temporal_constraint)
+        and previous.frame_created_turn
+    ):
+        frame_created = previous.frame_created_turn
+
+    unresolved: UnresolvedRequest | None = None
+    active_goal: RequestKind | None = None
+    if satisfaction == "SATISFIED":
+        unresolved = None
+        active_goal = None
+    elif request_kind is not None:
+        status: UnresolvedRequestStatus = "PARTIAL" if satisfaction == "PARTIAL" else "UNANSWERED"
+        unresolved = UnresolvedRequest(kind=request_kind, status=status)
+        active_goal = request_kind
+
+    granted_authority: CapsuleAuthority | None = None
+    if authority in {"NONE", "READ", "SUPPORT", "ATTEST", "PREPARE", "APPROVE", "EXECUTE"}:
+        granted_authority = authority  # type: ignore[assignment]
+
+    context.capsule = ConversationCapsule(
+        active_goal=active_goal,
+        previous_authority=granted_authority,
+        unresolved_request=unresolved,
+        last_outcome=LastToolOutcome(
+            capability=last_capability,
+            request_satisfied=satisfaction == "SATISFIED",
+        ),
+        repair_state=RepairState(misunderstanding_signalled=True) if repair else None,
+        evidence_domain="PRIVATE_WORLD",
+        temporal_constraint=temporal_constraint or (
+            previous.temporal_constraint if previous is not None else None
+        ),
+        scope=scope or (previous.scope if previous is not None else None),
+        source=source or (previous.source if previous is not None else None),
+        current_subject_id=context.current_subject_id,
+        frame_created_turn=frame_created,
+        frame_expires_after_turns=_FRAME_TTL_TURNS,
+    )
+
+
 def remember_turn_local_constraint(
     context: ConversationContext,
     *,
@@ -762,10 +1015,19 @@ def project_recent_dialogue_for_egress(turns: list[DialogueTurn]) -> list[dict[s
 
 __all__ = [
     "RECENT_DIALOGUE_LIMIT",
+    "ConversationCapsule",
     "ConversationContext",
     "DialogueTurn",
     "PendingConfirmation",
     "TurnLocalConstraint",
+    "LastToolOutcome",
+    "RequestKind",
+    "RequestSatisfaction",
+    "RepairState",
+    "UnresolvedRequest",
+    "assess_request_satisfaction",
+    "families_for_request_kind",
+    "reduce_conversation_capsule",
     "apply_named_referent_focus",
     "assistant_visible_text",
     "available_next_actions",

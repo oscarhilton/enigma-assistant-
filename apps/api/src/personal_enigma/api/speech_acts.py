@@ -101,9 +101,22 @@ _QUESTION = re.compile(
     r"^\s*(what|whats|why|when|where|how|who)\b|[?]\s*$",
     re.IGNORECASE,
 )
+_ATTRIBUTE_REQUEST = re.compile(
+    r"\b("
+    r"details?|tell me about|what are the|more about|"
+    r"i would like (?:to know|details|more)|"
+    r"what (?:is|are) (?:the )?(?!on\b|next\b|urgent\b|important\b)"
+    r")\b",
+    re.IGNORECASE,
+)
 _APPROVAL_BARE = frozenset(
     {"yes", "yep", "yeah", "go on then", "go on", "go ahead"}
 )
+
+
+def is_attribute_request(utterance: str) -> bool:
+    """Fact-seeking about a resolved subject — constitutional, not intent_router."""
+    return _ATTRIBUTE_REQUEST.search(utterance) is not None
 
 
 def signals_difficulty(utterance: str) -> bool:
@@ -162,6 +175,8 @@ def classify_speech_act(utterance: str) -> SpeechAct:
         return "APPROVAL"
     if _QUESTION.search(text):
         return "QUESTION"
+    if is_attribute_request(text):
+        return "QUESTION"
     return "ORDINARY_CONVERSATION"
 
 
@@ -194,6 +209,7 @@ __all__ = [
     "classify_speech_act",
     "dialogue_act_for_speech",
     "infer_attestation_state",
+    "is_attribute_request",
     "is_support_not_authority",
     "signals_difficulty",
 ]

@@ -18,10 +18,12 @@ from personal_enigma.api.conversation_context import (
     ConversationContext,
     DialogueTurn,
     apply_named_referent_focus,
+    assess_request_satisfaction,
     assistant_visible_text,
     capture_turn_local_location,
     classify_assistant_dialogue_egress,
     project_recent_dialogue_for_egress,
+    reduce_conversation_capsule,
     referent_candidates,
     remember_turn_local_constraint,
     update_context_from_turn_items,
@@ -47,6 +49,11 @@ from personal_enigma.api.intent_router import (
     TimeExpression,
     compose_follow_up_intent,
     normalize_utterance,
+)
+from personal_enigma.api.respond_grounding import apply_respond_grounding_fence
+from personal_enigma.api.semantic_bootstrap import (
+    compile_with_bootstrap,
+    get_semantic_bootstrap,
 )
 from personal_enigma.api.speech_acts import (
     SpeechAct,
@@ -410,10 +417,17 @@ def context_summary(
 
 
 def _planner_wire_context(
-    user_message: str, session: DemoToolSession
+    user_message: str,
+    session: DemoToolSession,
+    *,
+    bootstrap: Any | None = None,
 ) -> tuple[CompiledRemoteContext, dict[str, Any]]:
     """Compile the remote working set; keep last_intent locally for the oracle."""
-    compiled = compile_remote_context(user_message, session)
+    interpreter = bootstrap if bootstrap is not None else get_semantic_bootstrap()
+    if interpreter is not None:
+        compiled = compile_with_bootstrap(user_message, session, interpreter)
+    else:
+        compiled = compile_remote_context(user_message, session)
     local = context_summary(session.context, session.state)
     wire = compiled.wire_context()
     wire["last_intent_kind"] = local.get("last_intent_kind")
@@ -421,6 +435,29 @@ def _planner_wire_context(
     wire["context_manifest"] = compiled.manifest.model_dump(mode="json")
     return compiled, wire
 
+
+
+
+def _reduce_capsule_after_turn(
+    session: DemoToolSession,
+    compiled: CompiledRemoteContext,
+    results: list[ToolExecutionResult],
+) -> None:
+    ok_names = [row.name for row in results if row.ok]
+    kind = compiled.working_set.get("request_kind")
+    satisfaction = assess_request_satisfaction(kind, ok_names)
+    reduce_conversation_capsule(
+        session.context,
+        evidence_domain=compiled.evidence_domain,
+        authority=compiled.authority,
+        request_kind=kind,
+        satisfaction=satisfaction,
+        temporal_constraint=compiled.working_set.get("temporal_constraint"),
+        scope=compiled.working_set.get("scope"),
+        source=compiled.working_set.get("source"),
+        last_capability=ok_names[-1] if ok_names else None,
+        repair=bool(compiled.working_set.get("frame_inherited") and satisfaction != "SATISFIED"),
+    )
 
 def _matches_start_todays_action(normalized: str) -> bool:
     return (
@@ -838,10 +875,24 @@ def _message_content_text(message: dict[str, Any]) -> str | None:
     return None
 
 
-def _ordinary_conversation_turn(at: str, text: str | None) -> list[dict[str, Any]]:
+def _ordinary_conversation_turn(
+    at: str,
+    text: str | None,
+    *,
+    session: DemoToolSession | None = None,
+    compiled: CompiledRemoteContext | None = None,
+) -> list[dict[str, Any]]:
     body = text.strip() if isinstance(text, str) and text.strip() else "Okay."
     if body == _ROUTER_UNKNOWN:
         body = "Okay."
+    if session is not None and compiled is not None:
+        body = apply_respond_grounding_fence(
+            body,
+            context=session.context,
+            evidence_domain=compiled.evidence_domain,
+            authority=compiled.authority,
+            tool_names=compiled.tool_names,
+        )
     return _no_tool_turn(at, body)
 
 
@@ -1086,6 +1137,7 @@ def run_orchestrator_turn(
     session: DemoToolSession,
     llm: ConversationLLM | None = None,
     correlation_id: str | None = None,
+    bootstrap: Any | None = None,
 ) -> OrchestratorTurn:
     """Plan tools via LLM, execute against Enigma core, return structured turn items."""
     at = session.at
@@ -1111,7 +1163,7 @@ def run_orchestrator_turn(
     if resolved.period is not None:
         session.context.temporal_constraint = resolved.period.value
     speech_act = classify_speech_act(user_message)
-    compiled, wire = _planner_wire_context(user_message, session)
+    compiled, wire = _planner_wire_context(user_message, session, bootstrap=bootstrap)
 
     if normalized in {"hey", "hi", "hello"}:
         turn_items = _stamp_correlation(_no_tool_turn(at, "Hey. What's up?"), corr)
@@ -1166,7 +1218,10 @@ def run_orchestrator_turn(
         else:
             model_text = getattr(planner, "last_conversational_text", None)
             turn_items = _ordinary_conversation_turn(
-                at, model_text if isinstance(model_text, str) else None
+                at,
+                model_text if isinstance(model_text, str) else None,
+                session=session,
+                compiled=compiled,
             )
             assist_plan = None
             router_fallback = False
@@ -1179,6 +1234,7 @@ def run_orchestrator_turn(
             speech_act=speech_act,
             tool_names=[],
         )
+        _reduce_capsule_after_turn(session, compiled, [])
         _attach_turn_outcome(
             planner,
             disclosure_id=egress.get("disclosure_id"),
@@ -1263,6 +1319,7 @@ def run_orchestrator_turn(
         speech_act=speech_act,
         tool_names=[call.name for call in executed_calls],
     )
+    _reduce_capsule_after_turn(session, compiled, results)
     _attach_turn_outcome(
         planner,
         disclosure_id=egress.get("disclosure_id"),
