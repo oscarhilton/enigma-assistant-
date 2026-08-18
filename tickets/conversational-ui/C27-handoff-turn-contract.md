@@ -16,10 +16,10 @@ Keep long conversation continuity without turning continuity into truth.
 
 ## Deliverables
 
-- [ ] Add a compact handoff structure for progress, unresolved work, and natural continuation
-- [ ] Add a small turn contract exposing current request, authority, available capabilities, and factual boundaries
-- [ ] Keep dialogue, handoff, capsule, and evidence distinct on the wire
-- [ ] Tests prove model replacement can continue a job without transcript-as-truth leakage
+- [x] Add a compact handoff structure for progress, unresolved work, and natural continuation
+- [x] Add a small turn contract exposing current request, authority, available capabilities, and factual boundaries
+- [x] Keep dialogue, handoff, capsule, and evidence distinct on the wire
+- [x] Tests prove model replacement can continue a job without transcript-as-truth leakage
 
 ## Definition of done
 

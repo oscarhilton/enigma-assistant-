@@ -139,6 +139,7 @@ RequestKind = Literal[
 ]
 RequestSatisfaction = Literal["SATISFIED", "PARTIAL", "UNSATISFIED"]
 UnresolvedRequestStatus = Literal["UNANSWERED", "PARTIAL"]
+EvidenceNeed = Literal["attention", "agenda", "source", "world_explain", "referent"]
 CapsuleEvidenceDomain = Literal[
     "PRIVATE_WORLD",
     "GENERAL_KNOWLEDGE",
@@ -175,6 +176,28 @@ class LastToolOutcome:
 @dataclass(frozen=True)
 class RepairState:
     misunderstanding_signalled: bool = False
+
+
+@dataclass(frozen=True)
+class TurnHandoff:
+    """Compact non-authoritative carry-over for the next model invocation."""
+
+    current_goal: RequestKind | None = None
+    progress_made: tuple[str, ...] = ()
+    unresolved: tuple[str, ...] = ()
+    evidence_needed: tuple[EvidenceNeed, ...] = ()
+    natural_continuation: str | None = None
+    caveats: tuple[str, ...] = ()
+
+    def public_view(self) -> dict[str, Any]:
+        return {
+            "current_goal": self.current_goal,
+            "progress_made": list(self.progress_made),
+            "unresolved": list(self.unresolved),
+            "evidence_needed": list(self.evidence_needed),
+            "natural_continuation": self.natural_continuation,
+            "caveats": list(self.caveats),
+        }
 
 
 @dataclass(frozen=True)
@@ -304,6 +327,8 @@ class ConversationContext:
     recent_dialogue: list[DialogueTurn] = field(default_factory=list)
     # Ephemeral request capsule (ADR-030). Not a parallel state machine.
     capsule: ConversationCapsule | None = None
+    # Compact non-authoritative handoff (C27). Sibling of capsule, not truth.
+    handoff: TurnHandoff | None = None
     # Set for this user turn only; never a durable trait.
     named_referent_changed_this_turn: bool = False
     turn_local_recorded_this_turn: bool = False
@@ -1029,12 +1054,14 @@ __all__ = [
     "ConversationCapsule",
     "ConversationContext",
     "DialogueTurn",
+    "EvidenceNeed",
     "LastToolOutcome",
     "PendingConfirmation",
     "RepairState",
     "RequestKind",
     "RequestSatisfaction",
     "TurnLocalConstraint",
+    "TurnHandoff",
     "UnresolvedRequest",
     "apply_named_referent_focus",
     "assess_request_satisfaction",

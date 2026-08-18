@@ -220,6 +220,29 @@ The capsule loop is **landed · frozen** ([C09c](../../tickets/conversational-ui
 
 Life Script: `packages/evaluation/scripts/alex_jan19_when_should_i.script.yaml`.
 
+## Turn contract and handoff (C27)
+
+Long continuity now rides on two explicit siblings beside recent dialogue:
+
+- `turn_contract`: this turn's request kind, current satisfaction, evidence already available, evidence still obtainable, capabilities available, authority level, approval requirements, factual precedence, and stop / ask conditions.
+- `handoff`: current goal, progress made, unresolved work, evidence still needed, natural continuation, and caveats.
+
+The precedence rule is explicit and frozen:
+
+```text
+WORLD / GROUNDED EVIDENCE
+        >
+TURN CONTRACT
+        >
+CAPSULE
+        >
+HANDOFF
+        >
+DIALOGUE
+```
+
+`handoff` is continuity only. It may tell the next model what was happening; it may not tell it what is true. No authority is inherited from `handoff`, and no dialogue fossil becomes evidence. The next invocation still has to fetch grounded evidence before completing a private-world answer.
+
 Jan 19 10:00 shape this protects:
 
 1. `"What is urgent right now?"` → focus = TOKEN (`item-obligation_token_audit`)

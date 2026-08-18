@@ -35,6 +35,7 @@ from personal_enigma.api.conversation_context import (
     RECENT_DIALOGUE_LIMIT,
     ConversationContext,
     RequestKind,
+    TurnHandoff,
     families_for_request_kind,
     match_named_referent,
     project_recent_dialogue_for_egress,
@@ -515,6 +516,32 @@ class RequestProfile:
 
 
 @dataclass(frozen=True)
+class TurnContract:
+    request_kind: RequestKind | None
+    current_satisfaction: Literal["unknown", "partial", "satisfied", "unsatisfied"]
+    evidence_available: tuple[str, ...]
+    evidence_still_obtainable: tuple[str, ...]
+    capabilities_available: tuple[str, ...]
+    authority_level: Authority
+    approval_requirements: tuple[str, ...]
+    factual_precedence: tuple[str, ...]
+    stop_ask_conditions: tuple[str, ...]
+
+    def public_view(self) -> dict[str, Any]:
+        return {
+            "request_kind": self.request_kind,
+            "current_satisfaction": self.current_satisfaction,
+            "evidence_available": list(self.evidence_available),
+            "evidence_still_obtainable": list(self.evidence_still_obtainable),
+            "capabilities_available": list(self.capabilities_available),
+            "authority_level": self.authority_level,
+            "approval_requirements": list(self.approval_requirements),
+            "factual_precedence": list(self.factual_precedence),
+            "stop_ask_conditions": list(self.stop_ask_conditions),
+        }
+
+
+@dataclass(frozen=True)
 class CompiledRemoteContext:
     """Hot working set for this request. Not a transcript. Not the whole world."""
 
@@ -871,8 +898,8 @@ def _unsatisfied_private_request(
     retained = frame
     if retained is None and session is not None:
         retained = session.context.capsule
-    if retained is not None and getattr(retained, "unresolved_request", None) is not None:
-        unresolved = retained.unresolved_request
+    unresolved = getattr(retained, "unresolved_request", None) if retained is not None else None
+    if unresolved is not None:
         return unresolved.kind, RequestConstraints(
             period=getattr(retained, "temporal_constraint", None),
             scope=getattr(retained, "scope", None),
@@ -1245,6 +1272,121 @@ def _source_context_earned(utterance: str) -> bool:
     return any(needle in hay for needle in _SOURCE_NEEDLES)
 
 
+def _turn_contract_satisfaction(
+    context: ConversationContext, request_kind: RequestKind | None
+) -> Literal["unknown", "partial", "satisfied", "unsatisfied"]:
+    handoff = context.handoff
+    if handoff is not None and handoff.current_goal == request_kind:
+        if handoff.unresolved:
+            return "partial" if handoff.progress_made else "unsatisfied"
+        if handoff.progress_made:
+            return "satisfied"
+    capsule = context.live_grounded_frame()
+    if capsule is None:
+        return "unknown"
+    unresolved = capsule.unresolved_request
+    if unresolved is not None and unresolved.kind == request_kind:
+        return "partial" if unresolved.status == "PARTIAL" else "unsatisfied"
+    if capsule.last_outcome is not None and capsule.last_outcome.request_satisfied:
+        return "satisfied"
+    return "unknown"
+
+
+def _evidence_available_labels(
+    used_providers: list[str], summary: dict[str, Any], handoff: TurnHandoff | None
+) -> tuple[str, ...]:
+    labels: list[str] = []
+    if "current_subject_id" in summary:
+        labels.append("current_subject")
+    if "conversation_capsule" in summary:
+        labels.append("capsule_frame")
+    if handoff is not None and handoff.progress_made:
+        labels.append("handoff_progress")
+    mapping = {
+        "recent_dialogue": "dialogue_context",
+        "attention_working_set": "attention_working_set",
+        "support_state": "support_state",
+        "referent_candidates": "referent_candidates",
+        "pending_act": "pending_approval_state",
+        "simulated_time": "simulated_time",
+    }
+    for provider in used_providers:
+        label = mapping.get(provider)
+        if label and label not in labels:
+            labels.append(label)
+    return tuple(labels)
+
+
+def _evidence_obtainable_labels(tool_names: tuple[str, ...]) -> tuple[str, ...]:
+    labels: list[str] = []
+    mapping = {
+        "attention.get_current": "attention",
+        "next_action.get": "next_actions",
+        "next_action.get_alternatives": "next_actions",
+        "agenda.get": "calendar",
+        "source.recent": "source_recency",
+        "source.quote": "source_quote",
+        "world.explain": "grounded_explanation",
+        "world.get_changes": "recent_changes",
+        "world.get_blockers": "blockers",
+        "world.record_user_attestation": "attestation_write",
+    }
+    for name in tool_names:
+        label = mapping.get(name)
+        if label and label not in labels:
+            labels.append(label)
+    return tuple(labels)
+
+
+def build_turn_contract(
+    *,
+    session: _SessionLike,
+    interpretation: RequestInterpretation,
+    tool_names: tuple[str, ...],
+    used_providers: list[str],
+    summary: dict[str, Any],
+) -> TurnContract:
+    approval_requirements: list[str] = []
+    if interpretation.authority in {"APPROVE", "EXECUTE"}:
+        approval_requirements.append("explicit approval must be re-earned this turn")
+    if "assist.approve" in tool_names:
+        approval_requirements.append("approval only if a live approval affordance exists")
+    if interpretation.authority == "PREPARE":
+        approval_requirements.append("prepare may draft, never execute")
+
+    stop_ask_conditions: list[str] = [
+        "stop if grounded evidence contradicts capsule, handoff, or dialogue",
+        "ask if the referent is unresolved before claiming private facts",
+    ]
+    if interpretation.evidence_domain == "PRIVATE_WORLD" and not tool_names:
+        stop_ask_conditions.append("ask or defer if no private-world capability is available")
+    unavailable = build_capability_contract(tool_names)["unavailable"]
+    if any(name in _NAMED_UNAVAILABLE_CAPABILITIES for name in unavailable):
+        stop_ask_conditions.append("name unavailable capabilities instead of implying action")
+
+    return TurnContract(
+        request_kind=interpretation.request_kind,
+        current_satisfaction=_turn_contract_satisfaction(
+            session.context, interpretation.request_kind
+        ),
+        evidence_available=_evidence_available_labels(
+            used_providers, summary, session.context.handoff
+        ),
+        evidence_still_obtainable=_evidence_obtainable_labels(tool_names),
+        capabilities_available=tool_names,
+        authority_level=interpretation.authority,
+        approval_requirements=tuple(approval_requirements),
+        factual_precedence=(
+            "WORLD_OR_GROUNDED_EVIDENCE",
+            "TURN_CONTRACT",
+            "CAPSULE",
+            "HANDOFF",
+            "DIALOGUE",
+        ),
+        stop_ask_conditions=tuple(dict.fromkeys(stop_ask_conditions)),
+    )
+
+
 def _referents_earned(
     utterance: str, profile: RequestProfileName, session: _SessionLike
 ) -> bool:
@@ -1427,8 +1569,21 @@ def compile_remote_context(
     tool_names = tools_for_interpretation(interp)
     capsule = session.context.live_grounded_frame()
     capsule_view = capsule.public_view() if capsule is not None else None
+    handoff_view = (
+        session.context.handoff.public_view() if session.context.handoff is not None else None
+    )
     if capsule_view and interp.profile not in {"GENERAL_KNOWLEDGE"}:
         summary["conversation_capsule"] = capsule_view
+    if handoff_view and interp.profile != "GENERAL_KNOWLEDGE":
+        summary["conversation_handoff"] = handoff_view
+    turn_contract = build_turn_contract(
+        session=session,
+        interpretation=interp,
+        tool_names=tool_names,
+        used_providers=used,
+        summary=summary,
+    )
+    summary["turn_contract"] = turn_contract.public_view()
     working_set = {
         "profile": interp.profile,
         "evidence_domain": interp.evidence_domain,
@@ -1442,6 +1597,8 @@ def compile_remote_context(
         "scope": interp.constraints.scope,
         "source": interp.constraints.source,
         "capsule": capsule_view,
+        "handoff": handoff_view,
+        "turn_contract": turn_contract.public_view(),
         "capability_contract": build_capability_contract(tool_names),
         "fetch_mission": {
             "planned_tools": planned_tools_for_kind(interp.request_kind),
@@ -1495,6 +1652,7 @@ __all__ = [
     "RequestInterpretation",
     "RequestProfile",
     "RequestProfileName",
+    "TurnContract",
     "build_capability_contract",
     "build_compiled_turn_manifest",
     "compile_remote_context",

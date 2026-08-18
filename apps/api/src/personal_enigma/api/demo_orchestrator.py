@@ -18,6 +18,7 @@ from personal_enigma.api.context_compilation import (
 from personal_enigma.api.conversation_context import (
     ConversationContext,
     DialogueTurn,
+    TurnHandoff,
     apply_named_referent_focus,
     assess_request_satisfaction,
     assistant_visible_text,
@@ -424,6 +425,8 @@ def context_summary(
         summary["referent_candidates"] = referent_candidates(state)
         summary["simulated_time"] = state.simulated_time
         summary["attention_count"] = len(state.needs_you) + len(state.context)
+    if context.handoff is not None:
+        summary["handoff"] = context.handoff.public_view()
     return summary
 
 
@@ -467,6 +470,98 @@ def _reduce_capsule_after_turn(
         source=compiled.working_set.get("source"),
         last_capability=ok_names[-1] if ok_names else None,
         repair=bool(compiled.working_set.get("frame_inherited") and satisfaction != "SATISFIED"),
+    )
+
+
+def _handoff_evidence_needed(bundle: EvidenceBundle) -> tuple[str, ...]:
+    needed: list[str] = []
+    for source in bundle.unsearched_sources:
+        if source == "attention":
+            needed.append("attention")
+        elif source == "calendar":
+            needed.append("agenda")
+        elif source in {"sources_email", "sources_chat"}:
+            needed.append("source")
+        elif source in {"world_changes", "world_blockers"}:
+            needed.append("world_explain")
+    if bundle.unresolved_referents:
+        needed.append("referent")
+    return tuple(dict.fromkeys(needed))
+
+
+def _update_turn_handoff(
+    session: DemoToolSession,
+    *,
+    compiled: CompiledRemoteContext,
+    bundle: EvidenceBundle,
+    satisfaction: str,
+    results: list[ToolExecutionResult],
+) -> None:
+    """Carry progress forward without carrying truth or authority."""
+    if compiled.evidence_domain != "PRIVATE_WORLD":
+        session.context.handoff = None
+        return
+
+    request_kind = compiled.working_set.get("request_kind")
+    progress: list[str] = []
+    for result in results:
+        if not result.ok:
+            continue
+        if result.name == "source.recent":
+            progress.append("checked source recency")
+        elif result.name == "attention.get_current":
+            progress.append("checked current attention")
+        elif result.name == "agenda.get":
+            progress.append("checked calendar")
+        elif result.name == "world.explain":
+            progress.append("checked grounded explanation")
+        elif result.name == "world.record_user_attestation":
+            progress.append("recorded user attestation")
+
+    unresolved: list[str] = []
+    if satisfaction != "SATISFIED" and request_kind is not None:
+        if request_kind == "important_from_source":
+            unresolved.append("which item actually matters remains unresolved")
+        elif request_kind == "next_work":
+            unresolved.append("next work recommendation remains unresolved")
+        elif request_kind == "catch_up":
+            unresolved.append("catch-up summary remains incomplete")
+        elif request_kind == "subject_details":
+            unresolved.append("subject details still need grounding")
+        elif request_kind == "support_explain":
+            unresolved.append("support explanation remains incomplete")
+    for referent in bundle.unresolved_referents:
+        unresolved.append(f"referent unresolved: {referent}")
+
+    caveats = [
+        "handoff is continuity only, not factual authority",
+        "dialogue residue is not evidence",
+    ]
+    if bundle.unsearched_sources:
+        caveats.append("missing evidence must be fetched before completing the answer")
+    if bundle.conflicts:
+        caveats.append("conflicting grounded evidence needs resolution")
+    if bundle.unavailable_sources:
+        caveats.append("some evidence is unavailable with current capabilities")
+
+    natural_continuation = None
+    evidence_needed = _handoff_evidence_needed(bundle)
+    if request_kind == "important_from_source" and "attention" in evidence_needed:
+        natural_continuation = "Check grounded attention next to determine what actually matters."
+    elif request_kind == "next_work":
+        natural_continuation = "Fetch grounded next-work evidence before answering."
+    elif request_kind == "subject_details":
+        natural_continuation = "Fetch grounded subject evidence before answering."
+    elif request_kind == "catch_up":
+        natural_continuation = "Continue the missing reads needed for a catch-up answer."
+
+    session.context.handoff = TurnHandoff(
+        current_goal=request_kind,
+        progress_made=tuple(dict.fromkeys(progress)),
+        unresolved=tuple(dict.fromkeys(unresolved)),
+        evidence_needed=evidence_needed,  # type: ignore[arg-type]
+        natural_continuation=natural_continuation,
+        caveats=tuple(dict.fromkeys(caveats)),
     )
 
 
@@ -1329,6 +1424,15 @@ def run_orchestrator_turn(
             tool_names=[],
         )
         _reduce_capsule_after_turn(session, compiled, [])
+        _update_turn_handoff(
+            session,
+            compiled=compiled,
+            bundle=bundle,
+            satisfaction=assess_request_satisfaction(
+                compiled.working_set.get("request_kind"), []
+            ),
+            results=[],
+        )
         _attach_turn_outcome(
             planner,
             disclosure_id=egress.get("disclosure_id"),
@@ -1424,6 +1528,16 @@ def run_orchestrator_turn(
         tool_names=[call.name for call in executed_calls],
     )
     _reduce_capsule_after_turn(session, compiled, results)
+    _update_turn_handoff(
+        session,
+        compiled=compiled,
+        bundle=bundle,
+        satisfaction=assess_request_satisfaction(
+            compiled.working_set.get("request_kind"),
+            [row.name for row in results if row.ok],
+        ),
+        results=results,
+    )
     _attach_turn_outcome(
         planner,
         disclosure_id=egress.get("disclosure_id"),
