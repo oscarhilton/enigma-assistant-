@@ -1,0 +1,7 @@
+scenario: no_work
+observed:
+  goose_state: absent
+  user_interpretation: "not present"
+problem: false
+severity: low
+possible_fix: NOT YET

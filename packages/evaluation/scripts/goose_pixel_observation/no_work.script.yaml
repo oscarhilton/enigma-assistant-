@@ -1,0 +1,19 @@
+# Goose observation Life Script — C37. Not C36. Not C23.
+scenario: no_work
+clock: 2026-01-19T10:00:00
+persona: Alex Morgan
+world: alex_v1
+purpose: >
+  Conversation continues. Absolutely no performative waddling.
+possible_fix: NOT YET
+beats:
+  - user: "Hey — how's the sky looking?"
+    frame: goose
+    truth: no_work
+    work:
+      exists: false
+  - user: "Nice. Anyway, never mind."
+    frame: goose
+    truth: no_work
+    work:
+      exists: false

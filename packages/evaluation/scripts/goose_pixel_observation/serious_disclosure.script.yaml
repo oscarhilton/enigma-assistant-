@@ -1,0 +1,28 @@
+# Goose observation Life Script — C37. Not C36. Not C23.
+scenario: serious_disclosure
+clock: 2026-01-19T10:00:00
+persona: Alex Morgan
+world: alex_v1
+purpose: >
+  Playful conversation, then a serious frame while work continues.
+  Presence unchanged; theatricality suppressed.
+possible_fix: NOT YET
+beats:
+  - user: "honk honk — can you check why the token thing still matters?"
+    frame: goose
+    work:
+      exists: true
+      phase: in_flight
+      semantic_token: token-why-work
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Looking up why this matters
+  - user: "Actually this is about something serious. I need the real reason."
+    frame: serious
+    work:
+      exists: true
+      phase: in_flight
+      semantic_token: token-why-work
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Looking up why this matters

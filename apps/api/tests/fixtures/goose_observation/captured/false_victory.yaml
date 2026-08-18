@@ -1,0 +1,7 @@
+scenario: false_victory
+observed:
+  goose_state: return
+  user_interpretation: "looks like the job succeeded"
+problem: true
+severity: high
+possible_fix: NOT YET

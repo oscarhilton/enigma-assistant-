@@ -1,0 +1,7 @@
+scenario: waiting_external
+observed:
+  goose_state: idle
+  user_interpretation: "looks finished"
+problem: true
+severity: medium
+possible_fix: NOT YET

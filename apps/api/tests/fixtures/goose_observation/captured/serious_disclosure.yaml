@@ -1,0 +1,7 @@
+scenario: serious_disclosure
+observed:
+  goose_state: walk
+  user_interpretation: "actively working"
+problem: false
+severity: low
+possible_fix: NOT YET
