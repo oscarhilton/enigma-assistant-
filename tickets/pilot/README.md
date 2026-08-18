@@ -33,4 +33,5 @@ C36 stays unclaimed. No Goose habitat. No Settings Palace. No Memory Explorer re
 | --- | --- | --- |
 | [P01](./P01-world-isolation-pilot-shell.md) | World isolation + pilot shell | `done` |
 | [P02](./P02-alex-life-scripts-as-product-tests.md) | Replay Alex Life Scripts as browser-level product tests | `done` (#107, #108) |
-| [P03](./P03-calendar-read-support.md) | First real source: Calendar READ + SUPPORT (no writes) | `in_progress` |
+| [P03](./P03-calendar-read-support.md) | First real source: Calendar READ + SUPPORT (no writes) | `in_progress` (P03a #109 merged; **not done**) |
+| [P03b](./P03b-live-calendar-ingress.md) | Live calendar ingress proof (M08/M12 → frozen #109 path) | `in_progress` |

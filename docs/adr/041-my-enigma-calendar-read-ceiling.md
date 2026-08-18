@@ -28,4 +28,5 @@ P03 connects the first real private source — calendar — to My Enigma. The pi
 ## Related
 
 - [ADR-040](./040-product-worlds-same-enigma.md) · [ADR-005](./005-demo-private-storage-roots.md)
-- Ticket: [P03](../../tickets/pilot/P03-calendar-read-support.md)
+- Ticket: [P03](../../tickets/pilot/P03-calendar-read-support.md) — P03a [#109](https://github.com/oscarhilton/enigma-assistant-/pull/109); live ingress [P03b](../../tickets/pilot/P03b-live-calendar-ingress.md)
+- `ENIGMA_CALENDAR_FIXTURE` is a CI override. Production reads `StoreCalendarAdapter` from the private-root store when the env is unset.
