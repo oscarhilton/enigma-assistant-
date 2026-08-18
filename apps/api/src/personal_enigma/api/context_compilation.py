@@ -44,11 +44,11 @@ from personal_enigma.api.conversation_context import (
 from personal_enigma.api.demo_intents import build_support_payload
 from personal_enigma.api.demo_tools import DENIED_REMOTE_CAPABILITIES, tool_schemas
 from personal_enigma.api.evidence_bundle import planned_tools_for_kind
+from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
 from personal_enigma.api.relational_bootstrap import (
     RelationalBootstrapInputs,
     attach_relational_bootstrap,
 )
-from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
 from personal_enigma.api.speech_acts import (
     SpeechAct,
     classify_speech_act,
