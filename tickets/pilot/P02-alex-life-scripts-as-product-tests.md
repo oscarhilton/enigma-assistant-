@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
-| Branch | `ticket/P02-product-life-scripts` |
+| Status | `done` |
+| Branch | — (merged #108) |
 | Domain | `pilot` |
 | Programme | [PILOT-01](./README.md) |
 
