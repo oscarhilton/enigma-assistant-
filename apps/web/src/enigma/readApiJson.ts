@@ -38,3 +38,10 @@ export function parseFastApiDetail(body: string): string | null {
   }
   return null;
 }
+
+/** True when Core rejected a route because the active world does not match (ADR-040). */
+export function isWorldConflictError(message: string): boolean {
+  return /active world|alex lab as the active world|my enigma is not the active world|demo timeline controls require alex lab/i.test(
+    message,
+  );
+}

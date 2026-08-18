@@ -18,6 +18,10 @@ type WorldContextValue = {
 
 const WorldContext = createContext<WorldContextValue | null>(null);
 
+function apiDefaultWorld(): WorldId {
+  return "my_enigma";
+}
+
 function defaultWorld(): WorldId {
   const mode = import.meta.env.VITE_ENIGMA_MODE as string | undefined;
   if (mode === "demo") {
@@ -56,11 +60,11 @@ export function WorldProvider({
         if (cancelled) {
           return;
         }
-        setWorld(parseActiveWorld(payload.active) ?? initialWorld ?? defaultWorld());
+        setWorld(parseActiveWorld(payload.active) ?? initialWorld ?? apiDefaultWorld());
       })
       .catch(() => {
         if (!cancelled) {
-          setWorld(initialWorld ?? defaultWorld());
+          setWorld(initialWorld ?? apiDefaultWorld());
         }
       });
     return () => {
