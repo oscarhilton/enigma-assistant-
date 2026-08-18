@@ -44,6 +44,7 @@ from personal_enigma.api.demo_projection import (
     qualification_debug_payload,
 )
 from personal_enigma.api.demo_tools import DemoToolSession
+from personal_enigma.api.routes.worlds import alex_lab_is_active
 from personal_enigma.attention.projection import NextActionView
 from personal_enigma.fixtures.demo_checkpoints import (
     DEFAULT_DEMO_CHECKPOINT,
@@ -511,10 +512,11 @@ class DemoSession:
             "mode": mode.value,
             "banner": DEMO_BANNER_TEXT if active else "",
             "scenario": self.scenario if active else None,
-            "simulated_time": self.clock.now().isoformat() if active else None,
+            # Session clock — process env must not hide it after a world switch.
+            "simulated_time": self.clock.now().isoformat(),
             "checkpoint_id": self.checkpoint_id if active else None,
-            "speed": self.speed if active else None,
-            "paused": self.clock.paused if active else None,
+            "speed": self.speed,
+            "paused": self.clock.paused,
             "storage_root": str(self.env.storage_root) if active else None,
             "ground_truth_visible": False,
             "signals_considered": considered,
@@ -725,12 +727,14 @@ class DemoSession:
 _LOCK_TYPE = type(Lock())
 
 
-def _require_demo() -> None:
-    if environment_mode_from_env() is not EnvironmentMode.DEMO:
-        raise HTTPException(
-            status_code=409,
-            detail="Demo timeline controls require ENIGMA_ENVIRONMENT_MODE=demo",
-        )
+def _require_demo(application: FastAPI) -> None:
+    """Demo conversation/timeline is Alex Lab — not a second app, not process env alone."""
+    if alex_lab_is_active(application):
+        return
+    raise HTTPException(
+        status_code=409,
+        detail="Demo timeline controls require Alex Lab as the active world",
+    )
 
 
 def _assert_demo_reset_root(root: Path, *, scenario_id: str) -> None:
@@ -801,6 +805,7 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/environment")
     def demo_environment(scenario: str = "alex-v1") -> dict[str, str | None]:
+        _require_demo(application)
         mode = environment_mode_from_env()
         if mode is EnvironmentMode.DEMO:
             env = DemoEnvironment(scenario=scenario)
@@ -819,12 +824,13 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/status")
     def demo_status() -> dict[str, Any]:
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).status_payload()
 
     @application.post("/demo/timeline/step")
     def demo_timeline_step() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             session = _session_for(application)
             # Without D5 event queue, step advances one simulated hour.
@@ -833,7 +839,7 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.post("/demo/timeline/day")
     def demo_timeline_day() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             session = _session_for(application)
             session.advance_day()
@@ -841,7 +847,7 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.post("/demo/timeline/speed")
     def demo_timeline_speed(body: SpeedBody) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             session = _session_for(application)
             session.set_speed(body.speed)
@@ -850,26 +856,26 @@ def install_demo_routes(application: FastAPI) -> None:
     @application.post("/demo/reset")
     def demo_reset() -> dict[str, Any]:
         """Wipe Demo storage for the active scenario and reseed a fresh run."""
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).reset()
 
     @application.post("/demo/timeline/reset")
     def demo_timeline_reset() -> dict[str, Any]:
         """Alias of ``POST /demo/reset`` (clock + Demo storage wipe + bootstrap)."""
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).reset()
 
     @application.get("/demo/attention/state")
     def demo_attention_state() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).attention_state_payload()
 
     @application.get("/demo/attention/{item_id}/qualification-debug")
     def demo_qualification_debug(item_id: str) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             session = _session_for(application)
             try:
@@ -880,12 +886,12 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/checkpoints")
     def demo_checkpoints() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         return {"checkpoints": list_demo_checkpoints()}
 
     @application.post("/demo/timeline/checkpoint/{checkpoint_id}")
     def demo_timeline_checkpoint(checkpoint_id: str) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             session = _session_for(application)
             try:
@@ -899,49 +905,49 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/conversation")
     def demo_conversation() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).conversation_payload()
 
     @application.post("/demo/conversation/message")
     def demo_conversation_message(body: MessageBody) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).handle_message(body.text)
 
     @application.get("/demo/events")
     def demo_events() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).events_payload()
 
     @application.post("/demo/assist/{proposal_id}/approve")
     def demo_assist_approve(proposal_id: str) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).approve_assist(proposal_id)
 
     @application.get("/demo/attention")
     def demo_attention() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).attention_payload()
 
     @application.post("/demo/attention/{item_id}/done")
     def demo_attention_done(item_id: str) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).apply_attention_action(item_id, "done")
 
     @application.post("/demo/attention/{item_id}/snooze")
     def demo_attention_snooze(item_id: str) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).apply_attention_action(item_id, "snooze")
 
     @application.get("/demo/memory")
     def demo_memory() -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         categories = sorted({m["category"] for m in _STUB_MEMORY})
         return {
             "categories": categories,
@@ -951,13 +957,13 @@ def install_demo_routes(application: FastAPI) -> None:
     @application.get("/demo/suppressed")
     def demo_suppressed(reason: str | None = None) -> dict[str, Any]:
         """Developer-only suppression inspector (not product chrome)."""
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).suppressed_payload(reason)
 
     @application.get("/demo/why/{item_id}")
     def demo_why(item_id: str) -> dict[str, Any]:
-        _require_demo()
+        _require_demo(application)
         with _lock_for(application):
             session = _session_for(application)
             payload = _STUB_WHY.get(item_id)

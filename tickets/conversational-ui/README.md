@@ -87,13 +87,13 @@ C00 may use evaluation artifacts **only** to establish parity during development
 
 #103: observational infrastructure, no poultry expansion.
 C36: intentionally unclaimed.
-Next major programme: PILOT-01 — turn the simulator into a pilotable application (My Enigma).
+PILOT-01 lives under [tickets/pilot/](../pilot/) — [P01](../pilot/P01-world-isolation-pilot-shell.md) claimed on `ticket/P01-world-isolation`. This programme does not own world isolation.
 
 Two tracks, not to contaminate:
 C37 — Is THE Goose telling the truth about work?
 PILOT-01 — Does Enigma actually make Oscar’s day easier?
 
-Do not implement PILOT-01 here. Do not create C36. Do not add Goose animations.
+Do not implement P02/P03, C36, or extra Goose animations here.
 
 
 ## First milestone (Alex)

@@ -21,3 +21,4 @@ Demo Mode must replay fictional lives with known ground truth without risking co
 - Resetting a demo scenario deletes only under the demo root.
 - Agents must not point Demo at the Private DB URL or vice versa.
 - Shadow Mode is a **third** storage identity (not a Private policy layer); see [ADR-008](./008-shadow-storage-roots.md).
+- Product labels **Alex Lab** / **My Enigma** map onto Demo / Private without sharing roots or keys; see [ADR-040](./040-product-worlds-same-enigma.md).
