@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` (unclaimed — policy frozen; **do not implement in this docs PR**) |
+| Status | `future` — **do not claim** until Goose basic flight certification (start-gate below) |
 | Branch | `ticket/P04-alex-full-life-reprime` |
 | Domain | `pilot` |
 | Programme | [PILOT-01](./README.md) · [data-boot.md](../../docs/architecture/data-boot.md) |
@@ -10,7 +10,31 @@
 
 **Do not fold into UI2-06.** UI2-06 is Level 1 only (five constitutional Life Scripts through `/v2`). This ticket is the Hugging Face messy full-life stress-test world.
 
-**Do not download Hugging Face data until this ticket is claimed and a slice explicitly requires a pinned fetch.** Current Alex Lab boot does not need the corpus.
+**Do not download Hugging Face data** until this ticket is claimed and a slice explicitly requires a pinned fetch. No HF download is required yet. Current Alex Lab boot does not need the corpus.
+
+Level 1 is a sealed crate: small, resettable, diagnosable. Do not open the messy full-life crate until Goose has passed basic flight certification on the sealed one.
+
+## Start gate (hard — do not claim before this)
+
+**Do not start P04 until Goose has passed basic flight certification.**
+
+That means all of:
+
+1. UI2 stack merged
+2. [UI2-06](../ui2/UI2-06-alex-life-scripts.md) five Life Scripts through `/v2`
+3. Forensic diagnosability (failures produce a useful snapshot without console archaeology)
+4. UI2 declared **pilot-grade**
+
+Order (no new programme axis):
+
+```text
+merge UI2 stack
+        → UI2-06 five-script graduation
+        → pilot-grade
+        → then P04 Full Alex reprime
+```
+
+UI2-06 stays Level 1 so failures are diagnosable without 80k emails poisoning the well.
 
 ## Intent
 
@@ -60,6 +84,7 @@ Do not cross D04's existing five adapter files unless a dedicated follow-up clai
 
 ## Hard depends
 
+- **Goose basic flight certification** (start-gate): UI2-06 five scripts through `/v2` + forensic diagnosability + UI2 declared pilot-grade — **do not claim P04 before this**
 - [P01](./P01-world-isolation-pilot-shell.md) `done` — Alex Lab Demo root + reset
 - [P02](./P02-alex-life-scripts-as-product-tests.md) `done` — Level 1 fixtures must **remain** the constitutional boot
 - [D01](../demo-environment/D01-environment-separation.md) `done` — Demo vs Private
@@ -69,7 +94,6 @@ Do not cross D04's existing five adapter files unless a dedicated follow-up clai
 
 - [D08b](../demo-scenario/D08b-corpus-pipeline.md) sanitiser / provenance / pinned revision (`--force-network`, never PR CI) — **FinePersonas is background-around-spine, not this corpus**
 - [D16](../demo-ui/D16-demo-reset.md) Demo reset
-- UI2 `/v2` shell — same UI after reprime; **UI2-06 remains Level 1 only**
 - [ADR-007](../../docs/adr/007-demo-corpus-provenance.md) pin HF revision if/when fetch is claimed
 
 ## Unlocks / enhances
@@ -90,6 +114,7 @@ Do not cross D04's existing five adapter files unless a dedicated follow-up clai
 
 ## Acceptance criteria (when implemented)
 
+- [ ] **Start-gate held:** not claimed or implemented before Goose basic flight certification (UI2-06 five scripts through `/v2`, forensic diagnosability, UI2 pilot-grade)
 - [ ] HF raw synthetic sources land as **synthetic adapters under `packages/simulation`**, implementing the same `DataSource` (or equivalent) contract conceptually as production
 - [ ] Path is ingest → observations / grounding → governed retained memory → Cases / attention / AgentWork → `/v2` — no skip to a prebuilt brain
 - [ ] Demo storage only ([ADR-005](../../docs/adr/005-demo-private-storage-roots.md)); never Private / My Enigma

@@ -45,7 +45,9 @@ Oscar's actual governed sources
 | **2** | Does it behave correctly when life is noisy? | Alex Lab (stress-test world) | Hugging Face messy synthetic life | [P04](../../tickets/pilot/P04-alex-full-life-reprime.md) |
 | **3** | Does it genuinely help? | My Enigma | Oscar's governed sources | [P03](../../tickets/pilot/P03-calendar-read-support.md)+ |
 
-Level 2 is **not** a UI2 ticket. Do not fold the HF corpus into UI2-06.
+Level 2 is **not** a UI2 ticket. Do not fold the HF corpus into UI2-06. UI2-06 stays Level 1 so failures are diagnosable without 80k emails poisoning the well.
+
+**Order:** merge UI2 stack → UI2-06 five-script graduation → pilot-grade → **then** P04. **Do not start P04 until Goose has passed basic flight certification** (UI2-06 through `/v2`, forensic diagnosability, UI2 declared pilot-grade). No Hugging Face download required yet.
 
 ## Hard rule for Level 2
 

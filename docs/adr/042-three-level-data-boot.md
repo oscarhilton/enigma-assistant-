@@ -26,7 +26,7 @@ FinePersonas (D08b–e) already supplies **background density** around an author
 
 2. **Level 1 remains the current boot path.** In-repo fixtures stay resettable and reproducible. Hugging Face is not required to run P01, P02, UI2-06, Goose, or forensics.
 
-3. **Level 2 is its own ticket (P04), not UI2-06.** UI2-06 stays five constitutional scripts. The HF corpus must not be claimed, downloaded, or wired as part of that graduation.
+3. **Level 2 is its own ticket (P04), not UI2-06.** UI2-06 stays five constitutional scripts so failures are diagnosable without 80k emails. The HF corpus must not be claimed, downloaded, or wired as part of that graduation. **Do not start P04 until Goose has passed basic flight certification** (UI2-06 five scripts through `/v2`, forensic diagnosability, UI2 declared pilot-grade).
 
 4. **Level 2 must use normal machinery.** Synthetic adapters under `packages/simulation` (not `packages/ingestion` Apple/Google files) feed the same conceptual path as production: DataSource → observations / grounding → governed retained memory → Cases / attention / AgentWork → `/v2`. Forbidden: dataset → prebuilt memory as the primary path.
 
@@ -35,6 +35,7 @@ FinePersonas (D08b–e) already supplies **background density** around an author
 ## Consequences
 
 - Agents must not download Hugging Face data to unstick UI2 or Life Script work.
+- P04 is `future` until Goose basic flight certification (UI2-06 five scripts through `/v2`, forensic diagnosability, UI2 declared pilot-grade).
 - D08 FinePersonas remains background-around-spine; P04 is a distinct stress-test world.
 - Unscripted post-reprime questions ("What am I doing this weekend?", "Did I ever reply to Elena?", "What did I actually book?", "Anything I've forgotten?") are Level 2 probes, not Level 1 script steps.
 

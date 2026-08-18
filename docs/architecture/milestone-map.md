@@ -284,5 +284,5 @@ Data boot is three levels ([data-boot.md](./data-boot.md) · [ADR-042](../adr/04
 | --- | --- | --- | --- | --- |
 | P01 | World isolation + pilot shell | `done` | [P01](../../tickets/pilot/P01-world-isolation-pilot-shell.md) | — |
 | P02 | Alex Life Scripts as browser product tests | `done` | [P02](../../tickets/pilot/P02-alex-life-scripts-as-product-tests.md) | **1** constitutional |
-| P04 | Alex Full-Life Reprime (HF messy synthetic life) | `todo` | [P04](../../tickets/pilot/P04-alex-full-life-reprime.md) | **2** noisy life — not UI2-06 |
+| P04 | Alex Full-Life Reprime (HF messy synthetic life) | `future` (Goose flight cert) | [P04](../../tickets/pilot/P04-alex-full-life-reprime.md) | **2** noisy life — not UI2-06 |
 | P03 | Calendar READ + SUPPORT (no writes) | `in_progress` | [P03](../../tickets/pilot/P03-calendar-read-support.md) | **3** My Enigma |
