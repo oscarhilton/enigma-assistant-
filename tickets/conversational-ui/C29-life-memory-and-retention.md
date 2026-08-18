@@ -172,6 +172,7 @@ Inventory API is slice 4 (this freeze). Brain UI / Goose memory UI remain C30 / 
 - Reopening C26 grounding, respond_grounding, C27 continuity, C28 event spine
 - Life Graph / Brain **UI** (→ C30) — C29 slice 4 owns the inspectable inventory read model only
 - Goose memory UI (→ C31)
+- GooseCargo working-set projection is not retention (C33 docs; C31 presentation later). Holding ≠ remembering.
 - Personality inference, relationship strength, psychographic storage
 - LLM writes durable memory directly
 - Raw-source retention policy changes
