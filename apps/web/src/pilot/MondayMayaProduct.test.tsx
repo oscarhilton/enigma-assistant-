@@ -36,7 +36,7 @@ describe("P02b Monday/Maya Life Script (pilot shell)", () => {
 
     fireEvent.click(screen.getByText(/Also on my radar/i));
     fireEvent.click(screen.getByRole("button", { name: MAYA_BIRTHDAY_TITLE }));
-    const mayaRow = screen.getByRole("button", { name: MAYA_BIRTHDAY_TITLE }).closest(".radar-item")!;
+    const mayaRow = screen.getByRole("button", { name: MAYA_BIRTHDAY_TITLE }).closest(".radar-item") as HTMLElement;
     fireEvent.click(within(mayaRow).getByRole("button", { name: /Why now/i }));
     await waitFor(() => {
       expect(screen.getByText(/not the same as knowing you are off work/i)).toBeInTheDocument();

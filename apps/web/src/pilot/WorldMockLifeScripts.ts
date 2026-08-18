@@ -319,7 +319,6 @@ export function notifyTeamProposal(at: string): ConversationItem {
   return {
     kind: "assist_proposal",
     at,
-    proposal_id: proposal.id,
     proposal,
     llm_trace: traceForVerificationPrepare(),
   };
