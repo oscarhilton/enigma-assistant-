@@ -1,7 +1,7 @@
 # C35 — Goose pixel licence (work presence, C34 expressiveness)
 
-**Status:** in_progress  
-**Branch:** `ticket/C35-goose-pixel-licence`  
+**Status:** done  
+**Merged:** [#102](https://github.com/oscarhilton/enigma-assistant-/pull/102)  
 **Domain:** conversational-ui  
 **Hard depends:** [C34](./C34-relational-bootstrap.md) frozen · C14 activity projection on main  
 **Soft (~):** C31 later choreography (not on this main) · C28 AgentWork when it lands on main · [#97](https://github.com/oscarhilton/enigma-assistant-/pull/97) SURFACE contract

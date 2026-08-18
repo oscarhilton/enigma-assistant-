@@ -80,7 +80,7 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C13](./C13-life-script-reliability.md) | Life Script reliability (repeat Fireworks runs) | **todo** |
 | [C14](./C14-conversation-activity-stream.md) | Conversation activity stream (real events, not fake CoT) | **in_progress** (spec + v0 strip) |
 | [C34](./C34-relational-bootstrap.md) | Relational bootstrap (continuation mechanics) | **frozen** ([#99](https://github.com/oscarhilton/enigma-assistant-/pull/99)) |
-| [C35](./C35-goose-pixel-licence.md) | Goose pixel licence (work presence; C34 expressiveness) | **in_progress** |
+| [C35](./C35-goose-pixel-licence.md) | Goose pixel licence (work presence; C34 expressiveness) | **done** |
 
 ## First milestone (Alex)
 
