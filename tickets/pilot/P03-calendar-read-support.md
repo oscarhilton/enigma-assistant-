@@ -3,9 +3,11 @@
 | Field | Value |
 | --- | --- |
 | Status | `in_progress` |
-| Branch | `ticket/P03-calendar-read-support` |
+| Branch | `ticket/P03-calendar-read-support` (P03a) · `ticket/P03b-live-calendar-ingress` (P03b) |
 | Domain | `pilot` |
 | Programme | [PILOT-01](./README.md) |
+
+**Not done.** Fixture/store vertical path landed as P03a; live ingress is [P03b](./P03b-live-calendar-ingress.md). Do not mark “real Tuesday complete”.
 
 ## Intent
 
@@ -26,6 +28,24 @@ Then the product can actually answer:
 
 Every next capability after this has to earn itself from a real annoyance.
 
+## Slices
+
+### P03a — Calendar READ/SUPPORT vertical path (fixture/store) — merged
+
+[#109](https://github.com/oscarhilton/enigma-assistant-/pull/109) (`9f76394`). Frozen path:
+
+`fixture or private store → reduced calendar facts → Tomorrow / Weekend / Availability`
+
+No new UI. No new reasoning. No writes. No Gmail.
+
+### P03b — Live ingress proof — remaining
+
+[P03b](./P03b-live-calendar-ingress.md). One actual event must survive:
+
+`real calendar → private ingestion → Today / question resolution → reduced calendar fact → answer → Why`
+
+via the intended live bridge (M08 Apple / M12 Google). Exercise the already-frozen #109 path **without weakening privacy or authority**.
+
 ## Package boundary (when claimed)
 
 - My Enigma world only (`EnvironmentMode.PRIVATE`)
@@ -45,7 +65,9 @@ Every next capability after this has to earn itself from a real annoyance.
 
 ## Acceptance criteria
 
-- [x] Real calendar events enter only through My Enigma (`ENIGMA_CALENDAR_FIXTURE` or private store under world root)
+### P03a (#109)
+
+- [x] Fixture/store events enter only through My Enigma (`ENIGMA_CALENDAR_FIXTURE` or private store under world root)
 - [x] Alex Lab remains synthetic and deterministic (unchanged)
 - [x] Calendar descriptions/attendees aren't sprayed into remote prompts by default (`reduced_calendar_fact`)
 - [x] Only request-relevant reduced facts reach reasoning
@@ -57,11 +79,18 @@ Every next capability after this has to earn itself from a real annoyance.
 - [x] No standing background calendar agent
 - [x] Three pilot scripts: Tomorrow, Weekend, Monday availability (API + browser tests)
 
+### P03b (live)
+
+- [ ] One actual live event survives the path above (cannot be fully proven in CI — see P03b)
+- [ ] Production conversation route does not require `ENIGMA_CALENDAR_FIXTURE` when store events exist
+
 ## Test plan
 
 - `uv run pytest apps/api/tests/test_p03_calendar_read_support.py`
 - `pnpm exec vitest run src/pilot/CalendarReadProduct.test.tsx`
+- P03b: `uv run pytest apps/api/tests/test_p03b_live_calendar_ingress.py`
 
 ## PR
 
-- (pending)
+- P03a: [#109](https://github.com/oscarhilton/enigma-assistant-/pull/109) merged `9f76394`
+- P03b: see [P03b](./P03b-live-calendar-ingress.md)

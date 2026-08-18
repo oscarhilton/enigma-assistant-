@@ -63,9 +63,8 @@ class CalendarEventStore:
         self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     def events(self) -> list[PrivateCalendarEvent]:
-        if not self._events and self.path.exists():
-            return self.load()
-        return list(self._events)
+        """Disk is source of truth — live M08/M12 sync must be visible without a session reset."""
+        return self.load()
 
     def events_between(self, start: datetime, end: datetime) -> list[PrivateCalendarEvent]:
         rows: list[PrivateCalendarEvent] = []
