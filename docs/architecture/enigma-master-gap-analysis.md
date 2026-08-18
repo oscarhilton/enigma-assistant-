@@ -113,3 +113,23 @@ The first slice is successful when the repo can represent:
 - a bundle that can answer “what did I establish?” separately from “did I search enough?”
 
 That gives the later continuity, Brain, Cortex, and proactivity work a serious substrate to stand on.
+
+## Programme checkpoint — C29 frozen (2026-08-18)
+
+C29 life-memory lifecycle is **complete and frozen**:
+
+```text
+establish → retain → persist → expire / forget / correct → inspect
+```
+
+`MemoryInventory` is a projection over governed retained assertions, not a second truth database. **The vault remembers. The inventory explains.**
+
+Recorded finding (not a blocker): the projector hides elapsed-TTL rows before `expire_ttl()`; inventory absence is not proof that GC ran.
+
+**Not C29 — do not start here:** Brain UI, Goose choreography.
+
+**Next phase:** Semantic Recall + crypto, with the rule:
+
+> Recall may find governed memory. It may not create, promote, resurrect, or retain it.
+
+**Then:** C30 Brain / Cortex / Case File UI compiles from this inventory.

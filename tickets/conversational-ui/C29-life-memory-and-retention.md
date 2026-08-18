@@ -1,9 +1,9 @@
 # C29 — Life memory, retention gate, and third-party ethics
 
-**Status:** in_progress (slice 3 — forget propagation + TTL expiry)  
+**Status:** done · **frozen** (slices 1–4 lifecycle)  
 **Branch:** `ticket/C29-life-memory-retention`  
 **Domain:** conversational-ui  
-**May edit:** `packages/domain/src/personal_enigma/domain/retention.py`, `packages/domain/src/personal_enigma/domain/retention_gate.py`, `packages/domain/src/personal_enigma/domain/durable_assertions.py`, `packages/domain/src/personal_enigma/domain/__init__.py`, `packages/domain/tests/test_retention_gate.py`, `apps/api/tests/test_c29_*.py`, `docs/architecture/data-retention.md`, `docs/adr/036-*.md`, `docs/architecture/enigma-master-gap-analysis.md`, `tickets/conversational-ui/**`
+**May edit:** `packages/domain/src/personal_enigma/domain/retention.py`, `packages/domain/src/personal_enigma/domain/retention_gate.py`, `packages/domain/src/personal_enigma/domain/durable_assertions.py`, `packages/domain/src/personal_enigma/domain/memory_inventory.py`, `packages/domain/src/personal_enigma/domain/__init__.py`, `packages/domain/tests/test_retention_gate.py`, `packages/domain/tests/test_memory_inventory.py`, `apps/api/src/personal_enigma/api/storage/retention_vault.py`, `apps/api/src/personal_enigma/api/storage/retention_forget.py`, `apps/api/src/personal_enigma/api/storage/memory_inventory.py`, `apps/api/tests/test_c29_*.py`, `docs/architecture/data-retention.md`, `docs/adr/036-*.md`, `docs/architecture/enigma-master-gap-analysis.md`, `tickets/conversational-ui/**`
 
 **Must not edit:** C26 grounding · `respond_grounding.py` · C27 continuity · C28 event spine · SEC-06 forget cascade invariants · new psych-profile storage · Goose memory UI · Life Graph projections
 
@@ -55,14 +55,18 @@ GroundedAssertion
 ## Implementation dependency order (mandatory)
 
 ```text
-RetentionPolicy / RetentionDecision          ← slice 1 (this branch)
+RetentionPolicy / RetentionDecision          ← slice 1 · frozen
   ↓
-small durable assertion store
+small durable assertion store                 ← slice 2 · frozen
   ↓
-deletion + derivative invalidation (wire SEC-06 forget)
+deletion + derivative invalidation            ← slice 3 · frozen
   ↓
-only then richer Life Graph projections (C30)
+MemoryInventory projection                    ← slice 4 · frozen
+  ↓
+only then richer Life Graph UI (C30)
 ```
+
+C29 lifecycle is complete: **establish → retain → persist → expire/forget/correct → inspect**. Brain UI, semantic recall, and crypto are **not** C29.
 
 ## Builds on SEC-06 (do not duplicate)
 
@@ -127,42 +131,71 @@ Semantic freeze line: `retain → derive → forget / expire → propagate inval
 
 Physical vs logical: C29 forget is **SQL DELETE of derived rows** (plus lineage rewrite on survivors). SQLCipher page encryption remains; there is **no per-row key destruction or VACUUM shred**. Freeze readiness at this layer is: forgotten content cannot participate in current memory or reconstruct unjustified descendants. Cryptographic destruction of residual ciphertext is a later storage-hardening layer — this slice does not pretend to provide it.
 
-Inventory API / Brain / Goose memory UI remain slice 4+ / C30 / C31.
+Inventory API is slice 4 (this freeze). Brain UI / Goose memory UI remain C30 / C31. Slice 4 is the **read model** (projection), not the Brain UI.
 
-### Slice 4+
+### Slice 4 (Memory inventory / Brain read model)
 
-- [ ] Inventory API surfaces life-memory assertions alongside derived records
+- [x] `MemoryInventory` projection over current retained assertions (`packages/domain/memory_inventory.py`)
+- [x] Display statuses: `KNOWN` / `POSSIBLE` / `STALE` / `CONFLICTED` / `EXPIRING`
+- [x] `MODEL_INFERRED` maps to `POSSIBLE` and never collapses to `KNOWN`
+- [x] Vault query `list_memory_inventory()` — forgotten/expired/superseded rows absent from current inventory
+- [x] Inspectable `why` (purpose, provenance refs, derived_from, retained_at) without raw source bodies
+- [x] Forget capability flag hooks existing `forget_retained_assertion()` — no parallel delete
+- [x] `correct_retained_assertion()` mints a new row with `supersedes` / lineage (no in-place rewrite)
+- [x] Freeze tests: Why, Correction, Forget, Detective, No-raw-source, Epistemic display (`packages/domain/tests/test_memory_inventory.py`, `apps/api/tests/test_c29_memory_inventory.py`)
+
+### Out of C29 (do not reopen this ticket)
+
+- [ ] C30 Brain / Cortex / Case File UI compiles from this inventory — does not invent a second store
+- [ ] Semantic recall / embeddings — *Recall may find governed memory. It may not create, promote, resurrect, or retain it.*
+- [ ] Crypto key destruction of residual vault ciphertext
+
+**The vault remembers. The inventory explains.**
 
 ## Freeze tests (acceptance criteria — must stay green)
 
 | Test | Assertion |
 | --- | --- |
 | **Ceramics** | Confirmed preference may become retainable; inferred preference does **not** silently become durable |
-| **Detective** | Rich source material yields useful life facts, not a dossier |
-| **Forget** | Delete retained fact → invalidate unjustified summaries/vectors/derived assertions |
+| **Detective** | Rich source material yields useful life facts, not a dossier (inventory must not surface inferred psychology as `KNOWN`) |
+| **Forget** | Delete retained fact → invalidate unjustified summaries/vectors/derived assertions; forgotten/expired items absent from current inventory |
 | **Third-party** | Remember "Maya likes ceramics"; reject "Maya is emotionally dependent on…" unless extraordinary explicit product justification |
 | **Purpose-expiry** | Fact retained for temporary case does not live forever merely because once useful |
+| **Why** | “Why do you remember Maya likes ceramics?” has purpose, provenance refs, derived_from, retained_at |
+| **Correction** | Correcting retained information mints a new superseding row; prior payload is unchanged |
+| **No-raw-source** | Inspecting inventory does not dump raw email/chat bodies; provenance may point at source ids |
+| **Epistemic display** | `MODEL_INFERRED` remains `POSSIBLE` and never displays as `KNOWN` |
 
 ## Explicit non-goals
 
 - Reopening C26 grounding, respond_grounding, C27 continuity, C28 event spine
-- Life Graph / Brain projection (→ C30)
+- Life Graph / Brain **UI** (→ C30) — C29 slice 4 owns the inspectable inventory read model only
 - Goose memory UI (→ C31)
 - Personality inference, relationship strength, psychographic storage
 - LLM writes durable memory directly
 - Raw-source retention policy changes
 - Second forget graph parallel to SEC-06
 
+## Freeze (2026-08-18)
+
+Slice 4 freeze review: **Q1 PASS WITH NOTES · Q2 PASS · Q3 PASS WITH NOTES · Q4 PASS. Overall: Freeze C29.**
+
+Lifecycle complete: establish → retain → persist → expire/forget/correct → inspect.
+
+**Recorded finding (not a blocker, not a second store):** the inventory projector also hides elapsed-TTL rows before `expire_ttl()` runs, so inventory can look forgotten while descendants still sit in `derived_records`. Forget is SQL DELETE. C30 must not treat inventory absence as proof that GC ran. Do not add inventory-owned state. Do not make the projector a retention policy.
+
+Remaining Brain UI / semantic recall / crypto / Goose choreography are **not** C29.
+
 ## Definition of done (programme)
 
-Enigma can retain useful concrete facts for the user while refusing to turn other people into psychological dossiers — with an inspectable gate between establishment and persistence.
+Enigma can retain useful concrete facts for the user while refusing to turn other people into psychological dossiers — with an inspectable gate between establishment and persistence, and an inspectable inventory that explains current memory without becoming a second store.
 
 ## Test plan
 
 ```bash
-uv run pytest packages/domain/tests/test_retention_gate.py apps/api/tests/test_c29_retention_freeze.py apps/api/tests/test_c29_retention_vault_bridge.py apps/api/tests/test_c29_forget_propagation.py -q
-uv run ruff check packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/durable_assertions.py apps/api/src/personal_enigma/api/storage/retention_vault.py apps/api/src/personal_enigma/api/storage/retention_forget.py
-uv run basedpyright packages/domain/src/personal_enigma/domain/retention_gate.py apps/api/src/personal_enigma/api/storage/retention_forget.py
+uv run pytest packages/domain/tests/test_retention_gate.py packages/domain/tests/test_memory_inventory.py apps/api/tests/test_c29_retention_freeze.py apps/api/tests/test_c29_retention_vault_bridge.py apps/api/tests/test_c29_forget_propagation.py apps/api/tests/test_c29_memory_inventory.py -q
+uv run ruff check packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/durable_assertions.py packages/domain/src/personal_enigma/domain/memory_inventory.py apps/api/src/personal_enigma/api/storage/retention_vault.py apps/api/src/personal_enigma/api/storage/retention_forget.py apps/api/src/personal_enigma/api/storage/memory_inventory.py
+uv run basedpyright packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/memory_inventory.py apps/api/src/personal_enigma/api/storage/retention_forget.py apps/api/src/personal_enigma/api/storage/memory_inventory.py
 ```
 
 Regression: SEC-06 forget/lineage tests must remain green (`apps/api/tests/test_sec06_forget_lineage.py`).

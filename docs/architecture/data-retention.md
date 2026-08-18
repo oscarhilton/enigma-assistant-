@@ -39,7 +39,7 @@ GroundedAssertion (ephemeral evidence plane)
 
 > **Truth does not imply retention. Confirmation grants epistemic status. Purpose grants retention.**
 
-The gate answers whether an established assertion deserves persistence — for how long, and for what purpose — before any durable write. Life Graph and Goose projections compile from retained assertions; they do not decide retention.
+The gate answers whether an established assertion deserves persistence — for how long, and for what purpose — before any durable write. [MemoryInventory](../adr/036-retention-gate-life-memory.md) (C29 slice 4, frozen) is a **projection** over those retained rows: purpose, provenance refs, lineage, and epistemic display (`KNOWN` / `POSSIBLE` / `STALE` / `CONFLICTED` / `EXPIRING`). It is not another memory store. Life Graph / Brain **UI** (C30) and Goose compile from this inventory; they do not decide retention. `MODEL_INFERRED` remains `possible` and never displays as `known`. Forget is SQL DELETE, so forgotten rows are absent from both vault current-memory and inventory. The projector also hides elapsed-TTL rows before `expire_ttl()` runs — inventory absence is therefore not proof that GC ran, and C30 must not treat it as such. Correction supersedes with a new lineage rather than editing history. **The vault remembers. The inventory explains.**
 
 ## Prominent invariant
 

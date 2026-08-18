@@ -72,22 +72,49 @@ Third-party retention is limited to **concrete, user-owned purposes** (e.g. "May
 | `RetentionDecision` / `evaluate_retention()` | C29 · `packages/domain/retention_gate.py` |
 | `DerivedRecord` lineage, decay, forget graph | SEC-06 · `apps/api/storage/` |
 | Sensitive inference permanent-write ban | SEC-06 · `storage/sensitive.py` |
-| Durable life-memory assertion store | C29 slice 2+ (stub in slice 1) |
+| Durable life-memory assertion store | C29 slice 2+ |
+| `MemoryInventory` projection | C29 slice 4 · `packages/domain/memory_inventory.py` |
 
-When a C29 decision is `DURABLE` or `TTL`, a later slice maps it to `DerivedRecord` + `LineageMetadata` using existing SEC-06 fields — no parallel forget graph.
+When a C29 decision is `DURABLE` or `TTL`, it maps to `DerivedRecord` + `LineageMetadata` using existing SEC-06 fields — no parallel forget graph.
 
 Slice 3 forgetting is **semantic invalidation**: delete unjustified `derived_records` rows and strip forgotten lineage refs from survivors. It is not cryptographic destruction of SQLCipher pages. Residual ciphertext after `DELETE` is a later storage-hardening concern; freeze readiness at this layer is that forgotten content cannot participate in current memory.
+
+### 7. Memory inventory is a projection, not a store (slice 4)
+
+```text
+retained assertions (vault)
+      ↓
+MemoryInventory projection
+      ↓
+KNOWN | POSSIBLE | STALE | CONFLICTED | EXPIRING
+```
+
+`MemoryInventory` (`packages/domain/memory_inventory.py`) compiles current life-memory from gated vault rows. It does not persist, decide retention, or replace SEC-06. Forgotten rows are absent because forget is SQL DELETE. Superseded rows remain in the vault for lineage but are absent from **current** inventory.
+
+**Recorded finding (slice 4 freeze, not a second store):** the projector also hides elapsed-TTL rows before `expire_ttl()` runs, so inventory can look forgotten while descendants still sit in `derived_records`. C30 must not treat inventory absence as proof that GC ran. The projector is not a retention policy; inventory owns no extra state.
+
+**The vault remembers. The inventory explains.**
+
+Correction mints a new retained assertion with `supersedes` + `derived_from` pointing at the prior id. In-place payload rewrite of an existing retained id is forbidden.
+
+`MODEL_INFERRED` display-maps to `POSSIBLE` and must never collapse to `KNOWN`. The retention gate still refuses to persist inferred assertions as durable; the mapping is defense-in-depth if such a row is ever present.
+
+Inspectable `why` answers with purpose, provenance **refs**, `derived_from`, and `retained_at`. Provenance may point at a source id; inventory payloads must not include raw email/chat bodies.
+
+Forget is exposed as a capability (`action=forget_retained_assertion`) that invokes the existing cascade. C30 Brain UI compiles from this inventory; it must not invent a second truth database.
 
 ## Implementation dependency order
 
 ```text
-RetentionPolicy / RetentionDecision  ← slice 1 (this ADR)
+RetentionPolicy / RetentionDecision  ← slice 1
   ↓
-small durable assertion store
+small durable assertion store         ← slice 2
   ↓
-deletion + derivative invalidation (wire to SEC-06 forget)
+deletion + derivative invalidation    ← slice 3
   ↓
-only then richer Life Graph projections (C30)
+MemoryInventory projection            ← slice 4
+  ↓
+only then richer Life Graph UI (C30)
 ```
 
 ## Consequences
@@ -95,7 +122,9 @@ only then richer Life Graph projections (C30)
 - `packages/domain/retention_gate.py` is the canonical retention decision function.
 - Evidence packs and respond grounding remain ephemeral; they do not write durable memory.
 - Freeze tests (Ceramics, Detective, Forget, Third-party, Purpose-expiry) gate future Life Graph work.
-- C30 Brain projection must compile from `DurableAssertionStore` + SEC-06 inventory, not invent parallel truth.
+- C29 slices 1–4 are frozen: establish → retain → persist → expire/forget/correct → inspect. Brain UI, semantic recall, and crypto are not C29.
+- C30 Brain UI must compile from `MemoryInventory` + `DurableAssertionStore` + SEC-06 vault rows, not invent parallel truth. Inventory absence is not proof that GC ran.
+- Slice 4 freeze tests (Why, Correction, Forget, Detective, No-raw-source, Epistemic display) gate that UI.
 
 ## Non-goals
 

@@ -116,6 +116,7 @@ def build_retained_assertion_payload(
         "confidence": assertion.confidence,
         "evidence_refs": list(assertion.evidence_refs),
         "derived_from_assertion_ids": list(assertion.derived_from),
+        "supersedes": list(assertion.supersedes),
         "purpose_tags": list(assertion.purpose_tags),
         "validity_kind": assertion.validity_kind.value,
         "temporal_scope": assertion.temporal_scope,
@@ -225,6 +226,13 @@ class VaultDurableAssertionStore:
         self._vault = vault
 
     def store(self, assertion: GroundedAssertion, decision: RetentionDecision) -> str:
+        existing = self.get_record(assertion.id)
+        if existing is not None:
+            msg = (
+                f"In-place rewrite of retained assertion {assertion.id!r} is forbidden; "
+                "use correct_retained_assertion() to supersede"
+            )
+            raise RetentionVaultError(msg)
         record = map_retention_to_derived_record(assertion, decision)
         self._vault.store_derived(record)
         return record.id
