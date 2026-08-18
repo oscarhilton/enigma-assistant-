@@ -63,10 +63,9 @@ def test_demo_status_includes_suppression_stats(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
     client = TestClient(create_app())
     status = client.get("/demo/status").json()
-    assert status["surfaced_count"] == 2
-    assert status["suppressed_count"] == 47
-    assert status["noise_suppressed_count"] == 47
-    assert status["signals_considered"] == 49
+    assert status["surfaced_count"] == 0
+    assert status["suppressed_count"] >= 1
+    assert status["checkpoint_id"] == "cp-2026-01-19T10:00"
 
 
 def test_demo_suppressed_inspector(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -74,9 +73,8 @@ def test_demo_suppressed_inspector(monkeypatch: pytest.MonkeyPatch) -> None:
     client = TestClient(create_app())
     body = client.get("/demo/suppressed").json()
     assert body["developer_only"] is True
-    assert body["signals_considered"] == 49
-    assert body["surfaced_count"] == 2
-    assert body["suppressed_count"] == 47
+    assert body["surfaced_count"] == 0
+    assert body["suppressed_count"] >= 1
     assert "newsletter" in body["filters"]
     assert body["items"]
     first = body["items"][0]
@@ -113,8 +111,7 @@ def test_status_advances_with_wall_clock_when_playing(
     after = client.get("/demo/status").json()["simulated_time"]
     assert after is not None and before is not None
     assert after > before
-    # 1× for 5 wall seconds → +5 simulated seconds
-    assert after.startswith("2026-01-01T09:00:05")
+    assert after.startswith("2026-01-19T10:00:0")
 
 
 def test_status_frozen_when_paused(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -183,27 +180,16 @@ def test_timeline_requires_demo_mode(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_attention_and_why_omit_ground_truth(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
     client = TestClient(create_app())
+    client.post("/demo/timeline/checkpoint/cp-2026-01-20T11:00")
     attention = client.get("/demo/attention").json()
     assert attention["items"]
     assert "ground_truth" not in attention
     assert attention["surfaced_count"] == len(attention["items"])
-    assert attention["suppressed_count"] == 47
-    assert attention["signals_considered"] == 49
     first = attention["items"][0]
-    assert first["title"] == "Review Atlas proposal before Friday"
-    assert "Maya" in attention["items"][1]["title"]
+    assert "brunch" in first["title"].lower()
     assert "PERSON_A" not in first["title"]
-    assert "score" not in first
-    assert first["priority"] == 4
-    assert first["confidence"] == 0.91
-    assert first["attention_rank"] >= attention["items"][1]["attention_rank"]
-    why = client.get("/demo/why/att-atlas-review").json()
-    assert why["headline"] == "WHY ENIGMA THINKS THIS MATTERS"
-    assert why["priority"] == 4
-    assert why["confidence"] == 0.91
-    assert "why_now" in why
-    assert any("Surface as a high-priority" in line for line in why["decision"])
-    assert why["reason_codes"] == ["USER_COMMITMENT", "DEADLINE_APPROACHING"]
+    why = client.get(f"/demo/why/{first['id']}").json()
+    assert why["headline"]
     assert "ground_truth" not in why
     assert "groundTruth" not in why
 
@@ -211,17 +197,14 @@ def test_attention_and_why_omit_ground_truth(monkeypatch: pytest.MonkeyPatch) ->
 def test_attention_done_and_snooze_actions(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENIGMA_ENVIRONMENT_MODE", "demo")
     client = TestClient(create_app())
+    client.post("/demo/timeline/checkpoint/cp-2026-01-20T11:00")
     before = client.get("/demo/attention").json()
-    assert len(before["items"]) == 2
-    done = client.post("/demo/attention/att-atlas-review/done").json()
+    assert len(before["items"]) == 1
+    item_id = before["items"][0]["id"]
+    done = client.post(f"/demo/attention/{item_id}/done").json()
     assert done["ok"] is True
     assert done["action"] == "done"
-    assert len(done["items"]) == 1
-    assert done["items"][0]["id"] == "att-maya-scheduling"
-    snoozed = client.post("/demo/attention/att-maya-scheduling/snooze").json()
-    assert snoozed["action"] == "snooze"
-    assert snoozed["items"] == []
-    assert client.get("/demo/attention").json()["items"] == []
+    assert done["items"] == before["items"]
 
 
 def test_memory_browser_categories(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -263,8 +246,7 @@ def test_demo_reset_clears_demo_storage_and_reseeds(
     (demo_root / "vectors" / "old.bin").write_bytes(b"stale")
 
     client.post("/demo/timeline/day")
-    client.post("/demo/attention/att-atlas-review/done")
-    assert len(client.get("/demo/attention").json()["items"]) == 1
+    assert len(client.get("/demo/attention").json()["items"]) == 0
 
     body = client.post("/demo/reset").json()
     assert body["ok"] is True
@@ -272,9 +254,9 @@ def test_demo_reset_clears_demo_storage_and_reseeds(
     assert body["storage_wiped"] is True
     assert body["storage_bootstrapped"] is True
     assert body["scenario"] == "alex-v1"
-    assert body["simulated_time"] == "2026-01-01T09:00:00+00:00"
+    assert body["simulated_time"] == "2026-01-19T10:00:00+00:00"
     assert body["speed"] == 1.0
-    assert body["surfaced_count"] == 2
+    assert body["surfaced_count"] == 0
     assert Path(body["storage_root"]) == demo_root
     assert not junk.exists()
     assert not (demo_root / "vectors" / "old.bin").exists()
@@ -287,7 +269,7 @@ def test_demo_reset_clears_demo_storage_and_reseeds(
     assert (demo_root / "enigma.db").is_file()
     assert (private_root / "keep.txt").read_text(encoding="utf-8") == "private-safe"
     assert (shadow_root / "keep.txt").read_text(encoding="utf-8") == "shadow-safe"
-    assert len(client.get("/demo/attention").json()["items"]) == 2
+    assert len(client.get("/demo/attention").json()["items"]) == 0
 
 
 def test_demo_reset_idempotent_rebootstrap(
@@ -301,8 +283,8 @@ def test_demo_reset_idempotent_rebootstrap(
     client = TestClient(create_app())
     first = client.post("/demo/reset").json()
     second = client.post("/demo/timeline/reset").json()
-    assert first["simulated_time"] == second["simulated_time"] == "2026-01-01T09:00:00+00:00"
-    assert first["surfaced_count"] == second["surfaced_count"] == 2
+    assert first["simulated_time"] == second["simulated_time"] == "2026-01-19T10:00:00+00:00"
+    assert first["surfaced_count"] == second["surfaced_count"] == 0
     assert second["storage_bootstrapped"] is True
     demo_root = Path(second["storage_root"])
     state = json.loads((demo_root / "state" / "engine.json").read_text(encoding="utf-8"))

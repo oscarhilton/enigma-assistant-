@@ -337,80 +337,167 @@ class FireworksChatTransport:
         seed: int | None = None,
         max_output_tokens: int | None = None,
     ) -> ReasoningResult:
-        resolved_model = model or default_fireworks_model()
-        checkpoint_id = str(context.metadata.get("checkpoint_id", "unknown"))
-        resolved_seed = seed if seed is not None else fireworks_seed(
-            checkpoint_id=checkpoint_id, rep=rep
-        )
-        judge_arm = resolve_judge_arm(context)
-        resolved_max_tokens = _resolve_max_output_tokens(
-            judge_arm=judge_arm,
-            max_output_tokens=max_output_tokens,
-            transport_default=self._max_output_tokens,
-        )
+        """Delegate to the audited egress gate — sole permitted remote path."""
+        from personal_enigma.privacy.egress import RemoteSafeContext, build_audited_egress_gate
+        from personal_enigma.privacy.remote import RemoteInferenceConfig
+        from personal_enigma.reasoning.egress_adapter import egress_result_to_reasoning
 
+        resolved_model = model or default_fireworks_model()
         if not self._api_key:
-            return ReasoningResult(
-                text="[fireworks transport: no API key — local stub response]",
+            return execute_fireworks_completion(
+                prompt=prompt,
+                context=context,
                 model=resolved_model,
-                usage=UsageRecord(
-                    model=resolved_model,
-                    mode=ReasoningMode.ENABLED,
-                    prompt_tokens=0,
-                    completion_tokens=0,
-                    estimated_cost_usd=0.0,
-                    dry_run=False,
-                    metadata={"status": "no_api_key_stub"},
-                ),
-                dry_run=False,
-                metadata={
-                    "status": "no_api_key_stub",
-                    "left_machine": "false",
-                    "provider": "fireworks",
-                },
+                api_key="",
+                base_url=self._base_url,
+                timeout_s=self._timeout_s,
+                max_output_tokens=self._max_output_tokens,
+                urlopen=self._urlopen,
+                budget_hook=self._budget_hook,
+                rep=rep,
+                seed=seed,
+                max_output_tokens_override=max_output_tokens,
             )
 
-        body = self._build_request_body(
+        gate = build_audited_egress_gate(
+            remote_config=RemoteInferenceConfig(enabled=True),
+            fireworks_api_key=self._api_key,
+            fireworks_urlopen=self._urlopen,
+            fireworks_budget_hook=self._budget_hook,
+        )
+        remote_ctx = RemoteSafeContext.from_transformed(
+            context,
+            provider="fireworks",
             model=resolved_model,
             prompt=prompt,
-            max_tokens=resolved_max_tokens,
-            seed=resolved_seed,
-            judge_arm=judge_arm,
         )
-        seed_used = resolved_seed
-        try:
-            payload = self._post_chat_completion(body)
-        except error.HTTPError as exc:
-            detail = _read_http_error_body(exc)
-            if resolved_seed is not None and _should_retry_without_seed(
-                status_code=exc.code, detail=detail
-            ):
-                body = self._build_request_body(
-                    model=resolved_model,
-                    prompt=prompt,
-                    max_tokens=resolved_max_tokens,
-                    seed=None,
-                    judge_arm=judge_arm,
-                )
-                seed_used = None
-                try:
-                    payload = self._post_chat_completion(body)
-                except error.HTTPError as retry_exc:
-                    retry_detail = _read_http_error_body(retry_exc)
-                    return ReasoningResult(
-                        text=_format_transport_error(retry_exc, detail=retry_detail),
-                        model=resolved_model,
-                        usage=None,
-                        dry_run=False,
-                        metadata={
-                            "status": "error",
-                            "left_machine": "true",
-                            "provider": "fireworks",
-                        },
-                    )
-            else:
+        result = gate.submit(
+            remote_ctx,
+            purpose="reasoning.semantic_judge",
+            transformed_context=context,
+            rep=rep,
+            seed=seed,
+            max_output_tokens=max_output_tokens,
+        )
+        return egress_result_to_reasoning(result, model=resolved_model)
+
+
+def execute_fireworks_completion(
+    *,
+    prompt: str,
+    context: TransformedContext,
+    model: str | None = None,
+    api_key: str = "",
+    base_url: str = DEFAULT_FIREWORKS_BASE_URL,
+    timeout_s: float = 60.0,
+    max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
+    urlopen: Any | None = None,
+    budget_hook: BudgetAttemptHook | None = None,
+    rep: int = 0,
+    seed: int | None = None,
+    max_output_tokens_override: int | None = None,
+) -> ReasoningResult:
+    """Execute Fireworks HTTP — gate-internal only; do not call from handlers."""
+    resolved_model = model or default_fireworks_model()
+    checkpoint_id = str(context.metadata.get("checkpoint_id", "unknown"))
+    resolved_seed = seed if seed is not None else fireworks_seed(
+        checkpoint_id=checkpoint_id, rep=rep
+    )
+    judge_arm = resolve_judge_arm(context)
+    resolved_max_tokens = _resolve_max_output_tokens(
+        judge_arm=judge_arm,
+        max_output_tokens=max_output_tokens_override,
+        transport_default=max_output_tokens,
+    )
+    post = urlopen or request.urlopen
+
+    def _build_body(*, seed_value: int | None) -> dict[str, Any]:
+        if judge_arm == "b2":
+            system_prompt = SEMANTIC_JUDGE_V1_SYSTEM_PROMPT
+            response_format = semantic_judge_v1_response_format()
+        else:
+            system_prompt = JUDGE_V1_SYSTEM_PROMPT
+            response_format = judge_v1_response_format()
+        body: dict[str, Any] = {
+            "model": resolved_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": resolved_max_tokens,
+            "response_format": response_format,
+            "reasoning_effort": DEFAULT_REASONING_EFFORT,
+        }
+        if seed_value is not None:
+            body["seed"] = seed_value
+        return body
+
+    def _post_chat(body: dict[str, Any]) -> dict[str, Any]:
+        req = request.Request(
+            f"{base_url.rstrip('/')}/chat/completions",
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with post(req, timeout=timeout_s) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    def _record_usage(
+        payload: dict[str, Any], *, attempt: str, finish_reason: str = ""
+    ) -> tuple[int, int]:
+        usage_raw = payload.get("usage") or {}
+        prompt_tokens = int(usage_raw.get("prompt_tokens", 0))
+        completion_tokens = int(usage_raw.get("completion_tokens", 0))
+        if budget_hook is not None:
+            budget_hook.record_attempt(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                metadata={"attempt": attempt, "finish_reason": finish_reason},
+                model=resolved_model,
+            )
+        return prompt_tokens, completion_tokens
+
+    if not api_key:
+        return ReasoningResult(
+            text="[fireworks transport: no API key — local stub response]",
+            model=resolved_model,
+            usage=UsageRecord(
+                model=resolved_model,
+                mode=ReasoningMode.ENABLED,
+                prompt_tokens=0,
+                completion_tokens=0,
+                estimated_cost_usd=0.0,
+                dry_run=False,
+                metadata={"status": "no_api_key_stub"},
+            ),
+            dry_run=False,
+            metadata={
+                "status": "no_api_key_stub",
+                "left_machine": "false",
+                "provider": "fireworks",
+            },
+        )
+
+    body = _build_body(seed_value=resolved_seed)
+    seed_used = resolved_seed
+    try:
+        payload = _post_chat(body)
+    except error.HTTPError as exc:
+        detail = _read_http_error_body(exc)
+        if resolved_seed is not None and _should_retry_without_seed(
+            status_code=exc.code, detail=detail
+        ):
+            body = _build_body(seed_value=None)
+            seed_used = None
+            try:
+                payload = _post_chat(body)
+            except error.HTTPError as retry_exc:
+                retry_detail = _read_http_error_body(retry_exc)
                 return ReasoningResult(
-                    text=_format_transport_error(exc, detail=detail),
+                    text=_format_transport_error(retry_exc, detail=retry_detail),
                     model=resolved_model,
                     usage=None,
                     dry_run=False,
@@ -420,159 +507,160 @@ class FireworksChatTransport:
                         "provider": "fireworks",
                     },
                 )
-        except error.URLError as exc:
-            return ReasoningResult(
-                text=f"[fireworks transport error: {exc}]",
-                model=resolved_model,
-                usage=None,
-                dry_run=False,
-                metadata={
-                    "status": "error",
-                    "left_machine": "true",
-                    "provider": "fireworks",
-                },
-            )
-
-        api_error = _api_error_message(payload)
-        if api_error is not None:
-            return ReasoningResult(
-                text=f"[fireworks transport error: {api_error}]",
-                model=resolved_model,
-                usage=None,
-                dry_run=False,
-                metadata={
-                    "status": "error",
-                    "left_machine": "true",
-                    "provider": "fireworks",
-                },
-            )
-
-        choices = payload.get("choices") or []
-        if not choices:
-            return ReasoningResult(
-                text="[fireworks transport error: empty choices in API response]",
-                model=resolved_model,
-                usage=None,
-                dry_run=False,
-                metadata={
-                    "status": "error",
-                    "left_machine": "true",
-                    "provider": "fireworks",
-                },
-            )
-
-        choice = choices[0]
-        message = choice.get("message") or {}
-        finish_reason = str(choice.get("finish_reason") or "")
-        response_shape = describe_message_shape(message)
-        rejection = _model_rejection_detail(message, judge_arm=judge_arm)
-        if rejection is not None:
-            return ReasoningResult(
-                text=f"[fireworks transport error: model rejection: {rejection}]",
-                model=resolved_model,
-                usage=None,
-                dry_run=False,
-                metadata={
-                    "status": "error",
-                    "left_machine": "true",
-                    "provider": "fireworks",
-                    "finish_reason": finish_reason,
-                    "response_shape": response_shape,
-                },
-            )
-        text = _extract_message_content(message)
-        retried_for_length = False
-        total_prompt_tokens = 0
-        total_completion_tokens = 0
-        budget_records_attempts = self._budget_hook is not None
-        if budget_records_attempts:
-            p, c = self._record_http_usage(
-                payload,
-                attempt="initial",
-                finish_reason=finish_reason,
-                model=resolved_model,
-            )
-            total_prompt_tokens += p
-            total_completion_tokens += c
-        if (
-            judge_arm == "b2"
-            and finish_reason == "length"
-            and not _semantic_output_valid(text)
-            and resolved_max_tokens < SEMANTIC_LENGTH_RETRY_MAX_TOKENS
-        ):
-            if self._budget_hook is not None:
-                self._budget_hook.check_can_spend(
-                    input_tokens=total_prompt_tokens or _prompt_tokens_from_payload(payload),
-                    max_output_tokens=SEMANTIC_LENGTH_RETRY_MAX_TOKENS,
-                )
-            retry_body = self._build_request_body(
-                model=resolved_model,
-                prompt=prompt,
-                max_tokens=SEMANTIC_LENGTH_RETRY_MAX_TOKENS,
-                seed=seed_used,
-                judge_arm=judge_arm,
-            )
-            try:
-                retry_payload = self._post_chat_completion(retry_body)
-            except (error.HTTPError, error.URLError):
-                retry_payload = None
-            if retry_payload is not None:
-                retry_choices = retry_payload.get("choices") or []
-                if retry_choices:
-                    retry_choice = retry_choices[0]
-                    retry_message = retry_choice.get("message") or {}
-                    retry_text = _extract_message_content(retry_message)
-                    retry_finish = str(retry_choice.get("finish_reason") or "")
-                    if budget_records_attempts:
-                        p, c = self._record_http_usage(
-                            retry_payload,
-                            attempt="length_retry",
-                            finish_reason=retry_finish,
-                            model=resolved_model,
-                        )
-                        total_prompt_tokens += p
-                        total_completion_tokens += c
-                    if _semantic_output_valid(retry_text):
-                        payload = retry_payload
-                        choice = retry_choice
-                        message = retry_message
-                        finish_reason = retry_finish
-                        response_shape = describe_message_shape(message)
-                        text = retry_text
-                        retried_for_length = True
-        if budget_records_attempts:
-            prompt_tokens = total_prompt_tokens
-            completion_tokens = total_completion_tokens
         else:
-            usage_raw = payload.get("usage") or {}
-            prompt_tokens = int(usage_raw.get("prompt_tokens", 0))
-            completion_tokens = int(usage_raw.get("completion_tokens", 0))
-        usage = UsageRecord(
-            model=resolved_model,
-            mode=ReasoningMode.ENABLED,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            estimated_cost_usd=0.0,
-            dry_run=False,
-            metadata={
-                "status": "ok",
-                "seed": str(seed_used) if seed_used is not None else "",
-                "checkpoint_id": checkpoint_id,
-                "rep": str(rep),
-            },
-        )
+            return ReasoningResult(
+                text=_format_transport_error(exc, detail=detail),
+                model=resolved_model,
+                usage=None,
+                dry_run=False,
+                metadata={
+                    "status": "error",
+                    "left_machine": "true",
+                    "provider": "fireworks",
+                },
+            )
+    except error.URLError as exc:
         return ReasoningResult(
-            text=text,
+            text=f"[fireworks transport error: {exc}]",
             model=resolved_model,
-            usage=usage,
+            usage=None,
             dry_run=False,
             metadata={
-                "status": "ok",
+                "status": "error",
                 "left_machine": "true",
                 "provider": "fireworks",
-                "seed": str(seed_used) if seed_used is not None else "",
-                "finish_reason": finish_reason,
-                "response_shape": response_shape,
-                "retried_for_length": "true" if retried_for_length else "false",
             },
         )
+
+    api_error = _api_error_message(payload)
+    if api_error is not None:
+        return ReasoningResult(
+            text=f"[fireworks transport error: {api_error}]",
+            model=resolved_model,
+            usage=None,
+            dry_run=False,
+            metadata={
+                "status": "error",
+                "left_machine": "true",
+                "provider": "fireworks",
+            },
+        )
+
+    choices = payload.get("choices") or []
+    if not choices:
+        return ReasoningResult(
+            text="[fireworks transport error: empty choices in API response]",
+            model=resolved_model,
+            usage=None,
+            dry_run=False,
+            metadata={
+                "status": "error",
+                "left_machine": "true",
+                "provider": "fireworks",
+            },
+        )
+
+    choice = choices[0]
+    message = choice.get("message") or {}
+    finish_reason = str(choice.get("finish_reason") or "")
+    response_shape = describe_message_shape(message)
+    rejection = _model_rejection_detail(message, judge_arm=judge_arm)
+    if rejection is not None:
+        return ReasoningResult(
+            text=f"[fireworks transport error: model rejection: {rejection}]",
+            model=resolved_model,
+            usage=None,
+            dry_run=False,
+            metadata={
+                "status": "error",
+                "left_machine": "true",
+                "provider": "fireworks",
+                "finish_reason": finish_reason,
+                "response_shape": response_shape,
+            },
+        )
+    text = _extract_message_content(message)
+    retried_for_length = False
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
+    budget_records_attempts = budget_hook is not None
+    if budget_records_attempts:
+        p, c = _record_usage(payload, attempt="initial", finish_reason=finish_reason)
+        total_prompt_tokens += p
+        total_completion_tokens += c
+    if (
+        judge_arm == "b2"
+        and finish_reason == "length"
+        and not _semantic_output_valid(text)
+        and resolved_max_tokens < SEMANTIC_LENGTH_RETRY_MAX_TOKENS
+    ):
+        if budget_hook is not None:
+            budget_hook.check_can_spend(
+                input_tokens=total_prompt_tokens or _prompt_tokens_from_payload(payload),
+                max_output_tokens=SEMANTIC_LENGTH_RETRY_MAX_TOKENS,
+            )
+        retry_body = _build_body(seed_value=seed_used)
+        retry_body["max_tokens"] = SEMANTIC_LENGTH_RETRY_MAX_TOKENS
+        try:
+            retry_payload = _post_chat(retry_body)
+        except (error.HTTPError, error.URLError):
+            retry_payload = None
+        if retry_payload is not None:
+            retry_choices = retry_payload.get("choices") or []
+            if retry_choices:
+                retry_choice = retry_choices[0]
+                retry_message = retry_choice.get("message") or {}
+                retry_text = _extract_message_content(retry_message)
+                retry_finish = str(retry_choice.get("finish_reason") or "")
+                if budget_records_attempts:
+                    p, c = _record_usage(
+                        retry_payload,
+                        attempt="length_retry",
+                        finish_reason=retry_finish,
+                    )
+                    total_prompt_tokens += p
+                    total_completion_tokens += c
+                if _semantic_output_valid(retry_text):
+                    payload = retry_payload
+                    choice = retry_choice
+                    message = retry_message
+                    finish_reason = retry_finish
+                    response_shape = describe_message_shape(message)
+                    text = retry_text
+                    retried_for_length = True
+    if budget_records_attempts:
+        prompt_tokens = total_prompt_tokens
+        completion_tokens = total_completion_tokens
+    else:
+        usage_raw = payload.get("usage") or {}
+        prompt_tokens = int(usage_raw.get("prompt_tokens", 0))
+        completion_tokens = int(usage_raw.get("completion_tokens", 0))
+    usage = UsageRecord(
+        model=resolved_model,
+        mode=ReasoningMode.ENABLED,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        estimated_cost_usd=0.0,
+        dry_run=False,
+        metadata={
+            "status": "ok",
+            "seed": str(seed_used) if seed_used is not None else "",
+            "checkpoint_id": checkpoint_id,
+            "rep": str(rep),
+        },
+    )
+    return ReasoningResult(
+        text=text,
+        model=resolved_model,
+        usage=usage,
+        dry_run=False,
+        metadata={
+            "status": "ok",
+            "left_machine": "true",
+            "provider": "fireworks",
+            "seed": str(seed_used) if seed_used is not None else "",
+            "finish_reason": finish_reason,
+            "response_shape": response_shape,
+            "retried_for_length": "true" if retried_for_length else "false",
+        },
+    )

@@ -61,8 +61,10 @@ class RepAwareTransport:
         context: TransformedContext,
     ) -> ReasoningResult:
         rep = int(context.metadata.get("rep", 0))
+        clean_meta = {k: v for k, v in context.metadata.items() if k != "rep"}
+        clean_ctx = context.model_copy(update={"metadata": clean_meta})
         return self._inner.complete(
-            model=model, prompt=prompt, context=context, rep=rep
+            model=model, prompt=prompt, context=clean_ctx, rep=rep
         )
 
 
@@ -466,7 +468,6 @@ def score_live_rep(
         if context_mode == "full_synthetic"
         else snapshot_to_transformed_context(snapshot)
     )
-    ctx = ctx.model_copy(update={"metadata": {**ctx.metadata, "rep": str(rep)}})
     arm_result = score_arm_b(
         snapshot,
         truth,

@@ -16,3 +16,7 @@ packages = ["src/personal_enigma"]
 
 [tool.uv.sources]
 personal-enigma-domain = { workspace = true }
+personal-enigma-fixtures = { workspace = true }
+
+[project.optional-dependencies]
+test = ["personal-enigma-fixtures"]

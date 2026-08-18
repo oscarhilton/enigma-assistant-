@@ -10,6 +10,7 @@ Executable work units for **personal-enigma**, grouped by architecture domain so
 | `in_progress` | Claimed; branch open |
 | `blocked` | Waiting on dependency or decision |
 | `done` | Merged; acceptance criteria met |
+| `future` | Design captured; **do not claim** until hard deps in the ticket are met |
 
 ## Dependency legend
 
@@ -24,7 +25,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field.
+3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), `ticket/Cxx-slug` (Conversational UI), or `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow) — see each ticket’s Branch field. Do not claim `future` tickets.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
@@ -32,6 +33,28 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 8. **Merge gate:** CI green + agent self code-review before merge; do not block on Copilot when credits unavailable.
 9. **Demo Mode never shares Private storage roots or HMAC / PERSON_\* keys** ([ADR-005](../docs/adr/005-demo-private-storage-roots.md)). Do not point `ENIGMA_DATABASE_URL` for Demo at the Private DB.
 10. **Shadow Mode never shares Demo or Private roots** ([ADR-008](../docs/adr/008-shadow-storage-roots.md)). Demo→Shadow migration is impossible. Demo Mode is frozen for polish — prefer `tickets/shadow/` over new F-*/Demo UI work.
+
+
+## Isolated worktrees (parallel agents)
+
+One ticket → one branch → one worktree. Do not run a second agent in the primary checkout while uncommitted programme work is sitting there.
+
+From the primary clone (`adhd-personal-assistant`):
+
+```bash
+git worktree add ../enigma-wt-<ticket> -b ticket/<prefix>-<slug>
+```
+
+Examples: `ticket/C09-llm-conversational-boundary`, `ticket/C14-conversation-activity-stream`. Directory name is `enigma-wt-<ticket>` as a sibling of the primary clone (not inside it). A dirty index is fine — `git worktree add -b` checks out **HEAD only**; uncommitted files stay in the primary working tree. Do **not** copy, stash-pop, or split dirty files into the new worktree automatically.
+
+| Rule | Detail |
+| --- | --- |
+| One ticket per worktree | Do not reuse a worktree for a second ticket. |
+| Storage roots | Each worktree uses its own Private/Demo/Shadow data dirs. Never share `ENIGMA_DATABASE_URL`, HMAC keys, or vault paths across worktrees ([ADR-005](../docs/adr/005-demo-private-storage-roots.md), [ADR-008](../docs/adr/008-shadow-storage-roots.md)). |
+| Launch | Point the agent (Cursor workspace / CLI cwd) at the worktree path, not the primary clone. |
+| Remove when done | `git worktree remove ../enigma-wt-<ticket>` after the PR is submitted (or abandon). |
+
+Existing in-repo `.worktrees/` checkouts are legacy; prefer sibling `../enigma-wt-*` going forward.
 
 ## Domains
 
@@ -55,6 +78,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 | demo-simulation | [demo-simulation/](./demo-simulation/) | `packages/simulation` sources + engine |
 | demo-evaluation | [demo-evaluation/](./demo-evaluation/) | `packages/evaluation` |
 | demo-ui | [demo-ui/](./demo-ui/) | `apps/web` demo chrome ([D10](./demo-ui/D10-demo-ui.md)–[D18](./demo-ui/D18-demo-next-action.md)) — **frozen** for new polish beyond claimed tickets |
+| conversational-ui | [conversational-ui/](./conversational-ui/) | Conversational home + EnigmaClient ([C00](./conversational-ui/C00-demo-attention-projection.md)–[C08](./conversational-ui/C08-live-enigma-client.md)); [C09](./conversational-ui/C09-llm-conversational-boundary.md) LLM boundary; [C11](./conversational-ui/C11-tone-memory.md) tone memory (`future`); [C12](./conversational-ui/C12-life-scripts.md) Life Scripts; [C14](./conversational-ui/C14-conversation-activity-stream.md) activity stream; [architecture doc](../docs/architecture/conversational-ui.md) · [ADR-020](../docs/adr/020-llm-conversational-boundary-not-truth.md) |
 | shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval (SE01–SE03) + silence track (SE04–SE10) + open-loop dues (SE11); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) · [shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) · [ADR-009](../docs/adr/009-silence-as-prediction.md). SE* must not edit `EnvironmentMode`. |
 
 ## Ingestion file ownership (do not cross)

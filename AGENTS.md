@@ -17,13 +17,14 @@ Operating manual for humans and coding agents working in this monorepo.
 ## Parallelism
 
 - Prefer **one ticket per agent / branch**.
+- **Isolated worktrees:** claim `ticket/<prefix>-<slug>` and `git worktree add ../enigma-wt-<ticket> -b ticket/<prefix>-<slug>`. One ticket per worktree. Uncommitted work stays in the primary checkout — do not split dirty files. Full convention: [tickets/README.md](tickets/README.md#isolated-worktrees-parallel-agents).
 - Stay inside the ticket’s **package boundary** (exact file globs in each ticket).
 - Respect **hard** vs **soft (~)** dependencies — soft deps must not block start ([tickets/README.md](tickets/README.md)).
 - Ingestion ownership is pinned: one `sources/*.py` file per source ticket; M10 owns `packages/identity`, not `packages/domain`.
 - Synthetic Demo sources are pinned under `packages/simulation/.../sources/` (D4); do not edit real `packages/ingestion/.../sources/*` from Demo tickets.
 - Safe parallel examples: `apple-bridge/M08` ∥ `M09` ∥ `M10` after M07; Phase 2 `D2` ∥ `D3` after D1; D4 source files in parallel after D1.
 - Unsafe: two agents editing `packages/domain`, the same `sources/*.py`, or the same Swift module.
-- Demo Mode never shares Private storage roots or HMAC keys ([ADR-005](docs/adr/005-demo-private-storage-roots.md)).
+- Demo Mode never shares Private storage roots or HMAC keys ([ADR-005](docs/adr/005-demo-private-storage-roots.md)). Worktrees must not share Private/Demo/Shadow storage roots either.
 
 ## Testing
 

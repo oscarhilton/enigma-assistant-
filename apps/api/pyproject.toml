@@ -14,6 +14,8 @@ dependencies = [
   "personal-enigma-attention",
   "personal-enigma-reasoning",
   "personal-enigma-simulation",
+  "personal-enigma-fixtures",
+  "personal-enigma-transformation",
 ]
 
 [project.scripts]
@@ -40,3 +42,5 @@ personal-enigma-privacy = { workspace = true }
 personal-enigma-attention = { workspace = true }
 personal-enigma-reasoning = { workspace = true }
 personal-enigma-simulation = { workspace = true }
+personal-enigma-fixtures = { workspace = true }
+personal-enigma-transformation = { workspace = true }
