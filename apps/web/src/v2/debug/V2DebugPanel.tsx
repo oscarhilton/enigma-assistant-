@@ -4,14 +4,13 @@ import { Button } from "../../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { copyTextToClipboard } from "../../enigma/forensicDump";
 import { useEnigmaConversation } from "../../enigma/EnigmaProvider";
-import type { EgressDisclosure, ProvenanceView } from "../../enigma/types";
+import type { ProvenanceView } from "../../enigma/types";
 import { useWorld } from "../../pilot/WorldProvider";
 import { workSnapshotFromConversation } from "../../enigma/goosePixels";
 import { buildForensicModel } from "./buildForensicModel";
 import { buildCopyBundle } from "./copyBundles";
-import type { CopyTier } from "./types";
+import type { CopyTier, ForensicModel } from "./types";
 import { ForensicSectionCard } from "./ForensicSectionCard";
-import type { ForensicModel } from "./types";
 
 function TurnSnapshotBar({
   model,
@@ -118,7 +117,6 @@ function SectionsGrid({ model }: { model: ForensicModel }) {
       <ForensicSectionCard
         title="TURN CONTRACT"
         status={model.turnContract.status}
-        description="Read-model projection — not chain-of-thought."
         testId="section-turn-contract"
       >
         <ForensicSectionCard.Json value={model.turnContract.data} />
@@ -183,17 +181,12 @@ export function V2DebugPanel() {
   const { world } = useWorld();
   const { items, attention, busy, loading, client } = useEnigmaConversation();
   const [provenance, setProvenance] = useState<ProvenanceView | null>(null);
-  const [disclosures, setDisclosures] = useState<EgressDisclosure[]>([]);
   const [snapshotCopied, setSnapshotCopied] = useState(false);
 
   const work = useMemo(
     () => workSnapshotFromConversation({ items, busy, loading }),
     [items, busy, loading],
   );
-
-  useEffect(() => {
-    void client.getRecentDisclosures(5).then(setDisclosures).catch(() => setDisclosures([]));
-  }, [client, items]);
 
   useEffect(() => {
     const target = work.inspectTarget;
@@ -213,9 +206,8 @@ export function V2DebugPanel() {
         loading,
         world,
         provenance,
-        disclosures,
       }),
-    [items, attention, busy, loading, world, provenance, disclosures],
+    [items, attention, busy, loading, world, provenance],
   );
 
   const copySnapshot = useCallback(async () => {
@@ -263,7 +255,7 @@ export function V2DebugPanel() {
             <ForensicSectionCard
               title="Why not?"
               status={model.whyNot.status}
-              description="Placeholder for suppressed or absent actions — read-model explainer, not chain-of-thought."
+              description="can_wait_summary read-model — not a Turn Contract, not reconstructed intent."
               testId="section-why-not"
             >
               <ForensicSectionCard.Json value={model.whyNot.data} />

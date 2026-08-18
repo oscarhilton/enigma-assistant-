@@ -1,10 +1,5 @@
 import type { AgentWorkSnapshot } from "../../enigma/goosePixels";
-import type {
-  AttentionState,
-  EgressDisclosure,
-  LlmTrace,
-  ProvenanceView,
-} from "../../enigma/types";
+import type { AttentionState, LlmTrace, ProvenanceView } from "../../enigma/types";
 import type { WorldId } from "../../pilot/types";
 
 export type TurnSnapshot = {
@@ -18,7 +13,7 @@ export type TurnSnapshot = {
   path: string | null;
 };
 
-export type ForensicSectionStatus = "wired" | "stub" | "empty";
+export type ForensicSectionStatus = "wired" | "unavailable" | "empty";
 
 export type ForensicSection<T = unknown> = {
   status: ForensicSectionStatus;
@@ -28,7 +23,7 @@ export type ForensicSection<T = unknown> = {
 export type ForensicModel = {
   snapshot: TurnSnapshot;
   userInput: ForensicSection<{ text: string | null; at: string | null }>;
-  turnContract: ForensicSection<Record<string, unknown>>;
+  turnContract: ForensicSection<Record<string, unknown> | null>;
   evidence: ForensicSection<{
     provenance: ProvenanceView | null;
     evidenceIds: string[];
@@ -36,25 +31,24 @@ export type ForensicModel = {
   }>;
   notDisclosed: ForensicSection<{ excluded: string[]; blocked: boolean; blockReason: string | null }>;
   relationalBootstrap: ForensicSection<Record<string, unknown> | null>;
-  handoff: ForensicSection<Record<string, unknown>>;
+  handoff: ForensicSection<Record<string, unknown> | null>;
   agentWork: ForensicSection<AgentWorkSnapshot>;
-  authority: ForensicSection<{
-    grantsAuthority: boolean;
-    enigmaActions: EgressDisclosure["enigma_actions"];
-  }>;
+  authority: ForensicSection<Record<string, unknown> | null>;
   remotePayload: ForensicSection<{
     sent: Record<string, unknown> | null;
     disclosure: LlmTrace["disclosure"];
   }>;
-  streamingTrace: ForensicSection<{ note: string }>;
-  memory: ForensicSection<{ note: string }>;
+  streamingTrace: ForensicSection<null>;
+  memory: ForensicSection<null>;
   whyNot: ForensicSection<{
-    suppressedCount: number;
-    sampleTitles: string[];
-    note: string;
-  }>;
+    source: "can_wait_summary";
+    total_suppressed: number;
+    sample_titles: string[];
+  } | null>;
   trace: LlmTrace | null;
   attention: AttentionState | null;
 };
 
 export type CopyTier = "safe" | "detailed" | "local";
+
+export const NOT_CAPTURED = "Not captured for this turn";

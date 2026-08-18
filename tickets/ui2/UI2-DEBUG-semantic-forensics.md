@@ -31,10 +31,14 @@
 - [x] Keyboard shortcut ⌘⇧D opens forensics
 - [x] "Why not?" explainer for suppressed or absent actions
 - [x] No Cortex on main conversation surface
+- [x] Unavailable semantic state is never reconstructed or guessed by the frontend (TURN CONTRACT, RELATIONAL BOOTSTRAP, HANDOFF, AUTHORITY, MEMORY, STREAMING TRACE render “Not captured for this turn” until the real projection is on the wire)
+- [x] Every copy bundle starts with an unmistakable header (`ENIGMA FORENSIC SNAPSHOT` + Build / World / Turn / Privacy level: SAFE | DETAILED | LOCAL)
 
 ## Test plan
 
 - Forensic dump copies valid JSON for each tier
+- Every copy bundle starts with `ENIGMA FORENSIC SNAPSHOT` and a `Privacy level:` line
+- Unavailable sections render “Not captured for this turn” and are not reconstructed from nearby fields
 - Shortcut toggles panel without breaking composer focus
 
 ## Privacy constraints

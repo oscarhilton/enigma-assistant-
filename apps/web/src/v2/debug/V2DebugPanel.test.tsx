@@ -25,6 +25,24 @@ describe("V2DebugPanel", () => {
     expect(screen.getByTestId("section-remote-payload")).toBeInTheDocument();
     expect(screen.getByTestId("section-streaming-trace")).toBeInTheDocument();
     expect(screen.getByTestId("section-memory")).toBeInTheDocument();
+    expect(screen.getByTestId("section-turn-contract-unavailable")).toHaveTextContent(
+      "Not captured for this turn",
+    );
+    expect(screen.getByTestId("section-relational-bootstrap-unavailable")).toHaveTextContent(
+      "Not captured for this turn",
+    );
+    expect(screen.getByTestId("section-handoff-unavailable")).toHaveTextContent(
+      "Not captured for this turn",
+    );
+    expect(screen.getByTestId("section-authority-unavailable")).toHaveTextContent(
+      "Not captured for this turn",
+    );
+    expect(screen.getByTestId("section-streaming-trace-unavailable")).toHaveTextContent(
+      "Not captured for this turn",
+    );
+    expect(screen.getByTestId("section-memory-unavailable")).toHaveTextContent(
+      "Not captured for this turn",
+    );
   });
 
   it("⌘⇧D opens debug route from v2 shell", async () => {

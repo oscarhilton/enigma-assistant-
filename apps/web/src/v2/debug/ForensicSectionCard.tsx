@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import type { ForensicSectionStatus } from "./types";
+import { NOT_CAPTURED, type ForensicSectionStatus } from "./types";
 
 const STATUS_LABEL: Record<ForensicSectionStatus, string> = {
   wired: "Wired",
-  stub: "Stub",
+  unavailable: "Unavailable",
   empty: "Empty",
 };
 
@@ -42,7 +42,15 @@ export function ForensicSectionCard({ title, status, description, children, test
         </div>
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent>
+        {status === "unavailable" ? (
+          <p className="text-sm text-muted-foreground" data-testid={testId ? `${testId}-unavailable` : undefined}>
+            {NOT_CAPTURED}
+          </p>
+        ) : (
+          children
+        )}
+      </CardContent>
     </Card>
   );
 }

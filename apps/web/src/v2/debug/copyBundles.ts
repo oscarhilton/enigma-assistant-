@@ -1,4 +1,4 @@
-import type { ForensicModel, CopyTier } from "./types";
+import { NOT_CAPTURED, type CopyTier, type ForensicModel, type ForensicSection } from "./types";
 
 const PRIVATE_KEYS = new Set([
   "privateperson",
@@ -8,6 +8,12 @@ const PRIVATE_KEYS = new Set([
   "raw_email",
   "contact_identities",
 ]);
+
+const PRIVACY_LEVEL: Record<CopyTier, string> = {
+  safe: "SAFE",
+  detailed: "DETAILED",
+  local: "LOCAL",
+};
 
 function stripPrivate(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -26,6 +32,13 @@ function stripPrivate(value: unknown): unknown {
   return next;
 }
 
+function capturedOrNot<T>(section: ForensicSection<T>): unknown {
+  if (section.status === "wired") {
+    return section.data;
+  }
+  return NOT_CAPTURED;
+}
+
 function sectionSummary(model: ForensicModel) {
   return {
     user_input: model.userInput.status === "wired" ? "present" : model.userInput.status,
@@ -42,17 +55,33 @@ function sectionSummary(model: ForensicModel) {
   };
 }
 
+function bundleHeader(model: ForensicModel, tier: CopyTier): string {
+  const turn =
+    model.snapshot.turnIndex > 0 ? `${model.snapshot.turnIndex} / ${model.snapshot.turnCount}` : "none";
+  return [
+    "ENIGMA FORENSIC SNAPSHOT",
+    `Build: ${model.snapshot.buildCommit}`,
+    `World: ${model.snapshot.worldLabel} (${model.snapshot.world})`,
+    `Turn: ${turn}`,
+    `Privacy level: ${PRIVACY_LEVEL[tier]}`,
+    "",
+  ].join("\n");
+}
+
+function withHeader(model: ForensicModel, tier: CopyTier, body: unknown): string {
+  return `${bundleHeader(model, tier)}${JSON.stringify(body, null, 2)}\n`;
+}
+
 export function buildCopyBundle(model: ForensicModel, tier: CopyTier): string {
   if (tier === "safe") {
-    return JSON.stringify(
+    return withHeader(
+      model,
+      tier,
       stripPrivate({
         tier: "safe",
         snapshot: model.snapshot,
         sections: sectionSummary(model),
-        why_not: {
-          suppressed_count: model.whyNot.data.suppressedCount,
-          sample_titles: model.whyNot.data.sampleTitles.slice(0, 3),
-        },
+        why_not: capturedOrNot(model.whyNot),
         agent_work: {
           exists: model.agentWork.data.exists,
           phase: model.agentWork.data.phase,
@@ -63,28 +92,28 @@ export function buildCopyBundle(model: ForensicModel, tier: CopyTier): string {
           excluded_categories: model.notDisclosed.data.excluded,
         },
       }),
-      null,
-      2,
     );
   }
 
   if (tier === "detailed") {
-    return JSON.stringify(
+    return withHeader(
+      model,
+      tier,
       stripPrivate({
         tier: "detailed",
         snapshot: model.snapshot,
         user_input: model.userInput.data,
-        turn_contract: model.turnContract.data,
+        turn_contract: capturedOrNot(model.turnContract),
         evidence: {
           provenance_headline: model.evidence.data.provenance?.headline ?? null,
           evidence_ids: model.evidence.data.evidenceIds,
           activity_labels: model.evidence.data.activityLabels,
         },
         not_disclosed: model.notDisclosed.data,
-        relational_bootstrap: model.relationalBootstrap.data,
-        handoff: model.handoff.data,
+        relational_bootstrap: capturedOrNot(model.relationalBootstrap),
+        handoff: capturedOrNot(model.handoff),
         agent_work: model.agentWork.data,
-        authority: model.authority.data,
+        authority: capturedOrNot(model.authority),
         remote_payload: {
           payload_hash: model.remotePayload.data.disclosure?.payload_hash ?? null,
           purpose: model.remotePayload.data.disclosure?.purpose ?? null,
@@ -93,28 +122,26 @@ export function buildCopyBundle(model: ForensicModel, tier: CopyTier): string {
           excluded: model.remotePayload.data.disclosure?.excluded ?? model.notDisclosed.data.excluded,
           field_summary: model.remotePayload.data.disclosure?.payload_field_summary ?? null,
         },
-        streaming_trace: model.streamingTrace.data,
-        memory: model.memory.data,
-        why_not: model.whyNot.data,
+        streaming_trace: capturedOrNot(model.streamingTrace),
+        memory: capturedOrNot(model.memory),
+        why_not: capturedOrNot(model.whyNot),
       }),
-      null,
-      2,
     );
   }
 
-  return JSON.stringify(
-    {
-      tier: "local_forensic",
-      warning: "Local forensic bundle — may contain user text. Do not share without review.",
-      model,
-      trace: model.trace,
-      attention: model.attention,
-    },
-    null,
-    2,
-  );
+  return withHeader(model, tier, {
+    tier: "local_forensic",
+    warning: "Local forensic bundle — may contain user text. Do not share without review.",
+    model,
+    trace: model.trace,
+    attention: model.attention,
+  });
 }
 
 export function parseCopyBundle(text: string): unknown {
-  return JSON.parse(text) as unknown;
+  const jsonStart = text.indexOf("{");
+  if (jsonStart < 0) {
+    throw new Error("Copy bundle has no JSON body");
+  }
+  return JSON.parse(text.slice(jsonStart)) as unknown;
 }
