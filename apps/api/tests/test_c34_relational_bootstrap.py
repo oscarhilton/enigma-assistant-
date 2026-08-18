@@ -67,6 +67,7 @@ def test_crowbar_unrelated_personal_memory_stays_out(
 ) -> None:
     leaks = ("Elena's parents", "Saturday brunch booking")
     block = compile_relational_bootstrap(goose_inputs, forbidden_leaks=leaks)
+    assert block is not None
     blob = json.dumps(block.as_wire())
     for leak in leaks:
         assert leak.casefold() not in blob.casefold()
@@ -139,6 +140,7 @@ def test_crowbar_biographical_memory_never_on_bootstrap_wire(
         "Oscar's ADHD medication refill is due Friday",
     )
     block = compile_relational_bootstrap(goose_inputs, forbidden_leaks=biography)
+    assert block is not None
     blob = json.dumps(block.as_wire())
     for leak in biography:
         assert leak.casefold() not in blob.casefold()
