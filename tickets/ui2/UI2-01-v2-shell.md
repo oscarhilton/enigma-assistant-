@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `ticket/UI2-01-v2-shell` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |

@@ -26,13 +26,13 @@ Today dashboard, rich Cases workspace, Memory Explorer, Shadow visual language, 
 
 | ID | Title | Status |
 | --- | --- | --- |
-| [UI2-01](./UI2-01-v2-shell.md) | v2 shell + world switch + persistent Assistant + build identity + existing Goose | `in_progress` |
-| [UI2-02](./UI2-02-streaming.md) | True response streaming (incremental, cancel, reconnect; work stream independent) | `todo` |
-| [UI2-03](./UI2-03-shadcn-foundation.md) | shadcn component foundation | `todo` |
-| [UI2-04](./UI2-04-conversation-continuity.md) | Conversation continuity (thread, history, world-switch isolation, C34 survives streaming) | `todo` |
-| [UI2-05](./UI2-05-inspectability-minimal.md) | Inspectability minimal (Goose click / Why compact sheet — no Cortex on surface) | `todo` |
-| [UI2-06](./UI2-06-alex-life-scripts.md) | Alex Life Scripts through v2 (Brunch, Monday/Maya, HONK HONK, FALSE VICTORY, Forget) | `todo` |
+| [UI2-01](./UI2-01-v2-shell.md) | v2 shell + world switch + persistent Assistant + build identity + existing Goose | `done` |
+| [UI2-02](./UI2-02-streaming.md) | True response streaming (incremental, cancel, reconnect; work stream independent) | `done` |
+| [UI2-03](./UI2-03-shadcn-foundation.md) | shadcn component foundation | `done` |
+| [UI2-04](./UI2-04-conversation-continuity.md) | Conversation continuity (thread, history, world-switch isolation, C34 survives streaming) | `done` |
+| [UI2-05](./UI2-05-inspectability-minimal.md) | Inspectability minimal (Goose click / Why compact sheet — no Cortex on surface) | `done` |
+| [UI2-06](./UI2-06-alex-life-scripts.md) | Alex Life Scripts through v2 (Brunch, Monday/Maya, HONK HONK, FALSE VICTORY, Forget) | `done` |
 | [UI2-07](./UI2-07-real-pilot.md) | Real pilot (P03 calendar dogfood) | `todo` |
-| [UI2-DEBUG](./UI2-DEBUG-semantic-forensics.md) | Semantic Forensics — turn snapshot, Turn Contract, Evidence, Handoff, AgentWork, Authority, egress, streaming trace, Memory impact; Copy bug report (Safe/Detailed/Local forensic tiers); ⌘⇧D; "Why not?" | `todo` |
+| [UI2-DEBUG](./UI2-DEBUG-semantic-forensics.md) | Semantic Forensics — turn snapshot, Turn Contract, Evidence, Handoff, AgentWork, Authority, egress, streaming trace, Memory impact; Copy bug report (Safe/Detailed/Local forensic tiers); ⌘⇧D; "Why not?" | `done` |
 
 Branch pattern: `ticket/UI2-xx-slug`

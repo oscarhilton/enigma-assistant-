@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `ticket/UI2-05-inspectability-minimal` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
