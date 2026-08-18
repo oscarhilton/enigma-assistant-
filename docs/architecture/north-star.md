@@ -11,6 +11,36 @@ Enigma is starting to look less like an assistant and more like a **private OS f
 
 The bet: **privacy might not cost utility here.** Biographical detail can collapse faster than executive-function usefulness ([SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md)).
 
+Constitutional corollary (does not replace the thesis above):
+
+> **Enigma should reduce the work required to live a life without reducing the person’s authorship of it.**
+
+Product / experiential North Star — evaluate product decisions against this; it does not add entities:
+
+> **Make safe agency feel obvious, bounded, and delightful.**
+
+| Word | Means |
+| --- | --- |
+| **Safe** | Privacy, epistemics, and authority doing real work |
+| **Agency** | Notices, fetches, prepares, waits, acts when permitted, verifies |
+| **Obvious** | Understandable without an architecture diagram |
+| **Bounded** | See accessed / currently held / left device / retained / dropped |
+| **Delightful** | Not a GDPR console — THE Goose with translucent cargo |
+
+Human version: a capable friend beside you, with access to an extremely safe machine and a deeply enthusiastic goose. The friend doesn't know everything. The goose doesn't understand everything. The machine can't do whatever it wants. The Vault doesn't gossip. None of them decides your life.
+
+Visibility (stop the theme park — [product-characters.md](./product-characters.md)):
+
+| Layer | Who / what |
+| --- | --- |
+| Always visible / intuitive | You, Assistant, THE Goose, Cases |
+| Inspectable when relevant | Vault / Memory, Machine, Sources |
+| Forensic / advanced | Cortex, EvidenceBundle, lineage, egress, authority, epistemic status |
+
+The user should never need to learn the architecture to benefit from it. Architecture is there when they become curious. Shadows, satchel, cargo, Workbench, Engine Room stay **internal / inspectable metaphors**, not a front-page cast. Do not add nouns.
+
+Next strategic frontier is **the relationship** (relational bootstrap: product taste + explicit preferences + shared motifs + current register — [ADR-038](../adr/038-humour-constitution-not-user-trainable.md)), not more truth/memory architecture. Do not implement that here.
+
 ## Stack
 
 ```text
@@ -86,3 +116,4 @@ Share **answers and assertions, not state**. "Can Oscar accept Friday 21:00?" �
 | Tone memory | [ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [tone-memory.md](./tone-memory.md) |
 | Coordination | [enigma-coordination-protocol.md](./enigma-coordination-protocol.md) · [ADR-013](../adr/013-inter-enigma-coordination-trust-boundary.md)–[019](../adr/019-delegated-authority-and-execution-ladder.md) |
 | Subject, not raw material | [ethics.md](./ethics.md) · [ADR-026](../adr/026-ethics-creed-user-is-subject.md) |
+| Safe agency / visibility | [product-characters.md](./product-characters.md) · [ADR-038](../adr/038-humour-constitution-not-user-trainable.md) · [C33](../../tickets/conversational-ui/C33-brunch-token-goose-forensic.md) |

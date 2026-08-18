@@ -18,7 +18,7 @@ Project one serious substrate into three inspectable views:
 - Cortex: what Enigma is doing and why
 - Case File: what this thread is about
 
-C29 `MemoryInventory` is the Brain read model. Compile from it; do not invent a second store. **NO LONGER CURRENT ≠ FULLY FORGOTTEN:** TTL expiry hides an item from inventory immediately; vault rows and descendants may still exist until `expire_ttl` / expiry propagation run. Projection expiry is not completed deletion. Forget is SQL DELETE. **The vault remembers. The inventory explains.**
+C29 `MemoryInventory` is the Brain read model. Compile from it; do not invent a second store. Interior rooms, Shadows, cargo: [enigma-interior.md](../../docs/architecture/enigma-interior.md) · [shadows-and-machine.md](../../docs/architecture/shadows-and-machine.md). Goose carries Shadows, not secrets. Beak / satchel is working set, not Vault. Goose may represent Machine state; it may not originate Machine authority. **NO LONGER CURRENT ≠ FULLY FORGOTTEN:** TTL expiry hides an item from inventory immediately; vault rows and descendants may still exist until `expire_ttl` / expiry propagation run. Projection expiry is not completed deletion. Forget is SQL DELETE. **The vault remembers. The inventory explains.** Do not implement Brain UI or Engine Room in this ticket until claimed as C30.
 
 ## Deliverables
 
