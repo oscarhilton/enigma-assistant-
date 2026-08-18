@@ -17,6 +17,40 @@
 - **v2 beside v1** — do NOT mutate v1 into v2. Route `/v2/*` behind pilot flag or separate entry. v1 remains reference, not dependency.
 - **Read-model driven** — UI consumes explicit projections (`TodayProjection`, `CaseProjection`, `AssistantTurn`, `AgentWorkSnapshot`, `WhyProjection`, etc.); no semantic reconstruction in React
 - **Fossil policy** — classify v1 components KEEP / REIMPLEMENT / DELETE / UNKNOWN; matching v1 behaviour not required unless Life Script says so
+- **Forensic honesty** — Unavailable semantic state must render as unavailable — never reconstructed or guessed by the frontend.
+
+## Converge order (intended)
+
+This is sequencing for agents. It does not authorise merging PRs.
+
+1. [#113](https://github.com/oscarhilton/enigma-assistant-/pull/113) UI2-01 shell (`ticket/UI2-01-v2-shell`)
+2. [#115](https://github.com/oscarhilton/enigma-assistant-/pull/115) UI2-02 streaming (`ticket/UI2-02-streaming`)
+3. UI2-03/04 shadcn + continuity
+4. [#114](https://github.com/oscarhilton/enigma-assistant-/pull/114) UI2-DEBUG rebased onto the resulting shell
+
+**Rationale:** streaming and continuity alter the turn/session data Debug wants to observe. Debug can land earlier if conflict-light and independently useful; do not contort streaming/continuity around #114.
+
+Once UI2-02 lands, the first Debug wiring is two **parallel lanes** (not reconstructed), side-by-side, from real stream events only:
+
+```
+ASSISTANT OUTPUT
+chunk → chunk → chunk → complete
+
+AGENT WORK
+investigating → advancing → waiting / verifying → handled
+```
+
+## Forensic copy bundles
+
+Every paste starts with:
+
+```
+ENIGMA FORENSIC SNAPSHOT
+Build: …
+World: …
+Turn: …
+Privacy level: SAFE|DETAILED|LOCAL
+```
 
 ## Deferred (explicit in tickets — do NOT implement until claimed)
 

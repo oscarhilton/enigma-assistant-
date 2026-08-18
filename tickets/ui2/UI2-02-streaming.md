@@ -21,12 +21,31 @@
 
 **Streaming responses** — first-class token/chunk streaming; text stream and AgentWork stream are **independent channels** (C35 honest).
 
+**North star:** Start familiar. Make it excellent. Let Enigma earn its uniqueness.
+
+UI2-DEBUG will consume these as two independent channels. Do not mix text and AgentWork into one reconstructed stream — not for Goose, not for Debug.
+
+Once this ticket lands, Debug’s first wiring is two parallel lanes from real stream events only:
+
+```
+ASSISTANT OUTPUT
+chunk → chunk → chunk → complete
+
+AGENT WORK
+investigating → advancing → waiting / verifying → handled
+```
+
+## Converge
+
+Intended after UI2-01 (#113), before UI2-03/04 and before rebasing UI2-DEBUG (#114) onto the resulting shell. Debug may land earlier if conflict-light; do not reshape this ticket around #114.
+
 ## Acceptance criteria
 
 - [x] Incremental token/chunk rendering in v2 message list
 - [x] Cancel in-flight turn (Stop generating response — not cancel underlying work)
 - [x] Reconnect / resume semantics documented and tested
 - [x] AgentWork stream independent from text stream (Goose updates without waiting for text)
+- [x] UI2-DEBUG can consume the two channels as parallel lanes; do not mix text and AgentWork
 - [x] v1 remains non-streaming
 
 ## Cancel semantics (frozen)
