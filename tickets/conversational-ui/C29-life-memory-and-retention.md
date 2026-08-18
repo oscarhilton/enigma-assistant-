@@ -178,7 +178,7 @@ Inventory API is slice 4 (this freeze). Brain UI / Goose memory UI remain C30 / 
 
 ## Freeze (2026-08-18)
 
-Slice 4 freeze review: **Q1 PASS WITH NOTES · Q2 PASS · Q3 PASS WITH NOTES · Q4 PASS. Overall: Freeze C29.**
+**Frozen at** `1616e2c`. Slice 4 freeze review: **Q1 PASS WITH NOTES · Q2 PASS · Q3 PASS WITH NOTES · Q4 PASS. Overall: Freeze C29.**
 
 Lifecycle complete: establish → retain → persist → expire/forget/correct → inspect.
 
