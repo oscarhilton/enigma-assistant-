@@ -953,6 +953,11 @@ button:disabled {
   gap: 0.75rem;
 }
 
+.composer-error p {
+  margin: 0;
+  flex: 1;
+}
+
 .composer-error-dismiss {
   margin-left: auto;
   font: inherit;

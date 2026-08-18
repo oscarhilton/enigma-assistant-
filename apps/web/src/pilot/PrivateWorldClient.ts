@@ -1,5 +1,6 @@
 import type { EnigmaClient } from "../enigma/client";
 import type { EnigmaEventHandler } from "../enigma/events";
+import { readApiJson } from "../enigma/readApiJson";
 import type {
   AssistProposal,
   AssistResult,
@@ -28,15 +29,6 @@ const SILENCE: AttentionState = {
   },
 };
 
-async function readJson<T>(response: Response): Promise<T> {
-  const url = response.url || "(unknown url)";
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${url}`);
-  }
-  return JSON.parse(text) as T;
-}
-
 /** Live My Enigma client — quiet until P03 connects Calendar. */
 export class PrivateWorldClient implements EnigmaClient {
   private handlers = new Set<EnigmaEventHandler>();
@@ -57,14 +49,14 @@ export class PrivateWorldClient implements EnigmaClient {
   }
 
   async getConversation(): Promise<ConversationItem[]> {
-    const body = await readJson<{ items: ConversationItem[] }>(
+    const body = await readApiJson<{ items: ConversationItem[] }>(
       await fetch(`${API_BASE}/worlds/my_enigma/conversation`),
     );
     return body.items;
   }
 
   async sendMessage(text: string): Promise<ConversationTurn> {
-    const body = await readJson<ConversationTurn>(
+    const body = await readApiJson<ConversationTurn>(
       await fetch(`${API_BASE}/worlds/my_enigma/conversation/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,7 +69,7 @@ export class PrivateWorldClient implements EnigmaClient {
 
   async getAttentionState(): Promise<AttentionState> {
     try {
-      return await readJson<AttentionState>(
+      return await readApiJson<AttentionState>(
         await fetch(`${API_BASE}/worlds/my_enigma/attention/state`),
       );
     } catch {
