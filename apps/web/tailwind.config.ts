@@ -39,6 +39,23 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+      },
+      fontSize: {
+        xs: ["var(--text-xs)", { lineHeight: "var(--leading-xs)" }],
+        sm: ["var(--text-sm)", { lineHeight: "var(--leading-sm)" }],
+        base: ["var(--text-base)", { lineHeight: "var(--leading-base)" }],
+        lg: ["var(--text-lg)", { lineHeight: "var(--leading-lg)" }],
+      },
+      spacing: {
+        "v2-1": "var(--space-1)",
+        "v2-2": "var(--space-2)",
+        "v2-3": "var(--space-3)",
+        "v2-4": "var(--space-4)",
+        "v2-6": "var(--space-6)",
       },
     },
   },

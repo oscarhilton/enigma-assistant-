@@ -6,6 +6,7 @@ export { V2Layout } from "./V2Layout";
 export { projectConversationItems, type V2MessageRow } from "./V2MessageList";
 export { V2Shell } from "./V2Shell";
 export { V2Sidebar } from "./V2Sidebar";
+export { V2ThreadProvider, useV2Threads } from "./V2ThreadProvider";
 export { appendStreamingText } from "./V2ConversationViewport";
 export { streamConversationMessage, CONVERSATION_STREAM_PATH } from "./conversationStreamClient";
 export { gooseFromAgentWork, workFromAgentWorkEvent } from "./gooseFromAgentWork";

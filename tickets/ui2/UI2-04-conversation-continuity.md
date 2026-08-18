@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/UI2-04-conversation-continuity` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
@@ -26,10 +26,10 @@
 
 ## Acceptance criteria
 
-- [ ] Thread list in sidebar with create/select
-- [ ] History persists per world (Alex Lab ↔ My Enigma isolated)
-- [ ] World switch clears or scopes thread selection (ADR-040)
-- [ ] C34 relational bootstrap expressiveness survives streaming turns
+- [x] Thread list in sidebar with create/select
+- [x] History persists per world (Alex Lab ↔ My Enigma isolated)
+- [x] World switch clears or scopes thread selection (ADR-040)
+- [x] C34 relational bootstrap expressiveness survives streaming turns
 
 ## Test plan
 

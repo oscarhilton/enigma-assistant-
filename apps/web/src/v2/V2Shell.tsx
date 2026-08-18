@@ -9,10 +9,16 @@ import { buildIdentityLabel } from "./buildIdentity";
 import { V2Composer } from "./V2Composer";
 import { V2ConversationViewport } from "./V2ConversationViewport";
 import { V2Sidebar } from "./V2Sidebar";
+import { useV2Threads } from "./V2ThreadProvider";
 import { useV2StreamingConversation } from "./useV2StreamingConversation";
 
 export function V2Shell() {
   const { world } = useWorld();
+  const {
+    activeThread,
+    updateActiveThreadItems,
+    renameActiveThreadFromMessage,
+  } = useV2Threads();
   const {
     items,
     streamingRow,
@@ -27,7 +33,11 @@ export function V2Shell() {
     clearError,
     gooseLicence,
     client,
-  } = useV2StreamingConversation();
+  } = useV2StreamingConversation({
+    threadItems: activeThread.items,
+    onThreadItemsChange: updateActiveThreadItems,
+    onFirstMessage: renameActiveThreadFromMessage,
+  });
   const [workExplanation, setWorkExplanation] = useState<string[]>([]);
   const previousGooseLicence = useRef<GoosePixelLicence | null>(null);
 

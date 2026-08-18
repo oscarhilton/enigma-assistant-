@@ -140,7 +140,10 @@ describe("UI2-02 streaming", () => {
     const first = appendStreamingText(null, "Saturday ");
     const second = appendStreamingText(first, "is free.");
     expect(second.text).toBe("Saturday is free.");
-    expect(second.streaming).toBe(true);
+    expect(second.role).toBe("assistant");
+    if (second.role === "assistant") {
+      expect(second.streaming).toBe(true);
+    }
     render(<V2ConversationViewport items={[]} streamingRow={second} />);
     const bubble = screen.getByTestId("v2-message-assistant");
     expect(bubble).toHaveAttribute("data-streaming", "true");

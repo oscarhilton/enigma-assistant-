@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `done` |
 | Branch | `ticket/UI2-03-shadcn-foundation` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
@@ -24,10 +24,10 @@
 
 ## Acceptance criteria
 
-- [ ] Full shadcn-style token set (radius, colours, typography scale)
-- [ ] Core primitives: Button, Input, Textarea, ScrollArea, Separator, Sheet, Dialog, Tooltip
-- [ ] Dark mode ready (class strategy)
-- [ ] v2 shell uses primitives exclusively (no ad-hoc v2 CSS for covered cases)
+- [x] Full shadcn-style token set (radius, colours, typography scale)
+- [x] Core primitives: Button, Input, Textarea, ScrollArea, Separator, Sheet, Dialog, Tooltip
+- [x] Dark mode ready (class strategy)
+- [x] v2 shell uses primitives exclusively (no ad-hoc v2 CSS for covered cases)
 
 ## Test plan
 

@@ -29,16 +29,25 @@ export type V2StreamingConversation = {
   clearError: () => void;
 };
 
+type ThreadCallbacks = {
+  threadItems: ConversationItem[];
+  onThreadItemsChange: (items: ConversationItem[]) => void;
+  onFirstMessage?: (text: string) => void;
+};
+
 /**
  * Cancel semantics (UI2-02): Stop generating response ≠ cancel underlying work.
  * Stop aborts fetch/prose only; AgentWork keeps the last `agent_work` snapshot.
  * Server emits nothing on client abort — we do not fabricate idle/complete.
  * GET conversation (refresh) reconciles durable state after Stop or drop.
  */
-export function useV2StreamingConversation(): V2StreamingConversation {
+export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V2StreamingConversation {
   const { world } = useWorld();
   const session = useEnigmaConversation();
-  const [items, setItems] = useState<ConversationItem[]>(session.items);
+  const threadItems = threadCallbacks?.threadItems;
+  const onThreadItemsChange = threadCallbacks?.onThreadItemsChange;
+  const onFirstMessage = threadCallbacks?.onFirstMessage;
+  const [items, setItems] = useState<ConversationItem[]>(threadItems ?? session.items);
   const [streamingText, setStreamingText] = useState("");
   const [agentWork, setAgentWork] = useState<AgentWorkSnapshot | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,8 +59,40 @@ export function useV2StreamingConversation(): V2StreamingConversation {
   const turnCompleteRef = useRef(false);
 
   useEffect(() => {
+    if (threadItems) {
+      setItems(threadItems);
+    }
+  }, [threadItems]);
+
+  // Seed empty local thread from server conversation (C34 bootstrap expressiveness).
+  useEffect(() => {
+    if (!threadItems || !onThreadItemsChange || session.loading) {
+      return;
+    }
+    if (threadItems.length === 0 && session.items.length > 0) {
+      queueMicrotask(() => onThreadItemsChange(session.items));
+    }
+  }, [onThreadItemsChange, session.items, session.loading, threadItems]);
+
+  useEffect(() => {
+    if (threadItems) {
+      return;
+    }
     setItems(session.items);
-  }, [session.items]);
+  }, [session.items, threadItems]);
+
+  const commitItems = useCallback(
+    (next: ConversationItem[] | ((current: ConversationItem[]) => ConversationItem[])) => {
+      setItems((current) => {
+        const resolved = typeof next === "function" ? next(current) : next;
+        if (onThreadItemsChange) {
+          queueMicrotask(() => onThreadItemsChange(resolved));
+        }
+        return resolved;
+      });
+    },
+    [onThreadItemsChange],
+  );
 
   const streamingRow = useMemo(
     () => (streamingText ? appendStreamingText(null, streamingText) : null),
@@ -74,14 +115,16 @@ export function useV2StreamingConversation(): V2StreamingConversation {
   }, []);
 
   const cancel = useCallback(() => {
-    // Abort prose/fetch only — AgentWork is not cleared here.
     abortRef.current?.abort();
   }, []);
 
   const sendMessage = useCallback(
     async (text: string): Promise<boolean> => {
+      onFirstMessage?.(text);
       if (world !== "my_enigma") {
         await session.sendMessage(text);
+        const rows = await session.client.getConversation();
+        commitItems(rows);
         return true;
       }
       setBusy(true);
@@ -96,7 +139,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
         text,
         at: new Date().toISOString(),
       };
-      setItems((current) => [...current, pending]);
+      commitItems((current) => [...current, pending]);
       setAgentWork({
         exists: true,
         phase: "in_flight",
@@ -116,7 +159,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
               setStreamingText((current) => current + event.data.delta);
             } else if (event.type === "turn_complete") {
               turnCompleteRef.current = true;
-              setItems((current) => {
+              commitItems((current) => {
                 if (event.data.conversation?.items) {
                   return event.data.conversation.items;
                 }
@@ -132,7 +175,6 @@ export function useV2StreamingConversation(): V2StreamingConversation {
         if (outcome === "aborted") {
           setStreamingText("");
           setGenerationStopped(true);
-          // Retain agentWork — last server snapshot stays for Goose.
           try {
             await session.refresh();
           } catch {
@@ -150,7 +192,7 @@ export function useV2StreamingConversation(): V2StreamingConversation {
         abortRef.current = null;
       }
     },
-    [session, world],
+    [commitItems, onFirstMessage, session, world],
   );
 
   const reconnect = useCallback(async () => {
