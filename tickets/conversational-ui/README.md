@@ -82,6 +82,8 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C34](./C34-relational-bootstrap.md) | Relational bootstrap (continuation mechanics) | **frozen** ([#99](https://github.com/oscarhilton/enigma-assistant-/pull/99)) |
 | [C35](./C35-goose-pixel-licence.md) | Goose pixel licence (work presence; C34 expressiveness) | **done** |
 | [C37](./C37-goose-pixel-observation.md) | Goose pixel observation (dogfood idle/walk/return; not C36) | **done** ([#103](https://github.com/oscarhilton/enigma-assistant-/pull/103) observational infrastructure only) |
+| [C38](./C38-shared-uncertainty-collapse.md) | Shared uncertainty collapse (one investigation, many dependents) | **future** (spec only; after C28 · [#104](https://github.com/oscarhilton/enigma-assistant-/pull/104)) |
+| [C39](./C39-handoff-working-conclusion.md) | Handoff working conclusion (compiled view, not stored state) | **future** (spec only; after C27 · [ADR-029](../../docs/adr/029-context-compilation-request-shaped-memory.md)) |
 
 ## Programme state (2026-08-18)
 
@@ -95,6 +97,7 @@ PILOT-01 — Does Enigma actually make Oscar’s day easier?
 
 Do not implement P02/P03, C36, or extra Goose animations here.
 
+**Deferred architecture (`future`, do not claim during PILOT-01):** [C38](./C38-shared-uncertainty-collapse.md) shared uncertainty collapse · [C39](./C39-handoff-working-conclusion.md) handoff working conclusion. Spec capture only — no `DependencyReasoningOrchestrator`, no `ReasoningPayloadService`.
 
 ## First milestone (Alex)
 
