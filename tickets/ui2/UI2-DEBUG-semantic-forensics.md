@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/UI2-DEBUG-semantic-forensics` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
@@ -26,11 +26,11 @@
 
 ## Acceptance criteria
 
-- [ ] Turn snapshot viewer (read-model: Turn Contract, Evidence, Handoff, AgentWork, Authority, egress, streaming trace, Memory impact)
-- [ ] Copy bug report tiers: Safe / Detailed / Local forensic
-- [ ] Keyboard shortcut ⌘⇧D opens forensics
-- [ ] "Why not?" explainer for suppressed or absent actions
-- [ ] No Cortex on main conversation surface
+- [x] Turn snapshot viewer (read-model: Turn Contract, Evidence, Handoff, AgentWork, Authority, egress, streaming trace, Memory impact)
+- [x] Copy bug report tiers: Safe / Detailed / Local forensic
+- [x] Keyboard shortcut ⌘⇧D opens forensics
+- [x] "Why not?" explainer for suppressed or absent actions
+- [x] No Cortex on main conversation surface
 
 ## Test plan
 

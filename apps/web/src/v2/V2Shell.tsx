@@ -1,11 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { GoosePresence } from "../enigma/GoosePresence";
 import { inspectGooseEvent, projectGooseEvents, recordGooseTelemetry } from "../enigma/gooseTelemetry";
 import { WorldSwitcher } from "../pilot/WorldSwitcher";
 import { useWorld } from "../pilot/WorldProvider";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { GoosePixelLicence } from "../enigma/goosePixels";
 import { buildIdentityLabel } from "./buildIdentity";
+import { useDebugShortcut } from "./debug/useDebugShortcut";
 import { V2Composer } from "./V2Composer";
 import { V2ConversationViewport } from "./V2ConversationViewport";
 import { V2Sidebar } from "./V2Sidebar";
@@ -13,6 +14,7 @@ import { useV2Threads } from "./V2ThreadProvider";
 import { useV2StreamingConversation } from "./useV2StreamingConversation";
 
 export function V2Shell() {
+  const navigate = useNavigate();
   const { world } = useWorld();
   const {
     activeThread,
@@ -40,6 +42,11 @@ export function V2Shell() {
   });
   const [workExplanation, setWorkExplanation] = useState<string[]>([]);
   const previousGooseLicence = useRef<GoosePixelLicence | null>(null);
+
+  const openDebug = useCallback(() => {
+    void navigate("/v2/debug");
+  }, [navigate]);
+  useDebugShortcut(openDebug);
 
   useEffect(() => {
     recordGooseTelemetry(projectGooseEvents(previousGooseLicence.current, gooseLicence));
