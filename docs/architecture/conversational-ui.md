@@ -334,3 +334,12 @@ The **Cortex** panel is a read-only debug view of state transitions and privacy 
 - Privacy mode ties to the same disclosure feed as [EgressDisclosurePanel](../../apps/web/src/enigma/EgressDisclosurePanel.tsx)
 - SEC-07 retention slider stub: utility vs reconstructability across SOURCE → SHADOW → FORGOTTEN ([SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md))
 - Cortex shows system events, not thoughts or emotions ([ethics.md](./ethics.md))
+
+## Goose pixels (C35)
+
+THE Goose on SURFACE is a **tiny projection of real work**, not a mascot and not a hide-on-serious ornament.
+
+Work (C14 hops, in-flight turns, pending assist) governs presence (`absent` / `idle` / `walk` / `return`). [C34](../../tickets/conversational-ui/C34-relational-bootstrap.md) governs expressiveness only. Serious frame may quiet the sprite; it must not remove work from view. Click opens the existing Why / provenance / activity explanation. No Shadows in this slice.
+
+- Decision: [ADR-039](../adr/039-goose-pixels-project-work-not-mascot.md)
+- Ticket: [C35](../../tickets/conversational-ui/C35-goose-pixel-licence.md)

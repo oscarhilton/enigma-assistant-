@@ -15,5 +15,6 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByTestId("conversation-viewport")).toBeInTheDocument();
     });
+    expect(screen.queryByTestId("surface-goose")).not.toBeInTheDocument();
   });
 });
