@@ -15,6 +15,13 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from personal_enigma.api.conversation_context import ConversationContext
+from personal_enigma.api.private_calendar_read import build_calendar_provenance
+from personal_enigma.api.private_calendar_store import (
+    CalendarReadAdapter,
+    calendar_adapter_for_root,
+)
+from personal_enigma.api.private_conversation import handle_private_message
 from personal_enigma.simulation import (
     WorldId,
     WorldIsolationError,
@@ -40,9 +47,30 @@ class MessageBody(BaseModel):
 
 @dataclass
 class PrivateWorldSession:
-    """Quiet My Enigma conversation until C08 / P03 connect real sources."""
+    """My Enigma session — calendar READ + SUPPORT (P03)."""
 
+    storage_root: Path | None = None
     conversation: list[dict[str, Any]] = field(default_factory=list)
+    conversation_context: ConversationContext = field(default_factory=ConversationContext)
+    calendar_adapter: CalendarReadAdapter | None = None
+    last_calendar_facts: list[dict[str, Any]] = field(default_factory=list)
+
+    def bind_storage(self, storage_root: Path) -> None:
+        self.storage_root = storage_root
+        self.calendar_adapter = calendar_adapter_for_root(storage_root)
+
+    def clear_world_derived(self) -> None:
+        """ADR-040 — calendar-derived conversation state must not survive a switch."""
+        self.conversation = []
+        self.conversation_context = ConversationContext()
+        self.last_calendar_facts = []
+
+    def _adapter(self) -> CalendarReadAdapter:
+        if self.calendar_adapter is None:
+            root = self.storage_root or Path(os.environ.get("ENIGMA_PRIVATE_STORAGE_ROOT", "."))
+            self.bind_storage(root)
+        assert self.calendar_adapter is not None
+        return self.calendar_adapter
 
     def attention_state_payload(self, *, now: str) -> dict[str, Any]:
         return {
@@ -63,17 +91,19 @@ class PrivateWorldSession:
         return {"items": list(self.conversation)}
 
     def send_message(self, text: str, *, now: str) -> dict[str, Any]:
-        self.conversation.append({"kind": "user_message", "text": text, "at": now})
-        reply = {
-            "kind": "enigma_message",
-            "text": (
-                "This is My Enigma. No private sources are connected yet, "
-                "so there is nothing in this world to inspect."
-            ),
-            "at": now,
-        }
-        self.conversation.append(reply)
-        return {"items": [reply], "conversation": self.conversation_payload()}
+        payload = handle_private_message(
+            text=text,
+            at=now,
+            adapter=self._adapter(),
+            conversation=self.conversation,
+            context=self.conversation_context,
+        )
+        self.conversation = payload["conversation"]["items"]
+        self.last_calendar_facts = list(payload.get("calendar_facts_used") or [])
+        return payload
+
+    def calendar_provenance_payload(self) -> dict[str, Any]:
+        return build_calendar_provenance(self.last_calendar_facts)
 
 
 def _registry_home() -> Path | None:
@@ -83,9 +113,10 @@ def _registry_home() -> Path | None:
 
 def _registry_for(application: FastAPI) -> WorldRegistry:
     registry = getattr(application.state, "world_registry", None)
-    if not isinstance(registry, WorldRegistry):
-        registry = WorldRegistry(home=_registry_home())
-        application.state.world_registry = registry
+    if isinstance(registry, WorldRegistry):
+        return registry
+    registry = WorldRegistry(home=_registry_home())
+    application.state.world_registry = registry
     return registry
 
 
@@ -103,6 +134,13 @@ def _private_session_for(application: FastAPI) -> PrivateWorldSession:
         session = PrivateWorldSession()
         application.state.private_world_session = session
     return session
+
+
+def _reset_private_session(application: FastAPI, *, storage_root: Path | None = None) -> None:
+    session = PrivateWorldSession()
+    if storage_root is not None:
+        session.bind_storage(storage_root)
+    application.state.private_world_session = session
 
 
 def _require_world(application: FastAPI, expected: WorldId) -> None:
@@ -126,7 +164,7 @@ def alex_lab_is_active(application: FastAPI) -> bool:
 
 
 def install_world_routes(application: FastAPI) -> None:
-    """Register ``/worlds`` switcher and quiet My Enigma conversation stubs."""
+    """Register ``/worlds`` switcher and My Enigma calendar READ routes."""
     application.state.world_registry_lock = Lock()
     application.state.world_registry = WorldRegistry(home=_registry_home())
     application.state.private_world_session = PrivateWorldSession()
@@ -163,6 +201,12 @@ def install_world_routes(application: FastAPI) -> None:
                 handle = registry.switch(world)
             except WorldIsolationError as exc:
                 raise HTTPException(status_code=409, detail=str(exc)) from exc
+            # ADR-040 / P03 freeze — world-derived private state clears on every switch.
+            private_root = Path(handle.storage_root) if world is WorldId.MY_ENIGMA else None
+            if world is WorldId.MY_ENIGMA:
+                _reset_private_session(application, storage_root=private_root)
+            else:
+                _reset_private_session(application)
             return {"ok": True, "active": handle.public_view()}
 
     @application.post("/worlds/{world_id}/reset")
@@ -184,8 +228,11 @@ def install_world_routes(application: FastAPI) -> None:
         _require_world(application, WorldId.MY_ENIGMA)
         with _lock_for(application):
             registry = _registry_for(application)
+            session = _private_session_for(application)
+            if session.storage_root is None:
+                session.bind_storage(Path(registry.active.storage_root))
             now = registry.active.clock.now().isoformat()
-            return _private_session_for(application).attention_state_payload(now=now)
+            return session.attention_state_payload(now=now)
 
     @application.get("/worlds/my_enigma/conversation")
     def my_enigma_conversation() -> dict[str, Any]:
@@ -198,5 +245,14 @@ def install_world_routes(application: FastAPI) -> None:
         _require_world(application, WorldId.MY_ENIGMA)
         with _lock_for(application):
             registry = _registry_for(application)
+            session = _private_session_for(application)
+            if session.storage_root is None:
+                session.bind_storage(Path(registry.active.storage_root))
             now = registry.active.clock.now().isoformat()
-            return _private_session_for(application).send_message(body.text, now=now)
+            return session.send_message(body.text, now=now)
+
+    @application.get("/worlds/my_enigma/calendar/provenance")
+    def my_enigma_calendar_provenance() -> dict[str, Any]:
+        _require_world(application, WorldId.MY_ENIGMA)
+        with _lock_for(application):
+            return _private_session_for(application).calendar_provenance_payload()
