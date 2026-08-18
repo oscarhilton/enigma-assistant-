@@ -1,0 +1,48 @@
+# P02b — Monday / Maya (product shell)
+# Enigma establishes calendar truth without inventing user schedule rules.
+
+name: monday_maya
+given:
+  world: alex_lab
+  clock: 2026-01-19T10:00:00+00:00
+  checkpoint: cp-2026-01-19T10:00
+  retained_memory: []
+  calendar:
+    - id: cal-bank-holiday-2026-01-26
+      title: Bank holiday (England & Wales)
+      start_at: 2026-01-26
+    - id: cal-work-monday
+      title: Team standup
+      start_at: 2026-01-19T09:00:00+00:00
+  evidence:
+    - mail-maya-birthday
+
+when:
+  user: "I've got work Monday, so Sunday's probably my only chance to sort Maya's birthday."
+
+then:
+  must:
+    - discover bank holiday Monday 26 Jan when relevant
+    - qualify premise — Sunday is not the only window
+    - cite Maya birthday date from mail-maya-birthday
+    - one AgentWork trail through availability or agenda lookup
+    - case stays context — no reminder explosion
+  must_not:
+    - infer bank holiday means user is off work
+    - invent durable work-hours rule
+    - cite unrelated private evidence (brunch, Elena)
+
+continue:
+  - user: "So Sunday is still my best shot though?"
+    then:
+      must:
+        - continuity — still about Maya birthday planning
+        - challenge only where being wrong changes the plan
+      must_not:
+        - automatic CONFLICTS tone without evidence
+
+final:
+  expected_case_state: context_only
+  expected_agent_work: single_trail
+  expected_memory: unchanged
+  expected_authority: none

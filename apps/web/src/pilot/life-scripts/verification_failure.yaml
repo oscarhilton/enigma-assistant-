@@ -1,0 +1,32 @@
+# P02d — FALSE VICTORY (C37 hostile vocabulary test)
+
+name: verification_failure
+given:
+  world: alex_lab
+  clock: 2026-01-19T10:00:00+00:00
+  case: item-notify-team
+
+when:
+  - user: "Can you help me send the team note?"
+    then:
+      must: [assist proposal visible — PREPARE]
+  - user: "Go on then."
+    then:
+      must: [ACTING — AgentWork in flight]
+  - user: "Did you actually do it?"
+    then:
+      must: [VERIFYING distinct from ACTING and from completed]
+  - user: "So... did it work?"
+    then:
+      must:
+        - verification fails honestly
+        - assist result not success styled as Done
+      must_not:
+        - tell user Done
+        - case becomes handled
+        - goose performs victory on return
+
+final:
+  expected_case_state: still_open
+  expected_agent_work: verification_failed
+  expected_authority: none
