@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  .v2-root {
+    /* Neutral ChatGPT-like palette — light */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 13%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 13%;
+    --muted: 0 0% 97%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 13%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 63%;
+    --radius: 0.625rem;
+
+    /* Typography scale */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --leading-xs: 1rem;
+    --leading-sm: 1.25rem;
+    --leading-base: 1.5rem;
+    --leading-lg: 1.75rem;
+
+    /* Spacing scale */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    font-size: var(--text-sm);
+    line-height: var(--leading-sm);
+  }
+
+  .v2-root.dark {
+    --background: 0 0% 13%;
+    --foreground: 0 0% 93%;
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 93%;
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 93%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --ring: 0 0% 45%;
+  }
+}
+
+@layer components {
+  .v2-shell {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 16rem 1fr;
+    grid-template-areas:
+      "header header"
+      "sidebar main"
+      "footer footer";
+    min-height: 100dvh;
+  }
+
+  .v2-header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .v2-sidebar {
+    grid-area: sidebar;
+    border-right: 1px solid hsl(var(--border));
+    background: hsl(var(--muted));
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .v2-main {
+    grid-area: main;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .v2-footer {
+    grid-area: footer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    border-top: 1px solid hsl(var(--border));
+    font-size: var(--text-xs);
+    color: hsl(var(--muted-foreground));
+  }
+
+  .v2-messages {
+    flex: 1;
+    min-height: 0;
+    padding: var(--space-4);
+  }
+
+  .v2-composer {
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .v2-message {
+    max-width: 42rem;
+    margin: 0 auto var(--space-4);
+    line-height: var(--leading-base);
+  }
+
+  .v2-message--user {
+    text-align: right;
+  }
+
+  .v2-message--user .v2-message-bubble {
+    display: inline-block;
+    text-align: left;
+    background: hsl(var(--secondary));
+    border-radius: var(--radius);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .v2-message--assistant {
+    color: hsl(var(--foreground));
+  }
+
+  .v2-message--status {
+    color: hsl(var(--muted-foreground));
+    font-size: var(--text-sm);
+    font-style: italic;
+  }
+
+  .v2-message--error {
+    color: hsl(var(--destructive));
+    font-style: normal;
+  }
+
+  .v2-nav a {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .v2-nav a.font-semibold {
+    color: hsl(var(--foreground));
+  }
+
+  .v2-chrome-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .v2-world-switcher select {
+    border: 1px solid hsl(var(--input));
+    border-radius: calc(var(--radius) - 2px);
+    padding: var(--space-2) var(--space-2);
+    font-size: var(--text-sm);
+    background: hsl(var(--background));
+  }
+
+  .v2-thread-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: var(--space-2);
+    border-radius: calc(var(--radius) - 2px);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    text-align: left;
+    color: hsl(var(--foreground));
+    transition: background-color 0.15s ease;
+  }
+
+  .v2-thread-item:hover {
+    background: hsl(var(--accent));
+  }
+
+  .v2-thread-item[data-active="true"] {
+    background: hsl(var(--secondary));
+    font-weight: 500;
+  }
+}

@@ -16,6 +16,7 @@ import { PrivacyInspectorPage } from "./pages/PrivacyInspectorPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { CasesSurface, PilotShell, WorldProvider, useWorld } from "./pilot";
 import { ShadowModeBanner } from "./shadow";
+import { V2CasesSurface, V2ChatPage, V2DebugRoute, V2Layout, V2Shell } from "./v2";
 
 function PersistentModeBanners() {
   const { pathname } = useLocation();
@@ -87,6 +88,13 @@ export function App() {
             <Route path="suppressed" element={<DemoSuppressedPage />} />
             <Route path="why/:itemId" element={<DemoWhyPage />} />
           </Route>
+        </Route>
+        <Route path="/v2" element={<V2Layout />}>
+          <Route element={<V2Shell />}>
+            <Route index element={<V2ChatPage />} />
+            <Route path="cases" element={<V2CasesSurface />} />
+          </Route>
+          <Route path="debug" element={<V2DebugRoute />} />
         </Route>
       </Routes>
     </WorldProvider>
