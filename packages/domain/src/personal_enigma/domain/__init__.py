@@ -78,6 +78,18 @@ from personal_enigma.domain.retention_gate import (
     evaluate_retention,
     is_self_subject,
 )
+from personal_enigma.domain.semantic_recall import (
+    RECALL_PIPELINE_ORDER,
+    CandidateHit,
+    InMemoryGovernedMemory,
+    InventoryGovernedMemory,
+    RecalledAssertion,
+    RecallRejection,
+    RecallResult,
+    RecallStage,
+    recall_governed_memory,
+    reduce_retained_assertion,
+)
 
 __all__ = [
     "ActionCategory",
@@ -129,6 +141,16 @@ __all__ = [
     "PrivateReminder",
     "Provider",
     "RETAINED_ASSERTION_RECORD_KIND",
+    "RECALL_PIPELINE_ORDER",
+    "RecallRejection",
+    "RecallResult",
+    "RecallStage",
+    "RecalledAssertion",
+    "CandidateHit",
+    "InMemoryGovernedMemory",
+    "InventoryGovernedMemory",
+    "recall_governed_memory",
+    "reduce_retained_assertion",
     "RecurrenceInfo",
     "ReminderEvidence",
     "RetentionClass",

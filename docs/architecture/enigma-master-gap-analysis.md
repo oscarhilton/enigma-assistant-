@@ -128,8 +128,20 @@ establish → retain → persist → expire / forget / correct → inspect
 
 **Not C29 — do not start here:** Brain UI, Goose choreography.
 
-**Next phase:** Semantic Recall slice A (index + governed-memory filter; not crypto), with the rule:
+## Programme checkpoint — C32 slice A frozen (2026-08-18)
+
+C32 semantic recall slice A is **complete and frozen** at `9eb7477`:
+
+```text
+approximate retrieval → candidate assertion IDs → governed-memory lookup → current / retained / valid check → only then expose
+```
+
+Recall is an index over governed memory, not a second store. An embedding hit is never usable memory. Forgotten ceramics stay rejected even if a stale index entry remains; later independent evidence may mint a new lineage recall can find.
 
 > Recall may find governed memory. It may not create, promote, resurrect, or retain it.
 
-**Then:** C30 Brain / Cortex / Case File UI compiles from this inventory.
+> Retrieval may be approximate. Authority may not be.
+
+**Freeze question:** Can recall be wrong about relevance without ever being wrong about what Enigma may treat as current memory? **Yes.**
+
+**Not C32 slice A — do not start here:** crypto slice B, C30 Brain / Cortex / Case File UI, C31 Goose.
