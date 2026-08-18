@@ -343,3 +343,4 @@ Work (C14 hops, in-flight turns, pending assist) governs presence (`absent` / `i
 
 - Decision: [ADR-039](../adr/039-goose-pixels-project-work-not-mascot.md)
 - Ticket: [C35](../../tickets/conversational-ui/C35-goose-pixel-licence.md)
+- Observation freeze: [C37](../../tickets/conversational-ui/C37-goose-pixel-observation.md) instruments idle / walk / return through Life Scripts before any new vocabulary. `possible_fix: NOT YET`. Not C36.

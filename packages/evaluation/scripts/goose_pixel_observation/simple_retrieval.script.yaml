@@ -1,0 +1,28 @@
+# Goose observation Life Script — C37. Not C36. Not C23.
+# Speaks like Alex. Projects existing idle / walk / return only.
+scenario: simple_retrieval
+clock: 2026-01-19T10:00:00
+persona: Alex Morgan
+world: alex_v1
+purpose: >
+  User asks, work starts, Goose walks, result arrives, Goose returns.
+possible_fix: NOT YET
+beats:
+  - user: "What's actually worth worrying about today?"
+    frame: goose
+    work:
+      exists: true
+      phase: in_flight
+      semantic_token: retrieve-attention
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Looking up what needs you
+  - user: null
+    frame: goose
+    work:
+      exists: true
+      phase: complete
+      semantic_token: retrieve-attention
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Checked why this matters

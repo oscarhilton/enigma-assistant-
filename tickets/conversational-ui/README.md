@@ -81,6 +81,7 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C14](./C14-conversation-activity-stream.md) | Conversation activity stream (real events, not fake CoT) | **in_progress** (spec + v0 strip) |
 | [C34](./C34-relational-bootstrap.md) | Relational bootstrap (continuation mechanics) | **frozen** ([#99](https://github.com/oscarhilton/enigma-assistant-/pull/99)) |
 | [C35](./C35-goose-pixel-licence.md) | Goose pixel licence (work presence; C34 expressiveness) | **done** |
+| [C37](./C37-goose-pixel-observation.md) | Goose pixel observation (dogfood idle/walk/return; not C36) | **in_progress** |
 
 ## First milestone (Alex)
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Composer } from "../enigma/Composer";
 import { ConversationViewport } from "../enigma/ConversationViewport";
@@ -6,7 +6,8 @@ import { DemoControlsPanel } from "../enigma/DemoControlsPanel";
 import { EgressDisclosurePanel } from "../enigma/EgressDisclosurePanel";
 import { EnigmaProvider, useEnigmaConversation } from "../enigma/EnigmaProvider";
 import { GoosePresence } from "../enigma/GoosePresence";
-import { licenceFromConversation } from "../enigma/goosePixels";
+import { licenceFromConversation, type GoosePixelLicence } from "../enigma/goosePixels";
+import { inspectGooseEvent, projectGooseEvents, recordGooseTelemetry } from "../enigma/gooseTelemetry";
 import { ProvenanceViewPanel } from "../enigma/items/ProvenanceViewPanel";
 import { QualificationDebugView } from "../enigma/items/QualificationDebugView";
 import type { ProvenanceView, QualificationDebug } from "../enigma/types";
@@ -31,8 +32,15 @@ function ConversationalHomeInner() {
     () => licenceFromConversation({ items, busy, loading }),
     [items, busy, loading],
   );
+  const previousGooseLicence = useRef<GoosePixelLicence | null>(null);
+
+  useEffect(() => {
+    recordGooseTelemetry(projectGooseEvents(previousGooseLicence.current, gooseLicence));
+    previousGooseLicence.current = gooseLicence;
+  }, [gooseLicence]);
 
   function inspectGooseWork() {
+    recordGooseTelemetry([inspectGooseEvent(gooseLicence)]);
     const target = gooseLicence.inspectTarget;
     if (target) {
       void client

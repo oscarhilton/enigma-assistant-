@@ -1,0 +1,7 @@
+scenario: inspect
+observed:
+  goose_state: return
+  user_interpretation: "returned with a result"
+problem: false
+severity: low
+possible_fix: NOT YET

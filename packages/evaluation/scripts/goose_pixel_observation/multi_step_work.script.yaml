@@ -1,0 +1,39 @@
+# Goose observation Life Script — C37. Not C36. Not C23.
+scenario: multi_step_work
+clock: 2026-01-19T10:00:00
+persona: Alex Morgan
+world: alex_v1
+purpose: >
+  Investigate, advance, verify. Three-state Goose must remain truthful.
+possible_fix: NOT YET
+beats:
+  - user: "Can you look into the token inventory for me?"
+    frame: goose
+    truth: investigating
+    work:
+      exists: true
+      phase: in_flight
+      semantic_token: token-inventory-work
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Looking up the token inventory
+  - user: "And then can you get it ready for me to approve?"
+    frame: goose
+    truth: advancing
+    work:
+      exists: true
+      phase: waiting
+      semantic_token: token-inventory-work
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Waiting for you to approve the draft
+  - user: "Did that actually land?"
+    frame: goose
+    truth: verifying
+    work:
+      exists: true
+      phase: complete
+      semantic_token: token-inventory-work
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Checked that the inventory is ready

@@ -1,0 +1,30 @@
+# Goose observation Life Script — C37. Not C36. Not C23.
+scenario: failure
+clock: 2026-01-19T10:00:00
+persona: Alex Morgan
+world: alex_v1
+purpose: >
+  Underlying work fails / cannot establish a result.
+  Sprite vocabulary must not falsely suggest success.
+possible_fix: NOT YET
+beats:
+  - user: "Can you actually send that note to the team?"
+    frame: goose
+    truth: acting
+    work:
+      exists: true
+      phase: in_flight
+      semantic_token: notify-team-work
+      inspect_target: item-notify-team
+      inspect_labels:
+        - Trying to send the note
+  - user: "Did it go?"
+    frame: goose
+    truth: work_failed
+    work:
+      exists: true
+      phase: complete
+      semantic_token: notify-team-work
+      inspect_target: item-notify-team
+      inspect_labels:
+        - Could not send the note

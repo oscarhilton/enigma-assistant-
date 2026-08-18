@@ -1,0 +1,30 @@
+# Goose observation Life Script — C37. Not C36. Not C23.
+scenario: inspect
+clock: 2026-01-19T10:00:00
+persona: Alex Morgan
+world: alex_v1
+purpose: >
+  Click Goose mid-work and after return. Existing Why view must explain
+  exactly what the animation represented.
+possible_fix: NOT YET
+beats:
+  - user: "What's actually worth worrying about today?"
+    frame: goose
+    inspect: true
+    work:
+      exists: true
+      phase: in_flight
+      semantic_token: retrieve-attention
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Looking up what needs you
+  - user: null
+    frame: goose
+    inspect: true
+    work:
+      exists: true
+      phase: complete
+      semantic_token: retrieve-attention
+      inspect_target: item-obligation_token_audit
+      inspect_labels:
+        - Checked why this matters

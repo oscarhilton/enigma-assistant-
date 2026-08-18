@@ -1,0 +1,19 @@
+# Goose observation Life Script — C37. Not C36. Not C23.
+scenario: waiting_external
+clock: 2026-01-19T10:00:00
+persona: Alex Morgan
+world: alex_v1
+purpose: >
+  Work genuinely waits. Goose must not imply active movement.
+possible_fix: NOT YET
+beats:
+  - user: "Am I waiting on anyone?"
+    frame: goose
+    truth: waiting_external
+    work:
+      exists: true
+      phase: waiting
+      semantic_token: wait-elena-reply
+      inspect_target: item-brunch-elena
+      inspect_labels:
+        - Waiting on Elena's reply
