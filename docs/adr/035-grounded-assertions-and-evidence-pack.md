@@ -43,6 +43,8 @@ Add `GroundedAssertion` with:
 
 This is the minimum inspectable unit for “what Enigma currently treats as grounded enough to reason with”.
 
+At the frozen response-grounding bridge checkpoint (`8ada705`), the respond path consumes canonical `GroundedAssertion` records from `EvidenceBundle` directly rather than treating grounding as ids-only bundle residue.
+
 ### 2. Epistemic classes survive confidence
 
 Confidence is optional metadata. It never promotes epistemic class.
@@ -81,8 +83,10 @@ Any Goose rendering is downstream of this substrate. It may visualise agent work
 
 - `packages/domain` becomes the canonical home for proposition-shaped grounding models.
 - `EvidenceBundle` may carry grounded assertions, unknowns, and challenges without becoming durable memory.
+- `apps/api/src/personal_enigma/api/respond_grounding.py` may fence responses against canonical assertions while the existing orchestrator double-fence remains unchanged in this slice.
 - Later Brain/Cortex/Case projections should prefer compiling from these primitives rather than inventing parallel truth stores.
 - Shared-culture or product-language concepts must not appear in these domain models.
+- Predicate-to-language rendering remains future hardening. More natural phrasing over canonical assertions is not required for C26 closure.
 
 ## Non-goals
 
