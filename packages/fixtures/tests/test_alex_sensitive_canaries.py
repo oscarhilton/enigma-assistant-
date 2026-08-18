@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -86,16 +85,9 @@ def test_source_grep_finds_sentinels() -> None:
 
 @pytest.mark.parametrize("sentinel", ALL_CANARY_SENTINELS)
 def test_sentinel_grepable_in_fixture_tree(sentinel: str) -> None:
-    """Each sentinel must be discoverable via ripgrep for SEC CI assertions."""
-    result = subprocess.run(
-        ["rg", "-F", sentinel, str(_FIXTURES_ROOT)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0, (
-        f"Sentinel {sentinel!r} not found under fixtures: {result.stderr}"
-    )
+    """Each sentinel must be discoverable in fixture sources for SEC CI assertions."""
+    hits = grep_directory_for_sentinels(_FIXTURES_ROOT, sentinels=(sentinel,))
+    assert hits, f"Sentinel {sentinel!r} not found under fixtures"
 
 
 def test_canary_pack_id_stable() -> None:
