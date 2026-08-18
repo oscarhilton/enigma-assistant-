@@ -220,7 +220,7 @@ export type EvidenceItem = {
 
 export type GroundedAssertion = {
   id: string;
-  kind: "fact" | "hypothesis" | "pattern" | "preference" | "delegation";
+  kind?: "fact" | "hypothesis" | "pattern" | "preference" | "delegation";
   subject: string;
   predicate: string;
   value: unknown;
@@ -238,21 +238,21 @@ export type GroundedAssertion = {
     | "stale"
     | "unknown";
   confidence?: number | null;
-  evidence_refs: string[];
+  evidence_refs?: string[];
   observed_at?: string | null;
   valid_from?: string | null;
   valid_until?: string | null;
   temporal_scope?: string | null;
   validity_kind?: "stable" | "ttl" | "until_event" | "source_lifetime" | "derived_lifetime";
-  sensitivity: "low" | "personal" | "high";
-  purpose_tags: string[];
-  retention_class:
+  sensitivity?: "low" | "personal" | "high";
+  purpose_tags?: string[];
+  retention_class?:
     | "active_until_resolved"
     | "ephemeral_answer_only"
     | "expire_with_source"
     | "durable_shadow";
-  egress_class: "remote_safe" | "local_only";
-  derived_from: string[];
+  egress_class?: "remote_safe" | "local_only";
+  derived_from?: string[];
   derivation_kind?:
     | "direct_observation"
     | "user_confirmation"
@@ -263,8 +263,8 @@ export type GroundedAssertion = {
     | "dialogue_history"
     | "high_confidence"
     | null;
-  supersedes: string[];
-  invalidated_by: string[];
+  supersedes?: string[];
+  invalidated_by?: string[];
 };
 
 export type EvidenceUnknown = {

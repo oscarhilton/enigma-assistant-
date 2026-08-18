@@ -436,6 +436,19 @@ def _build_challenges(
             )
         ]
     if unsearched or unavailable:
+        if not evidence_refs:
+            return [
+                AssertionChallenge(
+                    subject="question",
+                    predicate=mission.request_kind or "coverage",
+                    disposition=ChallengeDisposition.DOES_NOT_ADDRESS,
+                    summary=(
+                        "Required sources were not searched or were unavailable, "
+                        "so there is no evidence to qualify the question yet."
+                    ),
+                    evidence_refs=evidence_refs,
+                )
+            ]
         return [
             AssertionChallenge(
                 subject="question",

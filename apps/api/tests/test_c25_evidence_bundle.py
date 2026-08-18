@@ -71,7 +71,7 @@ def test_calendar_only_fetch_marks_coverage_inadequate_for_catch_up() -> None:
         for assertion in bundle.grounded_assertions
     )
     assert any(unknown.reason == "missing_evidence" for unknown in bundle.unknowns)
-    assert any(challenge.disposition == "qualifies" for challenge in bundle.challenges)
+    assert any(challenge.disposition == "does_not_address" for challenge in bundle.challenges)
 
 
 def test_what_should_i_be_doing_compiles_next_work() -> None:
@@ -314,3 +314,52 @@ def test_expired_embedded_assertion_is_preserved_but_not_current() -> None:
         if assertion.id == "forecast_old"
     )
     assert restored.is_usable_now(now=now) is False
+
+
+def test_subject_id_collected_as_evidence_ref() -> None:
+    bundle = build_evidence_bundle(
+        question="why is this on my list?",
+        working_set={
+            "request_kind": "support_explain",
+            "authority": "READ",
+            "fetch_mission": {"planned_tools": ["world.explain"]},
+            "capability_contract": {"allowed": ["world.explain"], "unavailable": []},
+        },
+        tool_results=[
+            {
+                "name": "world.explain",
+                "ok": True,
+                "data": {"subject_id": "item-obligation_token_audit"},
+            }
+        ],
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+    )
+    assert bundle.evidence
+    assert "item-obligation_token_audit" in bundle.evidence[0].evidence_ids
+
+
+def test_partial_coverage_with_evidence_qualifies_not_addresses() -> None:
+    bundle = build_evidence_bundle(
+        question="what have i missed?",
+        working_set={
+            "request_kind": "catch_up",
+            "scope": "work",
+            "authority": "READ",
+            "fetch_mission": {"planned_tools": planned_tools_for_kind("catch_up")},
+            "capability_contract": {"allowed": ["agenda.get"], "unavailable": []},
+        },
+        tool_results=[
+            {
+                "name": "agenda.get",
+                "ok": True,
+                "data": {
+                    "period": "today",
+                    "calendar_evidence_ids": ["cal_1"],
+                },
+            }
+        ],
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+    )
+    assert any(challenge.disposition == "qualifies" for challenge in bundle.challenges)
