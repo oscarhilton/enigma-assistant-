@@ -36,6 +36,7 @@ function PersistentModeBanners() {
 
 function PilotLayout() {
   const { world } = useWorld();
+  // ADR-040: remount world-derived React state on switch (conversation, Today, Cases, Goose).
   return (
     <EnigmaProvider key={world}>
       <PilotShell />

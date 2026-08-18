@@ -9,11 +9,11 @@ import {
 } from "react";
 import { PrivateWorldClient } from "../pilot/PrivateWorldClient";
 import type { WorldId } from "../pilot/types";
+import { WorldMockClient } from "../pilot/WorldMockClient";
 import { useWorld } from "../pilot/WorldProvider";
 import type { EnigmaClient } from "./client";
 import { DemoEnigmaClient } from "./DemoEnigmaClient";
 import { stitchLlmTrace } from "./forensicDump";
-import { MockEnigmaClient } from "./MockEnigmaClient";
 
 const EnigmaClientContext = createContext<EnigmaClient | null>(null);
 
@@ -23,6 +23,8 @@ type ConversationSession = {
   loading: boolean;
   busy: boolean;
   error: string | null;
+  selectedCaseId: string | null;
+  selectCase: (id: string | null) => void;
   clearError: () => void;
   sendMessage: (text: string) => Promise<void>;
   approveAssist: (proposalId: string) => Promise<void>;
@@ -34,13 +36,9 @@ const ConversationContext = createContext<ConversationSession | null>(null);
 
 function resolveClient(world: WorldId): EnigmaClient {
   if (import.meta.env.MODE === "test") {
-    return new MockEnigmaClient();
+    return WorldMockClient.forWorld(world);
   }
   if (world === "alex_lab") {
-    return new DemoEnigmaClient();
-  }
-  const mode = import.meta.env.VITE_ENIGMA_MODE as string | undefined;
-  if (mode === "demo") {
     return new DemoEnigmaClient();
   }
   return new PrivateWorldClient();
@@ -67,6 +65,7 @@ function ConversationHost({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const [rows, state] = await Promise.all([client.getConversation(), client.getAttentionState()]);
@@ -148,6 +147,10 @@ function ConversationHost({
     setError(null);
   }, []);
 
+  const selectCase = useCallback((id: string | null) => {
+    setSelectedCaseId(id);
+  }, []);
+
   const session = useMemo(
     () => ({
       items,
@@ -155,6 +158,8 @@ function ConversationHost({
       loading,
       busy,
       error,
+      selectedCaseId,
+      selectCase,
       clearError,
       sendMessage,
       approveAssist,
@@ -171,6 +176,8 @@ function ConversationHost({
       items,
       loading,
       refresh,
+      selectCase,
+      selectedCaseId,
       sendMessage,
     ],
   );

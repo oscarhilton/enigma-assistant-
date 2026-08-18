@@ -5,9 +5,11 @@ import { useEnigmaConversation } from "../enigma/EnigmaProvider";
 import { GoosePresence } from "../enigma/GoosePresence";
 import { licenceFromConversation, type GoosePixelLicence } from "../enigma/goosePixels";
 import { inspectGooseEvent, projectGooseEvents, recordGooseTelemetry } from "../enigma/gooseTelemetry";
+import { useWorld } from "./WorldProvider";
 import { WorldSwitcher } from "./WorldSwitcher";
 
 export function PilotShell() {
+  const { world } = useWorld();
   const { items, busy, loading, sendMessage, error, clearError, client } = useEnigmaConversation();
   const [workExplanation, setWorkExplanation] = useState<string[]>([]);
   const gooseLicence = useMemo(
@@ -34,7 +36,7 @@ export function PilotShell() {
   }
 
   return (
-    <div className="pilot-shell" data-testid="pilot-shell">
+    <div className="pilot-shell" data-testid="pilot-shell" data-world={world}>
       <header className="pilot-chrome">
         <NavLink to="/" className="brand">
           Enigma

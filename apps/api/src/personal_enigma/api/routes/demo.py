@@ -512,10 +512,11 @@ class DemoSession:
             "mode": mode.value,
             "banner": DEMO_BANNER_TEXT if active else "",
             "scenario": self.scenario if active else None,
-            "simulated_time": self.clock.now().isoformat() if active else None,
+            # Session clock — process env must not hide it after a world switch.
+            "simulated_time": self.clock.now().isoformat(),
             "checkpoint_id": self.checkpoint_id if active else None,
-            "speed": self.speed if active else None,
-            "paused": self.clock.paused if active else None,
+            "speed": self.speed,
+            "paused": self.clock.paused,
             "storage_root": str(self.env.storage_root) if active else None,
             "ground_truth_visible": False,
             "signals_considered": considered,
@@ -804,6 +805,7 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/environment")
     def demo_environment(scenario: str = "alex-v1") -> dict[str, str | None]:
+        _require_demo(application)
         mode = environment_mode_from_env()
         if mode is EnvironmentMode.DEMO:
             env = DemoEnvironment(scenario=scenario)
@@ -822,6 +824,7 @@ def install_demo_routes(application: FastAPI) -> None:
 
     @application.get("/demo/status")
     def demo_status() -> dict[str, Any]:
+        _require_demo(application)
         with _lock_for(application):
             return _session_for(application).status_payload()
 

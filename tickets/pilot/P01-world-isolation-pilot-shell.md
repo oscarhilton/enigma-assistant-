@@ -60,12 +60,20 @@
 - [x] Goose stays C35 (`surface-goose` from AgentWork); no extra Goose chrome
 - [x] Alex Lab reset does not touch My Enigma; My Enigma reset is refused
 - [x] Deferred work recorded as [P02](./P02-alex-life-scripts-as-product-tests.md) / [P03](./P03-calendar-read-support.md) notes only
+- [x] Freeze isolation: WORLD_SWITCH_01/02, IDENTITY_01, KEY_01, RESET_01/02, ROUTE_01, CLOCK_01, GOOSE_01, CASE_01
+- [x] ADR-040: no world-derived state survives a switch unless explicitly product-global (including React leftover state)
 
 ## Test plan
 
-- Switching worlds cannot leak storage roots, HMAC fingerprints, or PERSON_* identities
-- Clock source differs (simulation vs system)
-- Resettable Alex vs persistent My Enigma
+- WORLD_SWITCH_01/02 — conversation does not cross Alex Lab ↔ My Enigma (API + React remount)
+- IDENTITY_01 — same email → different PERSON_* tokens
+- KEY_01 — demo/private HMAC fingerprints differ
+- RESET_01 — Alex reset destroys only Alex state
+- RESET_02 — private reset is impossible through `/worlds/my_enigma/reset` and `/demo/reset`
+- ROUTE_01 — `/demo/*` rejected while My Enigma is active
+- CLOCK_01 — Alex clock manipulation cannot alter private temporal state
+- GOOSE_01 — world switch cannot leave stale AgentWork projected by Goose
+- CASE_01 — case selected in world A cannot remain selected as if valid in B
 - UI still uses one app shell (Today / Cases / world switcher / Ask Enigma)
 
 ## Privacy constraints

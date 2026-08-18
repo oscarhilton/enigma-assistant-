@@ -29,6 +29,24 @@ Storage isolation already exists: Demo, Private, and Shadow are separate roots a
 
 5. **Same shell.** The daily UI is one chrome (world switcher + Today + Cases + Ask Enigma + C35 Goose). `/demo/*` remains developer Demo chrome, gated on Alex Lab being the active world.
 
+6. **World-derived state does not survive a switch unless it is explicitly product-global.** Isolation is not only “databases don’t cross.” After a switch, leftover React state, compiled context, and in-memory sessions must not present world A’s data as if it were valid in world B.
+
+   **Product-global (may survive a switch):**
+   - which world is active (the switcher itself)
+   - shell structure (Today / Cases / Ask Enigma / Goose *slot*)
+   - process boot defaults (`ENIGMA_ENVIRONMENT_MODE`)
+
+   **World-derived (must remount, refetch, or be treated invalid):**
+   - conversation items
+   - compiled conversation context
+   - Today / attention projections
+   - selected Case IDs — a case from world A must not remain selected as if valid in B
+   - Goose AgentWork / pixel licence / work explanation
+   - clock, checkpoint, `simulated_time`
+   - HMAC keys, PERSON_* tokens, storage roots, databases, credentials
+
+   The world-bound React tree remounts with `key={world}` so `useState` / `useRef` cannot leak. `/demo/status` and other Alex timeline routes 409 while My Enigma is active.
+
 ## Consequences
 
 - `ENIGMA_ENVIRONMENT_MODE` sets the **default** active world (`demo` → Alex Lab, otherwise My Enigma). After boot, the active world is session state on the world registry.

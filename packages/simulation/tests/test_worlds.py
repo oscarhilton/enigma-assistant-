@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -162,3 +163,59 @@ def test_public_view_omits_raw_hmac(tmp_path: Path) -> None:
     assert fingerprint.startswith("sha256:")
     assert len(fingerprint) < 40
     assert registry.active_id.value == view["active"]
+
+
+def test_identity_01_same_email_different_tokens(tmp_path: Path) -> None:
+    """IDENTITY_01 — same email → different tokens across worlds."""
+    registry = WorldRegistry(home=tmp_path)
+    sample = "maya@example.com"
+    alex = person_token_for(registry.handle(WorldId.ALEX_LAB).hmac_key, sample)
+    mine = person_token_for(registry.handle(WorldId.MY_ENIGMA).hmac_key, sample)
+    assert alex != mine
+    assert alex.startswith("PERSON_")
+    assert mine.startswith("PERSON_")
+
+
+def test_key_01_demo_private_fingerprints_differ(tmp_path: Path) -> None:
+    """KEY_01 — demo/private key fingerprints differ."""
+    registry = WorldRegistry(home=tmp_path)
+    alex = registry.handle(WorldId.ALEX_LAB).hmac_fingerprint
+    mine = registry.handle(WorldId.MY_ENIGMA).hmac_fingerprint
+    assert alex != mine
+    assert alex.startswith("sha256:")
+    assert mine.startswith("sha256:")
+    registry.assert_isolated(require_keys=True)
+
+
+def test_reset_01_alex_reset_destroys_only_alex_state(tmp_path: Path) -> None:
+    """RESET_01 — Alex reset destroys only Alex state."""
+    registry = WorldRegistry(home=tmp_path)
+    mine = registry.handle(WorldId.MY_ENIGMA)
+    keep = mine.storage_root / "keep-private.txt"
+    keep.parent.mkdir(parents=True, exist_ok=True)
+    keep.write_text("private-safe", encoding="utf-8")
+    private_fp = mine.hmac_fingerprint
+    junk = registry.handle(WorldId.ALEX_LAB).storage_root / "stale.json"
+    junk.parent.mkdir(parents=True, exist_ok=True)
+    junk.write_text("dirty", encoding="utf-8")
+    old_alex_fp = registry.handle(WorldId.ALEX_LAB).hmac_fingerprint
+
+    registry.reset(WorldId.ALEX_LAB)
+    assert not junk.exists()
+    assert keep.read_text(encoding="utf-8") == "private-safe"
+    assert registry.handle(WorldId.MY_ENIGMA).hmac_fingerprint == private_fp
+    assert registry.handle(WorldId.ALEX_LAB).hmac_fingerprint != old_alex_fp
+
+
+def test_clock_01_alex_clock_cannot_alter_private_temporal_state(tmp_path: Path) -> None:
+    """CLOCK_01 — Alex clock manipulation cannot alter private temporal state."""
+    registry = WorldRegistry(home=tmp_path)
+    alex = registry.handle(WorldId.ALEX_LAB)
+    mine = registry.handle(WorldId.MY_ENIGMA)
+    far = datetime(2099, 6, 1, tzinfo=UTC)
+    assert isinstance(alex.clock, SimulationClock)
+    alex.clock.set_time(far)
+    assert alex.clock.now() == far
+    private_now = mine.clock.now()
+    assert private_now.year != 2099
+    assert isinstance(mine.clock, SystemClock)

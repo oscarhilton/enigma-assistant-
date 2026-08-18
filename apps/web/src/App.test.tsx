@@ -17,7 +17,7 @@ describe("App", () => {
     expect(screen.getByRole("link", { name: /^cases$/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/ask enigma/i)).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByTestId("conversation-viewport")).toBeInTheDocument();
+      expect(screen.queryByText(/Loading conversation/)).not.toBeInTheDocument();
     });
     expect(screen.queryByTestId("surface-goose")).not.toBeInTheDocument();
   });
