@@ -21,6 +21,7 @@ from personal_enigma.api.private_calendar_store import (
     CalendarReadAdapter,
     calendar_adapter_for_root,
 )
+from personal_enigma.api.private_calendar_sync import sync_apple_calendar_to_store
 from personal_enigma.api.private_conversation import handle_private_message
 from personal_enigma.simulation import (
     WorldId,
@@ -256,3 +257,25 @@ def install_world_routes(application: FastAPI) -> None:
         _require_world(application, WorldId.MY_ENIGMA)
         with _lock_for(application):
             return _private_session_for(application).calendar_provenance_payload()
+
+    @application.post("/worlds/my_enigma/calendar/sync")
+    async def my_enigma_calendar_sync() -> dict[str, Any]:
+        """Operator-triggered Apple calendar sync (P03c). Not an Assistant tool."""
+        _require_world(application, WorldId.MY_ENIGMA)
+        with _lock_for(application):
+            registry = _registry_for(application)
+            session = _private_session_for(application)
+            storage_root = Path(registry.active.storage_root)
+            if session.storage_root is None:
+                session.bind_storage(storage_root)
+            try:
+                result = await sync_apple_calendar_to_store(storage_root)
+            except Exception as exc:
+                raise HTTPException(status_code=502, detail=str(exc)) from exc
+            return {
+                "ok": True,
+                "event_count": result.event_count,
+                "calendar_ids": list(result.calendar_ids),
+                "synced_at": result.synced_at,
+                "storage_root": result.storage_root,
+            }

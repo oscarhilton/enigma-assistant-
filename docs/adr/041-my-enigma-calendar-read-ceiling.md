@@ -24,9 +24,11 @@ P03 connects the first real private source — calendar — to My Enigma. The pi
 
 - `ENIGMA_CALENDAR_FIXTURE` env selects a deterministic fixture adapter for CI without bridge credentials.
 - Real adapter hookup reuses existing M08/M12 ingestion into the private store; P03 does not add calendar writes.
+- **P03c operator sync** (`POST /worlds/my_enigma/calendar/sync`) is application plumbing, not an Assistant tool. `calendar.sync` is denied on the private tool surface.
+- **P03c `replace_all` semantics:** the pilot store holds the complete **Apple-only** snapshot per sync. Multi-source merge (Apple + Google) must use dedupe before a single store projection — never independent `replace_all` per provider.
 
 ## Related
 
 - [ADR-040](./040-product-worlds-same-enigma.md) · [ADR-005](./005-demo-private-storage-roots.md)
-- Ticket: [P03](../../tickets/pilot/P03-calendar-read-support.md) — P03a [#109](https://github.com/oscarhilton/enigma-assistant-/pull/109); live ingress [P03b](../../tickets/pilot/P03b-live-calendar-ingress.md)
+- Ticket: [P03](../../tickets/pilot/P03-calendar-read-support.md) — P03a #109; P03b #110; [P03c](../../tickets/pilot/P03c-apple-live-ingress.md)
 - `ENIGMA_CALENDAR_FIXTURE` is a CI override. Production reads `StoreCalendarAdapter` from the private-root store when the env is unset.

@@ -38,13 +38,13 @@ Every next capability after this has to earn itself from a real annoyance.
 
 No new UI. No new reasoning. No writes. No Gmail.
 
-### P03b — Live ingress proof — remaining
+### P03b — Store ingress contract — done
 
-[P03b](./P03b-live-calendar-ingress.md). One actual event must survive:
+[#110](https://github.com/oscarhilton/enigma-assistant-/pull/110) (`264a331`). Production store path is not fixture-only; disk reload + isolation tests.
 
-`real calendar → private ingestion → Today / question resolution → reduced calendar fact → answer → Why`
+### P03c — Apple live ingress — in progress
 
-via the intended live bridge (M08 Apple / M12 Google). Exercise the already-frozen #109 path **without weakening privacy or authority**.
+[P03c](./P03c-apple-live-ingress.md). Operator-triggered M08 sync → `calendar/events.json` → frozen P03a path. Hardware proof: [goose-calibration-hardware.md](../../docs/pilot/goose-calibration-hardware.md).
 
 ## Package boundary (when claimed)
 
@@ -81,16 +81,29 @@ via the intended live bridge (M08 Apple / M12 Google). Exercise the already-froz
 
 ### P03b (live)
 
-- [ ] One actual live event survives the path above (cannot be fully proven in CI — see P03b)
-- [ ] Production conversation route does not require `ENIGMA_CALENDAR_FIXTURE` when store events exist
+- [x] Production conversation route does not require `ENIGMA_CALENDAR_FIXTURE` when store events exist (#110)
+- [ ] Hardware stamp — see P03c + [goose-calibration-hardware.md](../../docs/pilot/goose-calibration-hardware.md)
 
 ## Test plan
 
 - `uv run pytest apps/api/tests/test_p03_calendar_read_support.py`
 - `pnpm exec vitest run src/pilot/CalendarReadProduct.test.tsx`
 - P03b: `uv run pytest apps/api/tests/test_p03b_live_calendar_ingress.py`
+- P03c: `uv run pytest apps/api/tests/test_p03c_apple_calendar_sync.py`
+
+## Dogfood (after hardware stamp)
+
+When [goose-calibration-hardware.md](../../docs/pilot/goose-calibration-hardware.md) passes:
+
+- Use **My Enigma** daily for schedule questions (READ/SUPPORT only)
+- Watch C37 telemetry for Goose legibility with real AgentWork
+- **C36 remains unclaimed**
+- No Gmail, no calendar writes, no Settings cathedral
+
+Hardware observation pending: `apps/api/tests/fixtures/goose_observation/p03_hardware_pending.yaml`
 
 ## PR
 
 - P03a: [#109](https://github.com/oscarhilton/enigma-assistant-/pull/109) merged `9f76394`
-- P03b: see [P03b](./P03b-live-calendar-ingress.md)
+- P03b: [#110](https://github.com/oscarhilton/enigma-assistant-/pull/110) merged `264a331`
+- P03c: see [P03c](./P03c-apple-live-ingress.md)
