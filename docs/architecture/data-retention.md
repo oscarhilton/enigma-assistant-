@@ -24,6 +24,23 @@ Ethics form: **minimum state for the current purpose, not "how complete a model 
 
 **SEC-01 (encryption) and SEC-06 (existence) are co-equal halves** of the storage plane: encryption protects what is retained; retention controls whether data should exist at all.
 
+## C29 retention gate (semantic layer)
+
+[SEC-06](../../tickets/security/SEC-06-retention-memory-decay-forget.md) owns **storage-plane** retention: lineage on `DerivedRecord` rows, decay, forget cascades, sensitive-inference write guards.
+
+[C29](../../tickets/conversational-ui/C29-life-memory-and-retention.md) adds the **semantic gate** between grounded truth and durable storage ([ADR-036](../adr/036-retention-gate-life-memory.md)):
+
+```text
+GroundedAssertion (ephemeral evidence plane)
+  → evaluate_retention() → RetentionDecision
+  → DurableAssertionStore (life-memory slice)
+  → DerivedRecord + LineageMetadata (SEC-06 vault)
+```
+
+> **Truth does not imply retention. Confirmation grants epistemic status. Purpose grants retention.**
+
+The gate answers whether an established assertion deserves persistence — for how long, and for what purpose — before any durable write. Life Graph and Goose projections compile from retained assertions; they do not decide retention.
+
 ## Prominent invariant
 
 > **No retained derivative may outlive its justification merely because it is derived.**

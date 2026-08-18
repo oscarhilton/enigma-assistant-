@@ -1,5 +1,6 @@
 """Canonical private domain models for Enigma."""
 
+from personal_enigma.domain.durable_assertions import InMemoryDurableAssertionStore
 from personal_enigma.domain.enums import (
     ActionCategory,
     ActionContext,
@@ -54,6 +55,15 @@ from personal_enigma.domain.retention import (
     RetentionPurpose,
     SensitiveInferenceClass,
 )
+from personal_enigma.domain.retention_gate import (
+    DurableAssertionStore,
+    ForgetCascadeResult,
+    RetentionDecision,
+    RetentionOutcome,
+    RetentionRejectionReason,
+    evaluate_retention,
+    is_self_subject,
+)
 
 __all__ = [
     "ActionCategory",
@@ -70,16 +80,19 @@ __all__ = [
     "DerivationKind",
     "DerivedRecord",
     "DerivedRecordType",
+    "DurableAssertionStore",
     "Effort",
     "EmailEvidence",
     "EpistemicStatus",
     "EvidenceUnknown",
     "ForgetAuditEntry",
+    "ForgetCascadeResult",
     "GroundedAssertion",
     "classify_assertion_challenge",
     "conflicting_assertion_ids",
     "current_assertions",
     "is_epistemic_transition_permitted",
+    "InMemoryDurableAssertionStore",
     "LineageMetadata",
     "MemoryLayer",
     "NextAction",
@@ -97,9 +110,14 @@ __all__ = [
     "RecurrenceInfo",
     "ReminderEvidence",
     "RetentionClass",
+    "RetentionDecision",
+    "RetentionOutcome",
     "RetentionPurpose",
+    "RetentionRejectionReason",
     "SensitiveInferenceClass",
     "SourceType",
     "UnknownReason",
     "Urgency",
+    "evaluate_retention",
+    "is_self_subject",
 ]
