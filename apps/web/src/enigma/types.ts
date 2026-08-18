@@ -224,6 +224,7 @@ export type GroundedAssertion = {
   subject: string;
   predicate: string;
   value: unknown;
+  scope?: string | null;
   epistemic_status:
     | "user_reported"
     | "user_confirmed"
@@ -241,6 +242,8 @@ export type GroundedAssertion = {
   observed_at?: string | null;
   valid_from?: string | null;
   valid_until?: string | null;
+  temporal_scope?: string | null;
+  validity_kind?: "stable" | "ttl" | "until_event" | "source_lifetime" | "derived_lifetime";
   sensitivity: "low" | "personal" | "high";
   purpose_tags: string[];
   retention_class:
@@ -250,7 +253,18 @@ export type GroundedAssertion = {
     | "durable_shadow";
   egress_class: "remote_safe" | "local_only";
   derived_from: string[];
+  derivation_kind?:
+    | "direct_observation"
+    | "user_confirmation"
+    | "source_confirmation"
+    | "deterministic_rule"
+    | "inference"
+    | "semantic_similarity"
+    | "dialogue_history"
+    | "high_confidence"
+    | null;
   supersedes: string[];
+  invalidated_by: string[];
 };
 
 export type EvidenceUnknown = {
@@ -266,11 +280,14 @@ export type EvidenceUnknown = {
 };
 
 export type AssertionChallenge = {
+  claim_id?: string | null;
+  related_assertion_ids: string[];
   subject: string;
   predicate: string;
   disposition: "confirms" | "qualifies" | "conflicts" | "does_not_address";
   summary: string;
   evidence_refs: string[];
+  unresolved?: boolean;
 };
 
 export type EvidenceBundle = {

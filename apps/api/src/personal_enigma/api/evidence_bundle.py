@@ -14,12 +14,14 @@ from personal_enigma.domain import (
     AssertionChallenge,
     AssertionKind,
     AssertionSensitivity,
+    AssertionValidityKind,
     ChallengeDisposition,
     EpistemicStatus,
     EvidenceUnknown,
     GroundedAssertion,
     RetentionClass,
     UnknownReason,
+    conflicting_assertion_ids,
 )
 
 SourceName = Literal[
@@ -237,10 +239,32 @@ def _assertion(
         epistemic_status=status,
         confidence=confidence,
         evidence_refs=evidence_refs,
+        validity_kind=AssertionValidityKind.SOURCE_LIFETIME,
         sensitivity=AssertionSensitivity.PERSONAL,
         purpose_tags=purpose_tags,
         retention_class=RetentionClass.EPHEMERAL_ANSWER_ONLY,
     )
+
+
+def _embedded_grounded_assertions(data: dict[str, Any]) -> list[GroundedAssertion]:
+    rows = data.get("grounded_assertions")
+    if not isinstance(rows, list):
+        return []
+    return [GroundedAssertion.model_validate(row) for row in rows]
+
+
+def _embedded_unknowns(data: dict[str, Any]) -> list[EvidenceUnknown]:
+    rows = data.get("unknowns")
+    if not isinstance(rows, list):
+        return []
+    return [EvidenceUnknown.model_validate(row) for row in rows]
+
+
+def _embedded_challenges(data: dict[str, Any]) -> list[AssertionChallenge]:
+    rows = data.get("challenges")
+    if not isinstance(rows, list):
+        return []
+    return [AssertionChallenge.model_validate(row) for row in rows]
 
 
 def _assertions_for_tool(
@@ -364,6 +388,29 @@ def _build_unknowns(
             )
         )
     return unknowns
+
+
+def _build_conflicts(assertions: list[GroundedAssertion]) -> list[EvidenceConflict]:
+    conflicts: list[EvidenceConflict] = []
+    assertion_index = {assertion.id: assertion for assertion in assertions}
+    for left_id, right_id in conflicting_assertion_ids(assertions):
+        left = assertion_index[left_id]
+        right = assertion_index[right_id]
+        conflicts.append(
+            EvidenceConflict(
+                field=f"{left.subject}.{left.predicate}",
+                values=[str(left.value), str(right.value)],
+                source_ids=sorted(
+                    {
+                        *left.evidence_refs,
+                        *right.evidence_refs,
+                        left.id,
+                        right.id,
+                    }
+                ),
+            )
+        )
+    return conflicts
 
 
 def _build_challenges(
@@ -519,6 +566,8 @@ def build_evidence_bundle(
     empty_sources: list[SourceName] = []
     evidence: list[EvidenceItem] = []
     grounded_assertions: list[GroundedAssertion] = []
+    embedded_unknowns: list[EvidenceUnknown] = []
+    embedded_challenges: list[AssertionChallenge] = []
     executed_tools: set[str] = set()
 
     for row in tool_results or []:
@@ -540,6 +589,9 @@ def build_evidence_bundle(
         elif _source_is_empty(source, data) and source not in empty_sources:
             empty_sources.append(source)
         grounded_assertions.extend(_assertions_for_tool(name, data, ids))
+        grounded_assertions.extend(_embedded_grounded_assertions(data))
+        embedded_unknowns.extend(_embedded_unknowns(data))
+        embedded_challenges.extend(_embedded_challenges(data))
 
     searched_set = set(searched_sources)
     unsearched: list[SourceName] = []
@@ -582,6 +634,7 @@ def build_evidence_bundle(
         unavailable=unavailable,
         unresolved=unresolved,
     )
+    conflicts = _build_conflicts(grounded_assertions)
 
     bundle = EvidenceBundle(
         mission=mission,
@@ -591,10 +644,10 @@ def build_evidence_bundle(
         unavailable_sources=unavailable,
         evidence=evidence,
         grounded_assertions=grounded_assertions,
-        unknowns=unknowns,
+        unknowns=[*unknowns, *embedded_unknowns],
         unresolved_referents=unresolved,
-        conflicts=[],
-        challenges=challenges,
+        conflicts=conflicts,
+        challenges=[*challenges, *embedded_challenges],
         coverage_adequate=coverage,
     )
     bundle.courier_state = derive_courier_state(bundle)

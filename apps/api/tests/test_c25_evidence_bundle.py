@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 
 from personal_enigma.api.context_compilation import interpret_request
 from personal_enigma.api.conversation_context import ConversationContext
@@ -11,12 +12,22 @@ from personal_enigma.api.evidence_bundle import (
     derive_courier_state,
     planned_tools_for_kind,
 )
+from personal_enigma.attention.projection import AttentionState
+from personal_enigma.domain import (
+    AssertionValidityKind,
+    ChallengeDisposition,
+    DerivationKind,
+    EpistemicStatus,
+    GroundedAssertion,
+)
 
 
 @dataclass
 class _SessionStub:
     context: ConversationContext
-    state: object = None
+    state: AttentionState = field(
+        default_factory=lambda: AttentionState(simulated_time="2026-08-18T09:00:00Z")
+    )
 
 
 def _session() -> _SessionStub:
@@ -150,3 +161,156 @@ def test_attention_tool_produces_grounded_assertion() -> None:
         and assertion.value == 2
         for assertion in bundle.grounded_assertions
     )
+
+
+def test_bundle_preserves_conflicting_assertions_without_last_write_wins() -> None:
+    bundle = build_evidence_bundle(
+        question="am i working monday?",
+        working_set={
+            "request_kind": "subject_details",
+            "scope": "work",
+            "authority": "READ",
+            "fetch_mission": {"planned_tools": ["world.explain"]},
+            "capability_contract": {"allowed": ["world.explain"], "unavailable": []},
+        },
+        tool_results=[
+            {
+                "name": "world.explain",
+                "ok": True,
+                "data": {
+                    "grounded_assertions": [
+                        {
+                            "id": "user_works_monday",
+                            "subject": "user",
+                            "predicate": "works_monday",
+                            "value": True,
+                            "temporal_scope": "2026-08-17",
+                            "epistemic_status": "user_confirmed",
+                        },
+                        {
+                            "id": "holiday_monday",
+                            "subject": "user",
+                            "predicate": "works_monday",
+                            "value": False,
+                            "temporal_scope": "2026-08-17",
+                            "epistemic_status": "externally_verified",
+                        },
+                    ]
+                },
+            }
+        ],
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+    )
+
+    assert {assertion.id for assertion in bundle.grounded_assertions} == {
+        "user_works_monday",
+        "holiday_monday",
+    }
+    assert bundle.conflicts
+    assert bundle.conflicts[0].field == "user.works_monday"
+
+
+def test_bundle_preserves_qualifying_challenge_without_forcing_contradiction() -> None:
+    bundle = build_evidence_bundle(
+        question="am i working monday?",
+        working_set={
+            "request_kind": "subject_details",
+            "scope": "work",
+            "authority": "READ",
+            "fetch_mission": {"planned_tools": ["world.explain"]},
+            "capability_contract": {"allowed": ["world.explain"], "unavailable": []},
+        },
+        tool_results=[
+            {
+                "name": "world.explain",
+                "ok": True,
+                "data": {
+                    "grounded_assertions": [
+                        {
+                            "id": "user_works_monday",
+                            "subject": "user",
+                            "predicate": "works_monday",
+                            "value": True,
+                            "temporal_scope": "2026-08-17",
+                            "epistemic_status": "user_confirmed",
+                        }
+                    ],
+                    "challenges": [
+                        {
+                            "claim_id": "user_works_monday",
+                            "related_assertion_ids": ["bank_holiday"],
+                            "subject": "user",
+                            "predicate": "works_monday",
+                            "disposition": "qualifies",
+                            "summary": (
+                                "Monday is a bank holiday, so work status needs "
+                                "confirmation rather than inversion."
+                            ),
+                            "evidence_refs": ["holiday_1"],
+                        }
+                    ],
+                },
+            }
+        ],
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+    )
+
+    assert any(
+        challenge.disposition == ChallengeDisposition.QUALIFIES
+        for challenge in bundle.challenges
+    )
+    assert not bundle.conflicts
+
+
+def test_hallucination_fossil_does_not_gain_verified_status_from_repetition() -> None:
+    inferred = GroundedAssertion(
+        id="assistant_fossil",
+        subject="person_b",
+        predicate="likes_ceramics",
+        value=True,
+        epistemic_status=EpistemicStatus.MODEL_INFERRED,
+        derivation_kind=DerivationKind.DIALOGUE_HISTORY,
+        validity_kind=AssertionValidityKind.DERIVED_LIFETIME,
+        derived_from=["turn_1", "turn_2"],
+    )
+    repeated = GroundedAssertion.model_validate(inferred.model_dump())
+
+    assert repeated.epistemic_status == EpistemicStatus.MODEL_INFERRED
+    assert repeated.derivation_kind == DerivationKind.DIALOGUE_HISTORY
+
+
+def test_expired_embedded_assertion_is_preserved_but_not_current() -> None:
+    now = datetime(2026, 8, 18, 9, 0, tzinfo=UTC)
+    expired = GroundedAssertion(
+        id="forecast_old",
+        subject="weather",
+        predicate="rain_expected",
+        value=True,
+        epistemic_status=EpistemicStatus.EXTERNALLY_VERIFIED,
+        validity_kind=AssertionValidityKind.TTL,
+        valid_until=now - timedelta(minutes=5),
+    )
+
+    bundle = build_evidence_bundle(
+        question="should i bring an umbrella?",
+        working_set={
+            "authority": "NONE",
+            "capability_contract": {"allowed": [], "unavailable": []},
+        },
+        tool_results=[
+            {
+                "name": "world.explain",
+                "ok": True,
+                "data": {"grounded_assertions": [expired.model_dump(mode="json")]},
+            }
+        ],
+    )
+
+    restored = next(
+        assertion
+        for assertion in bundle.grounded_assertions
+        if assertion.id == "forecast_old"
+    )
+    assert restored.is_usable_now(now=now) is False
