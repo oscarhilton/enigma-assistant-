@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` (PR #105) |
 | Branch | `ticket/P01-world-isolation` |
 | Domain | `pilot` |
 | Programme | [PILOT-01](./README.md) |
