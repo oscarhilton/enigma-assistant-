@@ -82,6 +82,8 @@ const TOOL_ACTIVITY: Record<string, ToolActivitySpec> = {
   "referent.get_duration": { kind: "duration.checked", label: "Checked how long this takes" },
   "assist.propose": { kind: "assist.proposed", label: "Prepared an action", assist_card: true },
   "assist.approve": { kind: "assist.approved", label: "Approved", assist_card: true },
+  "assist.execute": { kind: "assist.executing", label: "Sending the note", assist_card: true },
+  "assist.verify": { kind: "assist.verified", label: "Checking whether the note sent" },
 };
 
 export function isAssistCardKind(kind: ActivityKind): boolean {

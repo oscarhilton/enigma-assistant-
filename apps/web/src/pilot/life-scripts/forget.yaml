@@ -1,0 +1,28 @@
+# P02e — Forget retained memory
+
+name: forget
+given:
+  world: alex_lab
+  clock: 2026-01-19T10:00:00+00:00
+
+when:
+  - user: "Maya mentioned she likes ceramics."
+    then:
+      must: [retain for semantic recall]
+  - user: "What does Maya like?"
+    then:
+      must: [recall ceramics from retained memory]
+  - user: "Forget that."
+    then:
+      must: [memory dropped from assistant surface]
+  - user: "What does Maya like?"
+    then:
+      must:
+        - does not resurrect stale memory in prose
+      must_not:
+        - Cases treat ceramics as current fact
+        - Why claims deletion before propagation
+
+final:
+  expected_memory: forgotten
+  expected_authority: none

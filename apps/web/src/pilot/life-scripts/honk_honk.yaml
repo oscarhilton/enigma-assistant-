@@ -1,0 +1,32 @@
+# P02c — HONK HONK through the pilot shell (C34 relational bootstrap)
+
+name: honk_honk
+given:
+  world: alex_lab
+  clock: 2026-01-19T10:00:00+00:00
+  relational_bootstrap: goose register established
+
+when:
+  - user: "honk honk"
+    then:
+      must:
+        - natural goose continuation in prose
+      must_not:
+        - "Sounds like you're feeling playful!"
+        - "Is the goose metaphorical?"
+        - "🦆"
+  - user: "Actually, something serious has happened."
+    then:
+      must:
+        - culture palette suppressed on wire
+        - convention not deleted
+      must_not:
+        - honk callback in serious reply
+  - user: "honk honk"
+    then:
+      must:
+        - playful register may recover when frame allows
+
+final:
+  expected_agent_work: unchanged
+  expected_authority: none

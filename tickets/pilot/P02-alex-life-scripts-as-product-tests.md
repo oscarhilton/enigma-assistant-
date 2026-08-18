@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | `in_progress` |
-| Branch | `ticket/P02-alex-life-scripts-as-product-tests` |
+| Branch | `ticket/P02-product-life-scripts` |
 | Domain | `pilot` |
 | Programme | [PILOT-01](./README.md) |
 
@@ -15,20 +15,23 @@ The first Life Scripts are not new features. They are things we already know are
 
 | Script | What it proves |
 | --- | --- |
-| Brunch | talked about ≠ calendar ≠ booked |
-| Monday/Maya | challenge premise without inventing truth |
-| HONK HONK | relational bootstrap survives the UI boundary |
-| Verification failure | acting ≠ completed |
-| Forget | memory disappears correctly |
+| Brunch (P02a) | talked about ≠ calendar ≠ booked |
+| Monday/Maya (P02b) | challenge premise without inventing truth |
+| HONK HONK (P02c) | relational bootstrap survives the UI boundary |
+| Verification failure (P02d) | acting ≠ completed |
+| Forget (P02e) | memory disappears correctly |
 | C37 Goose scenarios | pixels correspond to actual AgentWork |
 
 That class of bug: “architecturally correct, but I have absolutely no idea what the UI is telling me.”
+
+Play-shaped scripts live under [apps/web/src/pilot/life-scripts/](../../apps/web/src/pilot/life-scripts/).
 
 ## Package boundary (when claimed)
 
 - Browser product tests against the **same** pilot shell as P01
 - Must not invent a second Alex frontend
 - Must not implement C36
+- Must not modify frozen C23 gate (`alex_jan19_continuity_integrity`)
 
 ## Hard depends
 
@@ -44,7 +47,20 @@ That class of bug: “architecturally correct, but I have absolutely no idea wha
 
 ## Acceptance criteria
 
-- [x] Brunch Life Script replayed through the **pilot shell** (not evaluation YAML): Alex Lab → Jan 20 fixture → unresolved brunch on Today → Case → “what did I book?” distinguishes calendar event from reservation → Goose only if AgentWork exists → Why explains evidence
+- [x] **P02a Brunch** — pilot shell: Alex Lab → Jan 20 → unresolved brunch → Case → “what did I book?” → calendar hold ≠ reservation → Goose/Why (merged #107)
 - [x] Same app shell as P01 — no second Alex frontend
-- [ ] Monday/Maya, HONK HONK, verification failure, Forget — deferred (capacity); C37 Goose covered in the Brunch script (`possible_fix: NOT YET` unchanged)
+- [x] **P02b Monday/Maya** — bank holiday discovery, QUALIFIES premise, continuity, AgentWork trail, context-only case
+- [x] **P02c HONK HONK** — recognition → serious frame suppression → recovery through shell
+- [x] **P02d Verification failure** — PREPARE → APPROVE → ACTING → VERIFYING → fail; return ≠ Done
+- [x] **P02e Forget** — retain → recall → forget → no resurrection in Cases/Assistant surface
+- [x] C37 Goose truthfulness covered in Brunch script (`possible_fix: NOT YET` unchanged)
 
+## Test plan
+
+- `pnpm exec vitest run src/pilot/BrunchProduct.test.tsx`
+- `pnpm exec vitest run src/pilot/MondayMayaProduct.test.tsx`
+- `pnpm exec vitest run src/pilot/HonkHonkProduct.test.tsx`
+- `pnpm exec vitest run src/pilot/VerificationFailureProduct.test.tsx`
+- `pnpm exec vitest run src/pilot/ForgetProduct.test.tsx`
+- `uv run pytest apps/api/tests/test_p02_brunch_product.py apps/api/tests/test_p02_remaining_product.py`
+- P01 freeze: `WorldIsolation.test.tsx` still passes

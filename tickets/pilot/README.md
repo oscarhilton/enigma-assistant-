@@ -32,5 +32,5 @@ C36 stays unclaimed. No Goose habitat. No Settings Palace. No Memory Explorer re
 | Ticket | Title | Status |
 | --- | --- | --- |
 | [P01](./P01-world-isolation-pilot-shell.md) | World isolation + pilot shell | `done` |
-| [P02](./P02-alex-life-scripts-as-product-tests.md) | Replay Alex Life Scripts as browser-level product tests | `in_progress` |
+| [P02](./P02-alex-life-scripts-as-product-tests.md) | Replay Alex Life Scripts as browser-level product tests | `in_progress` (P02a done #107; P02b–e in #108) |
 | [P03](./P03-calendar-read-support.md) | First real source: Calendar READ + SUPPORT (no writes) | `future` |
