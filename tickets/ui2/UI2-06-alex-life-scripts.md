@@ -30,7 +30,7 @@
 
 **Checkpoint jump:** wholesale conversation replace must reconcile sidebar title — otherwise a prior thread label (e.g. ceramics) survives as an unjustified derivative after Alex Lab time-machine reset.
 
-**Boot level 1 only** ([data-boot.md](../../docs/architecture/data-boot.md)). Hugging Face full Alex corpus is **out of scope**. Do not download HF. Do not fold messy synthetic life into these five scripts. Full-life reprime is [P04](../pilot/P04-alex-full-life-reprime.md), not this ticket.
+**Boot level 1 only** ([data-boot.md](../../docs/architecture/data-boot.md)). Hugging Face full Alex corpus is **out of scope**. Do not download HF. Do not fold messy synthetic life into these five scripts — keep failures diagnosable without 80k emails poisoning the well. Full-life reprime is [P04](../pilot/P04-alex-full-life-reprime.md); **P04 does not start until this ticket is pilot-grade**.
 
 **Freeze bar:**
 

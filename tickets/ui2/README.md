@@ -61,7 +61,7 @@ investigating → advancing → waiting / verifying → handled
 
 The UI2 stack (#113 → #115 → #118 → #114, plus UI2-05/06) landed via [#122](https://github.com/oscarhilton/enigma-assistant-/pull/122). **[UI2-06](./UI2-06-alex-life-scripts.md)** replays five P02 Life Scripts through `/v2`.
 
-**Level 1 only.** Hugging Face full Alex corpus is **out of scope** for UI2-06. That is boot Level 2 — [P04 Alex Full-Life Reprime](../pilot/P04-alex-full-life-reprime.md) ([data-boot.md](../../docs/architecture/data-boot.md)). Do not download HF, do not fold messy life into these five scripts, do not load a prebuilt Alex brain.
+**Level 1 only.** Hugging Face full Alex corpus is **out of scope** for UI2-06. That is boot Level 2 — [P04 Alex Full-Life Reprime](../pilot/P04-alex-full-life-reprime.md) ([data-boot.md](../../docs/architecture/data-boot.md)). Do not download HF, do not fold messy life into these five scripts, do not load a prebuilt Alex brain. **P04 does not start until UI2-06 is pilot-grade** (Goose basic flight certification).
 
 | Script | What it proves in v2 |
 | --- | --- |
@@ -99,7 +99,6 @@ Today dashboard, rich Cases workspace, Memory Explorer, Shadow visual language, 
 
 | ID | Title | Status |
 | --- | --- | --- |
-<<<<<<< HEAD
 | [UI2-01](./UI2-01-v2-shell.md) | v2 shell + world switch + persistent Assistant + build identity + existing Goose | `done` |
 | [UI2-02](./UI2-02-streaming.md) | True response streaming (incremental, cancel, reconnect; work stream independent) | `done` |
 | [UI2-03](./UI2-03-shadcn-foundation.md) | shadcn component foundation | `done` |
