@@ -758,6 +758,25 @@ class DemoSession:
             "effects": [row.public_view() for row in self.effect_records.values()],
         }
 
+    def _rebuild_event_spine_indexes(self) -> None:
+        """Rebuild dedupe indexes from retained semantic events and work ledger.
+
+        Supports process reconstruction when in-memory maps are lost but the
+        append-only semantic event log and agent-work records survive.
+        """
+        self.processed_event_ids.clear()
+        self.agent_work_by_subject.clear()
+        for work in self.agent_work.values():
+            self.agent_work_by_subject[work.subject_id] = work.work_id
+        for event in self.semantic_events:
+            if event.duplicate_of is not None:
+                continue
+            if event.kind not in {"source.event_detected", "world.dependency_arrived"}:
+                continue
+            if event.work_id is None:
+                continue
+            self.processed_event_ids[event.event_id] = event.work_id
+
     def _append_semantic_event(
         self,
         kind: SemanticEventKind,
@@ -969,10 +988,16 @@ class DemoSession:
         self.processed_event_ids[event_id] = work.work_id
         if dependency_event.event_id not in work.causal_event_ids:
             work.causal_event_ids.append(dependency_event.event_id)
-        work.dependency_key = dependency_key
         if proposal_id is not None:
             work.pending_proposal_id = proposal_id
-        if work.status == "WAITING_EXTERNAL" and work.effect_id is None:
+        dependency_matches = (
+            work.dependency_key is not None and work.dependency_key == dependency_key
+        )
+        if (
+            work.status == "WAITING_EXTERNAL"
+            and work.effect_id is None
+            and dependency_matches
+        ):
             work.status = "READY_FOR_USER"
             self._append_semantic_event(
                 "work.ready_for_user",
