@@ -169,6 +169,19 @@
     font-style: italic;
   }
 
+  .v2-message--error {
+    color: hsl(var(--destructive));
+    font-style: normal;
+  }
+
+  .v2-nav a {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .v2-nav a.font-semibold {
+    color: hsl(var(--foreground));
+  }
+
   .v2-chrome-tools {
     display: flex;
     align-items: center;

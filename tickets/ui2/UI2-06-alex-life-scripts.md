@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/UI2-06-alex-life-scripts` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
@@ -26,12 +26,12 @@
 
 ## Acceptance criteria
 
-- [ ] Brunch script passes through v2 UI
-- [ ] Monday/Maya script passes
-- [ ] HONK HONK script passes (C34 expressiveness)
-- [ ] FALSE VICTORY (verification failure) script passes
-- [ ] Forget script passes
-- [ ] Browser-level product tests live under `apps/web/src/v2/`
+- [x] Brunch script passes through v2 UI
+- [x] Monday/Maya script passes
+- [x] HONK HONK script passes (C34 expressiveness)
+- [x] FALSE VICTORY (verification failure) script passes
+- [x] Forget script passes
+- [x] Browser-level product tests live under `apps/web/src/v2/`
 
 ## Test plan
 

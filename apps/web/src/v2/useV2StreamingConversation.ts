@@ -78,6 +78,16 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
     }
   }, [onThreadItemsChange, session.items, session.loading, threadItems]);
 
+  // Alex Lab checkpoints replace conversation wholesale — mirror session into the active thread.
+  useEffect(() => {
+    if (world === "my_enigma" || !threadItems || !onThreadItemsChange || session.loading) {
+      return;
+    }
+    if (JSON.stringify(threadItems) !== JSON.stringify(session.items)) {
+      queueMicrotask(() => onThreadItemsChange(session.items));
+    }
+  }, [onThreadItemsChange, session.items, session.loading, threadItems, world]);
+
   useEffect(() => {
     if (threadItems) {
       return;

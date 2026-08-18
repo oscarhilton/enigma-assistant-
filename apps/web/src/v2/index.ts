@@ -4,8 +4,11 @@ export { V2ConversationViewport } from "./V2ConversationViewport";
 export { V2DebugRoute } from "./V2DebugRoute";
 export { V2Layout } from "./V2Layout";
 export { projectConversationItems, type V2MessageRow } from "./V2MessageList";
+export { V2CasesSurface } from "./V2CasesSurface";
+export { V2ChatPage } from "./V2ChatPage";
 export { V2InspectSheet } from "./V2InspectSheet";
 export { V2Shell } from "./V2Shell";
+export type { V2OutletContext } from "./V2Shell";
 export { buildWhyProjection, type WhyProjection } from "./whyProjection";
 export { useV2InspectSheet } from "./useV2InspectSheet";
 export { V2Sidebar } from "./V2Sidebar";
@@ -16,4 +19,3 @@ export { gooseFromAgentWork, workFromAgentWorkEvent } from "./gooseFromAgentWork
 export { parseConversationStream, parseSseBlock, normalizeAgentWork } from "./parseConversationStream";
 export type { ConversationStreamEvent } from "./streamTypes";
 export { useV2StreamingConversation } from "./useV2StreamingConversation";
-
