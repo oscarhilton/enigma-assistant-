@@ -5,7 +5,9 @@
       "evidence_ids": [
         "mail-elena-weekend",
         "rem-brunch-book",
-        "cal-brunch-parents"
+        "cal-brunch-parents",
+        "wa-elena-parents-coming",
+        "wa-alex-sort-brunch"
       ],
       "id": "item-obligation_brunch_book",
       "kind": "explicit_reminder",
@@ -57,7 +59,9 @@
       "evidence_ids": [
         "mail-elena-weekend",
         "rem-brunch-book",
-        "cal-brunch-parents"
+        "cal-brunch-parents",
+        "wa-elena-parents-coming",
+        "wa-alex-sort-brunch"
       ],
       "id": "item-obligation_brunch_book",
       "kind": "explicit_reminder",
@@ -147,7 +151,7 @@
     }
   ],
   "checkpoint_id": "cp-2026-01-15T09:00",
-  "git_commit": "15eb07c",
+  "git_commit": "d09b02c",
   "memory_state": {
     "at": "2026-01-15T09:00:00Z",
     "memory_ids": [],
@@ -217,14 +221,18 @@
       "hits": [
         "mail-elena-weekend",
         "rem-brunch-book",
-        "cal-brunch-parents"
+        "cal-brunch-parents",
+        "wa-elena-parents-coming",
+        "wa-alex-sort-brunch"
       ],
       "k": 5,
       "query_id": "obligation_brunch_book",
       "relevant_ids": [
         "mail-elena-weekend",
         "rem-brunch-book",
-        "cal-brunch-parents"
+        "cal-brunch-parents",
+        "wa-elena-parents-coming",
+        "wa-alex-sort-brunch"
       ]
     },
     {

@@ -24,6 +24,29 @@ Ethics form: **minimum state for the current purpose, not "how complete a model 
 
 **SEC-01 (encryption) and SEC-06 (existence) are co-equal halves** of the storage plane: encryption protects what is retained; retention controls whether data should exist at all.
 
+## C29 retention gate (semantic layer)
+
+[SEC-06](../../tickets/security/SEC-06-retention-memory-decay-forget.md) owns **storage-plane** retention: lineage on `DerivedRecord` rows, decay, forget cascades, sensitive-inference write guards.
+
+[C29](../../tickets/conversational-ui/C29-life-memory-and-retention.md) adds the **semantic gate** between grounded truth and durable storage ([ADR-036](../adr/036-retention-gate-life-memory.md)):
+
+```text
+GroundedAssertion (ephemeral evidence plane)
+  → evaluate_retention() → RetentionDecision
+  → DurableAssertionStore (life-memory slice)
+  → DerivedRecord + LineageMetadata (SEC-06 vault)
+```
+
+> **Truth does not imply retention. Confirmation grants epistemic status. Purpose grants retention.**
+
+The gate answers whether an established assertion deserves persistence — for how long, and for what purpose — before any durable write. [MemoryInventory](../adr/036-retention-gate-life-memory.md) (C29 slice 4, frozen) is a **projection** over those retained rows: purpose, provenance refs, lineage, and epistemic display (`KNOWN` / `POSSIBLE` / `STALE` / `CONFLICTED` / `EXPIRING`). It is not another memory store. Life Graph / Brain **UI** (C30) and Goose compile from this inventory; they do not decide retention. `MODEL_INFERRED` remains `possible` and never displays as `known`. Forget is SQL DELETE, so forgotten rows are absent from both vault current-memory and inventory. Correction supersedes with a new lineage rather than editing history. **The vault remembers. The inventory explains.**
+
+**TTL projection vs propagation — NO LONGER CURRENT ≠ FULLY FORGOTTEN.**
+
+> TTL expiry removes an item from current-memory projections at validity expiry; governed forgetting and derivative invalidation complete when the expiry propagation path runs. Projection expiry must never be reported as completed deletion.
+
+Inventory hides elapsed TTL immediately. Vault/source rows may still physically exist until `expire_ttl` runs. Derived descendants may still exist until governed expiry propagation executes. Inventory absence is not completed deletion, and C30 must not treat it as such. Future crypto (not implemented here): validity expires → current projections stop using it → expiry worker propagates invalidation → retained records removed → future crypto layer destroys relevant key material.
+
 ## Prominent invariant
 
 > **No retained derivative may outlive its justification merely because it is derived.**

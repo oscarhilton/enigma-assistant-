@@ -6,7 +6,10 @@ import json
 
 import pytest
 
-from personal_enigma.api.demo_orchestrator import CompromisedLLM, IntentOracleLLM, run_orchestrator_turn
+from personal_enigma.api.demo_orchestrator import (
+    IntentOracleLLM,
+    run_orchestrator_turn,
+)
 from personal_enigma.api.demo_projection import project_checkpoint
 from personal_enigma.api.demo_tools import ALLOWED_TOOL_NAMES, execute_tool
 from personal_enigma.api.sec03_adversarial import (

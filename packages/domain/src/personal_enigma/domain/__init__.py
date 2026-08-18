@@ -1,5 +1,6 @@
 """Canonical private domain models for Enigma."""
 
+from personal_enigma.domain.durable_assertions import InMemoryDurableAssertionStore
 from personal_enigma.domain.enums import (
     ActionCategory,
     ActionContext,
@@ -25,6 +26,20 @@ from personal_enigma.domain.grounding import (
     conflicting_assertion_ids,
     current_assertions,
     is_epistemic_transition_permitted,
+)
+from personal_enigma.domain.memory_inventory import (
+    FORGET_RETAINED_ASSERTION_ACTION,
+    RETAINED_ASSERTION_RECORD_KIND,
+    MemoryForgetCapability,
+    MemoryInventory,
+    MemoryInventoryEntry,
+    MemoryInventoryStatus,
+    MemoryReviewStatus,
+    MemoryWhy,
+    format_memory_claim,
+    inventory_contains_profiling_claim,
+    inventory_status_for,
+    project_memory_inventory,
 )
 from personal_enigma.domain.models import (
     CalendarEvidence,
@@ -54,6 +69,15 @@ from personal_enigma.domain.retention import (
     RetentionPurpose,
     SensitiveInferenceClass,
 )
+from personal_enigma.domain.retention_gate import (
+    DurableAssertionStore,
+    ForgetCascadeResult,
+    RetentionDecision,
+    RetentionOutcome,
+    RetentionRejectionReason,
+    evaluate_retention,
+    is_self_subject,
+)
 
 __all__ = [
     "ActionCategory",
@@ -70,18 +94,28 @@ __all__ = [
     "DerivationKind",
     "DerivedRecord",
     "DerivedRecordType",
+    "DurableAssertionStore",
     "Effort",
     "EmailEvidence",
     "EpistemicStatus",
     "EvidenceUnknown",
     "ForgetAuditEntry",
+    "ForgetCascadeResult",
+    "FORGET_RETAINED_ASSERTION_ACTION",
     "GroundedAssertion",
     "classify_assertion_challenge",
     "conflicting_assertion_ids",
     "current_assertions",
     "is_epistemic_transition_permitted",
+    "InMemoryDurableAssertionStore",
     "LineageMetadata",
+    "MemoryForgetCapability",
+    "MemoryInventory",
+    "MemoryInventoryEntry",
+    "MemoryInventoryStatus",
     "MemoryLayer",
+    "MemoryReviewStatus",
+    "MemoryWhy",
     "NextAction",
     "NoteEvidence",
     "Obligation",
@@ -94,12 +128,22 @@ __all__ = [
     "PrivatePersonRef",
     "PrivateReminder",
     "Provider",
+    "RETAINED_ASSERTION_RECORD_KIND",
     "RecurrenceInfo",
     "ReminderEvidence",
     "RetentionClass",
+    "RetentionDecision",
+    "RetentionOutcome",
     "RetentionPurpose",
+    "RetentionRejectionReason",
     "SensitiveInferenceClass",
     "SourceType",
     "UnknownReason",
     "Urgency",
+    "evaluate_retention",
+    "format_memory_claim",
+    "inventory_contains_profiling_claim",
+    "inventory_status_for",
+    "is_self_subject",
+    "project_memory_inventory",
 ]

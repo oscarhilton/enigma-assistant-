@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from datetime import datetime
+from typing import Any, Protocol
 from uuid import uuid4
 
 from personal_enigma.privacy.egress.assert_remote_safe import assert_remote_safe
@@ -30,6 +31,10 @@ from personal_enigma.transformation import TransformedContext
 _DEFAULT_GATE: AuditedEgressGate | None = None
 
 
+class _Clock(Protocol):
+    def now(self) -> datetime: ...
+
+
 @dataclass(frozen=True, slots=True)
 class EgressResult:
     """Outcome of an egress gate submission."""
@@ -48,6 +53,7 @@ class AuditedEgressGate:
         remote_config: RemoteInferenceConfig | None = None,
         disclosure_store: DisclosureStore | None = None,
         providers: dict[str, EgressProvider] | None = None,
+        clock: _Clock | None = None,
     ) -> None:
         self._remote_config = remote_config or RemoteInferenceConfig(enabled=False)
         self._store = disclosure_store or InMemoryDisclosureStore()
@@ -55,6 +61,12 @@ class AuditedEgressGate:
             "openai": OpenAIEgressProvider(),
             "fireworks": FireworksEgressProvider(),
         }
+        self._clock = clock
+
+    def _timestamp(self) -> str:
+        if self._clock is None:
+            return ""
+        return self._clock.now().isoformat()
 
     @property
     def disclosure_store(self) -> DisclosureStore:
@@ -246,6 +258,7 @@ class AuditedEgressGate:
         outbound = redact_transport_secrets(response.request_body or remote_ctx.wire_body)
         disclosure = EgressDisclosure(
             correlation_id=corr,
+            timestamp=self._timestamp(),
             purpose=purpose,
             provider=remote_ctx.provider,
             model=remote_ctx.model,
@@ -339,6 +352,7 @@ class AuditedEgressGate:
         outbound = redact_transport_secrets(context.wire_body)
         disclosure = EgressDisclosure(
             correlation_id=correlation_id,
+            timestamp=self._timestamp(),
             purpose=purpose,
             provider=context.provider,
             model=context.model,
@@ -382,6 +396,7 @@ def build_audited_egress_gate(
     fireworks_api_key: str | None = None,
     fireworks_urlopen: Any | None = None,
     fireworks_budget_hook: Any | None = None,
+    clock: _Clock | None = None,
 ) -> AuditedEgressGate:
     """Factory for a gate with injectable provider backends (tests / evaluation)."""
     fireworks = FireworksEgressProvider(
@@ -393,6 +408,7 @@ def build_audited_egress_gate(
     return AuditedEgressGate(
         remote_config=remote_config,
         disclosure_store=disclosure_store,
+        clock=clock,
         providers={
             "openai": OpenAIEgressProvider(api_key=openai_api_key, urlopen=openai_urlopen),
             "fireworks": fireworks,

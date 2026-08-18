@@ -94,7 +94,7 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C26](./C26-grounded-assertions-epistemics.md) | Grounded assertions, epistemic status, and challenge/reconciliation | **todo** |
 | [C27](./C27-handoff-turn-contract.md) | Handoff and turn contract | **todo** |
 | [C28](./C28-event-spine-agent-work.md) | Event spine and agent-work lifecycle | **done · frozen** (substrate + assist.approve bridge) |
-| [C29](./C29-life-memory-and-retention.md) | Life memory, retention gate, and third-party ethics | **todo** |
+| [C29](./C29-life-memory-and-retention.md) | Life memory, retention gate, and third-party ethics | **done · frozen** (slices 1–4 lifecycle) |
 | [C30](./C30-brain-cortex-case-file.md) | Brain, Cortex, and Case File projections | **todo** |
 | [C31](./C31-goose-work-projection-and-proactivity.md) | Goose work projection and proactivity timing | **todo** |
 

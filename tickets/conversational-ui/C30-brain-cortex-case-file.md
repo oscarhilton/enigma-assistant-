@@ -7,7 +7,7 @@
 
 **Must not edit:** backend authority decisions from the UI · capsule truth boundaries
 
-**Hard depends:** [C26](./C26-grounded-assertions-epistemics.md) · [C28](./C28-event-spine-agent-work.md)  
+**Hard depends:** [C26](./C26-grounded-assertions-epistemics.md) · [C28](./C28-event-spine-agent-work.md) · [C29](./C29-life-memory-and-retention.md) MemoryInventory (slice 4)  
 **Soft (~):** [C10](./C10-cortex-brain-visualizer.md)
 
 ## Goal
@@ -17,6 +17,8 @@ Project one serious substrate into three inspectable views:
 - Brain: what Enigma remembers and why
 - Cortex: what Enigma is doing and why
 - Case File: what this thread is about
+
+C29 `MemoryInventory` is the Brain read model. Compile from it; do not invent a second store. **NO LONGER CURRENT ≠ FULLY FORGOTTEN:** TTL expiry hides an item from inventory immediately; vault rows and descendants may still exist until `expire_ttl` / expiry propagation run. Projection expiry is not completed deletion. Forget is SQL DELETE. **The vault remembers. The inventory explains.**
 
 ## Deliverables
 
