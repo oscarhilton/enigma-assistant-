@@ -1,6 +1,6 @@
 # C29 — Life memory, retention gate, and third-party ethics
 
-**Status:** in_progress (slice 1 — gate + stub store + freeze tests)  
+**Status:** in_progress (slice 2 — vault bridge)  
 **Branch:** `ticket/C29-life-memory-retention`  
 **Domain:** conversational-ui  
 **May edit:** `packages/domain/src/personal_enigma/domain/retention.py`, `packages/domain/src/personal_enigma/domain/retention_gate.py`, `packages/domain/src/personal_enigma/domain/durable_assertions.py`, `packages/domain/src/personal_enigma/domain/__init__.py`, `packages/domain/tests/test_retention_gate.py`, `apps/api/tests/test_c29_*.py`, `docs/architecture/data-retention.md`, `docs/adr/036-*.md`, `docs/architecture/enigma-master-gap-analysis.md`, `tickets/conversational-ui/**`
@@ -41,10 +41,10 @@ GroundedAssertion
 | 1 | retention decision | `evaluate_retention()` | — |
 | 2 | retention class / lifetime | `RetentionDecision` + `RetentionOutcome` | GC wiring |
 | 3 | retention purpose | `RetentionPurpose.LIFE_FACT` etc. | purpose UI |
-| 4 | provenance preservation | `provenance_refs` on decision | vault mapping |
+| 4 | provenance preservation | `provenance_refs` on decision | vault mapping (slice 2) |
 | 5 | third-party restrictions | gate rejects profiling predicates | audit |
-| 6 | correction / deletion | stub `InMemoryDurableAssertionStore.forget()` | SEC-06 bridge |
-| 7 | derivative invalidation | stub cascade | full SEC-06 graph |
+| 6 | correction / deletion | stub `InMemoryDurableAssertionStore.forget()` | SEC-06 bridge (slice 2 minimal) |
+| 7 | derivative invalidation | stub cascade | full SEC-06 graph (slice 3) |
 
 ## First memory model (boring & practical only)
 
@@ -90,10 +90,18 @@ THE Goose is **presentation-only**. It may retrieve retained facts for display l
 - [x] Freeze tests (5 scenarios) in `packages/domain/tests/test_retention_gate.py` and `apps/api/tests/test_c29_retention_freeze.py`
 - [x] [ADR-036](../../docs/adr/036-retention-gate-life-memory.md)
 
-### Slice 2+
+### Slice 2 (vault bridge)
 
-- [ ] Map `RetentionDecision` → `DerivedRecord` insert via vault (reuse SEC-06 lineage)
-- [ ] Wire forget/correction to SEC-06 `forget_source` graph
+- [x] `retention_vault.py` — `map_retention_to_derived_record()`, `VaultDurableAssertionStore`
+- [x] Gate → vault write for DURABLE/TTL only (`assert_retention_write_allowed`)
+- [x] Epistemic non-upgrade at write boundary (payload matches assertion status)
+- [x] Lineage refs: `assertion:{id}`, `retention_decision:{id}`, evidence + provenance refs
+- [x] Minimal `forget_retained_assertion()` cascade for child retained rows
+- [x] Bridge + freeze tests in `apps/api/tests/test_c29_retention_vault_bridge.py`
+
+### Slice 3+
+
+- [ ] Wire forget/correction to SEC-06 `forget_source` graph (full propagation)
 - [ ] Purpose-expiry GC for TTL decisions
 - [ ] Inventory API surfaces life-memory assertions alongside derived records
 
@@ -124,8 +132,8 @@ Enigma can retain useful concrete facts for the user while refusing to turn othe
 ## Test plan
 
 ```bash
-uv run pytest packages/domain/tests/test_retention_gate.py apps/api/tests/test_c29_retention_freeze.py -q
-uv run ruff check packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/durable_assertions.py
+uv run pytest packages/domain/tests/test_retention_gate.py apps/api/tests/test_c29_retention_freeze.py apps/api/tests/test_c29_retention_vault_bridge.py -q
+uv run ruff check packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/durable_assertions.py apps/api/src/personal_enigma/api/storage/retention_vault.py
 uv run basedpyright packages/domain/src/personal_enigma/domain/retention_gate.py
 ```
 

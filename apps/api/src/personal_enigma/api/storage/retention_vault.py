@@ -1,0 +1,291 @@
+"""C29 vault bridge — RetentionDecision → SEC-06 DerivedRecord (slice 2).
+
+Legal write path::
+
+    GroundedAssertion
+      → evaluate_retention()
+      → RetentionDecision (DURABLE | TTL)
+      → map_retention_to_derived_record()
+      → PrivateVault.store_derived()
+
+Direct ``GroundedAssertion → vault`` writes are forbidden.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from sqlite3 import Connection as SqlCipherConnection
+
+from personal_enigma.api.storage.derived import (
+    delete_derived_record,
+    list_all_derived_records,
+)
+from personal_enigma.api.storage.vault import PrivateVault
+from personal_enigma.domain.grounding import (
+    AssertionKind,
+    EpistemicStatus,
+    GroundedAssertion,
+)
+from personal_enigma.domain.retention import (
+    DerivedRecord,
+    DerivedRecordType,
+    LineageMetadata,
+    MemoryLayer,
+    RetentionPurpose,
+)
+from personal_enigma.domain.retention_gate import (
+    ForgetCascadeResult,
+    RetentionDecision,
+    RetentionOutcome,
+    evaluate_retention,
+)
+
+_RETAINED_RECORD_KIND = "retained_assertion"
+_ASSERTION_LINEAGE_PREFIX = "assertion:"
+_RETENTION_DECISION_PREFIX = "retention_decision:"
+
+_INFERENCE_NOT_DURABLE_STATUSES = frozenset(
+    {
+        EpistemicStatus.MODEL_INFERRED,
+    }
+)
+
+
+class RetentionVaultError(Exception):
+    """Raised when a vault write violates C29 retention invariants."""
+
+
+def assertion_lineage_ref(assertion_id: str) -> str:
+    """Lineage ref pointing back to the grounded assertion."""
+    return f"{_ASSERTION_LINEAGE_PREFIX}{assertion_id}"
+
+
+def retention_decision_lineage_ref(assertion_id: str) -> str:
+    """Lineage ref pointing back to the retention decision."""
+    return f"{_RETENTION_DECISION_PREFIX}{assertion_id}"
+
+
+def is_retained_assertion_record(record: DerivedRecord) -> bool:
+    return record.payload.get("record_kind") == _RETAINED_RECORD_KIND
+
+
+def assert_retention_write_allowed(
+    assertion: GroundedAssertion,
+    decision: RetentionDecision,
+) -> None:
+    """Enforce C29 invariants before any vault write."""
+    if decision.assertion_id != assertion.id:
+        msg = (
+            f"RetentionDecision assertion_id {decision.assertion_id!r} "
+            f"does not match assertion {assertion.id!r}"
+        )
+        raise RetentionVaultError(msg)
+
+    if decision.outcome not in (RetentionOutcome.DURABLE, RetentionOutcome.TTL):
+        msg = f"Vault write rejected for outcome {decision.outcome.value}"
+        raise RetentionVaultError(msg)
+
+    if assertion.epistemic_status in _INFERENCE_NOT_DURABLE_STATUSES:
+        msg = (
+            f"Vault write rejected: epistemic status "
+            f"{assertion.epistemic_status.value} cannot become durable"
+        )
+        raise RetentionVaultError(msg)
+
+    if decision.rejection_reason is not None:
+        msg = (
+            f"Vault write rejected: decision carries rejection reason "
+            f"{decision.rejection_reason.value}"
+        )
+        raise RetentionVaultError(msg)
+
+
+def build_retained_assertion_payload(
+    assertion: GroundedAssertion,
+    decision: RetentionDecision,
+) -> dict[str, object]:
+    """Serialize assertion + decision metadata — epistemic status is never upgraded."""
+    return {
+        "record_kind": _RETAINED_RECORD_KIND,
+        "assertion_id": assertion.id,
+        "kind": assertion.kind.value,
+        "subject": assertion.subject,
+        "predicate": assertion.predicate,
+        "value": GroundedAssertion._normalize_value(assertion.value),
+        "scope": assertion.scope,
+        "epistemic_status": assertion.epistemic_status.value,
+        "confidence": assertion.confidence,
+        "evidence_refs": list(assertion.evidence_refs),
+        "derived_from_assertion_ids": list(assertion.derived_from),
+        "purpose_tags": list(assertion.purpose_tags),
+        "validity_kind": assertion.validity_kind.value,
+        "temporal_scope": assertion.temporal_scope,
+        "valid_from": assertion.valid_from.isoformat() if assertion.valid_from else None,
+        "valid_until": assertion.valid_until.isoformat() if assertion.valid_until else None,
+        "retention_decision_id": retention_decision_lineage_ref(assertion.id),
+        "retention_decision": {
+            "outcome": decision.outcome.value,
+            "purpose": decision.purpose.value if decision.purpose is not None else None,
+            "retention_class": decision.retention_class.value,
+            "lifetime": decision.lifetime,
+            "provenance_refs": list(decision.provenance_refs),
+            "rejection_reason": (
+                decision.rejection_reason.value if decision.rejection_reason else None
+            ),
+            "rationale": decision.rationale,
+        },
+    }
+
+
+def _assertion_kind_to_record_type(kind: AssertionKind) -> DerivedRecordType:
+    if kind in (AssertionKind.PREFERENCE, AssertionKind.FACT, AssertionKind.DELEGATION):
+        return DerivedRecordType.FACT
+    return DerivedRecordType.AGGREGATE
+
+
+def _lineage_refs(
+    assertion: GroundedAssertion,
+    decision: RetentionDecision,
+) -> list[str]:
+    refs: list[str] = [
+        assertion_lineage_ref(assertion.id),
+        retention_decision_lineage_ref(assertion.id),
+    ]
+    for ref in assertion.evidence_refs:
+        if ref not in refs:
+            refs.append(ref)
+    for parent_id in assertion.derived_from:
+        parent_ref = assertion_lineage_ref(parent_id)
+        if parent_ref not in refs:
+            refs.append(parent_ref)
+        if parent_id not in refs:
+            refs.append(parent_id)
+    for ref in decision.provenance_refs:
+        if ref not in refs:
+            refs.append(ref)
+    return refs
+
+
+def map_retention_to_derived_record(
+    assertion: GroundedAssertion,
+    decision: RetentionDecision,
+) -> DerivedRecord:
+    """Map a gated retention decision to a SEC-06 DerivedRecord row."""
+    assert_retention_write_allowed(assertion, decision)
+    payload = build_retained_assertion_payload(assertion, decision)
+    stored_status = payload.get("epistemic_status")
+    if stored_status != assertion.epistemic_status.value:
+        msg = "Epistemic status upgrade blocked at vault write boundary"
+        raise RetentionVaultError(msg)
+
+    purpose = decision.purpose or RetentionPurpose.LIFE_FACT
+    return DerivedRecord(
+        id=assertion.id,
+        record_type=_assertion_kind_to_record_type(assertion.kind),
+        memory_layer=MemoryLayer.ACTIVE,
+        payload=payload,
+        lineage=LineageMetadata(
+            derived_from=_lineage_refs(assertion, decision),
+            purpose=purpose,
+            retention_class=decision.retention_class,
+            expires_after_resolution=decision.lifetime,
+        ),
+        confidence=assertion.confidence if assertion.confidence is not None else 1.0,
+        created_at=datetime.now(tz=UTC),
+    )
+
+
+def list_retained_assertion_ids(conn: SqlCipherConnection) -> list[str]:
+    """Return assertion ids for C29 retained rows in the vault."""
+    ids: list[str] = []
+    for record in list_all_derived_records(conn):
+        if not is_retained_assertion_record(record):
+            continue
+        assertion_id = record.payload.get("assertion_id")
+        if isinstance(assertion_id, str):
+            ids.append(assertion_id)
+    return sorted(ids)
+
+
+def _children_by_parent(conn: SqlCipherConnection) -> dict[str, list[str]]:
+    children: dict[str, list[str]] = {}
+    for record in list_all_derived_records(conn):
+        if not is_retained_assertion_record(record):
+            continue
+        child_id = record.payload.get("assertion_id")
+        if not isinstance(child_id, str):
+            continue
+        parent_ids = record.payload.get("derived_from_assertion_ids")
+        if not isinstance(parent_ids, list):
+            continue
+        for parent_id in parent_ids:
+            if isinstance(parent_id, str):
+                children.setdefault(parent_id, []).append(child_id)
+    return children
+
+
+def forget_retained_assertion(
+    conn: SqlCipherConnection,
+    assertion_id: str,
+) -> ForgetCascadeResult:
+    """Delete a retained assertion and unjustified child retained assertions."""
+    children_map = _children_by_parent(conn)
+    deleted_assertions: list[str] = []
+    deleted_derivatives: list[str] = []
+
+    def _cascade(root_id: str) -> None:
+        for child_id in list(children_map.get(root_id, [])):
+            if child_id in deleted_assertions:
+                continue
+            _cascade(child_id)
+            if delete_derived_record(conn, child_id):
+                deleted_derivatives.append(child_id)
+                deleted_assertions.append(child_id)
+
+    existing = list_retained_assertion_ids(conn)
+    if assertion_id in existing:
+        _cascade(assertion_id)
+        if delete_derived_record(conn, assertion_id):
+            deleted_assertions.insert(0, assertion_id)
+
+    return ForgetCascadeResult(
+        root_assertion_id=assertion_id,
+        deleted_assertion_ids=deleted_assertions,
+        deleted_derived_ids=deleted_derivatives,
+    )
+
+
+class VaultDurableAssertionStore:
+    """SEC-06-backed durable assertion store — gate outcomes only."""
+
+    def __init__(self, vault: PrivateVault) -> None:
+        self._vault = vault
+
+    def store(self, assertion: GroundedAssertion, decision: RetentionDecision) -> str:
+        record = map_retention_to_derived_record(assertion, decision)
+        self._vault.store_derived(record)
+        return record.id
+
+    def evaluate_and_store(
+        self,
+        assertion: GroundedAssertion,
+        *,
+        now: datetime | None = None,
+    ) -> str | None:
+        """Run retention gate then vault write for DURABLE/TTL outcomes only."""
+        decision = evaluate_retention(assertion, now=now)
+        if decision.outcome not in (RetentionOutcome.DURABLE, RetentionOutcome.TTL):
+            return None
+        return self.store(assertion, decision)
+
+    def forget(self, assertion_id: str) -> ForgetCascadeResult:
+        return forget_retained_assertion(self._vault._conn, assertion_id)
+
+    def list_retained_ids(self) -> list[str]:
+        return list_retained_assertion_ids(self._vault._conn)
+
+    def get_record(self, assertion_id: str) -> DerivedRecord | None:
+        record = self._vault.get_derived_record(assertion_id)
+        if record is None or not is_retained_assertion_record(record):
+            return None
+        return record
