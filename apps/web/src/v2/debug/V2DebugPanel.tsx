@@ -11,6 +11,8 @@ import { buildForensicModel } from "./buildForensicModel";
 import { buildCopyBundle } from "./copyBundles";
 import type { CopyTier, ForensicModel } from "./types";
 import { ForensicSectionCard } from "./ForensicSectionCard";
+import { useStreamTrace } from "../StreamTraceProvider";
+import { formatLane } from "../streamTrace";
 
 function TurnSnapshotBar({
   model,
@@ -167,7 +169,24 @@ function SectionsGrid({ model }: { model: ForensicModel }) {
         status={model.streamingTrace.status}
         testId="section-streaming-trace"
       >
-        <ForensicSectionCard.Json value={model.streamingTrace.data} />
+        {model.streamingTrace.data ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div data-testid="streaming-trace-prose">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                ASSISTANT OUTPUT
+              </p>
+              <p className="mt-1 font-mono text-sm">{formatLane(model.streamingTrace.data.prose.steps)}</p>
+            </div>
+            <div data-testid="streaming-trace-work">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                AGENT WORK
+              </p>
+              <p className="mt-1 font-mono text-sm">
+                {formatLane(model.streamingTrace.data.agentWork.steps)}
+              </p>
+            </div>
+          </div>
+        ) : null}
       </ForensicSectionCard>
 
       <ForensicSectionCard title="MEMORY" status={model.memory.status} testId="section-memory">
@@ -180,6 +199,7 @@ function SectionsGrid({ model }: { model: ForensicModel }) {
 export function V2DebugPanel() {
   const { world } = useWorld();
   const { items, attention, busy, loading, client } = useEnigmaConversation();
+  const { lastTrace } = useStreamTrace();
   const [provenance, setProvenance] = useState<ProvenanceView | null>(null);
   const [snapshotCopied, setSnapshotCopied] = useState(false);
 
@@ -206,8 +226,9 @@ export function V2DebugPanel() {
         loading,
         world,
         provenance,
+        streamingTrace: lastTrace,
       }),
-    [items, attention, busy, loading, world, provenance],
+    [items, attention, busy, loading, world, provenance, lastTrace],
   );
 
   const copySnapshot = useCallback(async () => {

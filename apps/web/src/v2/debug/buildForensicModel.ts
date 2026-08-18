@@ -5,6 +5,7 @@ import type { AttentionState, ConversationItem, LlmTrace, ProvenanceView } from 
 import { WORLD_LABELS, type WorldId } from "../../pilot/types";
 import { buildCommitLabel } from "../buildIdentity";
 import type { ForensicModel, ForensicSection } from "./types";
+import type { StreamingTraceProjection } from "../streamTrace";
 
 function lastUserMessage(items: ConversationItem[]): { text: string | null; at: string | null } {
   for (let index = items.length - 1; index >= 0; index -= 1) {
@@ -54,6 +55,7 @@ export function buildForensicModel(input: {
   loading: boolean;
   world: WorldId;
   provenance: ProvenanceView | null;
+  streamingTrace?: StreamingTraceProjection | null;
 }): ForensicModel {
   const traces = tracesFromItems(input.items);
   const trace: LlmTrace | null = traces.at(-1) ?? null;
@@ -115,7 +117,9 @@ export function buildForensicModel(input: {
         disclosure: trace?.disclosure ?? null,
       },
     },
-    streamingTrace: { status: "unavailable", data: null },
+    streamingTrace: input.streamingTrace
+      ? { status: "wired", data: input.streamingTrace }
+      : { status: "unavailable", data: null },
     memory: { status: "unavailable", data: null },
     whyNot: canWait
       ? {

@@ -9,6 +9,8 @@ import type { ConversationItem } from "../enigma/types";
 import { useWorld } from "../pilot/WorldProvider";
 import { streamConversationMessage } from "./conversationStreamClient";
 import { gooseFromAgentWork } from "./gooseFromAgentWork";
+import { useStreamTrace } from "./StreamTraceProvider";
+import type { ConversationStreamEvent } from "./streamTypes";
 import { appendStreamingText, type V2MessageRow } from "./V2ConversationViewport";
 
 export type V2StreamingConversation = {
@@ -44,6 +46,7 @@ type ThreadCallbacks = {
 export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V2StreamingConversation {
   const { world } = useWorld();
   const session = useEnigmaConversation();
+  const { captureStreamEvents } = useStreamTrace();
   const threadItems = threadCallbacks?.threadItems;
   const onThreadItemsChange = threadCallbacks?.onThreadItemsChange;
   const onFirstMessage = threadCallbacks?.onFirstMessage;
@@ -134,6 +137,7 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
       setStreamingText("");
       turnCompleteRef.current = false;
       lastTextRef.current = text;
+      const captured: ConversationStreamEvent[] = [];
       const pending: ConversationItem = {
         kind: "user_message",
         text,
@@ -153,6 +157,8 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
         const outcome = await streamConversationMessage(text, {
           signal: controller.signal,
           onEvent: (event) => {
+            captured.push(event);
+            captureStreamEvents(captured);
             if (event.type === "agent_work") {
               setAgentWork(event.data);
             } else if (event.type === "prose") {
@@ -192,7 +198,7 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
         abortRef.current = null;
       }
     },
-    [commitItems, onFirstMessage, session, world],
+    [captureStreamEvents, commitItems, onFirstMessage, session, world],
   );
 
   const reconnect = useCallback(async () => {

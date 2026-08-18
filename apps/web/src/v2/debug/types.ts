@@ -1,6 +1,7 @@
 import type { AgentWorkSnapshot } from "../../enigma/goosePixels";
 import type { AttentionState, LlmTrace, ProvenanceView } from "../../enigma/types";
 import type { WorldId } from "../../pilot/types";
+import type { StreamingTraceProjection } from "../streamTrace";
 
 export type TurnSnapshot = {
   buildCommit: string;
@@ -38,7 +39,7 @@ export type ForensicModel = {
     sent: Record<string, unknown> | null;
     disclosure: LlmTrace["disclosure"];
   }>;
-  streamingTrace: ForensicSection<null>;
+  streamingTrace: ForensicSection<StreamingTraceProjection | null>;
   memory: ForensicSection<null>;
   whyNot: ForensicSection<{
     source: "can_wait_summary";

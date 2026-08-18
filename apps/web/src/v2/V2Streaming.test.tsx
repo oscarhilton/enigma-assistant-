@@ -11,6 +11,7 @@ import { parseConversationStream } from "./parseConversationStream";
 import { appendStreamingText, V2ConversationViewport } from "./V2ConversationViewport";
 import { V2Composer } from "./V2Composer";
 import { useV2StreamingConversation } from "./useV2StreamingConversation";
+import { StreamTraceProvider, useStreamTrace } from "./StreamTraceProvider";
 
 const IN_FLIGHT: AgentWorkSnapshot = {
   exists: true,
@@ -78,9 +79,24 @@ function wrap(ui: ReactElement) {
   return (
     <MemoryRouter>
       <WorldProvider>
-        <EnigmaProvider>{ui}</EnigmaProvider>
+        <EnigmaProvider>
+          <StreamTraceProvider>
+            {ui}
+            <TraceReadout />
+          </StreamTraceProvider>
+        </EnigmaProvider>
       </WorldProvider>
     </MemoryRouter>
+  );
+}
+
+function TraceReadout() {
+  const { lastTrace } = useStreamTrace();
+  return (
+    <div>
+      <span data-testid="trace-prose">{lastTrace ? lastTrace.prose.steps.join(",") : "none"}</span>
+      <span data-testid="trace-work">{lastTrace ? lastTrace.agentWork.steps.join(",") : "none"}</span>
+    </div>
   );
 }
 
@@ -208,6 +224,12 @@ describe("UI2-02 streaming", () => {
     );
     delayed.close();
     await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("false"));
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-work").textContent).toBe("investigating,handled");
+      expect(screen.getByTestId("trace-prose").textContent).toBe("chunk,chunk,complete");
+    });
+    expect(screen.getByTestId("trace-work").textContent).not.toContain("chunk");
+    expect(screen.getByTestId("trace-prose").textContent).not.toContain("investigating");
   });
 
   it("Stop aborts prose without resetting AgentWork", async () => {
@@ -298,5 +320,23 @@ describe("UI2-02 streaming", () => {
       },
     });
     expect(outcome).toBe("aborted");
+  });
+
+  it("one-shot JSON turns do not capture a streaming trace", async () => {
+    render(
+      <MemoryRouter>
+        <WorldProvider initialWorld="alex_lab">
+          <EnigmaProvider>
+            <StreamTraceProvider>
+              <StreamingHarness autoSend="What's next?" />
+              <TraceReadout />
+            </StreamTraceProvider>
+          </EnigmaProvider>
+        </WorldProvider>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("false"));
+    expect(screen.getByTestId("trace-prose").textContent).toBe("none");
+    expect(screen.getByTestId("trace-work").textContent).toBe("none");
   });
 });

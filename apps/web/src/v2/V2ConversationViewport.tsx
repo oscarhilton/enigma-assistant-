@@ -5,13 +5,15 @@ import { projectConversationItems, type V2MessageRow } from "./V2MessageList";
 
 export type { V2MessageRow };
 
+type V2AssistantRow = Extract<V2MessageRow, { role: "assistant" }>;
+
 type Props = {
   items: ConversationItem[];
   loading?: boolean;
   streamingRow?: V2MessageRow | null;
 };
 
-export function appendStreamingText(current: V2MessageRow | null, delta: string): V2MessageRow {
+export function appendStreamingText(current: V2MessageRow | null, delta: string): V2AssistantRow {
   if (current?.role === "assistant") {
     return { ...current, text: `${current.text}${delta}`, streaming: true };
   }
