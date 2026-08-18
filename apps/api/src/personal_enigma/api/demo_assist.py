@@ -108,6 +108,16 @@ class SyntheticDemoServices:
         self.fail_writes = False
 
 
+@dataclass(frozen=True)
+class AssistExecution:
+    """Result of performing an assist write before verification decides truth."""
+
+    execution_id: str
+    artifact_kind: Literal["calendar_event", "note"]
+    artifact_id: str
+    payload: dict[str, Any]
+
+
 def assist_effect_for(plan: AssistPlan) -> AssistEffect:
     """How a verified Assist should change the target obligation.
 
@@ -373,11 +383,12 @@ def make_assist_plan(target: AssistTarget, *, proposal_id: str | None = None) ->
     )
 
 
-def execute_and_verify(
+def execute_assist(
     plan: AssistPlan,
     services: SyntheticDemoServices,
-) -> tuple[bool, str]:
-    """Write to synthetic services, then read back. Never claims success on miss."""
+) -> AssistExecution:
+    """Perform the synthetic write without yet claiming it verified."""
+    execution_id = f"exec-{uuid4().hex[:12]}"
     if plan.action_kind == "calendar_book":
         event = services.book_event(
             title=plan.title,
@@ -385,7 +396,33 @@ def execute_and_verify(
             end_at="2026-01-24T13:00:00+00:00",
             location="Demo (synthetic)",
         )
-        stored = services.get_event(event["id"])
+        return AssistExecution(
+            execution_id=execution_id,
+            artifact_kind="calendar_event",
+            artifact_id=event["id"],
+            payload=event,
+        )
+
+    note = services.write_note(
+        title=plan.title,
+        body=f"Synthetic demo draft for {plan.title}.",
+    )
+    return AssistExecution(
+        execution_id=execution_id,
+        artifact_kind="note",
+        artifact_id=note["id"],
+        payload=note,
+    )
+
+
+def verify_assist_execution(
+    plan: AssistPlan,
+    services: SyntheticDemoServices,
+    execution: AssistExecution,
+) -> tuple[bool, str]:
+    """Read back the performed write. Only success here should update world state."""
+    if plan.action_kind == "calendar_book":
+        stored = services.get_event(execution.artifact_id)
         if stored is None or stored.get("title") != plan.title:
             return (
                 False,
@@ -393,17 +430,22 @@ def execute_and_verify(
             )
         return True, "Done — Saturday brunch is booked on the demo calendar."
 
-    note = services.write_note(
-        title=plan.title,
-        body=f"Synthetic demo draft for {plan.title}.",
-    )
-    stored_note = services.get_note(note["id"])
+    stored_note = services.get_note(execution.artifact_id)
     if stored_note is None or stored_note.get("title") != plan.title:
         return (
             False,
             "I couldn't verify the synthetic draft. Nothing was recorded.",
         )
     return True, f"Done — I recorded a synthetic draft for {plan.title}."
+
+
+def execute_and_verify(
+    plan: AssistPlan,
+    services: SyntheticDemoServices,
+) -> tuple[bool, str]:
+    """Write to synthetic services, then read back. Never claims success on miss."""
+    execution = execute_assist(plan, services)
+    return verify_assist_execution(plan, services, execution)
 
 
 def assist_proposal_item(plan: AssistPlan, at: str) -> dict[str, Any]:
@@ -432,6 +474,7 @@ def assist_result_item(
 
 
 __all__ = [
+    "AssistExecution",
     "BRUNCH_ITEM_ID",
     "AssistEffect",
     "AssistPlan",
@@ -442,10 +485,12 @@ __all__ = [
     "assist_proposal_item",
     "assist_target_from_id",
     "assist_result_item",
+    "execute_assist",
     "execute_and_verify",
     "make_assist_plan",
     "overlay_completed_items",
     "overlay_session_world",
     "resolve_assist_target",
     "review_draft_next_action",
+    "verify_assist_execution",
 ]

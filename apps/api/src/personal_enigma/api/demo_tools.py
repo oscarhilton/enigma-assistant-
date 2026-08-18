@@ -28,10 +28,11 @@ from personal_enigma.api.demo_assist import (
     assist_proposal_item,
     assist_result_item,
     assist_target_from_id,
-    execute_and_verify,
+    execute_assist,
     make_assist_plan,
     overlay_session_world,
     resolve_assist_target,
+    verify_assist_execution,
 )
 from personal_enigma.api.demo_attestation import (
     ATTESTATION_TOOL,
@@ -1104,7 +1105,8 @@ def execute_tool(
                 {"kind": "enigma_message", "text": "I don't know that assist proposal.", "at": at}
             ]
             return ToolExecutionResult(name=name, ok=False, turn_items=turn)
-        ok, message = execute_and_verify(plan, session.synthetic_services)
+        execution = execute_assist(plan, session.synthetic_services)
+        ok, message = verify_assist_execution(plan, session.synthetic_services, execution)
         effect = None
         if ok:
             effect = apply_verified_assist_effect(
@@ -1121,7 +1123,15 @@ def execute_tool(
         ctx.set_pending_confirmation(None)
         return ToolExecutionResult(
             name=name,
-            data={"ok": ok, "message": message, "proposal_id": proposal_id, "effect": effect},
+            data={
+                "ok": ok,
+                "message": message,
+                "proposal_id": proposal_id,
+                "effect": effect,
+                "execution_id": execution.execution_id,
+                "artifact_id": execution.artifact_id,
+                "artifact_kind": execution.artifact_kind,
+            },
             turn_items=[result],
         )
 

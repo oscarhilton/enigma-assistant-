@@ -1,6 +1,6 @@
 # C28 — Event spine and agent-work lifecycle
 
-**Status:** todo  
+**Status:** in_progress  
 **Branch:** `ticket/C28-event-spine-agent-work`  
 **Domain:** conversational-ui  
 **May edit:** `apps/api/src/personal_enigma/api/demo_orchestrator.py`, `apps/api/src/personal_enigma/api/routes/demo.py`, `apps/web/src/enigma/activity.ts`, `apps/web/src/enigma/cortex/events.ts`, `apps/web/src/enigma/cortex/mapEvents.ts`, `apps/api/tests/test_c28_*.py`, `apps/web/src/enigma/*.test.ts*`, `docs/architecture/conversational-stream.md`, `docs/architecture/cortex-visualizer.md`, `tickets/conversational-ui/**`
