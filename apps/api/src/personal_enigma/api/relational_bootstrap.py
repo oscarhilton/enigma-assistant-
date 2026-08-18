@@ -22,6 +22,47 @@ _FORBIDDEN_RESPONSE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bduck emoji\b", re.I),
 )
 
+_MANDATORY_CALLBACK_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"must appear", re.I),
+    re.compile(r"must reference", re.I),
+    re.compile(r"required callback", re.I),
+    re.compile(r"every response must", re.I),
+    re.compile(r"always include (?:the )?goose", re.I),
+)
+
+_AUTHORITY_CREATING_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"ground truth", re.I),
+    re.compile(r"authoritative(?:ly)?", re.I),
+    re.compile(r"grant(?:s)? authority", re.I),
+    re.compile(r"you should believe", re.I),
+    re.compile(r"this is (?:the )?truth", re.I),
+)
+
+
+def _collect_input_text(inputs: RelationalBootstrapInputs) -> str:
+    parts = [
+        inputs.product_voice,
+        *inputs.interaction_prefs,
+        *inputs.shared_conventions,
+        inputs.ephemeral_register,
+        *inputs.exemplars,
+    ]
+    return "\n".join(p for p in parts if p)
+
+
+def _reject_forbidden_bootstrap_language(inputs: RelationalBootstrapInputs) -> None:
+    blob = _collect_input_text(inputs)
+    for pattern in _MANDATORY_CALLBACK_PATTERNS:
+        if pattern.search(blob):
+            raise ValueError(
+                "relational bootstrap must not encode mandatory register callback language"
+            )
+    for pattern in _AUTHORITY_CREATING_PATTERNS:
+        if pattern.search(blob):
+            raise ValueError(
+                "relational bootstrap must not contain authority-creating bootstrap language"
+            )
+
 
 @dataclass(frozen=True, slots=True)
 class RelationalBootstrapInputs:
@@ -67,6 +108,7 @@ def compile_relational_bootstrap(
 ) -> RelationalBootstrapBlock | None:
     if inputs is None:
         return None
+    _reject_forbidden_bootstrap_language(inputs)
     if not any(
         (
             inputs.product_voice.strip(),
