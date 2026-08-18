@@ -81,7 +81,20 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C14](./C14-conversation-activity-stream.md) | Conversation activity stream (real events, not fake CoT) | **in_progress** (spec + v0 strip) |
 | [C34](./C34-relational-bootstrap.md) | Relational bootstrap (continuation mechanics) | **frozen** ([#99](https://github.com/oscarhilton/enigma-assistant-/pull/99)) |
 | [C35](./C35-goose-pixel-licence.md) | Goose pixel licence (work presence; C34 expressiveness) | **done** |
-| [C37](./C37-goose-pixel-observation.md) | Goose pixel observation (dogfood idle/walk/return; not C36) | **in_progress** |
+| [C37](./C37-goose-pixel-observation.md) | Goose pixel observation (dogfood idle/walk/return; not C36) | **done** ([#103](https://github.com/oscarhilton/enigma-assistant-/pull/103) observational infrastructure only) |
+
+## Programme state (2026-08-18)
+
+#103: observational infrastructure, no poultry expansion.
+C36: intentionally unclaimed.
+Next major programme: PILOT-01 — turn the simulator into a pilotable application (My Enigma).
+
+Two tracks, not to contaminate:
+C37 — Is THE Goose telling the truth about work?
+PILOT-01 — Does Enigma actually make Oscar’s day easier?
+
+Do not implement PILOT-01 here. Do not create C36. Do not add Goose animations.
+
 
 ## First milestone (Alex)
 

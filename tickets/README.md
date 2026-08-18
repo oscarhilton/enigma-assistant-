@@ -81,6 +81,17 @@ Existing in-repo `.worktrees/` checkouts are legacy; prefer sibling `../enigma-w
 | conversational-ui | [conversational-ui/](./conversational-ui/) | Conversational home + EnigmaClient ([C00](./conversational-ui/C00-demo-attention-projection.md)–[C08](./conversational-ui/C08-live-enigma-client.md)); [C09](./conversational-ui/C09-llm-conversational-boundary.md) LLM boundary; [C11](./conversational-ui/C11-tone-memory.md) tone memory (`future`); [C12](./conversational-ui/C12-life-scripts.md) Life Scripts; [C14](./conversational-ui/C14-conversation-activity-stream.md) activity stream; [architecture doc](../docs/architecture/conversational-ui.md) · [ADR-020](../docs/adr/020-llm-conversational-boundary-not-truth.md) |
 | shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval (SE01–SE03) + silence track (SE04–SE10) + open-loop dues (SE11); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) · [shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) · [ADR-009](../docs/adr/009-silence-as-prediction.md). SE* must not edit `EnvironmentMode`. |
 
+## Programme state (2026-08-18)
+
+#103: observational infrastructure, no poultry expansion.
+C36: intentionally unclaimed.
+Next major programme: PILOT-01 — turn the simulator into a pilotable application (My Enigma).
+
+Two tracks, not to contaminate:
+C37 — Is THE Goose telling the truth about work?
+PILOT-01 — Does Enigma actually make Oscar’s day easier?
+
+
 ## Ingestion file ownership (do not cross)
 
 | Ticket | Owned path |

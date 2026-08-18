@@ -1,12 +1,21 @@
 # C37 — Goose pixel observation (dogfood idle / walk / return)
 
-**Status:** in_progress  
+**Status:** done  
+**Merged:** [#103](https://github.com/oscarhilton/enigma-assistant-/pull/103) (`b8b4cea`) — observational infrastructure only  
 **Branch:** `ticket/C37-goose-pixel-observation`  
 **Domain:** conversational-ui  
 **Hard depends:** [C35](./C35-goose-pixel-licence.md) done · [C34](./C34-relational-bootstrap.md) frozen  
 **Soft (~):** C12 Life Script runner (not on this main) · C28 AgentWork spine (not on this main) · C31 choreography (not this slice)
 
 This is **not C36**. C36 is reserved conceptually for invention (new motions, Shadows, speech, affection). C37 only instruments the three existing steps and captures observations.
+
+#103: observational infrastructure, no poultry expansion.
+C36: intentionally unclaimed.
+Next major programme: PILOT-01 — turn the simulator into a pilotable application (My Enigma).
+
+Two tracks, not to contaminate:
+C37 — Is THE Goose telling the truth about work?
+PILOT-01 — Does Enigma actually make Oscar’s day easier?
 
 ## Scope (package boundary)
 
