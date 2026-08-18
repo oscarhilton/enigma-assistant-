@@ -3,13 +3,15 @@ import { GoosePresence } from "../enigma/GoosePresence";
 import { inspectGooseEvent, projectGooseEvents, recordGooseTelemetry } from "../enigma/gooseTelemetry";
 import { WorldSwitcher } from "../pilot/WorldSwitcher";
 import { useWorld } from "../pilot/WorldProvider";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { GoosePixelLicence } from "../enigma/goosePixels";
 import { buildIdentityLabel } from "./buildIdentity";
 import { V2Composer } from "./V2Composer";
 import { V2ConversationViewport } from "./V2ConversationViewport";
+import { V2InspectSheet } from "./V2InspectSheet";
 import { V2Sidebar } from "./V2Sidebar";
 import { useV2Threads } from "./V2ThreadProvider";
+import { useV2InspectSheet } from "./useV2InspectSheet";
 import { useV2StreamingConversation } from "./useV2StreamingConversation";
 
 export function V2Shell() {
@@ -38,8 +40,12 @@ export function V2Shell() {
     onThreadItemsChange: updateActiveThreadItems,
     onFirstMessage: renameActiveThreadFromMessage,
   });
-  const [workExplanation, setWorkExplanation] = useState<string[]>([]);
   const previousGooseLicence = useRef<GoosePixelLicence | null>(null);
+  const { open, projection, openInspect, onOpenChange } = useV2InspectSheet(
+    gooseLicence,
+    client,
+    world,
+  );
 
   useEffect(() => {
     recordGooseTelemetry(projectGooseEvents(previousGooseLicence.current, gooseLicence));
@@ -48,14 +54,7 @@ export function V2Shell() {
 
   function inspectGooseWork() {
     recordGooseTelemetry([inspectGooseEvent(gooseLicence)]);
-    const target = gooseLicence.inspectTarget;
-    if (target) {
-      void client.getProvenance(target).catch(() => {
-        setWorkExplanation(gooseLicence.inspectLabels);
-      });
-      return;
-    }
-    setWorkExplanation(gooseLicence.inspectLabels);
+    openInspect();
   }
 
   return (
@@ -74,19 +73,6 @@ export function V2Shell() {
 
       <main className="v2-main">
         <V2ConversationViewport items={items} loading={loading} streamingRow={streamingRow} />
-        {workExplanation.length > 0 ? (
-          <section
-            className="px-4 pb-2 text-sm text-muted-foreground"
-            data-testid="v2-work-explanation"
-            aria-label="Work explanation"
-          >
-            <ul className="list-disc pl-5">
-              {workExplanation.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
         <V2Composer
           onSend={sendMessage}
           onCancel={cancel}
@@ -106,6 +92,8 @@ export function V2Shell() {
           Debug
         </Link>
       </footer>
+
+      <V2InspectSheet open={open} onOpenChange={onOpenChange} projection={projection} />
     </div>
   );
 }

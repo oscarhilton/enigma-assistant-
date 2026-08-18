@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/UI2-05-inspectability-minimal` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
@@ -23,9 +23,9 @@
 
 ## Acceptance criteria
 
-- [ ] Goose click opens compact Why/work sheet (not Cortex)
-- [ ] Why projection read-model only — no semantic reconstruction in React
-- [ ] Sheet dismisses cleanly; no stale AgentWork after world switch
+- [x] Goose click opens compact Why/work sheet (not Cortex)
+- [x] Why projection read-model only — no semantic reconstruction in React
+- [x] Sheet dismisses cleanly; no stale AgentWork after world switch
 
 ## Test plan
 
