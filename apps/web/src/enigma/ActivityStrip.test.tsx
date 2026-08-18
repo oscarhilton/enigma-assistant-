@@ -23,6 +23,7 @@ describe("ActivityStrip", () => {
     );
     expect(screen.getByTestId("activity-strip")).toHaveTextContent("Checked your calendar");
     expect(screen.queryByText(/checked 1 things/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("surface-goose")).not.toBeInTheDocument();
   });
 
   it("collapses several hops into Checked N things", () => {

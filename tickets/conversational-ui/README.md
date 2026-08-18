@@ -79,6 +79,8 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C12](./C12-life-scripts.md) | Life Scripts (Alex episodes as product tests) | **landed** (CLI; UI player later). Later months: [D08f-scripts](../demo-scenario/D08f-scripts.md) — do not implement C11 |
 | [C13](./C13-life-script-reliability.md) | Life Script reliability (repeat Fireworks runs) | **todo** |
 | [C14](./C14-conversation-activity-stream.md) | Conversation activity stream (real events, not fake CoT) | **in_progress** (spec + v0 strip) |
+| [C34](./C34-relational-bootstrap.md) | Relational bootstrap (continuation mechanics) | **frozen** ([#99](https://github.com/oscarhilton/enigma-assistant-/pull/99)) |
+| [C35](./C35-goose-pixel-licence.md) | Goose pixel licence (work presence; C34 expressiveness) | **in_progress** |
 
 ## First milestone (Alex)
 
@@ -126,4 +128,5 @@ M11 Gmail ingestion scaffold is **not** sufficient for live mailbox connection.
 - [ADR-021 — Personal data security boundary](../../docs/adr/021-personal-data-security-boundary.md) · [SEC programme](../security/)
 - [ADR-024 — Shareable recipes](../../docs/adr/024-shareable-recipes-procedure-never-personal-state.md) · [REC00](../recipes/REC00-shareable-recipes-north-star.md) (`future`)
 - [ADR-025 — Tone memory](../../docs/adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [C11](./C11-tone-memory.md) (`future`)
+- [ADR-039 — Goose pixels project work](../../docs/adr/039-goose-pixels-project-work-not-mascot.md) · [C35](./C35-goose-pixel-licence.md)
 - R-L10 findings · ADR-010 Next Action ≠ Attention

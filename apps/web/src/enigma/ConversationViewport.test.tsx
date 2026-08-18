@@ -19,6 +19,7 @@ describe("ConversationViewport", () => {
     );
     expect(screen.getByTestId("conversation-viewport")).toBeInTheDocument();
     expect(screen.getByText(/nothing needs you/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("surface-goose")).not.toBeInTheDocument();
   });
 
   it("renders a next-action-only turn without attention buckets", () => {

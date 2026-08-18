@@ -52,6 +52,7 @@ describe("CortexPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^cortex$/i }));
 
+    expect(screen.queryByTestId("surface-goose")).not.toBeInTheDocument();
     expect(await screen.findByTestId("cortex-region-legend")).toBeInTheDocument();
     const legend = screen.getByTestId("cortex-region-legend");
     expect(within(legend).getByText("Input")).toBeInTheDocument();

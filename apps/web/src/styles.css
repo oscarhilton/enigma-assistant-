@@ -566,6 +566,67 @@ button:disabled {
   gap: 1rem;
 }
 
+.conversational-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.goose-rail {
+  position: relative;
+  width: 2.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+}
+
+.goose-sprite {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+
+.goose-sprite--walk {
+  transform: translateX(0.55rem);
+}
+
+.goose-sprite--playful.goose-sprite--walk {
+  transform: translateX(0.7rem) rotate(-10deg);
+}
+
+.goose-sprite--idle,
+.goose-sprite--return {
+  transform: none;
+}
+
+.goose-mark {
+  fill: currentColor;
+}
+
+.work-explanation {
+  margin: 0;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.work-explanation ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goose-sprite {
+    transition: none;
+    transform: none;
+  }
+}
+
 .conversation-viewport {
   display: flex;
   flex-direction: column;
