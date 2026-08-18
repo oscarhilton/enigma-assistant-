@@ -28,6 +28,7 @@ class PrivatePersonRef(BaseModel):
 
     display_name: str | None = None
     email: str | None = None
+    phone: str | None = None
     provider_id: str | None = None
 
 
@@ -106,6 +107,29 @@ class PrivateMessage(BaseModel):
     labels: list[str] = Field(default_factory=list)
 
 
+class PrivateChatMessage(BaseModel):
+    """Canonical private chat message — provider-agnostic after ingestion.
+
+    WhatsApp-shaped evidence, not the world model. Reactions and group noise
+    stay on this record; obligations are derived downstream.
+    """
+
+    id: str
+    provider: Literal["whatsapp"]
+    provider_message_id: str
+    chat_id: str
+    thread_id: str | None = None
+    from_person: PrivatePersonRef | None = None
+    to: list[PrivatePersonRef] = Field(default_factory=list)
+    body_text: str | None = None
+    sent_at: datetime | None = None
+    is_group: bool = False
+    chat_title: str | None = None
+    kind: Literal["text", "reaction", "system"] = "text"
+    reaction_emoji: str | None = None
+    reply_to_id: str | None = None
+
+
 class ReminderEvidence(BaseModel):
     kind: Literal["reminder"] = "reminder"
     reminder_id: str
@@ -130,8 +154,15 @@ class NoteEvidence(BaseModel):
     title: str | None = None
 
 
+class ChatEvidence(BaseModel):
+    kind: Literal["chat"] = "chat"
+    message_id: str
+    chat_id: str | None = None
+    snippet: str | None = None
+
+
 ObligationEvidence = Annotated[
-    ReminderEvidence | EmailEvidence | CalendarEvidence | NoteEvidence,
+    ReminderEvidence | EmailEvidence | CalendarEvidence | NoteEvidence | ChatEvidence,
     Field(discriminator="kind"),
 ]
 

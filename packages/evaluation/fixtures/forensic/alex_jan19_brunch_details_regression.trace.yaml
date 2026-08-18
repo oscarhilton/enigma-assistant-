@@ -1,0 +1,61 @@
+# Brunch details regression trace (outside frozen C23 gate).
+# Source: live Fireworks dump corr-17de02916ce648d098c6eaaab1c88a2f
+# Parent dump: alex_jan19_continuity_integrity.dump.txt (turns 25–43 setup)
+correlation: corr-17de02916ce648d098c6eaaab1c88a2f
+persona: Demo Alex (alex_v1)
+subject_id: item-obligation_brunch_book
+gate_utterance: "I would like details about the brunch please"
+
+wrong_compile:
+  profile: CONVERSATION
+  evidence_domain: CONVERSATION_ONLY
+  authority: NONE
+  request_kind: null
+  tools: []
+
+expected_compile:
+  profile: PRIVATE_QUERY
+  evidence_domain: PRIVATE_WORLD
+  authority: READ
+  speech_act: QUESTION
+  request_kind: subject_details
+  tools:
+    - world.explain
+    - source.recent
+
+conversational_evidence:
+  - turn: 28
+    user: "london"
+  - turn: 33
+    user: "maybe its not in the email... I guess 10am?"
+  - turn: 35
+    user: "will be 4 of us"
+  - turn: 36
+    note: "WhatsApp — girlfriend can attend"
+  - turn: 37
+    user: "go for it!"
+    note: "Model invented venue list (C21 turn-37 gate)"
+  - turn: 41
+    user: "Bistro Brunch!"
+  - turn: 42
+    user: "yes"
+    note: "Approved draft (C20 gate)"
+
+model_failures:
+  - replaced_venue: "The Riverside Brunch Club (was Bistro Brunch)"
+  - replaced_time: "11:30 am (was ~10:00 am)"
+  - invented_commercial:
+      - address
+      - phone
+      - menu
+      - prices
+      - accessibility
+      - parking
+  - wrong_date: "Friday 28 August 2026 labelled Saturday"
+  - capability_promise: "confirm the reservation without action tools"
+
+ticket_ownership:
+  C15: "resolved subject + attribute request → PRIVATE_QUERY + READ"
+  C21: "no invention/replacement; tier-2 recall only with humility"
+  C20: "no reservation confirm without capability"
+  C22: "evidence-seeking fallback when tier-1 missing"

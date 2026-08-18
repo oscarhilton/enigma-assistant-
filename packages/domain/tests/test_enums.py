@@ -5,11 +5,14 @@ from personal_enigma.domain import (
     ActionCategory,
     ActionContext,
     CalendarEvidence,
+    ChatEvidence,
     Effort,
     NextAction,
     Obligation,
     PrivateCalendarEvent,
+    PrivateChatMessage,
     PrivateMessage,
+    PrivatePersonRef,
     ReminderEvidence,
     SourceType,
     Urgency,
@@ -22,6 +25,7 @@ def test_source_type_values() -> None:
     assert SourceType.NOTE == "note"
     assert SourceType.CONTACT == "contact"
     assert SourceType.EMAIL == "email"
+    assert SourceType.CHAT_MESSAGE == "chat_message"
 
 
 def test_calendar_event_extended_fields_roundtrip() -> None:
@@ -54,6 +58,39 @@ def test_private_message_roundtrip() -> None:
     restored = PrivateMessage.model_validate(message.model_dump())
     assert restored.provider == "gmail"
     assert restored.subject == "Checking in"
+
+
+def test_private_chat_message_roundtrip() -> None:
+    message = PrivateChatMessage(
+        id="chat_1",
+        provider="whatsapp",
+        provider_message_id="wa-1",
+        chat_id="chat-elena",
+        from_person=PrivatePersonRef(
+            display_name="Elena Vargas",
+            phone="+447700900011",
+        ),
+        body_text="Mum and Dad are definitely coming Saturday btw",
+        kind="text",
+        sent_at=datetime(2026, 1, 19, 18, 30, tzinfo=UTC),
+    )
+    restored = PrivateChatMessage.model_validate(message.model_dump())
+    assert restored.provider == "whatsapp"
+    assert restored.from_person is not None
+    assert restored.from_person.phone == "+447700900011"
+    assert restored.kind == "text"
+
+
+def test_chat_evidence_discriminator() -> None:
+    obligation = Obligation(
+        description="Book Saturday brunch",
+        evidence=[
+            ChatEvidence(message_id="wa-1", chat_id="chat-elena", snippet="I'll sort brunch"),
+        ],
+    )
+    restored = Obligation.model_validate(obligation.model_dump())
+    assert restored.evidence[0].kind == "chat"
+    assert isinstance(restored.evidence[0], ChatEvidence)
 
 
 def test_obligation_evidence_discriminator() -> None:

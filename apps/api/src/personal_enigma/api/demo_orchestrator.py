@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from personal_enigma.api.build_identity import ForensicProvenance
 from personal_enigma.api.context_compilation import (
     CompiledRemoteContext,
     compile_remote_context,
@@ -17,11 +18,14 @@ from personal_enigma.api.context_compilation import (
 from personal_enigma.api.conversation_context import (
     ConversationContext,
     DialogueTurn,
+    TurnHandoff,
     apply_named_referent_focus,
+    assess_request_satisfaction,
     assistant_visible_text,
     capture_turn_local_location,
     classify_assistant_dialogue_egress,
     project_recent_dialogue_for_egress,
+    reduce_conversation_capsule,
     referent_candidates,
     remember_turn_local_constraint,
     update_context_from_turn_items,
@@ -41,12 +45,22 @@ from personal_enigma.api.demo_tools import (
     execute_tool,
     tool_schemas,
 )
+from personal_enigma.api.evidence_bundle import (
+    EvidenceBundle,
+    build_evidence_bundle,
+    bundle_aware_fallback,
+)
 from personal_enigma.api.intent_router import (
     ConversationIntent,
     ConversationIntentKind,
     TimeExpression,
     compose_follow_up_intent,
     normalize_utterance,
+)
+from personal_enigma.api.respond_grounding import apply_respond_grounding_fence
+from personal_enigma.api.semantic_bootstrap import (
+    compile_with_bootstrap,
+    get_semantic_bootstrap,
 )
 from personal_enigma.api.speech_acts import (
     SpeechAct,
@@ -134,6 +148,8 @@ class LlmTrace(BaseModel):
     included: list[str] = Field(default_factory=list)
     excluded: list[str] = Field(default_factory=lambda: list(_PRIVACY_EXCLUDED))
     correlation_id: str | None = None
+    evidence_bundle: dict[str, Any] | None = None
+    forensic_provenance: ForensicProvenance | None = None
 
 
 @dataclass(frozen=True)
@@ -303,6 +319,7 @@ def build_llm_trace(
     referent_resolution: list[dict[str, Any]] | None = None,
     executed_tool_request: list[ToolCallRecord] | None = None,
     tools_available: list[str] | None = None,
+    evidence_bundle: dict[str, Any] | None = None,
 ) -> LlmTrace:
     included: list[str] = []
     excluded: list[str] = list(_PRIVACY_EXCLUDED)
@@ -343,6 +360,7 @@ def build_llm_trace(
         included=included,
         excluded=excluded,
         correlation_id=correlation_id,
+        evidence_bundle=evidence_bundle,
     )
 
 
@@ -353,6 +371,7 @@ def build_intent_router_trace(
     last_intent: ConversationIntent | None,
     turn_items: list[dict[str, Any]],
     correlation_id: str | None = None,
+    evidence_bundle: dict[str, Any] | None = None,
 ) -> LlmTrace:
     resolved = compose_follow_up_intent(user_message, last_intent)
     return build_llm_trace(
@@ -406,20 +425,144 @@ def context_summary(
         summary["referent_candidates"] = referent_candidates(state)
         summary["simulated_time"] = state.simulated_time
         summary["attention_count"] = len(state.needs_you) + len(state.context)
+    if context.handoff is not None:
+        summary["handoff"] = context.handoff.public_view()
     return summary
 
 
 def _planner_wire_context(
-    user_message: str, session: DemoToolSession
+    user_message: str,
+    session: DemoToolSession,
+    *,
+    bootstrap: Any | None = None,
 ) -> tuple[CompiledRemoteContext, dict[str, Any]]:
     """Compile the remote working set; keep last_intent locally for the oracle."""
-    compiled = compile_remote_context(user_message, session)
+    interpreter = bootstrap if bootstrap is not None else get_semantic_bootstrap()
+    if interpreter is not None:
+        compiled = compile_with_bootstrap(user_message, session, interpreter)
+    else:
+        compiled = compile_remote_context(user_message, session)
     local = context_summary(session.context, session.state)
     wire = compiled.wire_context()
     wire["last_intent_kind"] = local.get("last_intent_kind")
     wire["last_period"] = local.get("last_period")
     wire["context_manifest"] = compiled.manifest.model_dump(mode="json")
     return compiled, wire
+
+
+def _reduce_capsule_after_turn(
+    session: DemoToolSession,
+    compiled: CompiledRemoteContext,
+    results: list[ToolExecutionResult],
+) -> None:
+    """Requests resolve. Conversational frames decay. Authority is not stored as truth."""
+    ok_names = [row.name for row in results if row.ok]
+    kind = compiled.working_set.get("request_kind")
+    satisfaction = assess_request_satisfaction(kind, ok_names)
+    reduce_conversation_capsule(
+        session.context,
+        evidence_domain=compiled.evidence_domain,
+        authority=compiled.authority,
+        request_kind=kind,
+        satisfaction=satisfaction,
+        temporal_constraint=compiled.working_set.get("temporal_constraint"),
+        scope=compiled.working_set.get("scope"),
+        source=compiled.working_set.get("source"),
+        last_capability=ok_names[-1] if ok_names else None,
+        repair=bool(compiled.working_set.get("frame_inherited") and satisfaction != "SATISFIED"),
+    )
+
+
+def _handoff_evidence_needed(bundle: EvidenceBundle) -> tuple[str, ...]:
+    needed: list[str] = []
+    for source in bundle.unsearched_sources:
+        if source == "attention":
+            needed.append("attention")
+        elif source == "calendar":
+            needed.append("agenda")
+        elif source in {"sources_email", "sources_chat"}:
+            needed.append("source")
+        elif source in {"world_changes", "world_blockers"}:
+            needed.append("world_explain")
+    if bundle.unresolved_referents:
+        needed.append("referent")
+    return tuple(dict.fromkeys(needed))
+
+
+def _update_turn_handoff(
+    session: DemoToolSession,
+    *,
+    compiled: CompiledRemoteContext,
+    bundle: EvidenceBundle,
+    satisfaction: str,
+    results: list[ToolExecutionResult],
+) -> None:
+    """Carry progress forward without carrying truth or authority."""
+    if compiled.evidence_domain != "PRIVATE_WORLD":
+        session.context.handoff = None
+        return
+
+    request_kind = compiled.working_set.get("request_kind")
+    progress: list[str] = []
+    for result in results:
+        if not result.ok:
+            continue
+        if result.name == "source.recent":
+            progress.append("checked source recency")
+        elif result.name == "attention.get_current":
+            progress.append("checked current attention")
+        elif result.name == "agenda.get":
+            progress.append("checked calendar")
+        elif result.name == "world.explain":
+            progress.append("checked grounded explanation")
+        elif result.name == "world.record_user_attestation":
+            progress.append("recorded user attestation")
+
+    unresolved: list[str] = []
+    if satisfaction != "SATISFIED" and request_kind is not None:
+        if request_kind == "important_from_source":
+            unresolved.append("which item actually matters remains unresolved")
+        elif request_kind == "next_work":
+            unresolved.append("next work recommendation remains unresolved")
+        elif request_kind == "catch_up":
+            unresolved.append("catch-up summary remains incomplete")
+        elif request_kind == "subject_details":
+            unresolved.append("subject details still need grounding")
+        elif request_kind == "support_explain":
+            unresolved.append("support explanation remains incomplete")
+    for referent in bundle.unresolved_referents:
+        unresolved.append(f"referent unresolved: {referent}")
+
+    caveats = [
+        "handoff is continuity only, not factual authority",
+        "dialogue residue is not evidence",
+    ]
+    if bundle.unsearched_sources:
+        caveats.append("missing evidence must be fetched before completing the answer")
+    if bundle.conflicts:
+        caveats.append("conflicting grounded evidence needs resolution")
+    if bundle.unavailable_sources:
+        caveats.append("some evidence is unavailable with current capabilities")
+
+    natural_continuation = None
+    evidence_needed = _handoff_evidence_needed(bundle)
+    if request_kind == "important_from_source" and "attention" in evidence_needed:
+        natural_continuation = "Check grounded attention next to determine what actually matters."
+    elif request_kind == "next_work":
+        natural_continuation = "Fetch grounded next-work evidence before answering."
+    elif request_kind == "subject_details":
+        natural_continuation = "Fetch grounded subject evidence before answering."
+    elif request_kind == "catch_up":
+        natural_continuation = "Continue the missing reads needed for a catch-up answer."
+
+    session.context.handoff = TurnHandoff(
+        current_goal=request_kind,
+        progress_made=tuple(dict.fromkeys(progress)),
+        unresolved=tuple(dict.fromkeys(unresolved)),
+        evidence_needed=evidence_needed,  # type: ignore[arg-type]
+        natural_continuation=natural_continuation,
+        caveats=tuple(dict.fromkeys(caveats)),
+    )
 
 
 def _matches_start_todays_action(normalized: str) -> bool:
@@ -838,10 +981,95 @@ def _message_content_text(message: dict[str, Any]) -> str | None:
     return None
 
 
-def _ordinary_conversation_turn(at: str, text: str | None) -> list[dict[str, Any]]:
+def _build_turn_evidence_bundle(
+    *,
+    user_message: str,
+    compiled: CompiledRemoteContext,
+    tool_results: list[ToolExecutionResult] | None,
+    resolutions: list[dict[str, Any]] | None,
+    context: ConversationContext,
+) -> EvidenceBundle:
+    trace_results = [
+        {
+            "name": row.name,
+            "ok": row.ok,
+            "data": _compact_tool_data(row.data),
+        }
+        for row in tool_results or []
+    ]
+    return build_evidence_bundle(
+        question=user_message,
+        working_set=compiled.working_set,
+        tool_results=trace_results,
+        referent_resolution=resolutions,
+        current_subject_id=context.current_subject_id,
+        evidence_domain=compiled.evidence_domain,
+        authority=compiled.authority,
+    )
+
+
+def _apply_coverage_fence(text: str, bundle: EvidenceBundle | None) -> str:
+    if bundle is None:
+        return text
+    hay = text.casefold()
+    over_claims_nothing = (
+        "nothing needs you" in hay
+        or "don't see anything on the calendar" in hay
+        or "do not see anything on the calendar" in hay
+    )
+    if not bundle.coverage_adequate and over_claims_nothing:
+        fallback = bundle_aware_fallback(bundle)
+        if fallback:
+            return fallback
+    if bundle.courier_state == "blocked" and len(text) > 400:
+        fallback = bundle_aware_fallback(bundle)
+        if fallback:
+            return fallback
+    return text
+
+
+def _rewrite_turn_items_with_bundle(
+    turn_items: list[dict[str, Any]],
+    bundle: EvidenceBundle | None,
+    at: str,
+) -> list[dict[str, Any]]:
+    if bundle is None:
+        return turn_items
+    rewritten: list[dict[str, Any]] = []
+    for item in turn_items:
+        if item.get("kind") != "enigma_message":
+            rewritten.append(item)
+            continue
+        text = str(item.get("text") or "")
+        new_text = _apply_coverage_fence(text, bundle)
+        if new_text != text:
+            rewritten.append({**item, "text": new_text, "at": item.get("at") or at})
+        else:
+            rewritten.append(item)
+    return rewritten
+
+
+def _ordinary_conversation_turn(
+    at: str,
+    text: str | None,
+    *,
+    session: DemoToolSession | None = None,
+    compiled: CompiledRemoteContext | None = None,
+    evidence_bundle: EvidenceBundle | None = None,
+) -> list[dict[str, Any]]:
     body = text.strip() if isinstance(text, str) and text.strip() else "Okay."
     if body == _ROUTER_UNKNOWN:
         body = "Okay."
+    if session is not None and compiled is not None:
+        body = apply_respond_grounding_fence(
+            body,
+            context=session.context,
+            evidence_domain=compiled.evidence_domain,
+            authority=compiled.authority,
+            tool_names=compiled.tool_names,
+            evidence_bundle=evidence_bundle,
+        )
+        body = _apply_coverage_fence(body, evidence_bundle)
     return _no_tool_turn(at, body)
 
 
@@ -1086,6 +1314,7 @@ def run_orchestrator_turn(
     session: DemoToolSession,
     llm: ConversationLLM | None = None,
     correlation_id: str | None = None,
+    bootstrap: Any | None = None,
 ) -> OrchestratorTurn:
     """Plan tools via LLM, execute against Enigma core, return structured turn items."""
     at = session.at
@@ -1111,7 +1340,9 @@ def run_orchestrator_turn(
     if resolved.period is not None:
         session.context.temporal_constraint = resolved.period.value
     speech_act = classify_speech_act(user_message)
-    compiled, wire = _planner_wire_context(user_message, session)
+    compiled, wire = _planner_wire_context(
+        user_message, session, bootstrap=bootstrap
+    )
 
     if normalized in {"hey", "hi", "hello"}:
         turn_items = _stamp_correlation(_no_tool_turn(at, "Hey. What's up?"), corr)
@@ -1122,6 +1353,7 @@ def run_orchestrator_turn(
             speech_act=speech_act,
             tool_names=[],
         )
+        _reduce_capsule_after_turn(session, compiled, [])
         return OrchestratorTurn(
             turn_items=turn_items,
             tool_calls=[],
@@ -1150,6 +1382,13 @@ def run_orchestrator_turn(
     egress = _planner_egress(planner)
 
     if not calls:
+        bundle = _build_turn_evidence_bundle(
+            user_message=user_message,
+            compiled=compiled,
+            tool_results=[],
+            resolutions=[],
+            context=session.context,
+        )
         use_router = getattr(planner, "uses_router_for_empty_tools", False)
         if use_router:
             turn_items, assist_plan = build_intent_turn(
@@ -1166,10 +1405,15 @@ def run_orchestrator_turn(
         else:
             model_text = getattr(planner, "last_conversational_text", None)
             turn_items = _ordinary_conversation_turn(
-                at, model_text if isinstance(model_text, str) else None
+                at,
+                model_text if isinstance(model_text, str) else None,
+                session=session,
+                compiled=compiled,
+                evidence_bundle=bundle,
             )
             assist_plan = None
             router_fallback = False
+        turn_items = _rewrite_turn_items_with_bundle(turn_items, bundle, at)
         turn_items = _stamp_correlation(turn_items, corr)
         update_context_from_turn_items(session.context, turn_items)
         record_turn_dialogue(
@@ -1179,6 +1423,16 @@ def run_orchestrator_turn(
             speech_act=speech_act,
             tool_names=[],
         )
+        _reduce_capsule_after_turn(session, compiled, [])
+        _update_turn_handoff(
+            session,
+            compiled=compiled,
+            bundle=bundle,
+            satisfaction=assess_request_satisfaction(
+                compiled.working_set.get("request_kind"), []
+            ),
+            results=[],
+        )
         _attach_turn_outcome(
             planner,
             disclosure_id=egress.get("disclosure_id"),
@@ -1186,6 +1440,7 @@ def run_orchestrator_turn(
             tool_results=[],
         )
         egress = _planner_egress(planner)
+        bundle_payload = bundle.model_dump(mode="json")
         return OrchestratorTurn(
             turn_items=turn_items,
             tool_calls=[],
@@ -1204,6 +1459,7 @@ def run_orchestrator_turn(
                 disclosure_id=egress.get("disclosure_id"),
                 correlation_id=corr,
                 tools_available=compiled.tool_names,
+                evidence_bundle=bundle_payload,
             ),
         )
 
@@ -1253,6 +1509,14 @@ def run_orchestrator_turn(
             if item.get("kind") not in {"attention_item", "next_action", "attention_summary"}
         ]
 
+    bundle = _build_turn_evidence_bundle(
+        user_message=user_message,
+        compiled=compiled,
+        tool_results=results,
+        resolutions=resolutions,
+        context=session.context,
+    )
+    turn_items = _rewrite_turn_items_with_bundle(turn_items, bundle, at)
     turn_items = _stamp_correlation(turn_items, corr)
     session.context.remember_intent(resolved)
     update_context_from_turn_items(session.context, turn_items)
@@ -1263,6 +1527,17 @@ def run_orchestrator_turn(
         speech_act=speech_act,
         tool_names=[call.name for call in executed_calls],
     )
+    _reduce_capsule_after_turn(session, compiled, results)
+    _update_turn_handoff(
+        session,
+        compiled=compiled,
+        bundle=bundle,
+        satisfaction=assess_request_satisfaction(
+            compiled.working_set.get("request_kind"),
+            [row.name for row in results if row.ok],
+        ),
+        results=results,
+    )
     _attach_turn_outcome(
         planner,
         disclosure_id=egress.get("disclosure_id"),
@@ -1270,6 +1545,7 @@ def run_orchestrator_turn(
         tool_results=results,
     )
     egress = _planner_egress(planner)
+    bundle_payload = bundle.model_dump(mode="json")
     return OrchestratorTurn(
         turn_items=turn_items,
         tool_calls=calls + composed,
@@ -1291,6 +1567,7 @@ def run_orchestrator_turn(
             referent_resolution=resolutions,
             executed_tool_request=executed_calls,
             tools_available=compiled.tool_names,
+            evidence_bundle=bundle_payload,
         ),
     )
 

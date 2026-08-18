@@ -14,12 +14,14 @@ class SourceType(StrEnum):
     REMINDER = "reminder"
     NOTE = "note"
     CONTACT = "contact"
+    CHAT_MESSAGE = "chat_message"
 
 
 class Provider(StrEnum):
     GOOGLE = "google"
     APPLE = "apple"
     LOCAL = "local"
+    WHATSAPP = "whatsapp"
 
 
 class ActionCategory(StrEnum):
