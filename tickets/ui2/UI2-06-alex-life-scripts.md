@@ -24,6 +24,12 @@
 
 **Fossil policy** — matching v1 behaviour not required unless Life Script says so.
 
+## Fossil policy (UI2-fossil-hunt)
+
+**Sidebar thread title after Forget:** POLICY-OK — title is the **first user utterance** (dialogue label frozen at thread creation), not a projection of retained memory. It is not sent to the context compiler or used to regenerate assistant truth. The Forget life script (`forget.yaml`) forbids Cases and Why from treating forgotten facts as current; transcript and sidebar label may still echo what was said.
+
+**Checkpoint jump:** wholesale conversation replace must reconcile sidebar title — otherwise a prior thread label (e.g. ceramics) survives as an unjustified derivative after Alex Lab time-machine reset.
+
 ## Acceptance criteria
 
 - [x] Brunch script passes through v2 UI
