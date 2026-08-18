@@ -1134,9 +1134,40 @@ class DemoSession:
             message=message,
             at=at,
         )
+        result["execution_id"] = execution.execution_id
+        result["artifact_id"] = execution.artifact_id
+        result["artifact_kind"] = execution.artifact_kind
         self.executed_assists[proposal_id] = result
         self.pending_assists.pop(proposal_id, None)
         return result
+
+    def build_tool_session(
+        self,
+        *,
+        at: str | None = None,
+        user_message: str = "",
+    ) -> DemoToolSession:
+        """Tool slice sharing mutable session state and the C28 event spine."""
+        stamp = at or self.clock.now().isoformat()
+        state = self._attention_state()
+        frozen = project_checkpoint(self.checkpoint_id).state
+        return DemoToolSession(
+            state=state,
+            context=self.conversation_context,
+            checkpoint_id=self.checkpoint_id,
+            prior_state=self._prior_attention_state(),
+            at=stamp,
+            conversation=self.conversation,
+            completed_item_ids=self.completed_item_ids,
+            pending_assists=self.pending_assists,
+            synthetic_services=self.synthetic_services,
+            user_message=user_message,
+            assist_advances=self.assist_advances,
+            attestations=self.attestations,
+            chat_index=self.chat_index,
+            base_state=frozen,
+            event_spine=self,
+        )
 
     def handle_message(self, text: str) -> dict[str, Any]:
         self.sync_realtime()
@@ -1155,22 +1186,8 @@ class DemoSession:
 
         if demo_llm_conversation_enabled():
             frozen = project_checkpoint(self.checkpoint_id).state
-            tool_session = DemoToolSession(
-                state=state,
-                context=self.conversation_context,
-                checkpoint_id=self.checkpoint_id,
-                prior_state=self._prior_attention_state(),
-                at=at,
-                conversation=self.conversation,
-                completed_item_ids=self.completed_item_ids,
-                pending_assists=self.pending_assists,
-                synthetic_services=self.synthetic_services,
-                user_message=text,
-                assist_advances=self.assist_advances,
-                attestations=self.attestations,
-                chat_index=self.chat_index,
-                base_state=frozen,
-            )
+            tool_session = self.build_tool_session(at=at, user_message=text)
+            tool_session.base_state = frozen
             orchestrated = run_orchestrator_turn(
                 user_message=text,
                 session=tool_session,
@@ -1248,6 +1265,25 @@ class DemoSession:
         result = self.verify_assist_effect(proposal_id, execution)
         self.conversation.append(result)
         return result
+
+
+def attach_event_spine_to_tool_session(tool: DemoToolSession) -> DemoSession:
+    """Share mutable tool-session state with a DemoSession C28 event spine host."""
+    if tool.event_spine is not None:
+        host = tool.event_spine
+        if not isinstance(host, DemoSession):
+            raise TypeError("event_spine must be a DemoSession instance")
+        return host
+    demo = DemoSession(checkpoint_id=tool.checkpoint_id)
+    demo.conversation = tool.conversation
+    demo.conversation_context = tool.context
+    demo.completed_item_ids = tool.completed_item_ids
+    demo.pending_assists = tool.pending_assists
+    demo.synthetic_services = tool.synthetic_services
+    demo.assist_advances = tool.assist_advances
+    demo.attestations = tool.attestations
+    tool.event_spine = demo
+    return demo
 
 
 _LOCK_TYPE = type(Lock())

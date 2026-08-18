@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -22,17 +22,14 @@ from personal_enigma.api.conversation_context import (
     resolve_referent,
 )
 from personal_enigma.api.demo_assist import (
+    AssistExecution,
     AssistPlan,
     SyntheticDemoServices,
-    apply_verified_assist_effect,
     assist_proposal_item,
-    assist_result_item,
     assist_target_from_id,
-    execute_assist,
     make_assist_plan,
     overlay_session_world,
     resolve_assist_target,
-    verify_assist_execution,
 )
 from personal_enigma.api.demo_attestation import (
     ATTESTATION_TOOL,
@@ -235,6 +232,18 @@ class ToolExecutionResult(BaseModel):
     assist_plan: dict[str, Any] | None = None
 
 
+class AssistEventSpine(Protocol):
+    """C28 event/effect host — DemoSession implements this; tools delegate here."""
+
+    executed_assists: dict[str, dict[str, Any]]
+
+    def start_assist_execution(self, proposal_id: str) -> AssistExecution: ...
+
+    def verify_assist_effect(
+        self, proposal_id: str, execution: AssistExecution
+    ) -> dict[str, Any]: ...
+
+
 @dataclass
 class DemoToolSession:
     """Mutable session slice passed into tool execution."""
@@ -253,6 +262,7 @@ class DemoToolSession:
     attestations: list[UserAttestation] = field(default_factory=list)
     chat_index: DemoChatIndex = field(default_factory=DemoChatIndex)
     base_state: AttentionState | None = None
+    event_spine: AssistEventSpine | None = None
 
 
 def _frozen_base_state(session: DemoToolSession) -> AttentionState:
@@ -1098,6 +1108,38 @@ def execute_tool(
                 {"kind": "enigma_message", "text": "I don't know that assist proposal.", "at": at}
             ]
             return ToolExecutionResult(name=name, ok=False, turn_items=turn)
+        spine = session.event_spine
+        if spine is None:
+            turn = [
+                {
+                    "kind": "enigma_message",
+                    "text": "I can't approve that assist right now.",
+                    "at": at,
+                }
+            ]
+            return ToolExecutionResult(
+                name=name,
+                ok=False,
+                data={"reason": "event_spine_required"},
+                turn_items=turn,
+            )
+        previous = spine.executed_assists.get(proposal_id)
+        if previous is not None:
+            ok = bool(previous.get("ok"))
+            return ToolExecutionResult(
+                name=name,
+                ok=ok,
+                data={
+                    "ok": ok,
+                    "message": previous.get("message", ""),
+                    "proposal_id": proposal_id,
+                    "execution_id": previous.get("execution_id"),
+                    "artifact_id": previous.get("artifact_id"),
+                    "artifact_kind": previous.get("artifact_kind"),
+                    "deduplicated": True,
+                },
+                turn_items=[previous],
+            )
         plan = session.pending_assists.get(proposal_id)
         if plan is None:
             ctx.current_assist_proposal_id = None
@@ -1105,29 +1147,22 @@ def execute_tool(
                 {"kind": "enigma_message", "text": "I don't know that assist proposal.", "at": at}
             ]
             return ToolExecutionResult(name=name, ok=False, turn_items=turn)
-        execution = execute_assist(plan, session.synthetic_services)
-        ok, message = verify_assist_execution(plan, session.synthetic_services, execution)
-        effect = None
-        if ok:
-            effect = apply_verified_assist_effect(
-                plan,
-                completed_item_ids=session.completed_item_ids,
-                advances=session.assist_advances,
-            )
-            _apply_session_overlay(session)
-            reconcile_action_focus(ctx, session.state)
-        result = assist_result_item(proposal_id=proposal_id, ok=ok, message=message, at=at)
-        session.pending_assists.pop(proposal_id, None)
+        execution = spine.start_assist_execution(proposal_id)
+        result = spine.verify_assist_effect(proposal_id, execution)
+        ok = bool(result.get("ok"))
+        message = str(result.get("message", ""))
+        _apply_session_overlay(session)
+        reconcile_action_focus(ctx, session.state)
         if ctx.current_assist_proposal_id == proposal_id:
             ctx.current_assist_proposal_id = None
         ctx.set_pending_confirmation(None)
         return ToolExecutionResult(
             name=name,
+            ok=ok,
             data={
                 "ok": ok,
                 "message": message,
                 "proposal_id": proposal_id,
-                "effect": effect,
                 "execution_id": execution.execution_id,
                 "artifact_id": execution.artifact_id,
                 "artifact_kind": execution.artifact_kind,
@@ -1312,6 +1347,7 @@ def execute_tool(
 
 __all__ = [
     "ALLOWED_TOOL_NAMES",
+    "AssistEventSpine",
     "DENIED_REMOTE_CAPABILITIES",
     "DemoToolSession",
     "ToolCallRecord",

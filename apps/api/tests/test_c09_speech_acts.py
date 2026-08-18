@@ -19,6 +19,7 @@ from personal_enigma.api.demo_orchestrator import (
 )
 from personal_enigma.api.demo_projection import project_checkpoint
 from personal_enigma.api.demo_tools import DemoToolSession, ToolCallRecord, execute_tool
+from personal_enigma.api.routes.demo import attach_event_spine_to_tool_session
 from personal_enigma.api.speech_acts import (
     ASSIST_FUNNEL,
     classify_speech_act,
@@ -49,7 +50,7 @@ class _ScriptedLLM:
 
 def _tool_session() -> DemoToolSession:
     state = project_checkpoint(JAN19).state
-    return DemoToolSession(
+    session = DemoToolSession(
         state=state,
         context=ConversationContext(),
         checkpoint_id=JAN19,
@@ -58,6 +59,8 @@ def _tool_session() -> DemoToolSession:
         conversation=[],
         synthetic_services=SyntheticDemoServices(),
     )
+    attach_event_spine_to_tool_session(session)
+    return session
 
 
 def _seed_token(session: DemoToolSession) -> None:

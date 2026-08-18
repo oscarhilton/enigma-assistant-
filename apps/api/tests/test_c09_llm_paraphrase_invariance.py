@@ -29,6 +29,7 @@ from personal_enigma.api.demo_orchestrator import (
 )
 from personal_enigma.api.demo_projection import project_checkpoint
 from personal_enigma.api.demo_tools import DemoToolSession, ToolCallRecord, execute_tool
+from personal_enigma.api.routes.demo import attach_event_spine_to_tool_session
 
 TASK_TOKEN_AUDIT = "item-obligation_token_audit"
 BRUNCH_ID = "item-obligation_brunch_book"
@@ -104,7 +105,7 @@ class ScriptedConversationLLM:
 
 def _tool_session(checkpoint_id: str = JAN19) -> DemoToolSession:
     state = project_checkpoint(checkpoint_id).state
-    return DemoToolSession(
+    session = DemoToolSession(
         state=state,
         context=ConversationContext(),
         checkpoint_id=checkpoint_id,
@@ -113,6 +114,8 @@ def _tool_session(checkpoint_id: str = JAN19) -> DemoToolSession:
         conversation=[],
         synthetic_services=SyntheticDemoServices(),
     )
+    attach_event_spine_to_tool_session(session)
+    return session
 
 
 def _seed_token_next_action(session: DemoToolSession) -> None:
