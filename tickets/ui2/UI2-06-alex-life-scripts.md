@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `ticket/UI2-06-alex-life-scripts` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
