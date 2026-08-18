@@ -17,7 +17,6 @@ from datetime import UTC, datetime
 from sqlite3 import Connection as SqlCipherConnection
 
 from personal_enigma.api.storage.derived import (
-    delete_derived_record,
     list_all_derived_records,
 )
 from personal_enigma.api.storage.vault import PrivateVault
@@ -207,52 +206,16 @@ def list_retained_assertion_ids(conn: SqlCipherConnection) -> list[str]:
     return sorted(ids)
 
 
-def _children_by_parent(conn: SqlCipherConnection) -> dict[str, list[str]]:
-    children: dict[str, list[str]] = {}
-    for record in list_all_derived_records(conn):
-        if not is_retained_assertion_record(record):
-            continue
-        child_id = record.payload.get("assertion_id")
-        if not isinstance(child_id, str):
-            continue
-        parent_ids = record.payload.get("derived_from_assertion_ids")
-        if not isinstance(parent_ids, list):
-            continue
-        for parent_id in parent_ids:
-            if isinstance(parent_id, str):
-                children.setdefault(parent_id, []).append(child_id)
-    return children
-
-
 def forget_retained_assertion(
     conn: SqlCipherConnection,
     assertion_id: str,
 ) -> ForgetCascadeResult:
-    """Delete a retained assertion and unjustified child retained assertions."""
-    children_map = _children_by_parent(conn)
-    deleted_assertions: list[str] = []
-    deleted_derivatives: list[str] = []
-
-    def _cascade(root_id: str) -> None:
-        for child_id in list(children_map.get(root_id, [])):
-            if child_id in deleted_assertions:
-                continue
-            _cascade(child_id)
-            if delete_derived_record(conn, child_id):
-                deleted_derivatives.append(child_id)
-                deleted_assertions.append(child_id)
-
-    existing = list_retained_assertion_ids(conn)
-    if assertion_id in existing:
-        _cascade(assertion_id)
-        if delete_derived_record(conn, assertion_id):
-            deleted_assertions.insert(0, assertion_id)
-
-    return ForgetCascadeResult(
-        root_assertion_id=assertion_id,
-        deleted_assertion_ids=deleted_assertions,
-        deleted_derived_ids=deleted_derivatives,
+    """Delete a retained assertion and unjustified dependent derived state."""
+    from personal_enigma.api.storage.retention_forget import (
+        forget_retained_assertion_with_propagation,
     )
+
+    return forget_retained_assertion_with_propagation(conn, assertion_id)
 
 
 class VaultDurableAssertionStore:
@@ -280,6 +243,18 @@ class VaultDurableAssertionStore:
 
     def forget(self, assertion_id: str) -> ForgetCascadeResult:
         return forget_retained_assertion(self._vault._conn, assertion_id)
+
+    def expire_ttl(self, *, now: datetime | None = None) -> list[ForgetCascadeResult]:
+        from personal_enigma.api.storage.retention_forget import expire_retained_assertions
+
+        return expire_retained_assertions(self._vault._conn, now=now)
+
+    def list_current_retained(self) -> list[DerivedRecord]:
+        from personal_enigma.api.storage.retention_forget import (
+            list_current_retained_records,
+        )
+
+        return list_current_retained_records(self._vault._conn)
 
     def list_retained_ids(self) -> list[str]:
         return list_retained_assertion_ids(self._vault._conn)

@@ -1,6 +1,6 @@
 # C29 — Life memory, retention gate, and third-party ethics
 
-**Status:** in_progress (slice 2 — vault bridge)  
+**Status:** in_progress (slice 3 — forget propagation + TTL expiry)  
 **Branch:** `ticket/C29-life-memory-retention`  
 **Domain:** conversational-ui  
 **May edit:** `packages/domain/src/personal_enigma/domain/retention.py`, `packages/domain/src/personal_enigma/domain/retention_gate.py`, `packages/domain/src/personal_enigma/domain/durable_assertions.py`, `packages/domain/src/personal_enigma/domain/__init__.py`, `packages/domain/tests/test_retention_gate.py`, `apps/api/tests/test_c29_*.py`, `docs/architecture/data-retention.md`, `docs/adr/036-*.md`, `docs/architecture/enigma-master-gap-analysis.md`, `tickets/conversational-ui/**`
@@ -43,8 +43,8 @@ GroundedAssertion
 | 3 | retention purpose | `RetentionPurpose.LIFE_FACT` etc. | purpose UI |
 | 4 | provenance preservation | `provenance_refs` on decision | vault mapping (slice 2) |
 | 5 | third-party restrictions | gate rejects profiling predicates | audit |
-| 6 | correction / deletion | stub `InMemoryDurableAssertionStore.forget()` | SEC-06 bridge (slice 2 minimal) |
-| 7 | derivative invalidation | stub cascade | full SEC-06 graph (slice 3) |
+| 6 | correction / deletion | `forget_retained_assertion()` + SEC-06 lineage graph | inventory API (slice 4) |
+| 7 | derivative invalidation | full SEC-06 graph via `retention_forget.py` | — |
 
 ## First memory model (boring & practical only)
 
@@ -99,10 +99,28 @@ THE Goose is **presentation-only**. It may retrieve retained facts for display l
 - [x] Minimal `forget_retained_assertion()` cascade for child retained rows
 - [x] Bridge + freeze tests in `apps/api/tests/test_c29_retention_vault_bridge.py`
 
-### Slice 3+
+### Slice 3 (forget propagation + TTL expiry)
 
-- [ ] Wire forget/correction to SEC-06 `forget_source` graph (full propagation)
-- [ ] Purpose-expiry GC for TTL decisions
+- [x] `retention_forget.py` — `resolve_retained_assertion_forget_plan()`, `forget_retained_assertion_with_propagation()`
+- [x] Transitive lineage cascade via SEC-06 `derived_source_deps` (not payload-only children)
+- [x] Independent evidence survives (`EV_*`, source records, other retained assertions)
+- [x] TTL expiry (`expire_retained_assertions()`) — same semantics as explicit forget
+- [x] Current-memory helpers (`list_current_retained_records`, `find_current_retained_by_content`)
+- [x] Forget audit metadata — ids only, never deleted private content
+- [x] Freeze tests in `apps/api/tests/test_c29_forget_propagation.py` (Ceramics cascade, TTL expiry, Re-establishment)
+
+### Slice 3 invariants (enforced in code + tests)
+
+1. **Forgetting is semantic** — derived rows deleted from vault, not hidden from one projection
+2. **Lineage determines invalidation** — B justified only by A → forget(A) deletes B
+3. **Independent evidence survives** — multi-source rows survive partial forget
+4. **TTL expiry = governed forgetting** — `expire_retained_assertions()` reuses forget cascade
+5. **Expired memory cannot appear as current** — deleted rows absent from current-memory queries
+6. **Deletion must not rewrite history** — audit records ids; no deleted payload content
+7. **Forget does not mutate epistemic class** — re-establishment creates new row with its own status
+
+### Slice 4+
+
 - [ ] Inventory API surfaces life-memory assertions alongside derived records
 
 ## Freeze tests (acceptance criteria — must stay green)
@@ -132,8 +150,8 @@ Enigma can retain useful concrete facts for the user while refusing to turn othe
 ## Test plan
 
 ```bash
-uv run pytest packages/domain/tests/test_retention_gate.py apps/api/tests/test_c29_retention_freeze.py apps/api/tests/test_c29_retention_vault_bridge.py -q
-uv run ruff check packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/durable_assertions.py apps/api/src/personal_enigma/api/storage/retention_vault.py
+uv run pytest packages/domain/tests/test_retention_gate.py apps/api/tests/test_c29_retention_freeze.py apps/api/tests/test_c29_retention_vault_bridge.py apps/api/tests/test_c29_forget_propagation.py -q
+uv run ruff check packages/domain/src/personal_enigma/domain/retention_gate.py packages/domain/src/personal_enigma/domain/durable_assertions.py apps/api/src/personal_enigma/api/storage/retention_vault.py apps/api/src/personal_enigma/api/storage/retention_forget.py
 uv run basedpyright packages/domain/src/personal_enigma/domain/retention_gate.py
 ```
 

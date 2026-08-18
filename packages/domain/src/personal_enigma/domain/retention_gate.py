@@ -149,6 +149,8 @@ class ForgetCascadeResult(BaseModel):
     root_assertion_id: str
     deleted_assertion_ids: list[str] = Field(default_factory=list)
     deleted_derived_ids: list[str] = Field(default_factory=list)
+    audit_id: str | None = None
+    trigger: str = "forget"  # "forget" | "ttl_expiry"
 
 
 class DurableAssertionStore(Protocol):
