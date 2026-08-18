@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
+| Status | `in_progress` |
 | Branch | `ticket/UI2-02-streaming` |
 | Domain | `ui2` |
 | Programme | [UI2](./README.md) |
@@ -23,11 +23,11 @@
 
 ## Acceptance criteria
 
-- [ ] Incremental token/chunk rendering in v2 message list
-- [ ] Cancel in-flight turn
-- [ ] Reconnect / resume semantics documented and tested
-- [ ] AgentWork stream independent from text stream (Goose updates without waiting for text)
-- [ ] v1 remains non-streaming
+- [x] Incremental token/chunk rendering in v2 message list
+- [x] Cancel in-flight turn
+- [x] Reconnect / resume semantics documented and tested
+- [x] AgentWork stream independent from text stream (Goose updates without waiting for text)
+- [x] v1 remains non-streaming
 
 ## Test plan
 

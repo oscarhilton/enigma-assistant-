@@ -1,25 +1,33 @@
 import { Link } from "react-router-dom";
 import { GoosePresence } from "../enigma/GoosePresence";
-import { licenceFromConversation } from "../enigma/goosePixels";
 import { inspectGooseEvent, projectGooseEvents, recordGooseTelemetry } from "../enigma/gooseTelemetry";
-import { useEnigmaConversation } from "../enigma/EnigmaProvider";
 import { WorldSwitcher } from "../pilot/WorldSwitcher";
 import { useWorld } from "../pilot/WorldProvider";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GoosePixelLicence } from "../enigma/goosePixels";
 import { buildIdentityLabel } from "./buildIdentity";
 import { V2Composer } from "./V2Composer";
 import { V2ConversationViewport } from "./V2ConversationViewport";
 import { V2Sidebar } from "./V2Sidebar";
+import { useV2StreamingConversation } from "./useV2StreamingConversation";
 
 export function V2Shell() {
   const { world } = useWorld();
-  const { items, busy, loading, sendMessage, error, clearError, client } = useEnigmaConversation();
+  const {
+    items,
+    streamingRow,
+    loading,
+    busy,
+    error,
+    disconnected,
+    sendMessage,
+    cancel,
+    reconnect,
+    clearError,
+    gooseLicence,
+    client,
+  } = useV2StreamingConversation();
   const [workExplanation, setWorkExplanation] = useState<string[]>([]);
-  const gooseLicence = useMemo(
-    () => licenceFromConversation({ items, busy, loading }),
-    [items, busy, loading],
-  );
   const previousGooseLicence = useRef<GoosePixelLicence | null>(null);
 
   useEffect(() => {
@@ -54,7 +62,7 @@ export function V2Shell() {
       <V2Sidebar />
 
       <main className="v2-main">
-        <V2ConversationViewport items={items} loading={loading} />
+        <V2ConversationViewport items={items} loading={loading} streamingRow={streamingRow} />
         {workExplanation.length > 0 ? (
           <section
             className="px-4 pb-2 text-sm text-muted-foreground"
@@ -70,8 +78,11 @@ export function V2Shell() {
         ) : null}
         <V2Composer
           onSend={sendMessage}
+          onCancel={cancel}
+          onReconnect={reconnect}
           disabled={loading}
           busy={busy}
+          disconnected={disconnected}
           error={error}
           onDismissError={clearError}
         />

@@ -6,13 +6,16 @@ storage roots or HMAC keys.
 
 from __future__ import annotations
 
+import json
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from personal_enigma.api.conversation_context import ConversationContext
@@ -164,6 +167,90 @@ def alex_lab_is_active(application: FastAPI) -> bool:
         return False
 
 
+
+_TOOL_INSPECT_LABELS: dict[str, str] = {
+    "availability.check": "Checked your calendar",
+    "availability.time_fit": "Checked your calendar",
+    "agenda.get": "Checked your week",
+    "attention.get_current": "Checked what needs you",
+    "context.resolve_referent": "Matched this to the token inventory",
+    "world.explain": "Checked why this matters",
+    "attention.explain_why": "Checked why this matters",
+    "world.get_changes": "Checked what changed",
+    "world.get_blockers": "Checked what you're waiting on",
+    "next_action.get": "Checked what's worth doing",
+    "next_action.get_alternatives": "Looked for something else",
+    "next_action.reject": "Noted you'd rather not",
+    "referent.get_duration": "Checked how long this takes",
+    "assist.propose": "Prepared an action",
+    "assist.approve": "Approved",
+}
+
+
+def _sse(event: str, data: dict[str, Any]) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+def _inspect_labels_from_payload(payload: dict[str, Any]) -> list[str]:
+    trace = payload.get("llm_trace")
+    if not isinstance(trace, dict):
+        return []
+    labels: list[str] = []
+    hops = list(trace.get("executed_tool_request") or []) + list(
+        trace.get("tool_results") or []
+    )
+    for hop in hops:
+        if not isinstance(hop, dict):
+            continue
+        name = hop.get("name")
+        if not isinstance(name, str):
+            continue
+        label = _TOOL_INSPECT_LABELS.get(name)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def _agent_work_event(
+    *,
+    phase: str,
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    labels = _inspect_labels_from_payload(payload) if payload else []
+    semantic = labels[0] if labels else ("in-flight" if phase == "in_flight" else "complete")
+    return {
+        "exists": True,
+        "phase": phase,
+        "semantic_token": semantic,
+        "inspect_target": None,
+        "inspect_labels": labels,
+    }
+
+
+def _prose_deltas(payload: dict[str, Any]) -> list[str]:
+    texts: list[str] = []
+    for item in payload.get("items") or []:
+        if isinstance(item, dict) and item.get("kind") == "enigma_message":
+            text = item.get("text")
+            if isinstance(text, str) and text:
+                texts.append(text)
+    deltas: list[str] = []
+    for text in texts:
+        words = text.split(" ")
+        for index, word in enumerate(words):
+            deltas.append(word if index == len(words) - 1 else f"{word} ")
+    return [delta for delta in deltas if delta]
+
+
+def _json_safe_turn(payload: dict[str, Any]) -> dict[str, Any]:
+    """Omit ConversationContext — dataclasses are not JSON-safe on SSE."""
+    return {
+        key: payload[key]
+        for key in ("items", "conversation", "llm_trace", "calendar_facts_used")
+        if key in payload
+    }
+
+
 def install_world_routes(application: FastAPI) -> None:
     """Register ``/worlds`` switcher and My Enigma calendar READ routes."""
     application.state.world_registry_lock = Lock()
@@ -251,6 +338,42 @@ def install_world_routes(application: FastAPI) -> None:
                 session.bind_storage(Path(registry.active.storage_root))
             now = registry.active.clock.now().isoformat()
             return session.send_message(body.text, now=now)
+
+
+    @application.post("/worlds/my_enigma/conversation/message/stream")
+    def my_enigma_message_stream(body: MessageBody) -> StreamingResponse:
+        """SSE: agent_work and prose are independent channels (UI2-02 / C35)."""
+        _require_world(application, WorldId.MY_ENIGMA)
+
+        def event_stream() -> Iterator[str]:
+            try:
+                yield _sse("agent_work", _agent_work_event(phase="in_flight"))
+                with _lock_for(application):
+                    registry = _registry_for(application)
+                    session = _private_session_for(application)
+                    if session.storage_root is None:
+                        session.bind_storage(Path(registry.active.storage_root))
+                    now = registry.active.clock.now().isoformat()
+                    payload = session.send_message(body.text, now=now)
+                yield _sse(
+                    "agent_work",
+                    _agent_work_event(phase="complete", payload=payload),
+                )
+                for delta in _prose_deltas(payload):
+                    yield _sse("prose", {"delta": delta})
+                yield _sse("turn_complete", _json_safe_turn(payload))
+            except Exception as exc:
+                yield _sse("error", {"message": str(exc)})
+
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     @application.get("/worlds/my_enigma/calendar/provenance")
     def my_enigma_calendar_provenance() -> dict[str, Any]:

@@ -1,13 +1,27 @@
+import { Skeleton } from "../components/ui/skeleton";
 import { ScrollArea } from "../components/ui/scroll-area";
 import type { ConversationItem } from "../enigma/types";
 import { projectConversationItems, type V2MessageRow } from "./V2MessageList";
 
+export type { V2MessageRow };
+
 type Props = {
   items: ConversationItem[];
   loading?: boolean;
-  /** Reserved for UI2-02 partial assistant text while streaming. */
   streamingRow?: V2MessageRow | null;
 };
+
+export function appendStreamingText(current: V2MessageRow | null, delta: string): V2MessageRow {
+  if (current?.role === "assistant") {
+    return { ...current, text: `${current.text}${delta}`, streaming: true };
+  }
+  return {
+    id: "streaming-assistant",
+    role: "assistant",
+    text: delta,
+    streaming: true,
+  };
+}
 
 function MessageBubble({ row }: { row: V2MessageRow }) {
   if (row.role === "user") {
@@ -41,7 +55,12 @@ export function V2ConversationViewport({ items, loading = false, streamingRow = 
   if (loading) {
     return (
       <div className="v2-messages" data-testid="v2-conversation">
-        <p className="text-sm text-muted-foreground">Loading conversation…</p>
+        <p className="sr-only">Loading conversation…</p>
+        <div className="max-w-xl mx-auto space-y-3 pt-4" data-testid="v2-conversation-skeleton">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-3/5" />
+        </div>
       </div>
     );
   }

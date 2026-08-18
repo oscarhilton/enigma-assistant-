@@ -3,18 +3,24 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
 type Props = {
-  onSend: (text: string) => Promise<void>;
+  onSend: (text: string) => Promise<boolean | void>;
+  onCancel?: () => void;
+  onReconnect?: () => Promise<void> | void;
   disabled?: boolean;
   busy?: boolean;
+  disconnected?: boolean;
   error?: string | null;
   onDismissError?: () => void;
 };
 
-/** Bottom composer — structured for streaming send/cancel in UI2-02. */
+/** Bottom composer — streaming send, Stop cancel, Reconnect after drop. */
 export function V2Composer({
   onSend,
+  onCancel,
+  onReconnect,
   disabled = false,
   busy = false,
+  disconnected = false,
   error = null,
   onDismissError,
 }: Props) {
@@ -30,8 +36,10 @@ export function V2Composer({
     }
     setLocalBusy(true);
     try {
-      await onSend(trimmed);
-      setText("");
+      const ok = await onSend(trimmed);
+      if (ok !== false) {
+        setText("");
+      }
     } finally {
       setLocalBusy(false);
     }
@@ -72,9 +80,30 @@ export function V2Composer({
           disabled={disabled || sending}
           className="flex-1"
         />
-        <Button type="submit" disabled={disabled || sending || !text.trim()}>
-          {sending ? "Sending…" : "Send"}
-        </Button>
+        {sending ? (
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="v2-composer-stop"
+            onClick={() => onCancel?.()}
+          >
+            Stop
+          </Button>
+        ) : (
+          <Button type="submit" disabled={disabled || !text.trim()}>
+            Send
+          </Button>
+        )}
+        {disconnected ? (
+          <Button
+            type="button"
+            variant="secondary"
+            data-testid="v2-composer-reconnect"
+            onClick={() => void onReconnect?.()}
+          >
+            Reconnect
+          </Button>
+        ) : null}
       </form>
     </div>
   );
