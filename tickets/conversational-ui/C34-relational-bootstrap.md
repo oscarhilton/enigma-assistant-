@@ -28,7 +28,7 @@ Relational Bootstrap is **continuation mechanics**, not a hidden person model.
 
 ## Acceptance
 
-- [ ] HONK HONK test — participates in established frame; forbids meta/emotional inference/duck emoji
-- [ ] Abstinence — sane without bootstrap; culture retrievable but ignorable
-- [ ] Crowbar — unrelated personal memory stays out of bootstrap wire
-- [ ] `uv run pytest apps/api/tests/test_c34_relational_bootstrap.py`
+- [x] HONK HONK test — participates in established frame; forbids meta/emotional inference/duck emoji
+- [x] Abstinence — sane without bootstrap; culture retrievable but ignorable
+- [x] Crowbar — unrelated personal memory stays out of bootstrap wire
+- [x] `uv run pytest apps/api/tests/test_c34_relational_bootstrap.py`
