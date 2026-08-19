@@ -576,8 +576,14 @@ def test_private_context_selection_01_conversational_no_private_retrieval(
             f"PRIVATE_CONTEXT_SELECTION_01: {phrase!r} routed to private_calendar_read"
         )
         executed = trace.get("executed_tool_request") or []
-        private_tools = {"agenda.get", "availability.check", "world.explain", "attention.get_current"}
+        private_tools = {
+            "agenda.get",
+            "availability.check",
+            "world.explain",
+            "attention.get_current",
+        }
         called = {t["name"] for t in executed} & private_tools
         assert not called, (
-            f"PRIVATE_CONTEXT_SELECTION_01: private tools {called} called for conversational {phrase!r}"
+            f"PRIVATE_CONTEXT_SELECTION_01: private tools {called} "
+            f"called for conversational {phrase!r}"
         )
