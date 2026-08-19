@@ -101,6 +101,9 @@ export function isThreadActivity(event: EnigmaActivityEvent): boolean {
 
 function subjectIdFromResult(result: LlmTraceToolResult): string | null {
   const data = result.data;
+  if (!data || typeof data !== "object") {
+    return null;
+  }
   const value = data.subject_id ?? data.current_subject_id;
   return typeof value === "string" ? value : null;
 }
@@ -124,7 +127,8 @@ export function projectActivityFromTrace(
       phase: "done",
       label: spec.label,
       source_tool: result.name,
-      subject_id: subjectIdFromResult(result) ?? trace.conversation_state.current_subject_id ?? null,
+      subject_id:
+        subjectIdFromResult(result) ?? trace.conversation_state?.current_subject_id ?? null,
       forensic_only: spec.forensic_only ?? false,
     });
   });
@@ -137,7 +141,7 @@ export function projectActivityFromTrace(
       phase: "done",
       label: "Remote inference allowed",
       source_tool: null,
-      subject_id: trace.conversation_state.current_subject_id ?? null,
+      subject_id: trace.conversation_state?.current_subject_id ?? null,
       forensic_only: true,
     });
   }

@@ -29,6 +29,13 @@ export type ForensicModel = {
     provenance: ProvenanceView | null;
     evidenceIds: string[];
     activityLabels: string[];
+    calendarFactsUsed: Record<string, unknown>[];
+    calendarNegativeEvidence: {
+      checked: true;
+      scope: string;
+      resultCount: number;
+      source: string;
+    } | null;
   }>;
   notDisclosed: ForensicSection<{ excluded: string[]; blocked: boolean; blockReason: string | null }>;
   relationalBootstrap: ForensicSection<Record<string, unknown> | null>;

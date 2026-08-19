@@ -85,7 +85,9 @@ export type LlmTraceToolCall = {
 export type LlmTraceToolResult = {
   name: string;
   ok: boolean;
-  data: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  calendar_items?: unknown[];
+  period?: string;
 };
 
 export type LlmTraceDisclosure = {
@@ -111,6 +113,11 @@ export type LlmTrace = {
   conversation_state: {
     current_subject_id?: string | null;
     current_subject_kind?: string | null;
+    authority_ceiling?: string;
+    capability_contract?: {
+      allowed: string[];
+      unavailable: string[];
+    };
   };
   tools_available: string[];
   remote_context_sent?: Record<string, unknown> | null;

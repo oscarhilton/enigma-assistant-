@@ -12,6 +12,7 @@ import { buildCopyBundle } from "./copyBundles";
 import type { CopyTier, ForensicModel } from "./types";
 import { ForensicSectionCard } from "./ForensicSectionCard";
 import { useStreamTrace } from "../StreamTraceProvider";
+import { useV2Threads } from "../V2ThreadProvider";
 
 function TurnSnapshotBar({
   model,
@@ -187,8 +188,10 @@ function SectionsGrid({ model }: { model: ForensicModel }) {
 
 export function V2DebugPanel() {
   const { world } = useWorld();
-  const { items, attention, busy, loading, client } = useEnigmaConversation();
-  const { lastTrace } = useStreamTrace();
+  const { attention, busy, loading, client, items: sessionItems } = useEnigmaConversation();
+  const { activeThread } = useV2Threads();
+  const { lastTrace, forensicTurn } = useStreamTrace();
+  const items = activeThread.items.length > 0 ? activeThread.items : sessionItems;
   const [provenance, setProvenance] = useState<ProvenanceView | null>(null);
   const [snapshotCopied, setSnapshotCopied] = useState(false);
 
@@ -216,8 +219,9 @@ export function V2DebugPanel() {
         world,
         provenance,
         streamingTrace: lastTrace,
+        forensicTurn,
       }),
-    [items, attention, busy, loading, world, provenance, lastTrace],
+    [items, attention, busy, loading, world, provenance, lastTrace, forensicTurn],
   );
 
   const copySnapshot = useCallback(async () => {
