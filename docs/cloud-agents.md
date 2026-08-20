@@ -92,20 +92,22 @@ Before building `@cursor/sdk` relay (Phase 2):
 
 Suggested first pilots: small test/doc tickets, or follow-on API work with globs confined to `apps/api/**`.
 
-## Planned relay (Phase 2)
+## Planned relay (Phase 2) — [CLOUD-02](../tickets/platform/CLOUD-02-cursor-relay-mcp.md)
 
 ```
-Oscar task contract
-  → @cursor/sdk (cloud mode)
-  → isolated VM + ticket branch (+ optional stacked base branch)
-  → implement + test
-  → PR / structured handoff
-  → Codex review
-  → follow-up via Agent.resume(same id)
+ChatGPT (existing authenticated session)
+  → authenticated MCP relay (CURSOR_API_KEY in relay secret store only)
+  → Cursor Cloud Agents API (@cursor/sdk)
+  → named environment + ticket branch (+ optional stacked base)
+  → implement / conduct + test
+  → PR / structured handoff (handoff-schema.json)
+  → follow_up / request_review / cancel (approval-gated)
   → only decisions reach Oscar
 ```
 
-MCP surface (later): `dispatch`, `status`, `follow_up`, `request_review`.
+Trust invariants: Cursor never receives ChatGPT credentials; Cloud Agents never automate ChatGPT or Cursor account login; `CURSOR_API_KEY` must not appear in the repo or agent VM env.
+
+MCP surface: `dispatch`, `status`, `follow_up`, `request_review`, `cancel`.
 
 Ticket markdown files remain the source of truth for scope; branches/PRs are durable handoffs.
 

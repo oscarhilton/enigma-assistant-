@@ -35,7 +35,8 @@
 - [x] `.cursor/hooks.json` — sessionStart, beforeShellExecution guards (`failClosed: false`), stop verify reminder
 - [x] `AGENTS.md` — cloud agents row in Testing table
 - [x] Local Docker build + version smoke (`enigma-cloud-test`) — see evidence below
-- [ ] Oscar: create/bind saved Cloud environment in Cursor dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — **UI-only**; repo config committed and build-validated; dashboard create still required once
+- [x] Manual Cloud Agent pilot (read-only conductor + schema-shaped handoff) — evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129); satisfies CLOUD-02’s soft “first manual conductor run transcript” prerequisite only (does **not** prove a saved named environment was used)
+- [ ] Oscar: create/bind saved Cloud environment in Cursor dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — **UI-only**; explicit **operator prerequisite for CLOUD-02**; repo config committed and build-validated; dashboard create/bind still required once
 
 ## Docker fix evidence (merge-blocking)
 
@@ -74,10 +75,8 @@
 - [x] Hook scripts executable; `bash -n` on shell hooks
 - [x] Hook synthetic probes (table above)
 - [x] Local Docker build + version smoke
-- [ ] Manual: launch cloud agent against this branch from Cursor dashboard (Oscar)
+- [x] Manual Cloud Agent pilot — read-only conductor against current `main` / filing branch; schema-shaped handoff emitted per [handoff-schema.json](../../docs/cloud-agents/handoff-schema.json). Evidence: [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (CLOUD-02 / ROUTE-01 filing + conductor handoffs on that run). CLOUD-02’s soft prerequisite “first manual conductor run transcript” is **satisfied**. This does **not** evidence use of a saved named dashboard environment — that bind remains an open CLOUD-01 / CLOUD-02 operator prerequisite.
 
-## Phase 2 (future ticket)
+## Phase 2
 
-- `@cursor/sdk` relay with explicit base branch for stacked PRs
-- MCP: dispatch, status, follow_up, request_review
-- Optional `beforeReadFile` / write hooks for ticket glob enforcement
+See [CLOUD-02 — Cursor relay MCP](./CLOUD-02-cursor-relay-mcp.md): authenticated MCP relay (`dispatch`, `status`, `follow_up`, `request_review`, `cancel`); `CURSOR_API_KEY` server-side only; no ChatGPT credentials to Cursor; no agent-driven account login.
