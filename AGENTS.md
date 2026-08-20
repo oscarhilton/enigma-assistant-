@@ -33,6 +33,7 @@ Operating manual for humans and coding agents working in this monorepo.
 | Python | `uv run pytest` · `uv run ruff check .` · `uv run basedpyright` |
 | Web | `pnpm test` · `pnpm lint` · `pnpm typecheck` · `pnpm build` |
 | Apple Bridge | `cd apps/apple-bridge && swift test` (macOS) |
+| Cloud agents | See [docs/cloud-agents.md](docs/cloud-agents.md) — Linux VM; mocks only, no real Private storage |
 
 Behavioural changes without tests are not done.
 

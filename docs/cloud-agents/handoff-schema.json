@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://personal-enigma.local/schemas/cloud-conductor-handoff.v1.json",
+  "title": "CloudReleaseConductorHandoff",
+  "type": "object",
+  "required": [
+    "observed_state",
+    "evidence",
+    "scope_classification",
+    "recommended_action",
+    "tests",
+    "residual_risks",
+    "requires_oscar"
+  ],
+  "properties": {
+    "observed_state": {
+      "type": "object",
+      "properties": {
+        "branch": { "type": "string" },
+        "worktree_clean": { "type": "boolean" },
+        "ticket_ids": { "type": "array", "items": { "type": "string" } },
+        "open_prs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "number": { "type": "integer" },
+              "base": { "type": "string" },
+              "head": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": { "enum": ["command", "file", "diff", "note"] },
+          "summary": { "type": "string" },
+          "ref": { "type": "string" }
+        }
+      }
+    },
+    "scope_classification": {
+      "enum": ["in_ticket", "scope_creep", "cross_ticket", "infra_only"]
+    },
+    "recommended_action": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "commit_on_branch",
+            "open_pr",
+            "request_review",
+            "no_action",
+            "rebase_stack",
+            "run_more_tests",
+            "stop_needs_human"
+          ]
+        },
+        "branch": { "type": "string" },
+        "pr_base": { "type": "string" },
+        "pr_head": { "type": "string" },
+        "rationale": { "type": "string" }
+      },
+      "required": ["kind", "rationale"]
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "passed": { "type": "boolean" }
+        },
+        "required": ["command", "passed"]
+      }
+    },
+    "residual_risks": { "type": "array", "items": { "type": "string" } },
+    "requires_oscar": {
+      "type": "object",
+      "properties": {
+        "required": { "type": "boolean" },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["required", "reasons"]
+    }
+  }
+}

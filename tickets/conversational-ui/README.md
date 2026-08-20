@@ -78,6 +78,7 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C11](./C11-tone-memory.md) | Tone memory (how to speak, not who you are) | **future** (after C09 LLM proof) |
 | [C12](./C12-life-scripts.md) | Life Scripts (Alex episodes as product tests) | **landed** (CLI; UI player later). Later months: [D08f-scripts](../demo-scenario/D08f-scripts.md) — do not implement C11 |
 | [C13](./C13-life-script-reliability.md) | Life Script reliability (repeat Fireworks runs) | **todo** |
+| [ROUTE-01](./ROUTE-01-semantic-router.md) | Semantic router graduation + regex demotion | **future** (hard-depends KERNEL-01) |
 | [C14](./C14-conversation-activity-stream.md) | Conversation activity stream (real events, not fake CoT) | **in_progress** (spec + v0 strip) |
 | [KERNEL-01](./KERNEL-01-turn-kernel.md) | Shared turn kernel (Demo + My Enigma) | **in_progress** (partial PR; stacked on P03) |
 | [C34](./C34-relational-bootstrap.md) | Relational bootstrap (continuation mechanics) | **frozen** ([#99](https://github.com/oscarhilton/enigma-assistant-/pull/99)) |
