@@ -20,6 +20,7 @@ dependencies = [
   "personal-enigma-evaluation",
   "personal-enigma-api",
   "personal-enigma-worker",
+  "personal-enigma-cursor-relay",
 ]
 
 [tool.uv.workspace]
@@ -39,6 +40,7 @@ members = [
   "packages/evaluation",
   "apps/api",
   "apps/worker",
+  "apps/cursor-relay",
 ]
 
 [tool.uv.sources]
@@ -57,6 +59,7 @@ personal-enigma-simulation = { workspace = true }
 personal-enigma-evaluation = { workspace = true }
 personal-enigma-api = { workspace = true }
 personal-enigma-worker = { workspace = true }
+personal-enigma-cursor-relay = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -64,6 +67,7 @@ dev = [
   "ruff>=0.11.0",
   "basedpyright>=1.28.0",
   "httpx>=0.28.0",
+  "jsonschema>=4.23.0",
 ]
 
 [tool.pytest.ini_options]
@@ -83,8 +87,9 @@ testpaths = [
   "packages/evaluation/tests",
   "apps/api/tests",
   "apps/worker/tests",
+  "apps/cursor-relay/tests",
 ]
-pythonpath = ["."]
+pythonpath = [".", "apps/cursor-relay/tests"]
 
 [tool.ruff]
 target-version = "py312"
@@ -105,6 +110,7 @@ src = [
   "packages/evaluation/src",
   "apps/api/src",
   "apps/worker/src",
+  "apps/cursor-relay/src",
 ]
 
 [tool.ruff.lint]
@@ -127,6 +133,7 @@ include = [
   "packages/evaluation/src",
   "apps/api/src",
   "apps/worker/src",
+  "apps/cursor-relay/src",
 ]
 pythonVersion = "3.12"
 typeCheckingMode = "basic"
