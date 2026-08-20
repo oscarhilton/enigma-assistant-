@@ -74,7 +74,7 @@
 - [x] Hook scripts executable; `bash -n` on shell hooks
 - [x] Hook synthetic probes (table above)
 - [x] Local Docker build + version smoke
-- [ ] Manual: launch cloud agent against this branch from Cursor dashboard (Oscar)
+- [x] Manual Cloud Agent pilot — read-only conductor against current `main` / filing branch; schema-shaped handoff emitted per [handoff-schema.json](../../docs/cloud-agents/handoff-schema.json). Evidence: [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (CLOUD-02 / ROUTE-01 filing + conductor handoffs on that run). CLOUD-02’s soft prerequisite “first manual conductor run transcript” is **satisfied**.
 
 ## Phase 2
 

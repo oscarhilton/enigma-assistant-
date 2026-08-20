@@ -61,6 +61,7 @@ Must not edit:
 - RESPOND-01 response-phase / Andon behaviour
 - BRIEF-01 proactive briefing consumer
 - Awarding authority from model confidence alone
+- Treating regex as semantic ground truth
 
 ## Product order
 
@@ -76,16 +77,19 @@ Must not edit:
 - [ ] Ranked candidate routes with **per-route confidence**; support `abstain`
 - [ ] Deterministic compiler merges proposals conservatively; confidence never grants authority or private truth
 - [ ] Thresholds calibrated against Life Scripts and multilingual paraphrases (raw LLM confidence is not holy writ)
-- [ ] Semantic vs regex routes run in **shadow comparison** before cutover
+- [ ] Semantic vs regex routes run in **shadow comparison** before cutover; **shadow success is measured against labelled expected routes and Life Script outcomes**, not agreement with regex
+- [ ] **Regex is never semantic ground truth** — it is a degraded-mode oracle / fallback only
 - [ ] Promote semantic router to primary for Alex Lab and My Enigma
-- [ ] Regex `intent_router` retained only as degraded-mode fallback / test oracle (provider-down, `LLM_DISABLED`, explicit force)
-- [ ] Trace: candidate scores, selected route, model id, latency, fallback reason
+- [ ] Regex `intent_router` retained only as degraded-mode fallback / test oracle (provider-down, `LLM_DISABLED`, explicit force) for inputs it can honestly cover
+- [ ] During provider outage, **unsupported / non-English input must abstain honestly** rather than be confidently misrouted by English regex
+- [ ] Trace: candidate scores, selected route, model id, latency, fallback reason (including abstain)
 - [ ] Selected, minimal tool surface is what the larger reasoning model receives
 - [ ] No RESPOND-01 / BRIEF-01 scope in this ticket
 
 ## Non-goals
 
 - Full retirement of `intent_router` in this ticket (keep degraded-mode oracle)
+- Using regex agreement as the shadow-pass criterion
 - Response prose quality / Andon (RESPOND-01)
 - Proactive briefing consumer (BRIEF-01)
 - Adding new English regex phrase families
@@ -94,12 +98,12 @@ Must not edit:
 
 ```bash
 # Scoped when claimed — expand with shadow + multilingual suites
-uv run pytest apps/api/tests/test_semantic_bootstrap.py  # or successor
+uv run pytest apps/api/tests/test_c15_semantic_bootstrap.py
 uv run ruff check .
 ```
 
-- Shadow: semantic vs regex agreement / disagreement corpus (Life Scripts + paraphrases)
-- Outage: provider-down path honestly falls back to regex oracle and records `fallback_reason`
+- Shadow: labelled expected routes + Life Script outcomes (regex disagreement is informative, not failure)
+- Outage: provider-down path records `fallback_reason`; non-English / unsupported inputs **abstain** instead of English-regex false confidence
 - Privacy: router output cannot elevate authority ceiling; private facts still require tools
 
 ## PR

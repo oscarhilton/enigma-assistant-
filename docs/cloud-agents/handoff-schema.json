@@ -53,6 +53,8 @@
           "enum": [
             "commit_on_branch",
             "open_pr",
+            "request_review",
+            "no_action",
             "rebase_stack",
             "run_more_tests",
             "stop_needs_human"

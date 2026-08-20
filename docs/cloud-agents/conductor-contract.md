@@ -10,9 +10,21 @@ The conductor MUST:
 2. **Read** the claimed ticket(s) under `tickets/` (status, package boundary globs, acceptance criteria, test plan).
 3. **Map** open PRs (base/head, stack order, CI status when available via `gh` read-only).
 4. **May request** bounded specialist audits (security, privacy, test gap) — but MUST reconcile every claim against repo evidence (files, diffs, test output).
-5. **Choose** a single recommended action: branch to use, commits to include, PR base/head proposal, or "stop — needs human."
+5. **Choose** a single recommended action (see kinds below).
 6. **Run** canonical verify commands appropriate to scope (see [cloud-agents.md](../cloud-agents.md)).
 7. **Emit** one machine-shaped JSON handoff document conforming to [handoff-schema.json](./handoff-schema.json).
+
+### `recommended_action.kind`
+
+| Kind | When to use |
+| --- | --- |
+| `commit_on_branch` | More commits needed on the working branch before a PR exists |
+| `open_pr` | No PR exists yet for this branch; propose opening one |
+| `request_review` | A draft or open PR **already exists** — ask Oscar/reviewers to review (do **not** emit `open_pr` for an already-open PR) |
+| `no_action` | Topology and verify are fine; nothing further for this conductor turn |
+| `rebase_stack` | Stacked PR base/head must change (e.g. retarget after a lower PR merges) |
+| `run_more_tests` | Evidence insufficient; name the missing verify commands |
+| `stop_needs_human` | Ambiguous stack, secrets risk, or work outside read-only mandate |
 
 The conductor MUST NOT (unless the job brief **explicitly authorizes**):
 
@@ -30,7 +42,7 @@ Write JSON (stdout or agreed artifact path) with:
 | `observed_state` | Branch, cleanliness, ticket ids, PR numbers |
 | `evidence` | Commands run, file paths inspected, diff summaries |
 | `scope_classification` | in_ticket \| scope_creep \| cross_ticket \| infra_only |
-| `recommended_action` | Structured next step (see schema) |
+| `recommended_action` | Structured next step (see schema + kinds table) |
 | `tests` | Commands run + pass/fail |
 | `residual_risks` | Privacy, stack conflicts, missing CI |
 | `requires_oscar` | Boolean + human-readable blockers |
