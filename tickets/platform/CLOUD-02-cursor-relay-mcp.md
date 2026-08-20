@@ -2,12 +2,12 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `cursor/cloud-02-tunnel-caller-no-bearer-47cd` |
 | Domain | `platform` |
-| PR | [#131](https://github.com/oscarhilton/enigma-assistant-/pull/131) (merged); follow-up patch on this branch |
+| PR | [#132](https://github.com/oscarhilton/enigma-assistant-/pull/132) (tunnel auth); [#131](https://github.com/oscarhilton/enigma-assistant-/pull/131) (initial relay) |
 
-**In progress (Secure MCP Tunnel auth patch).** Implementation in `apps/cursor-relay/`. Operator next: set `CURSOR_API_KEY` + `RELAY_TUNNEL_CALLER` on the **relay host only**, then authorize KERNEL-01 as first live cargo.
+**Done.** Secure MCP Tunnel caller on relay host; no bearer in MCP schemas. Operator: `CURSOR_API_KEY` + `RELAY_TUNNEL_CALLER` on relay host only (configured). First live cargo: KERNEL-01 via explicit job brief.
 
 ## Intent
 
