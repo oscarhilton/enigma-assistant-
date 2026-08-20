@@ -49,6 +49,7 @@ def check_environment(config: RelayConfig, environment: str) -> str:
             f"Named environment not allowlisted: {name}",
             dimension="environment",
         )
+    # Preserve allowlist identity for audits; create payload canonicalizes UUID→name.
     return name
 
 

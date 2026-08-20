@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import httpx
+
+from personal_enigma.cursor_relay.create_contract import (
+    extract_validation_fields,
+    truncate_field,
+)
 
 
 @dataclass
@@ -20,18 +26,44 @@ class CursorAgentRef:
 class CursorApiError(Exception):
     """Cursor API or mock lookup failure."""
 
-    def __init__(self, message: str, *, code: str = "cursor_api_error") -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "cursor_api_error",
+        validation: list[dict[str, str]] | None = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
+        self.validation = validation or []
 
 
 def _safe_http_error(exc: BaseException) -> CursorApiError:
-    """Map httpx failures to CursorApiError without leaking Authorization material."""
+    """Map httpx failures to CursorApiError without leaking secrets or bodies."""
 
     if isinstance(exc, httpx.TimeoutException):
         return CursorApiError("Cursor API request timed out", code="cursor_timeout")
     if isinstance(exc, httpx.HTTPStatusError):
         status = exc.response.status_code if exc.response is not None else "?"
+        validation: list[dict[str, str]] = []
+        if exc.response is not None and status == 400:
+            try:
+                body = exc.response.json()
+            except (json.JSONDecodeError, ValueError):
+                body = None
+            if body is not None:
+                validation = extract_validation_fields(body)
+            msg = "Cursor API HTTP 400"
+            if validation:
+                # Compact allowlisted summary only
+                bits = []
+                for item in validation[:5]:
+                    parts = [
+                        f"{k}={truncate_field(v, limit=80)}" for k, v in sorted(item.items())
+                    ]
+                    bits.append("{" + ", ".join(parts) + "}")
+                msg = f"Cursor API HTTP 400 validation: {'; '.join(bits)}"
+            return CursorApiError(msg, code="cursor_validation_error", validation=validation)
         return CursorApiError(
             f"Cursor API HTTP {status}",
             code="cursor_http_error",
@@ -144,6 +176,7 @@ class MockCursorClient:
         self.cancel_calls: list[tuple[str, str]] = []
         self._seq = 0
         self.fail_next: str | None = None
+        self.fail_validation: list[dict[str, str]] | None = None
 
     def _maybe_fail(self) -> None:
         mode = self.fail_next
@@ -154,6 +187,17 @@ class MockCursorClient:
             raise CursorApiError("Cursor API HTTP 503", code="cursor_http_error")
         if mode == "transport":
             raise CursorApiError("Cursor API transport error", code="cursor_transport_error")
+        if mode == "http_400":
+            validation = self.fail_validation or [
+                {"code": "invalid_argument", "message": "bad env", "field": "env.name"}
+            ]
+            self.fail_validation = None
+            raise CursorApiError(
+                "Cursor API HTTP 400 validation: "
+                + str({k: v for item in validation for k, v in item.items()}),
+                code="cursor_validation_error",
+                validation=validation,
+            )
 
     def _next_ids(self) -> tuple[str, str]:
         self._seq += 1
@@ -176,6 +220,8 @@ class MockCursorClient:
             "id": run_id,
             "agentId": agent_id,
             "status": "CREATING",
+            # Cursor-generated head — not the caller's requested branch.
+            "git": {"branches": [{"branch": f"cursor/auto-{self._seq:04d}"}]},
         }
         self.agents[agent_id] = agent
         self.runs[run_id] = run

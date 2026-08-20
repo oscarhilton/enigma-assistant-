@@ -42,6 +42,16 @@ This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay
 
 `RELAY_AUTH_TOKENS` (legacy bearer map) is **retired** for this pilot; config load fails closed if it is set without migrating to `RELAY_TUNNEL_CALLER`.
 
+## Create-agent contract (CLOUD-03)
+
+| Rule | Behaviour |
+| --- | --- |
+| `env.name` | Allowlisted UUID `1baeb513-9c77-11f1-ba66-0e7d0216e441` is canonicalized to `enigma-assistant-` before serialization |
+| Named cloud env | Never send `repos`; never set `workOnCurrentBranch=true` (omit field — Cursor-generated feature branch) |
+| Branch claim | Dispatch/review create reports `branch=pending` + `requested_head_branch`; `actual_head_branch` only from `status` |
+| `dry_run` | `job_brief.authorization.dry_run=true` validates and returns a redacted request plan — **no** `POST /v1/agents` |
+| HTTP 400 | Only truncated `code` / `message` / `field` validation entries — never headers, credentials, or raw bodies |
+
 ## Named environment (defaults)
 
 | Field | Value |

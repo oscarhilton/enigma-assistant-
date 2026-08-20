@@ -86,7 +86,11 @@ def denial_handoff(
     code: str,
     branch: str = "unknown",
     ticket_ids: list[str] | None = None,
+    validation: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
+    extra: dict[str, Any] = {"relay_denial_code": code}
+    if validation:
+        extra["cursor_validation"] = validation
     return make_handoff(
         branch=branch,
         ticket_ids=ticket_ids or ["CLOUD-02"],
@@ -102,6 +106,7 @@ def denial_handoff(
                 "summary": f"Relay denied tool '{tool}' with code {code}",
             }
         ],
+        extra_observed=extra,
     )
 
 

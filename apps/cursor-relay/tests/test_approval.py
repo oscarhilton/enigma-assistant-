@@ -13,7 +13,7 @@ BASE_DISPATCH = {
     "environment": "enigma-assistant-",
     "head_branch": "ticket/cloud-02-cursor-relay-mcp",
     "prompt": "read-only conductor",
-    "job_brief": {"authorization": {"dry_run": True}},
+    "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
 }
 
 
@@ -75,12 +75,14 @@ def test_approver_can_request_review(service: RelayService) -> None:
             "environment": "enigma-assistant-",
             "head_branch": "cursor/review-branch-a131",
             "prompt": "review please",
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
         },
         caller=APPROVER_CALLER,
     )
     validate_handoff(result)
     assert result["recommended_action"]["kind"] == "request_review"
     assert result["observed_state"].get("merge") is False
+    assert result["observed_state"]["agent_id"]
 
 
 def test_merge_always_denied(service: RelayService) -> None:
@@ -99,7 +101,7 @@ def test_auto_pr_requires_brief_auth(service: RelayService) -> None:
             **BASE_DISPATCH,
             "idempotency_key": "pr-no",
             "auto_create_pr": True,
-            "job_brief": {"authorization": {"dry_run": True}},
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
         },
         caller=DISPATCHER_CALLER,
     )

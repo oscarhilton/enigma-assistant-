@@ -15,7 +15,7 @@ def _dispatch(key: str) -> dict:
         "environment": "enigma-assistant-",
         "head_branch": "ticket/cloud-02-cursor-relay-mcp",
         "prompt": "hello",
-        "job_brief": {"authorization": {"dry_run": True}},
+        "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
     }
 
 

@@ -27,7 +27,7 @@ def test_dispatch_status_cancel_smoke(service: RelayService, mock_cursor: MockCu
             "prompt": prompt,
             "ticket_path": "tickets/platform/CLOUD-02-cursor-relay-mcp.md",
             "ticket_ids": ["CLOUD-02"],
-            "job_brief": {"authorization": {"dry_run": True}},
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
         },
         caller=DISPATCHER_CALLER,
     )
@@ -78,7 +78,7 @@ def test_mcp_tools_list_and_call(service: RelayService) -> None:
                     "environment": "enigma-assistant-",
                     "head_branch": "agent/mcp-smoke",
                     "prompt": "mcp smoke",
-                    "job_brief": {"authorization": {"dry_run": True}},
+                    "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
                 },
             },
         }
@@ -103,7 +103,7 @@ def test_follow_up_write_path(service: RelayService, mock_cursor: MockCursorClie
             "environment": "enigma-assistant-",
             "head_branch": "ticket/cloud-02-cursor-relay-mcp",
             "prompt": "setup",
-            "job_brief": {"authorization": {"dry_run": True}},
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
         },
         caller=DISPATCHER_CALLER,
     )
@@ -114,7 +114,7 @@ def test_follow_up_write_path(service: RelayService, mock_cursor: MockCursorClie
             "idempotency_key": "fu-1",
             "agent_id": agent_id,
             "prompt": "continue",
-            "job_brief": {"authorization": {"dry_run": True}},
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
         },
         caller=DISPATCHER_CALLER,
     )

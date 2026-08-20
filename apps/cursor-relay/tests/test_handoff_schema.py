@@ -43,7 +43,7 @@ def test_dispatch_response_validates(service: RelayService) -> None:
             "head_branch": "ticket/cloud-02-cursor-relay-mcp",
             "prompt": "conductor smoke",
             "ticket_ids": ["CLOUD-02"],
-            "job_brief": {"authorization": {"dry_run": True}},
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
         },
         caller=DISPATCHER_CALLER,
     )

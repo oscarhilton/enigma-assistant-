@@ -18,7 +18,7 @@ def _dispatch_params(key: str, **overrides: object) -> dict:
         "environment": "enigma-assistant-",
         "head_branch": "ticket/cloud-02-cursor-relay-mcp",
         "prompt": "hello",
-        "job_brief": {"authorization": {"dry_run": True}},
+        "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
     }
     base.update(overrides)
     return base
@@ -140,6 +140,7 @@ def test_request_review_idempotency_and_quota(relay_config: RelayConfig) -> None
         "environment": "1baeb513-9c77-11f1-ba66-0e7d0216e441",
         "head_branch": "cursor/review-a131",
         "prompt": "review",
+        "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
     }
     first = service.invoke("request_review", params, caller=APPROVER_CALLER)
     second = service.invoke("request_review", params, caller=APPROVER_CALLER)

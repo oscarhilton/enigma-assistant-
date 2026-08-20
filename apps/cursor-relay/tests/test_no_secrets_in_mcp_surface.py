@@ -109,7 +109,7 @@ def test_mcp_call_without_secrets_uses_tunnel_caller(
                     "environment": "enigma-assistant-",
                     "head_branch": "ticket/cloud-02-cursor-relay-mcp",
                     "prompt": "no secrets",
-                    "job_brief": {"authorization": {"dry_run": True}},
+                    "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
                 },
             },
         }
@@ -133,7 +133,7 @@ def test_internal_invoke_still_attributes_explicit_caller(service: RelayService)
             "environment": "enigma-assistant-",
             "head_branch": "ticket/cloud-02-cursor-relay-mcp",
             "prompt": "x",
-            "job_brief": {"authorization": {"dry_run": True}},
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
         },
         caller=DISPATCHER_CALLER,
     )

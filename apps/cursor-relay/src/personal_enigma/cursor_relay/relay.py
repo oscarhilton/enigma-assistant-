@@ -6,10 +6,20 @@ from pathlib import Path
 from typing import Any
 
 from personal_enigma.cursor_relay.allowlist import AllowlistError, validate_dispatch_target
-from personal_enigma.cursor_relay.approval import ApprovalError, enforce_write_policy
+from personal_enigma.cursor_relay.approval import (
+    ApprovalError,
+    enforce_write_policy,
+    parse_job_brief_auth,
+)
 from personal_enigma.cursor_relay.audit import AuditLog, hash_prompt
 from personal_enigma.cursor_relay.auth import AuthenticatedCaller
 from personal_enigma.cursor_relay.config import RelayConfig, config_public_dict
+from personal_enigma.cursor_relay.create_contract import (
+    PENDING_BRANCH,
+    build_create_payload,
+    canonicalize_environment_name,
+    redact_create_payload,
+)
 from personal_enigma.cursor_relay.cursor_client import (
     CursorApiError,
     CursorClient,
@@ -111,7 +121,15 @@ class RelayService:
                 result = self._deny(caller, tool, "unreachable", "unknown_tool", params)
         except (ApprovalError, AllowlistError, IdempotencyError, QuotaError, CursorApiError) as exc:
             code = getattr(exc, "code", "denied")
-            return self._deny(caller, tool, str(exc), code, params)
+            validation = getattr(exc, "validation", None)
+            return self._deny(
+                caller,
+                tool,
+                str(exc),
+                code,
+                params,
+                validation=validation if isinstance(validation, list) else None,
+            )
         except KeyError as exc:
             return self._deny(
                 caller, tool, f"Missing required field: {exc}", "invalid_params", params
@@ -133,6 +151,8 @@ class RelayService:
         reason: str,
         code: str,
         params: dict[str, Any],
+        *,
+        validation: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         self.audit.emit(
             tool=tool,
@@ -140,7 +160,7 @@ class RelayService:
             decision="deny",
             detail=reason,
             idempotency_key=params.get("idempotency_key"),
-            extra={"code": code},
+            extra={"code": code, "validation": validation or []},
         )
         return strip_secrets(
             denial_handoff(
@@ -149,6 +169,7 @@ class RelayService:
                 code=code,
                 branch=str(params.get("head_branch") or params.get("branch") or "unknown"),
                 ticket_ids=_ticket_ids(params),
+                validation=validation,
             )
         )
 
@@ -171,7 +192,7 @@ class RelayService:
             msg = "job_brief must be an object"
             raise ApprovalError(msg, code="invalid_params")
 
-        enforce_write_policy(
+        brief_auth = enforce_write_policy(
             "dispatch",
             caller=caller,
             job_brief=brief if isinstance(brief, dict) else None,
@@ -192,19 +213,54 @@ class RelayService:
         if not prompt.strip():
             raise ApprovalError("prompt or ticket_path is required", code="invalid_params")
 
-        self.quotas.check_create()
         ph = hash_prompt(prompt)
-
-        payload = _build_create_payload(
+        payload = build_create_payload(
             prompt=prompt,
             target=target,
             name=params.get("name"),
             auto_create_pr=bool(params.get("auto_create_pr", False)),
-            work_on_current_branch=bool(params.get("work_on_current_branch", True)),
             ticket_path=params.get("ticket_path"),
             job_brief=brief if isinstance(brief, dict) else None,
         )
+        env_name = canonicalize_environment_name(target.environment)
+        redacted_plan = redact_create_payload(payload)
 
+        # Genuine dry_run: validate + redacted plan only — never POST /v1/agents.
+        if brief_auth.dry_run:
+            handoff = success_handoff_for_tool(
+                tool="dispatch",
+                agent_id=None,
+                run_id=None,
+                branch=PENDING_BRANCH,
+                ticket_ids=_ticket_ids(params),
+                summary="Dry-run: create-agent plan validated (no POST /v1/agents)",
+                action_kind="no_action",
+                extra_observed={
+                    "dry_run": True,
+                    "mutating": False,
+                    "requested_head_branch": target.head_branch,
+                    "actual_head_branch": None,
+                    "repository": target.repository,
+                    "environment": env_name,
+                    "environment_input": target.environment,
+                    "model": target.model,
+                    "prompt_hash": ph,
+                    "create_request_plan": redacted_plan,
+                },
+            )
+            self.idempotency.put("dispatch", key, handoff)
+            self.audit.emit(
+                tool="dispatch",
+                caller_id=caller.caller_id,
+                decision="allow",
+                prompt_hash=ph,
+                usage={},
+                idempotency_key=key,
+                extra={"dry_run": True, "allowlist": "pass"},
+            )
+            return handoff
+
+        self.quotas.check_create()
         ref = self.cursor.create_agent(payload)
         self.quotas.record_create(ref.agent_id)
 
@@ -212,16 +268,22 @@ class RelayService:
             tool="dispatch",
             agent_id=ref.agent_id,
             run_id=ref.run_id,
-            branch=target.head_branch,
+            branch=PENDING_BRANCH,
             ticket_ids=_ticket_ids(params),
             summary=f"Dispatched agent {ref.agent_id} run {ref.run_id}",
             action_kind="no_action",
             extra_observed={
+                "dry_run": False,
+                "mutating": True,
+                "requested_head_branch": target.head_branch,
+                "actual_head_branch": None,
                 "repository": target.repository,
-                "environment": target.environment,
+                "environment": env_name,
+                "environment_input": target.environment,
                 "model": target.model,
                 "agent_url": ref.url,
                 "prompt_hash": ph,
+                "create_request_plan": redacted_plan,
             },
         )
         self.idempotency.put("dispatch", key, handoff)
@@ -261,10 +323,10 @@ class RelayService:
                     }
                 )
 
-        head = str(
-            params.get("head_branch")
-            or (branches[0].get("branch") if branches else "unknown")
-        )
+        # Actual head only when Cursor status returns it — never the requester's claim alone.
+        actual_head = branches[0].get("branch") if branches else None
+        requested = params.get("head_branch")
+        head = str(actual_head or PENDING_BRANCH)
         handoff = success_handoff_for_tool(
             tool="status",
             agent_id=agent_id,
@@ -277,6 +339,8 @@ class RelayService:
             extra_observed={
                 "lifecycle_status": status,
                 "agent_url": agent.get("url"),
+                "requested_head_branch": requested,
+                "actual_head_branch": actual_head,
                 "config": config_public_dict(self.config),
             },
         )
@@ -372,29 +436,69 @@ class RelayService:
                 params.get("prompt")
                 or "Perform a structured code review. Do not merge. Emit a schema-valid handoff."
             )
-            self.quotas.check_create()
             ph = hash_prompt(prompt)
-            payload = _build_create_payload(
+            payload = build_create_payload(
                 prompt=prompt,
                 target=target,
                 name=params.get("name") or "relay-request-review",
                 auto_create_pr=False,
-                work_on_current_branch=True,
                 ticket_path=params.get("ticket_path"),
                 job_brief=brief if isinstance(brief, dict) else None,
                 review_lane=True,
             )
+            brief_auth = parse_job_brief_auth(brief if isinstance(brief, dict) else None)
+            redacted_plan = redact_create_payload(payload)
+            env_name = canonicalize_environment_name(target.environment)
+            if brief_auth.dry_run:
+                handoff = success_handoff_for_tool(
+                    tool="request_review",
+                    agent_id=None,
+                    run_id=None,
+                    branch=PENDING_BRANCH,
+                    ticket_ids=_ticket_ids(params),
+                    summary="Dry-run: review create plan validated (no POST /v1/agents)",
+                    action_kind="request_review",
+                    extra_observed={
+                        "dry_run": True,
+                        "mutating": False,
+                        "merge": False,
+                        "requested_head_branch": target.head_branch,
+                        "actual_head_branch": None,
+                        "environment": env_name,
+                        "prompt_hash": ph,
+                        "create_request_plan": redacted_plan,
+                    },
+                )
+                self.idempotency.put("request_review", key, handoff)
+                self.audit.emit(
+                    tool="request_review",
+                    caller_id=caller.caller_id,
+                    decision="allow",
+                    prompt_hash=ph,
+                    idempotency_key=key,
+                    extra={"dry_run": True},
+                )
+                return handoff
+
+            self.quotas.check_create()
             ref = self.cursor.create_agent(payload)
             self.quotas.record_create(ref.agent_id)
             handoff = success_handoff_for_tool(
                 tool="request_review",
                 agent_id=ref.agent_id,
                 run_id=ref.run_id,
-                branch=target.head_branch,
+                branch=PENDING_BRANCH,
                 ticket_ids=_ticket_ids(params),
                 summary=f"Review agent {ref.agent_id} started (no merge)",
                 action_kind="request_review",
-                extra_observed={"prompt_hash": ph, "merge": False},
+                extra_observed={
+                    "prompt_hash": ph,
+                    "merge": False,
+                    "requested_head_branch": target.head_branch,
+                    "actual_head_branch": None,
+                    "environment": env_name,
+                    "create_request_plan": redacted_plan,
+                },
             )
             self.idempotency.put("request_review", key, handoff)
             self.audit.emit(
@@ -488,61 +592,3 @@ def _pr_number(url: str | None) -> int:
         return int(str(url).rstrip("/").split("/")[-1])
     except ValueError:
         return 0
-
-
-def _build_create_payload(
-    *,
-    prompt: str,
-    target: Any,
-    name: Any,
-    auto_create_pr: bool,
-    work_on_current_branch: bool,
-    ticket_path: Any,
-    job_brief: dict[str, Any] | None,
-    review_lane: bool = False,
-) -> dict[str, Any]:
-    text = prompt
-    if ticket_path:
-        text = f"Ticket: {ticket_path}\n\n{text}"
-    if review_lane:
-        text = (
-            "[REVIEW LANE — do not merge, do not push to main/master]\n"
-            + text
-        )
-    if job_brief:
-        auth = job_brief.get("authorization") or {}
-        text += (
-            "\n\nJob brief authorization: "
-            f"dry_run={auth.get('dry_run', True)} "
-            f"allow_push={auth.get('allow_push', False)} "
-            f"allow_open_pr={auth.get('allow_open_pr', False)} "
-            f"allow_merge=false (relay enforced)."
-        )
-
-    starting_ref = target.base_branch or target.head_branch
-    payload: dict[str, Any] = {
-        "prompt": {"text": text},
-        "model": {"id": target.model},
-        "name": name or f"relay:{target.head_branch}",
-        "env": {"type": "cloud", "name": target.environment},
-        # Named env is primary; also pass repo intent for allowlist audit / stacked base.
-        "repos": [
-            {
-                "url": f"https://github.com/{target.repository}",
-                "startingRef": starting_ref,
-            }
-        ],
-        "workOnCurrentBranch": work_on_current_branch,
-        "autoCreatePR": auto_create_pr,
-    }
-    # Note: Cloud API treats named env and repos as mutually exclusive for hosted env.
-    # Prefer named environment; drop repos when using allowlisted env name/id.
-    if target.environment:
-        payload.pop("repos", None)
-        # Encode head/base in prompt metadata so the agent still sees branch intent.
-        payload["prompt"]["text"] += (
-            f"\n\nRelay branch intent: head={target.head_branch}"
-            + (f" base={target.base_branch}" if target.base_branch else "")
-            + f" repository={target.repository}"
-        )
-    return payload
