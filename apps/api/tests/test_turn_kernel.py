@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from personal_enigma.api.demo_orchestrator import LlmTrace
 from personal_enigma.api.demo_tools import ToolExecutionResult
 from personal_enigma.api.turn_kernel import (
     ExecutionPlan,
@@ -10,7 +11,6 @@ from personal_enigma.api.turn_kernel import (
     attach_kernel_forensics,
     derive_turn_outcome,
 )
-from personal_enigma.api.demo_orchestrator import LlmTrace
 
 
 def test_derive_turn_outcome_fulfilled_when_planned_matches_executed() -> None:

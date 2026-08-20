@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from test_p03_calendar_read_support import (
     PILOT_NOW,
     _client,

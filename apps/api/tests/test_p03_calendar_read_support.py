@@ -501,7 +501,14 @@ def test_gravity_phatic_01_affirmation_after_calendar_no_private_tool(
     )
     executed = trace.get("executed_tool_request") or []
     tool_names = [t["name"] for t in executed]
-    calendar_tools = {"agenda.get", "briefing.read", "calendar.agenda.get", "availability.check", "attention.get_current", "world.explain"}
+    calendar_tools = {
+        "agenda.get",
+        "briefing.read",
+        "calendar.agenda.get",
+        "availability.check",
+        "attention.get_current",
+        "world.explain",
+    }
     assert not ({t["name"] for t in executed} & calendar_tools), (
         "GRAVITY_PHATIC_01: calendar tool called for phatic turn"
     )
