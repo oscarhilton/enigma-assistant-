@@ -35,7 +35,8 @@
 - [x] `.cursor/hooks.json` — sessionStart, beforeShellExecution guards (`failClosed: false`), stop verify reminder
 - [x] `AGENTS.md` — cloud agents row in Testing table
 - [x] Local Docker build + version smoke (`enigma-cloud-test`) — see evidence below
-- [ ] Oscar: create/bind saved Cloud environment in Cursor dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — **UI-only**; repo config committed and build-validated; dashboard create still required once
+- [x] Manual Cloud Agent pilot (read-only conductor + schema-shaped handoff) — evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129); CLOUD-02 soft prerequisite satisfied
+- [ ] Oscar: create/bind saved Cloud environment in Cursor dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — **UI-only**; repo config committed and build-validated; dashboard create still required once if not already bound
 
 ## Docker fix evidence (merge-blocking)
 
