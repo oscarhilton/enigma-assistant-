@@ -217,7 +217,7 @@ def test_this_week_follow_up_after_urgent_right_now(demo_client: TestClient) -> 
     assert "this week" in text
     assert "brunch" in text or "saturday" in text
     assert "token" in text
-    assert "interrupt" in text
+    assert "looking ahead" in text or "attention right now" in text
     next_actions = [item for item in turn["items"] if item["kind"] == "next_action"]
     assert len(next_actions) == 1
     assert next_actions[0]["action"]["source_candidate_id"] == TOKEN_ID

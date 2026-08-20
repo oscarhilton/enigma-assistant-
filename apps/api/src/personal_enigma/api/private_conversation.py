@@ -5,13 +5,8 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 from typing import Any
-from uuid import uuid4
 
-from personal_enigma.api.conversation_context import (
-    ConversationContext,
-    update_context_from_turn_items,
-)
-from personal_enigma.api.demo_orchestrator import LlmTrace, build_intent_router_trace
+from personal_enigma.api.conversation_context import ConversationContext
 from personal_enigma.api.intent_router import (
     ConversationIntentKind,
     resolve_intent,
@@ -20,15 +15,11 @@ from personal_enigma.api.private_calendar_read import (
     infer_private_calendar_period,
     is_private_agenda_list_request,
 )
-from personal_enigma.api.private_tools import (
-    PrivateToolSession,
-    execute_private_tool,
-    private_capability_contract,
-)
 from personal_enigma.attention.projection import AttentionState, build_presentation_plan
 
 _PREPARE_RE = re.compile(
-    r"\b(book it|schedule it|add to calendar|create (?:an )?event|send (?:the )?invite)\b",
+    r"\b(book it|schedule it|add to calendar|create (?:an )?event|send (?:the )?invite|"
+    r"book\b[^.?!]{0,40}\bcalendar)\b",
     re.IGNORECASE,
 )
 
@@ -166,16 +157,6 @@ def _is_calendar_related(text: str) -> bool:
     return bool(_CALENDAR_SUBJECT_RE.search(text))
 
 
-def _attach_trace(
-    turn_items: list[dict[str, Any]], trace_payload: dict[str, Any]
-) -> None:
-    if not turn_items:
-        return
-    stamped: dict[str, Any] = dict(turn_items[0])
-    stamped["llm_trace"] = trace_payload
-    turn_items[0] = stamped
-
-
 def _silence_attention(now: str) -> AttentionState:
     return AttentionState(
         simulated_time=now,
@@ -188,7 +169,9 @@ def _silence_attention(now: str) -> AttentionState:
     )
 
 
-def _route_private_tool(text: str, context: ConversationContext) -> tuple[str, dict[str, Any]]:
+def _route_private_tool(
+    text: str, context: ConversationContext
+) -> tuple[str, dict[str, Any]] | None:
     period = infer_private_calendar_period(text)
     # Only inherit temporal context when the current query is calendar-related.
     # Explicit current-turn period always wins; inheritance fills gaps only.
@@ -207,7 +190,7 @@ def _route_private_tool(text: str, context: ConversationContext) -> tuple[str, d
             or period in {"tomorrow", "this_weekend"}
             or infer_private_calendar_period(text) is not None
         ):
-            return "agenda.get", {"period": period}
+            return "briefing.read", {"period": period}
     resolved = resolve_intent(text)
     if resolved.kind == ConversationIntentKind.AVAILABILITY_QUERY:
         return "availability.check", {
@@ -216,12 +199,14 @@ def _route_private_tool(text: str, context: ConversationContext) -> tuple[str, d
     if resolved.kind == ConversationIntentKind.HELP_QUERY:
         return "world.explain", {}
     if resolved.kind == ConversationIntentKind.ATTENTION_QUERY:
+        if resolved.period is not None:
+            return "briefing.read", {"period": resolved.period.value}
         return "attention.get_current", {}
     if period:
-        return "agenda.get", {"period": period}
+        return "briefing.read", {"period": period}
     if is_private_agenda_list_request(text):
-        return "agenda.get", {"period": "this_week"}
-    return "world.explain", {}
+        return "briefing.read", {"period": "this_week"}
+    return None
 
 
 def handle_private_message(
@@ -232,211 +217,33 @@ def handle_private_message(
     conversation: list[dict[str, Any]],
     context: ConversationContext | None = None,
 ) -> dict[str, Any]:
-    """Handle one My Enigma turn without LLM — intent + READ/SUPPORT tools only."""
+    """Handle one My Enigma turn via the shared turn kernel."""
+    from personal_enigma.api.turn_kernel import run_private_turn
+
     ctx = context or ConversationContext()
-    corr = f"corr-{uuid4().hex}"
-    conversation.append(
-        {"kind": "user_message", "text": text, "at": at, "correlation_id": corr}
-    )
-
-    if _PREPARE_RE.search(text):
-        turn_items = [
-            {
-                "kind": "enigma_message",
-                "text": (
-                    "I can read your calendar and help you think through it — "
-                    "I can't create or change calendar events yet."
-                ),
-                "at": at,
-                "correlation_id": corr,
-            }
-        ]
-        trace = build_intent_router_trace(
-            user_message=text,
-            conversation_state={"authority_ceiling": "READ_SUPPORT"},
-            last_intent=ctx.last_intent,
-            turn_items=turn_items,
-            correlation_id=corr,
-        )
-        trace = trace.model_copy(
-            update={
-                "path": "intent_router",
-                "tools_available": list(private_capability_contract()["allowed"]),
-            }
-        )
-        trace_payload = trace.model_dump(mode="json")
-        _attach_trace(turn_items, trace_payload)
-        conversation.extend(turn_items)
-        update_context_from_turn_items(ctx, turn_items)
-        return {
-            "items": turn_items,
-            "conversation": {"items": list(conversation)},
-            "llm_trace": trace.model_dump(mode="json"),
-        }
-
-    state = _silence_attention(at)
-
-    # GRAVITY_01: Greetings are phatic — no private-world entry.
-    resolved_up_front = resolve_intent(text)
-    if resolved_up_front.kind == ConversationIntentKind.GREETING:
-        greeting_items: list[dict[str, Any]] = [
-            {
-                "kind": "enigma_message",
-                "text": "Hey! Ask me what's on your calendar or what needs your attention.",
-                "at": at,
-                "correlation_id": corr,
-            }
-        ]
-        trace = build_intent_router_trace(
-            user_message=text,
-            conversation_state={"authority_ceiling": "READ_SUPPORT"},
-            last_intent=ctx.last_intent,
-            turn_items=greeting_items,
-            correlation_id=corr,
-        )
-        trace = trace.model_copy(
-            update={
-                "path": "intent_router",
-                "planner": "conversation",
-                "tools_available": [],
-                "executed_tool_request": [],
-                "tool_results": [],
-            }
-        )
-        trace_payload = trace.model_dump(mode="json")
-        _attach_trace(greeting_items, trace_payload)
-        conversation.extend(greeting_items)
-        update_context_from_turn_items(ctx, greeting_items)
-        return {
-            "items": greeting_items,
-            "conversation": {"items": list(conversation)},
-            "llm_trace": trace_payload,
-        }
-
-    # PRIVACY_01 / GRAVITY_03: General-knowledge queries must not enter private retrieval.
-    if _is_general_knowledge(text):
-        gk_items: list[dict[str, Any]] = [
-            {
-                "kind": "enigma_message",
-                "text": "I don't have general knowledge — try a search engine for that.",
-                "at": at,
-                "correlation_id": corr,
-            }
-        ]
-        trace = build_intent_router_trace(
-            user_message=text,
-            conversation_state={"authority_ceiling": "READ_SUPPORT"},
-            last_intent=ctx.last_intent,
-            turn_items=gk_items,
-            correlation_id=corr,
-        )
-        trace = trace.model_copy(
-            update={
-                "path": "intent_router",
-                "planner": "general_knowledge_ejected",
-                "tools_available": [],
-                "executed_tool_request": [],
-                "tool_results": [],
-            }
-        )
-        trace_payload = trace.model_dump(mode="json")
-        _attach_trace(gk_items, trace_payload)
-        conversation.extend(gk_items)
-        update_context_from_turn_items(ctx, gk_items)
-        return {
-            "items": gk_items,
-            "conversation": {"items": list(conversation)},
-            "llm_trace": trace_payload,
-        }
-
-    # Semantic inheritance gate — the key invariant:
-    #   SELF_CONTAINED → use its own domain (handled above or below)
-    #   ELLIPTICAL     → may inherit a private planner from context
-    #   CONVERSATIONAL → CONVERSATION_ONLY, no private retrieval
-    semantic_kind = _turn_semantic_completeness(text, ctx)
-    if semantic_kind == TurnSemanticKind.CONVERSATIONAL:
-        conv_items: list[dict[str, Any]] = [
-            {
-                "kind": "enigma_message",
-                "text": "I'm here — ask me what's on your calendar or what needs your attention.",
-                "at": at,
-                "correlation_id": corr,
-            }
-        ]
-        trace = build_intent_router_trace(
-            user_message=text,
-            conversation_state={"authority_ceiling": "READ_SUPPORT"},
-            last_intent=ctx.last_intent,
-            turn_items=conv_items,
-            correlation_id=corr,
-        )
-        trace = trace.model_copy(
-            update={
-                "path": "intent_router",
-                "planner": "conversation",
-                "tools_available": [],
-                "executed_tool_request": [],
-                "tool_results": [],
-            }
-        )
-        trace_payload = trace.model_dump(mode="json")
-        _attach_trace(conv_items, trace_payload)
-        conversation.extend(conv_items)
-        update_context_from_turn_items(ctx, conv_items)
-        return {
-            "items": conv_items,
-            "conversation": {"items": list(conversation)},
-            "llm_trace": trace_payload,
-        }
-
-    tool_name, arguments = _route_private_tool(text, ctx)
-    if arguments.get("period"):
-        ctx.temporal_constraint = str(arguments["period"])
-
-    session = PrivateToolSession(
-        state=state,
-        context=ctx,
+    result = run_private_turn(
+        text=text,
         at=at,
         adapter=adapter,
-        user_message=text,
+        conversation=conversation,
+        context=ctx,
+        route_private_tool=_route_private_tool,
+        silence_attention=_silence_attention,
+        is_general_knowledge=_is_general_knowledge,
+        turn_semantic_completeness=_turn_semantic_completeness,
     )
-    result = execute_private_tool(session, tool_name, arguments)
-    turn_items = [
-        {**item, "correlation_id": corr} if item.get("correlation_id") is None else item
-        for item in result.turn_items
-    ]
-
-    trace = LlmTrace(
-        path="intent_router",
-        planner="private_calendar_read",
-        user_message=text,
-        conversation_state={
-            "authority_ceiling": "READ_SUPPORT",
-            "capability_contract": private_capability_contract(),
-        },
-        tools_available=list(private_capability_contract()["allowed"]),
-        executed_tool_request=[{"name": tool_name, "arguments": arguments}],
-        tool_results=[
-            {
-                "name": tool_name,
-                "ok": result.ok,
-                "calendar_items": result.data.get("calendar_items", []),
-            }
-        ],
-        correlation_id=corr,
-    )
-    trace_payload = trace.model_dump(mode="json")
-    _attach_trace(turn_items, trace_payload)
-
-    conversation.extend(turn_items)
-    update_context_from_turn_items(ctx, turn_items)
     return {
-        "items": turn_items,
+        "items": result.items,
         "conversation": {"items": list(conversation)},
-        "llm_trace": trace.model_dump(mode="json"),
-        "calendar_facts_used": session.last_calendar_facts,
-        "context": ctx,
+        "llm_trace": result.llm_trace,
+        "calendar_facts_used": result.calendar_facts_used,
+        "context": result.context or ctx,
     }
 
 
-__all__ = ["handle_private_message"]
+__all__ = [
+    "TurnSemanticKind",
+    "_route_private_tool",
+    "_turn_semantic_completeness",
+    "handle_private_message",
+]

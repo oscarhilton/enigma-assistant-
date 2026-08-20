@@ -208,6 +208,13 @@ _PRIORITIES_TODAY_RE = re.compile(
     r"things?\s+to\s+(?:get\s+)?done\s+today"
     r")\b"
 )
+_PERIOD_BRIEFING_RE = re.compile(
+    r"\b(?:"
+    r"(?:how(?:'s|s| is)|what(?:'s|s| is))\s+(?:my\s+)?week(?:\s+looking(?:\s+like)?)?|"
+    r"my\s+week(?:\s+looking(?:\s+like)?)?|"
+    r"(?:how(?:'s|s| is)|what(?:'s|s| is))\s+(?:my\s+)?(?:day|schedule)(?:\s+looking(?:\s+like)?)?"
+    r")\b"
+)
 
 
 def normalize_utterance(text: str) -> str:
@@ -472,6 +479,12 @@ def resolve_intent(text: str) -> ConversationIntent:
 
     if _matches_attention(normalized):
         return _attention_intent(normalized)
+
+    if _PERIOD_BRIEFING_RE.search(normalized):
+        return ConversationIntent(
+            kind=ConversationIntentKind.ATTENTION_QUERY,
+            period=TimeExpression.THIS_WEEK,
+        )
 
     if _matches_unsupported_world(normalized):
         return ConversationIntent(kind=ConversationIntentKind.UNSUPPORTED_WORLD_QUERY)

@@ -80,6 +80,7 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C13](./C13-life-script-reliability.md) | Life Script reliability (repeat Fireworks runs) | **todo** |
 | [ROUTE-01](./ROUTE-01-semantic-router.md) | Semantic router graduation + regex demotion | **future** (hard-depends KERNEL-01) |
 | [C14](./C14-conversation-activity-stream.md) | Conversation activity stream (real events, not fake CoT) | **in_progress** (spec + v0 strip) |
+| [KERNEL-01](./KERNEL-01-turn-kernel.md) | Shared turn kernel (Demo + My Enigma) | **in_progress** (partial PR; stacked on P03) |
 | [C34](./C34-relational-bootstrap.md) | Relational bootstrap (continuation mechanics) | **frozen** ([#99](https://github.com/oscarhilton/enigma-assistant-/pull/99)) |
 | [C35](./C35-goose-pixel-licence.md) | Goose pixel licence (work presence; C34 expressiveness) | **done** |
 | [C37](./C37-goose-pixel-observation.md) | Goose pixel observation (dogfood idle/walk/return; not C36) | **done** ([#103](https://github.com/oscarhilton/enigma-assistant-/pull/103) observational infrastructure only) |

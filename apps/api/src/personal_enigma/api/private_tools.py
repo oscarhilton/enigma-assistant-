@@ -21,6 +21,8 @@ from personal_enigma.attention.projection import AttentionState
 
 PrivateToolName = Literal[
     "agenda.get",
+    "briefing.read",
+    "calendar.agenda.get",
     "availability.check",
     "attention.get_current",
     "world.explain",
@@ -29,6 +31,8 @@ PrivateToolName = Literal[
 PRIVATE_ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
     (
         "agenda.get",
+        "briefing.read",
+        "calendar.agenda.get",
         "availability.check",
         "attention.get_current",
         "world.explain",
@@ -144,7 +148,7 @@ def execute_private_tool(
             turn_items=[{"kind": "enigma_message", "text": text, "at": at}],
         )
 
-    if name == "agenda.get":
+    if name in {"agenda.get", "briefing.read", "calendar.agenda.get"}:
         parsed = AgendaGetInput.model_validate(arguments)
         text, facts = format_agenda_message(
             adapter=session.adapter,
@@ -152,8 +156,9 @@ def execute_private_tool(
             period=parsed.period,
         )
         session.last_calendar_facts = facts
+        wire_name = "calendar.agenda.get" if name == "calendar.agenda.get" else name
         return ToolExecutionResult(
-            name=name,  # type: ignore[arg-type]
+            name=wire_name,  # type: ignore[arg-type]
             data={"period": parsed.period, "calendar_items": facts},
             turn_items=[{"kind": "enigma_message", "text": text, "at": at}],
         )
