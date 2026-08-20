@@ -372,6 +372,17 @@ def tool_schemas() -> list[dict[str, Any]]:
         {
             "type": "function",
             "function": {
+                "name": "calendar.agenda.get",
+                "description": (
+                    "Calendar events on a time horizon — occupancy and schedule facts only. "
+                    "Use for day/week calendar reads without attention or next-action overlay."
+                ),
+                "parameters": AgendaGetInput.model_json_schema(),
+            },
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "world.get_changes",
                 "description": "Attention and next-action changes vs prior checkpoint.",
                 "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
