@@ -5,8 +5,9 @@
 | Status | `in_progress` |
 | Branch | `cursor/cloud-03-create-contract-47cd` |
 | Domain | `platform` |
+| PR | [#133](https://github.com/oscarhilton/enigma-assistant-/pull/133) (draft) |
 
-**Claimed.** Fix create-agent contract in `apps/cursor-relay/` only.
+**Claimed.** Create-contract correction + validation hardening in `apps/cursor-relay/`. Draft PR open — do not merge until authorized.
 
 ## Intent
 
