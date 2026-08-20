@@ -35,15 +35,15 @@ COPY --from=uv-bin /uvx /usr/local/bin/uvx
 RUN mkdir -p /opt/uv-python \
     && uv python install 3.12 \
     && ln -sf "$(uv python find 3.12)" /usr/local/bin/python \
-    && ln -sf "$(uv python find 3.12)" /usr/local/bin/python3 \
-    && chmod -R a+rX /opt/uv-python
+    && ln -sf "$(uv python find 3.12)" /usr/local/bin/python3
 
 # Shared COREPACK_HOME so pnpm pin survives USER ubuntu (not only root cache).
 RUN mkdir -p /opt/corepack \
     && corepack enable \
     && corepack prepare "pnpm@${PNPM_VERSION}" --activate \
-    && chmod -R a+rX /opt/corepack \
     && pnpm --version
+
+RUN chown -R ubuntu:ubuntu /opt/uv-python /opt/corepack
 
 RUN useradd -m -s /bin/bash ubuntu \
     && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
