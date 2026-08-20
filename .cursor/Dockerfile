@@ -43,12 +43,10 @@ RUN mkdir -p /opt/corepack \
     && corepack prepare "pnpm@${PNPM_VERSION}" --activate \
     && pnpm --version
 
-RUN chown -R ubuntu:ubuntu /opt/uv-python /opt/corepack
-
 RUN useradd -m -s /bin/bash ubuntu \
     && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
     && chmod 0440 /etc/sudoers.d/ubuntu \
-    && chown -R ubuntu:ubuntu /opt/uv-python
+    && chown -R ubuntu:ubuntu /opt/uv-python /opt/corepack
 
 WORKDIR /workspace
 RUN chown ubuntu:ubuntu /workspace
