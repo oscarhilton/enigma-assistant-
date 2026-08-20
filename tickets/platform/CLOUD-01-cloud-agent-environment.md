@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `ticket/cloud-01-agent-environment` |
 | Domain | `platform` |
 
@@ -28,20 +28,53 @@
 
 ## Acceptance criteria
 
-- [x] `.cursor/environment.json` + `.cursor/Dockerfile` — Node 22, pnpm 10.3, uv 0.12.5 (pinned), Python 3.12 via `uv python install` (not apt); install `uv python install 3.12 && uv sync --all-packages --group dev && pnpm install --frozen-lockfile`
-- [x] `docs/cloud-agents.md` — dashboard setup, verify commands, hooks, Phase 2 relay note
+- [x] `.cursor/environment.json` + `.cursor/Dockerfile` — Node 22, pnpm 10.3, uv **0.12.5** (pinned), Python 3.12 via `uv python install` (not apt); install prefixed with `uv python install 3.12` then sync + pnpm frozen lockfile
+- [x] `docs/cloud-agents.md` — dashboard setup, verify commands, hooks as defence-in-depth, Phase 2 relay note
 - [x] `docs/cloud-agents/conductor-contract.md` — single conductor mandate
 - [x] `docs/cloud-agents/handoff-schema.json` — JSON handoff shape
-- [x] `.cursor/hooks.json` — sessionStart, beforeShellExecution guards, stop verify reminder
+- [x] `.cursor/hooks.json` — sessionStart, beforeShellExecution guards (`failClosed: false`), stop verify reminder
 - [x] `AGENTS.md` — cloud agents row in Testing table
-- [ ] Oscar: create saved Cloud environment in Cursor dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`)
+- [x] Local Docker build + version smoke (`enigma-cloud-test`) — see evidence below
+- [ ] Oscar: create/bind saved Cloud environment in Cursor dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — **UI-only**; repo config committed and build-validated; dashboard create still required once
+
+## Docker fix evidence (merge-blocking)
+
+- **Fault:** Bookworm apt has Python 3.11; prior Dockerfile wrongly apt-installed python3.12.
+- **Fix:** Node 22 base; apt installs git/sudo/curl/ca-certificates/jq only; multi-stage FROM uv pin 0.12.5; `UV_PYTHON_INSTALL_DIR=/opt/uv-python` + `uv python install 3.12`; `UV_PYTHON=3.12`; `COREPACK_HOME=/opt/corepack` + pnpm 10.3.0 via corepack; chown toolchain dirs to `ubuntu`.
+- **Local build:** `docker build -f .cursor/Dockerfile -t enigma-cloud-test .` — success
+- **Version smoke (USER ubuntu):** Python 3.12.14; node v22.23.2; pnpm 10.3.0; uv 0.12.5; `UV_PYTHON=3.12`
+- **In-image install smoke:** `uv sync --all-packages --group dev` + `pnpm install --frozen-lockfile` as `ubuntu`; `uv run pytest apps/api/tests/test_health.py` (1 passed); focused web vitest `readApiJson.test.ts` (3 passed)
+
+## Hook probe results (synthetic stdin)
+
+| Probe | Expect | Result |
+| --- | --- | --- |
+| ordinary (`uv run pytest`) | allow | PASS |
+| direct default-branch push | deny | PASS |
+| force push | deny | PASS |
+| storage path (home Enigma dir) | deny | PASS |
+| secret-name reference (HMAC env var) | deny | PASS |
+| Swift lane | deny | PASS |
+| `sessionStart` JSON | valid | PASS |
+| `stop` reminder JSON | valid | PASS |
+
+`failClosed` left **false** for pilot (documented in `docs/cloud-agents.md`).
+
+## Canonical verify (host)
+
+| Command | Result |
+| --- | --- |
+| `uv run pytest` | 846 passed, 2 skipped |
+| `uv run ruff check .` | All checks passed |
+| `pnpm --dir apps/web test` | 58 files / 204 tests passed |
 
 ## Test plan
 
-- `jq empty .cursor/environment.json .cursor/hooks.json docs/cloud-agents/handoff-schema.json`
-- Hook scripts executable; `bash -n` on shell hooks
-- `docker build -f .cursor/Dockerfile -t enigma-cloud-test .cursor` — Python 3.12 via uv (not apt)
-- Manual: launch cloud agent against this branch; confirm install + smoke pytest
+- [x] `jq empty .cursor/environment.json .cursor/hooks.json docs/cloud-agents/handoff-schema.json`
+- [x] Hook scripts executable; `bash -n` on shell hooks
+- [x] Hook synthetic probes (table above)
+- [x] Local Docker build + version smoke
+- [ ] Manual: launch cloud agent against this branch from Cursor dashboard (Oscar)
 
 ## Phase 2 (future ticket)
 

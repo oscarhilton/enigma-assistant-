@@ -38,7 +38,7 @@ Config-as-code in the repo (preferred source of truth for install/build):
 uv python install 3.12 && uv sync --all-packages --group dev && pnpm install --frozen-lockfile
 ```
 
-**Toolchain note:** `node:22-bookworm-slim` is Debian Bookworm — apt has Python 3.11 only. Do not `apt-get install python3.12`. Pin `UV_VERSION` in `.cursor/Dockerfile` (currently `0.12.5`) and bump this doc when changing the pin.
+**Toolchain note:** `node:22-bookworm-slim` is Debian Bookworm — apt has Python 3.11 only. Do not `apt-get install python3.12`. Pin `UV_VERSION` in `.cursor/Dockerfile` (currently `0.12.5`) and bump this doc when changing the pin. Shared `UV_PYTHON_INSTALL_DIR=/opt/uv-python` and `COREPACK_HOME=/opt/corepack` keep Python/pnpm usable for the non-root `ubuntu` user.
 
 **Verify — cloud lane** (run before claiming done; scope to ticket when possible):
 

@@ -47,7 +47,8 @@ RUN mkdir -p /opt/corepack \
 
 RUN useradd -m -s /bin/bash ubuntu \
     && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
-    && chmod 0440 /etc/sudoers.d/ubuntu
+    && chmod 0440 /etc/sudoers.d/ubuntu \
+    && chown -R ubuntu:ubuntu /opt/uv-python
 
 WORKDIR /workspace
 RUN chown ubuntu:ubuntu /workspace
