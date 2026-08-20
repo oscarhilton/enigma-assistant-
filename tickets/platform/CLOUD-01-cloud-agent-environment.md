@@ -28,7 +28,7 @@
 
 ## Acceptance criteria
 
-- [x] `.cursor/environment.json` + `.cursor/Dockerfile` — Node 22, pnpm 10.3, uv, Python 3.12; install `uv sync --all-packages --group dev && pnpm install --frozen-lockfile`
+- [x] `.cursor/environment.json` + `.cursor/Dockerfile` — Node 22, pnpm 10.3, uv 0.12.5 (pinned), Python 3.12 via `uv python install` (not apt); install `uv python install 3.12 && uv sync --all-packages --group dev && pnpm install --frozen-lockfile`
 - [x] `docs/cloud-agents.md` — dashboard setup, verify commands, hooks, Phase 2 relay note
 - [x] `docs/cloud-agents/conductor-contract.md` — single conductor mandate
 - [x] `docs/cloud-agents/handoff-schema.json` — JSON handoff shape
@@ -40,6 +40,7 @@
 
 - `jq empty .cursor/environment.json .cursor/hooks.json docs/cloud-agents/handoff-schema.json`
 - Hook scripts executable; `bash -n` on shell hooks
+- `docker build -f .cursor/Dockerfile -t enigma-cloud-test .cursor` — Python 3.12 via uv (not apt)
 - Manual: launch cloud agent against this branch; confirm install + smoke pytest
 
 ## Phase 2 (future ticket)

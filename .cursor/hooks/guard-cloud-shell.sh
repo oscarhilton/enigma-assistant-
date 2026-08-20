@@ -19,6 +19,11 @@ if echo "$command" | grep -qE 'git push[^;|&]*\s+(origin\s+)?(main|master)\b'; t
   deny "Cloud agents must not push to origin main or master. Use a ticket branch and open a PR."
 fi
 
+# Bare `git push` (no explicit ref) can push the current branch to its upstream — often main.
+if echo "$command" | grep -qE 'git push(\s+(-u|--set-upstream|--force-with-lease|-f|--force))?\s*(origin\s*)?$'; then
+  deny "Cloud agents must push an explicit ticket branch (e.g. git push -u origin ticket/...). Bare git push is blocked."
+fi
+
 if echo "$command" | grep -qE 'git push[^;|&]*(-f|--force|--force-with-lease)'; then
   deny "Force push is blocked in cloud agent sessions."
 fi
@@ -29,7 +34,7 @@ if echo "$command" | grep -qE "$_storage_pat"; then
   deny "Cloud agents cannot access real Enigma storage roots."
 fi
 
-_secret_pat='(PRIVATE_HMAC_KEY|GOOGLE_CLIENT_SECRET|GMAIL_TOKEN|APPLE_BRIDGE_TOKEN)'
+_secret_pat='(PRIVATE_HMAC_KEY|GOOGLE_CLIENT_SECRET|GMAIL_TOKEN|ENIGMA_BRIDGE_TOKEN|APPLE_BRIDGE_TOKEN)'
 if echo "$command" | grep -qE "$_secret_pat"; then
   deny "Cloud agents must not load or echo real connector/HMAC secrets."
 fi

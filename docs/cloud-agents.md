@@ -29,14 +29,16 @@ Config-as-code in the repo (preferred source of truth for install/build):
 | File | Purpose |
 | --- | --- |
 | `.cursor/environment.json` | Cloud VM build + install command |
-| `.cursor/Dockerfile` | Node 22, pnpm 10.3, uv, Python 3.12 |
+| `.cursor/Dockerfile` | Node 22, pnpm 10.3, **uv 0.12.5** (pinned image tag), Python 3.12 via `uv python install` (not apt) |
 | `.cursor/hooks.json` | Session context, shell guards, stop verify reminder |
 
-**Install** (mirrors CI):
+**Install** (mirrors CI; `uv python install 3.12` is also baked into the Dockerfile and prefixed in `environment.json`):
 
 ```bash
-uv sync --all-packages --group dev && pnpm install --frozen-lockfile
+uv python install 3.12 && uv sync --all-packages --group dev && pnpm install --frozen-lockfile
 ```
+
+**Toolchain note:** `node:22-bookworm-slim` is Debian Bookworm — apt has Python 3.11 only. Do not `apt-get install python3.12`. Pin `UV_VERSION` in `.cursor/Dockerfile` (currently `0.12.5`) and bump this doc when changing the pin.
 
 **Verify — cloud lane** (run before claiming done; scope to ticket when possible):
 
@@ -67,11 +69,15 @@ Workers implement tickets; conductors read evidence and recommend branch/commit/
 
 ## Hooks (`.cursor/hooks.json`)
 
+Hooks are **defence in depth**, not a hard security boundary. `beforeShellExecution` uses `failClosed: false` so a broken or missing guard script fails open and allows the command through. **GitHub branch protection on `main` remains the real lock** against accidental default-branch updates. Keep `failClosed: false` for the pilot unless hook probes all pass and a deliberate flip is documented.
+
 | Hook | Script | Behaviour |
 | --- | --- | --- |
 | `sessionStart` | `cloud-session-context.sh` | Injects cloud lane + conductor pointers |
-| `beforeShellExecution` | `guard-cloud-shell.sh` | Deny real storage roots and connector secrets; deny default-branch pushes and force-push; deny macOS Swift test invocations in cloud |
+| `beforeShellExecution` | `guard-cloud-shell.sh` | Deny real storage roots and connector secrets; deny common default-branch pushes and force-push spellings; deny macOS Swift test invocations in cloud |
 | `stop` | `cloud-verify-reminder.sh` | Reminds agent to run canonical verify + JSON handoff for conductor jobs |
+
+**Push-guard limits:** shell regex cannot cover every Git spelling (e.g. refspec `HEAD` to default branch, reordered force flags, alias wrappers). Treat denials as helpful friction; rely on branch protection + review for enforcement.
 
 **Future (not implemented):** ticket package-boundary parsing on file edits — document globs in tickets/ and enforce via review until a dedicated hook exists.
 
@@ -107,4 +113,4 @@ Ticket markdown files remain the source of truth for scope; branches/PRs are dur
 
 - Never point database URLs at real Private/Demo/Shadow roots ([ADR-005](../docs/adr/005-demo-private-storage-roots.md), [ADR-008](../docs/adr/008-shadow-storage-roots.md)).
 - Never load HMAC or connector tokens in cloud shells.
-- Hooks in `.cursor/hooks/guard-cloud-shell.sh` enforce the above at shell execution time.
+- Hooks in `.cursor/hooks/guard-cloud-shell.sh` attempt to block common violations at shell execution time (defence in depth; see Hooks above).
