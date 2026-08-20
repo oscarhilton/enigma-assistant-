@@ -25,10 +25,11 @@ ChatGPT continues using its own session. The relay alone holds `CURSOR_API_KEY` 
 ## Hard depends
 
 - [CLOUD-01](./CLOUD-01-cloud-agent-environment.md) `done` — reproducible environment, conductor contract, handoff schema
+- **Operator prerequisite:** a saved **named** Cursor Cloud environment bound in the dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — still the unchecked CLOUD-01 UI bind item. [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) evidences a schema-shaped conductor handoff; it does **not** prove that a saved named environment was used. Do not claim CLOUD-02 until that bind is confirmed.
 
 ## Soft depends (~)
 
-- First manual conductor run transcript (topology + handoff shape) to calibrate dispatch payloads — **satisfied** by the CLOUD-01 pilot evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (schema-shaped conductor handoffs)
+- First manual conductor run transcript (topology + handoff shape) to calibrate dispatch payloads — **satisfied** by the CLOUD-01 pilot evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (schema-shaped conductor handoffs; not named-environment proof)
 - KERNEL / ticket work can proceed via dashboard until the relay lands
 
 ## Package boundary (hard)
@@ -49,32 +50,32 @@ Must not edit:
 
 - Automating ChatGPT or Cursor browser login / human-verification loops
 - Putting `CURSOR_API_KEY` in `.cursor/`, agent env secrets, or git
-- Anonymous or unauthenticated write-capable MCP access
+- Anonymous or unauthenticated MCP access (including `status`)
 - Returning raw agent transcripts or secrets to ChatGPT by default
 - Ticket-boundary file-edit hooks (optional later)
 - Merging PRs from the relay without an explicit approval policy pass
 
 ## AuthN / AuthZ
 
-- Every MCP call MUST carry an **authenticated caller identity** from the ChatGPT → relay hop (session / OAuth / equivalent — chosen at claim time).
-- **Forbid anonymous** invocation of write-capable tools (`dispatch`, `follow_up`, `request_review`, `cancel`). Read-only `status` may still require identity if the policy says so.
-- Approval policy gates who may `dispatch` / write-capable follow-ups / `cancel` (dry-run vs commit; no silent main merges).
+- Every MCP call — **including `status`** — MUST carry an **authenticated caller identity** from the ChatGPT → relay hop (session / OAuth / equivalent — chosen at claim time). `status` may be authorised read-only; it must **never** be anonymous.
+- **Forbid anonymous** invocation of every MCP tool (`dispatch`, `status`, `follow_up`, `request_review`, `cancel`).
+- Approval policy gates who may `dispatch`, `request_review`, write-capable `follow_up`, and `cancel` (dry-run vs commit; no silent main merges).
 
 ## Allowlists & limits
 
-Dispatch (and other write tools) MUST enforce allowlists for:
+`dispatch`, `request_review` (when it creates a run), and other write tools MUST enforce allowlists for:
 
 | Dimension | Intent |
 | --- | --- |
 | Repository | Only permitted GitHub repos (e.g. `oscarhilton/enigma-assistant-`) |
-| Named environment | Only saved Cursor Cloud environments bound to this product |
+| Named environment | Only saved Cursor Cloud environments bound to this product (operator bind prerequisite above) |
 | Branch prefixes | e.g. `ticket/`, `cursor/`, `agent/` — never bare `main`/`master` as head without explicit policy |
 | Models | Only approved model ids for cloud agents |
 
 Also required:
 
-- **Correlation / idempotency keys** on `dispatch` (and follow-ups that create work) so retries do not spawn duplicate agents
-- **Concurrency and spend limits** (max in-flight agents; budget / rate caps) with hard deny when exceeded
+- **Correlation / idempotency keys** on `dispatch` and on `request_review` when it creates a run (and on follow-ups that create work) so retries do not spawn duplicate agents
+- **Concurrency and spend limits** applied to `dispatch` and `request_review` (and other create paths): max in-flight agents; budget / rate caps; hard deny when exceeded
 
 ## Responses & audit
 
@@ -94,25 +95,26 @@ Also required:
 
 ## Acceptance criteria
 
-- [ ] Trust chain documented: ChatGPT → MCP relay → Cursor Cloud Agents API; authenticated caller identity required; no ChatGPT credentials to Cursor; no agent-driven account login
-- [ ] Anonymous write-capable MCP access is impossible by construction
+- [ ] Trust chain documented: ChatGPT → MCP relay → Cursor Cloud Agents API; authenticated caller identity on **every** MCP tool (including `status`); no ChatGPT credentials to Cursor; no agent-driven account login
+- [ ] Anonymous MCP access is impossible by construction (including read-only `status`)
+- [ ] Operator named-environment dashboard bind confirmed (CLOUD-01 UI item); not inferred from PR #129 alone
 - [ ] Allowlists: repository, named environment, branch prefixes, models
-- [ ] Correlation / idempotency keys on dispatch (and equivalent create paths)
-- [ ] Concurrency and spend limits enforced with audited denials
+- [ ] Correlation / idempotency keys on `dispatch` and on `request_review` when it creates a run (and equivalent create paths)
+- [ ] Concurrency and spend limits enforced for `dispatch` and `request_review` (and other create paths), with audited denials
 - [ ] Default responses are schema-valid structured handoffs — not raw transcripts or secrets
 - [ ] Audit records caller, agent id, run id, prompt hash, and usage
 - [ ] `CURSOR_API_KEY` lives only in the relay’s server-side secret store
 - [ ] Dispatch accepts: named Cursor environment, repository, head branch, optional stacked `base` branch, ticket path / job brief
-- [ ] Approval policy for `dispatch` / write-capable follow-ups / `cancel`
+- [ ] Approval policy for `dispatch`, `request_review`, write-capable follow-ups, and `cancel`
 - [ ] Conductor jobs remain read-only unless the job brief explicitly authorizes push/PR/merge
 - [ ] Smoke: dispatch a read-only conductor against an allowlisted branch and retrieve a schema-valid handoff
 
 ## Test plan
 
-- Unit: MCP tool schema validation; approval-policy deny/allow matrix; allowlist / idempotency / quota denials
+- Unit: MCP tool schema validation; approval-policy deny/allow matrix (including `dispatch` and `request_review`); allowlist / idempotency / quota denials
 - Integration (relay staging): dispatch → status → cancel against a throwaway agent; no production secrets in agent env
 - Contract: handoff JSON validates against `docs/cloud-agents/handoff-schema.json`
-- Negative: anonymous write denied; ChatGPT credentials never accepted as relay config keys; transcripts/secrets absent from default responses
+- Negative: anonymous invocation denied for **every** tool including `status`, `dispatch`, and `request_review`; ChatGPT credentials never accepted as relay config keys; transcripts/secrets absent from default responses
 
 ## Product order (cloud lane)
 
