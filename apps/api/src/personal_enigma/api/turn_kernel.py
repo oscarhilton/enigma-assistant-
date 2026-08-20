@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal, Sequence
+from typing import Any, Literal
 from uuid import uuid4
 
 from personal_enigma.api.build_identity import attach_forensic_provenance
