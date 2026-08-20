@@ -1,9 +1,11 @@
 import { threadActivityFromTrace } from "../../enigma/activity";
 import { tracesFromItems } from "../../enigma/forensicDump";
-import { workSnapshotFromConversation } from "../../enigma/goosePixels";
+import { emptyWorkSnapshot, workSnapshotFromConversation } from "../../enigma/goosePixels";
 import type { AttentionState, ConversationItem, LlmTrace, ProvenanceView } from "../../enigma/types";
 import { WORLD_LABELS, type WorldId } from "../../pilot/types";
 import { buildCommitLabel } from "../buildIdentity";
+import type { ForensicTurnBinding } from "./forensicTurn";
+import { streamTraceHasTurnComplete } from "./forensicTurn";
 import type { ForensicModel, ForensicSection } from "./types";
 import type { StreamingTraceProjection } from "../streamTrace";
 
@@ -48,6 +50,26 @@ function capturedOrUnavailable(record: Record<string, unknown> | null): Forensic
   return { status: "unavailable", data: null };
 }
 
+function authorityFromTrace(trace: LlmTrace | null): Record<string, unknown> | null {
+  const remoteAuthority = namedProjection(trace?.remote_context_sent ?? null, "authority");
+  if (remoteAuthority) {
+    return remoteAuthority;
+  }
+  const state = readRecord(trace?.conversation_state);
+  if (!state) {
+    return null;
+  }
+  const authorityCeiling = state.authority_ceiling;
+  const capabilityContract = state.capability_contract;
+  if (typeof authorityCeiling !== "string" && !capabilityContract) {
+    return null;
+  }
+  return {
+    ...(typeof authorityCeiling === "string" ? { authority_ceiling: authorityCeiling } : {}),
+    ...(capabilityContract ? { capability_contract: capabilityContract } : {}),
+  };
+}
+
 export function buildForensicModel(input: {
   items: ConversationItem[];
   attention: AttentionState | null;
@@ -56,20 +78,40 @@ export function buildForensicModel(input: {
   world: WorldId;
   provenance: ProvenanceView | null;
   streamingTrace?: StreamingTraceProjection | null;
+  forensicTurn?: ForensicTurnBinding | null;
 }): ForensicModel {
-  const traces = tracesFromItems(input.items);
-  const trace: LlmTrace | null = traces.at(-1) ?? null;
-  const turnCount = traces.length;
-  const turnIndex = turnCount > 0 ? turnCount : 0;
+  const boundTurn =
+    input.forensicTurn && streamTraceHasTurnComplete(input.streamingTrace)
+      ? input.forensicTurn
+      : null;
+  const forensicItems = boundTurn?.items ?? input.items;
+  const traces = tracesFromItems(forensicItems);
+  const trace: LlmTrace | null = boundTurn?.llmTrace ?? traces.at(-1) ?? null;
+  const turnCount = boundTurn?.turnCount ?? traces.length;
+  const turnIndex = boundTurn?.turnIndex ?? (turnCount > 0 ? turnCount : 0);
   const remote = trace?.remote_context_sent ?? null;
-  const activities = trace ? threadActivityFromTrace(trace, { at: input.items.at(-1)?.at ?? "" }) : [];
-  const agentWork = workSnapshotFromConversation({
-    items: input.items,
-    busy: input.busy,
-    loading: input.loading,
+  const activities = trace
+    ? threadActivityFromTrace(trace, { at: forensicItems.at(-1)?.at ?? "" })
+    : [];
+  const conversationWork = workSnapshotFromConversation({
+    items: forensicItems,
+    busy: boundTurn ? false : input.busy,
+    loading: boundTurn ? false : input.loading,
   });
-  const userInput = lastUserMessage(input.items);
+  const agentWork =
+    boundTurn?.agentWork?.exists === true
+      ? boundTurn.agentWork
+      : conversationWork.exists
+        ? conversationWork
+        : emptyWorkSnapshot();
+  const userInput = boundTurn?.userInput ?? lastUserMessage(forensicItems);
   const canWait = input.attention?.can_wait_summary ?? null;
+  const calendarNegativeEvidence = boundTurn?.calendarNegativeEvidence ?? null;
+  const hasEvidence =
+    Boolean(input.provenance) ||
+    evidenceIdsFromAttention(input.attention).length > 0 ||
+    calendarNegativeEvidence !== null ||
+    (boundTurn?.calendarFactsUsed.length ?? 0) > 0;
 
   return {
     snapshot: {
@@ -88,11 +130,13 @@ export function buildForensicModel(input: {
     },
     turnContract: capturedOrUnavailable(namedProjection(remote, "turn_contract")),
     evidence: {
-      status: input.provenance || evidenceIdsFromAttention(input.attention).length > 0 ? "wired" : "empty",
+      status: hasEvidence ? "wired" : "empty",
       data: {
         provenance: input.provenance,
         evidenceIds: evidenceIdsFromAttention(input.attention),
         activityLabels: activities.map((event) => event.label),
+        calendarFactsUsed: boundTurn?.calendarFactsUsed ?? [],
+        calendarNegativeEvidence,
       },
     },
     notDisclosed: {
@@ -109,7 +153,7 @@ export function buildForensicModel(input: {
       status: agentWork.exists ? "wired" : "empty",
       data: agentWork,
     },
-    authority: capturedOrUnavailable(namedProjection(remote, "authority")),
+    authority: capturedOrUnavailable(authorityFromTrace(trace)),
     remotePayload: {
       status: remote || trace?.disclosure ? "wired" : "empty",
       data: {

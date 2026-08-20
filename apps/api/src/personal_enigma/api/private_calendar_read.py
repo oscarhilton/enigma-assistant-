@@ -37,6 +37,14 @@ _COMING_UP_WEEKEND_RE = re.compile(
 _AGENDA_TOMORROW_RE = re.compile(r"\btomorrow\b", re.IGNORECASE)
 _AGENDA_WEEKEND_RE = re.compile(r"\b(?:this\s+)?weekend\b", re.IGNORECASE)
 _FREE_DAY_RE = re.compile(r"\bam i (?:actually )?free\b", re.IGNORECASE)
+# "this week" without "this weekend" — weekend is caught earlier by _AGENDA_WEEKEND_RE.
+_AGENDA_THIS_WEEK_RE = re.compile(r"\bthis\s+week\b(?!\s*end)", re.IGNORECASE)
+_AGENDA_NEXT_WEEK_RE = re.compile(r"\bnext\s+week\b", re.IGNORECASE)
+_AGENDA_LIST_RE = re.compile(
+    r"\b(?:get|show|list|what are)\s+(?:my\s+)?(?:calendar\s+)?events\b"
+    r"|\bmy\s+(?:calendar\s+)?events\b",
+    re.IGNORECASE,
+)
 
 
 def _parse_iso(value: str | datetime) -> datetime:
@@ -88,6 +96,11 @@ def events_in_period(
     return [reduced_calendar_fact(event) for event in selected]
 
 
+def is_private_agenda_list_request(text: str) -> bool:
+    """Bare calendar event listing without an explicit horizon."""
+    return bool(_AGENDA_LIST_RE.search(text))
+
+
 def infer_private_calendar_period(text: str) -> str | None:
     """Private-world agenda / availability period from natural language."""
     if _DOING_TOMORROW_RE.search(text) or (
@@ -96,6 +109,10 @@ def infer_private_calendar_period(text: str) -> str | None:
         return "tomorrow"
     if _COMING_UP_WEEKEND_RE.search(text) or _AGENDA_WEEKEND_RE.search(text):
         return "this_weekend"
+    if _AGENDA_NEXT_WEEK_RE.search(text):
+        return "next_week"
+    if _AGENDA_THIS_WEEK_RE.search(text):
+        return "this_week"
     if _FREE_DAY_RE.search(text):
         match = _WEEKDAY_RE.search(text)
         if match:
@@ -224,6 +241,7 @@ __all__ = [
     "format_agenda_message",
     "format_private_availability_message",
     "infer_private_calendar_period",
+    "is_private_agenda_list_request",
     "period_window",
     "weekday_bounds",
 ]

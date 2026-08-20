@@ -122,6 +122,8 @@ export function buildCopyBundle(model: ForensicModel, tier: CopyTier): string {
           provenance_headline: model.evidence.data.provenance?.headline ?? null,
           evidence_ids: model.evidence.data.evidenceIds,
           activity_labels: model.evidence.data.activityLabels,
+          calendar_facts_used: model.evidence.data.calendarFactsUsed,
+          calendar_negative_evidence: model.evidence.data.calendarNegativeEvidence,
         },
         not_disclosed: model.notDisclosed.data,
         relational_bootstrap: capturedOrNot(model.relationalBootstrap),

@@ -47,7 +47,7 @@ type ThreadCallbacks = {
 export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V2StreamingConversation {
   const { world } = useWorld();
   const session = useEnigmaConversation();
-  const { captureStreamEvents } = useStreamTrace();
+  const { beginForensicTurn, captureStreamEvents } = useStreamTrace();
   const threadItems = threadCallbacks?.threadItems;
   const onThreadItemsChange = threadCallbacks?.onThreadItemsChange;
   const onFirstMessage = threadCallbacks?.onFirstMessage;
@@ -150,11 +150,13 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
       turnCompleteRef.current = false;
       lastTextRef.current = text;
       const captured: CapturedStreamEvent[] = [];
+      const sentAt = new Date().toISOString();
       const pending: ConversationItem = {
         kind: "user_message",
         text,
-        at: new Date().toISOString(),
+        at: sentAt,
       };
+      beginForensicTurn({ text, at: sentAt });
       commitItems((current) => [...current, pending]);
       setAgentWork({
         exists: true,
@@ -211,7 +213,7 @@ export function useV2StreamingConversation(threadCallbacks?: ThreadCallbacks): V
         abortRef.current = null;
       }
     },
-    [captureStreamEvents, commitItems, onFirstMessage, session, world],
+    [beginForensicTurn, captureStreamEvents, commitItems, onFirstMessage, session, world],
   );
 
   const reconnect = useCallback(async () => {

@@ -61,6 +61,22 @@ describe("projectActivityFromTrace", () => {
     expect(threadActivityFromTrace(MOCK_LLM_TRACE_ROUTER)).toEqual([]);
   });
 
+  it("tolerates tool_results without a data envelope (live API shape)", () => {
+    const events = threadActivityFromTrace(
+      traceWithTools(
+        [{ name: "world.explain", ok: true, data: undefined as unknown as Record<string, unknown> }],
+        { conversation_state: { current_subject_id: null } },
+      ),
+    );
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: "world.explained",
+        label: "Checked why this matters",
+        subject_id: null,
+      }),
+    ]);
+  });
+
   it("maps attention and referent hops to the product labels", () => {
     const events = threadActivityFromTrace(
       traceWithTools([
