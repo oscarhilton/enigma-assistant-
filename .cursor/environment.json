@@ -1,0 +1,9 @@
+{
+  "name": "enigma-monorepo",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "uv sync --all-packages --group dev && pnpm install --frozen-lockfile"
+}

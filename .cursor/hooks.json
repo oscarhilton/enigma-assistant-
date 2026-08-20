@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/guard-cloud-shell.sh",
+        "failClosed": false
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/cloud-session-context.sh"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/cloud-verify-reminder.sh",
+        "loop_limit": 1
+      }
+    ]
+  }
+}
