@@ -13,9 +13,13 @@ ENV_UUID_TO_NAME: dict[str, str] = {
 CANONICAL_ENV_NAME = "enigma-assistant-"
 NAMED_ENV_ALIASES = frozenset({CANONICAL_ENV_NAME, *ENV_UUID_TO_NAME.keys()})
 
-# Allowlisted validation field keys only (truncated).
+# Allowlisted validation field keys only (truncated + scrubbed).
 _VALIDATION_KEYS = frozenset({"code", "message", "field"})
 _MAX_FIELD_LEN = 200
+_MAX_VALIDATION_ENTRIES = 5
+_MAX_WALK_NODES = 200
+_MAX_WALK_DEPTH = 16
+_REDACTED = "[redacted]"
 
 # Pending branch claim until status returns the Cursor-generated head.
 PENDING_BRANCH = "pending"
@@ -34,6 +38,30 @@ def is_named_cloud_environment(environment: str) -> bool:
     return canonicalize_environment_name(environment) == CANONICAL_ENV_NAME
 
 
+def looks_secret_like(value: Any) -> bool:
+    """True when a validation string looks like a credential or auth material."""
+
+    lowered = str(value).lower()
+    needles = (
+        "bearer",
+        "authorization",
+        "api_key",
+        "api-key",
+        "token",
+        "sk-",
+        "key_",
+    )
+    return any(n in lowered for n in needles)
+
+
+def scrub_validation_value(value: Any, *, limit: int = _MAX_FIELD_LEN) -> str:
+    """Truncate allowlisted values; replace secret-like content entirely."""
+
+    if looks_secret_like(value):
+        return _REDACTED
+    return truncate_field(value, limit=limit)
+
+
 def truncate_field(value: Any, *, limit: int = _MAX_FIELD_LEN) -> str:
     text = str(value)
     if len(text) <= limit:
@@ -42,35 +70,70 @@ def truncate_field(value: Any, *, limit: int = _MAX_FIELD_LEN) -> str:
 
 
 def extract_validation_fields(payload: Any) -> list[dict[str, str]]:
-    """Pull only code/message/field from Cursor error JSON (recursive, truncated)."""
+    """Pull only code/message/field from Cursor error JSON.
+
+    Caps returned entries, bounds recursion/nodes, and scrubs secret-like values
+    completely (never partially exposed).
+    """
 
     found: list[dict[str, str]] = []
+    nodes = 0
 
-    def _walk(obj: Any) -> None:
+    def _walk(obj: Any, *, depth: int) -> None:
+        nonlocal nodes
+        if len(found) >= _MAX_VALIDATION_ENTRIES:
+            return
+        if depth > _MAX_WALK_DEPTH or nodes >= _MAX_WALK_NODES:
+            return
+        nodes += 1
         if isinstance(obj, dict):
             entry = {
-                k: truncate_field(obj[k])
+                k: scrub_validation_value(obj[k])
                 for k in _VALIDATION_KEYS
                 if k in obj and obj[k] is not None
             }
             if entry:
                 found.append(entry)
+            if len(found) >= _MAX_VALIDATION_ENTRIES:
+                return
             for v in obj.values():
-                _walk(v)
+                _walk(v, depth=depth + 1)
+                if len(found) >= _MAX_VALIDATION_ENTRIES:
+                    return
         elif isinstance(obj, list):
             for item in obj:
-                _walk(item)
+                _walk(item, depth=depth + 1)
+                if len(found) >= _MAX_VALIDATION_ENTRIES:
+                    return
 
-    _walk(payload)
-    # Deduplicate while preserving order
+    _walk(payload, depth=0)
+    return sanitize_validation_entries(found)
+
+
+def sanitize_validation_entries(
+    entries: list[dict[str, str]] | None,
+) -> list[dict[str, str]]:
+    """Cap + scrub an already-parsed validation list (handoff/audit/mock path)."""
+
     seen: set[tuple[tuple[str, str], ...]] = set()
     unique: list[dict[str, str]] = []
-    for item in found:
-        key = tuple(sorted(item.items()))
+    for item in entries or []:
+        if not isinstance(item, dict):
+            continue
+        cleaned = {
+            k: scrub_validation_value(item[k])
+            for k in _VALIDATION_KEYS
+            if k in item and item[k] is not None
+        }
+        if not cleaned:
+            continue
+        key = tuple(sorted(cleaned.items()))
         if key in seen:
             continue
         seen.add(key)
-        unique.append(item)
+        unique.append(cleaned)
+        if len(unique) >= _MAX_VALIDATION_ENTRIES:
+            break
     return unique
 
 

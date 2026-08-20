@@ -202,7 +202,103 @@ def test_dispatch_surfaces_redacted_validation(
     assert observed.get("cursor_validation")
     blob = json.dumps(result)
     assert "Authorization" not in blob
-    assert "api_key" not in blob.lower() or "chatgpt_api_key" not in blob
+    assert "api_key" not in blob.lower()
+    assert "chatgpt_api_key" not in blob.lower()
+
+
+def test_extract_validation_fields_caps_large_nested_errors() -> None:
+    # Deeply nested tree with many code/message/field objects.
+    nested: dict[str, object] = {"leaf": True}
+    for i in range(40):
+        nested = {
+            "code": f"err-{i}",
+            "message": f"detail-{i}",
+            "field": f"field-{i}",
+            "child": nested,
+            "siblings": [
+                {"code": f"sib-{i}-a", "message": f"m-{i}-a", "field": f"f-{i}-a"},
+                {"code": f"sib-{i}-b", "message": f"m-{i}-b", "field": f"f-{i}-b"},
+            ],
+        }
+    fields = extract_validation_fields(nested)
+    assert len(fields) <= 5
+    assert len(fields) == 5
+
+
+def test_extract_validation_scrubs_secret_like_values_completely() -> None:
+    fields = extract_validation_fields(
+        {
+            "code": "Bearer sk-cur-leaked",
+            "message": "authorization header api_key=secret token=abc",
+            "field": "key_live_material",
+            "nested": {
+                "code": "ok",
+                "message": "plain validation message",
+                "field": "env.name",
+            },
+        }
+    )
+    blob = json.dumps(fields)
+    for banned in (
+        "Bearer",
+        "sk-cur",
+        "authorization",
+        "api_key",
+        "token=abc",
+        "key_live",
+    ):
+        assert banned.lower() not in blob.lower()
+    assert any(item.get("field") == "env.name" for item in fields)
+    assert any(item.get("message") == "plain validation message" for item in fields)
+
+
+def test_secret_like_validation_never_reaches_handoff_or_audit(
+    service: RelayService, mock_cursor: MockCursorClient
+) -> None:
+    mock_cursor.fail_next = "http_400"
+    mock_cursor.fail_validation = [
+        {
+            "code": "auth_failed",
+            "message": "Bearer sk-cur-deadbeef authorization rejected",
+            "field": "api_key",
+        }
+    ]
+    result = service.invoke(
+        "dispatch",
+        {
+            "idempotency_key": "val-secret",
+            "repository": "oscarhilton/enigma-assistant-",
+            "environment": "enigma-assistant-",
+            "head_branch": "ticket/cloud-03-create-contract",
+            "prompt": "x",
+            "job_brief": {"authorization": {"dry_run": False, "allow_push": True}},
+        },
+        caller=DISPATCHER_CALLER,
+    )
+    validate_handoff(result)
+    handoff_blob = json.dumps(result)
+    audit_blob = json.dumps(service.audit.records)
+    for banned in (
+        "Bearer",
+        "sk-cur-deadbeef",
+        "authorization rejected",
+        "api_key",
+    ):
+        # Scrubbed fields become [redacted]; raw credential substrings must not appear.
+        if banned == "api_key":
+            # field name "api_key" is scrubbed to [redacted] as the whole value
+            assert "api_key" not in handoff_blob.lower()
+            assert "api_key" not in audit_blob.lower()
+        else:
+            assert banned not in handoff_blob
+            assert banned not in audit_blob
+    # Scrubbed validation still present as allowlisted keys; secret values fully replaced.
+    vals = result["observed_state"].get("cursor_validation") or []
+    assert vals
+    for item in vals:
+        assert set(item) <= {"code", "message", "field"}
+        assert item.get("message") == "[redacted]"
+        assert item.get("field") == "[redacted]"
 
 
 def test_extract_validation_fields_truncates() -> None:

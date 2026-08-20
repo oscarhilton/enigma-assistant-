@@ -10,7 +10,8 @@ import httpx
 
 from personal_enigma.cursor_relay.create_contract import (
     extract_validation_fields,
-    truncate_field,
+    sanitize_validation_entries,
+    scrub_validation_value,
 )
 
 
@@ -33,9 +34,18 @@ class CursorApiError(Exception):
         code: str = "cursor_api_error",
         validation: list[dict[str, str]] | None = None,
     ) -> None:
-        super().__init__(message)
+        safe_validation = sanitize_validation_entries(validation)
+        # Never keep secret-like text in the exception message either.
+        safe_message = scrub_validation_value(message, limit=400)
+        if safe_message == "[redacted]" and safe_validation:
+            bits = []
+            for item in safe_validation:
+                parts = [f"{k}={v}" for k, v in sorted(item.items())]
+                bits.append("{" + ", ".join(parts) + "}")
+            safe_message = f"Cursor API HTTP 400 validation: {'; '.join(bits)}"
+        super().__init__(safe_message)
         self.code = code
-        self.validation = validation or []
+        self.validation = safe_validation
 
 
 def _safe_http_error(exc: BaseException) -> CursorApiError:
@@ -55,11 +65,12 @@ def _safe_http_error(exc: BaseException) -> CursorApiError:
                 validation = extract_validation_fields(body)
             msg = "Cursor API HTTP 400"
             if validation:
-                # Compact allowlisted summary only
+                # Compact allowlisted summary only (already scrubbed + capped).
                 bits = []
-                for item in validation[:5]:
+                for item in validation:
                     parts = [
-                        f"{k}={truncate_field(v, limit=80)}" for k, v in sorted(item.items())
+                        f"{k}={scrub_validation_value(v, limit=80)}"
+                        for k, v in sorted(item.items())
                     ]
                     bits.append("{" + ", ".join(parts) + "}")
                 msg = f"Cursor API HTTP 400 validation: {'; '.join(bits)}"
@@ -193,8 +204,7 @@ class MockCursorClient:
             ]
             self.fail_validation = None
             raise CursorApiError(
-                "Cursor API HTTP 400 validation: "
-                + str({k: v for item in validation for k, v in item.items()}),
+                "Cursor API HTTP 400",
                 code="cursor_validation_error",
                 validation=validation,
             )
