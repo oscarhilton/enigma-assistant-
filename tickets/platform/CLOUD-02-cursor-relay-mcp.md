@@ -2,11 +2,12 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `cursor/cloud-02-cursor-relay-mcp-a131` |
 | Domain | `platform` |
+| PR | [#131](https://github.com/oscarhilton/enigma-assistant-/pull/131) |
 
-**Claimed.** Implementation in `apps/cursor-relay/`.
+**Done.** Implementation in `apps/cursor-relay/`. Operator next: set `CURSOR_API_KEY` + `RELAY_AUTH_TOKENS` on the **relay host only**, then authorize KERNEL-01 as first live cargo.
 
 ## Intent
 
