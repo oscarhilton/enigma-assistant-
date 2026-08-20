@@ -508,13 +508,16 @@ def test_attention_summary_text_is_not_kind_name() -> None:
     assert "needs you" in item["text"].lower()
 
 
-def test_disabled_llm_keeps_honest_router_fallback(demo_client: TestClient) -> None:
+def test_disabled_llm_week_briefing_routes_via_intent_router(demo_client: TestClient) -> None:
     turn = _ask(demo_client, "Hey! Hows my week looking?")
     trace = turn["llm_trace"]
     assert trace["path"] == "intent_router"
     assert trace["router_fallback"] is True
     assert trace["remote_context_sent"] is None
-    assert turn["items"][0]["text"] == "I'm not sure I follow."
+    text = turn["items"][0]["text"].lower()
+    assert "brunch" in text
+    assert "looking ahead" in text or "on radar" in text
+    assert turn["items"][0]["text"] != "I'm not sure I follow."
 
 
 class _ScriptedLLM:

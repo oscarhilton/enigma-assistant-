@@ -26,7 +26,13 @@ export type ForensicTurnBinding = {
   turnCount: number;
 };
 
-const CALENDAR_TOOLS = new Set(["availability.check", "agenda.get", "world.explain"]);
+const CALENDAR_TOOLS = new Set([
+  "availability.check",
+  "agenda.get",
+  "briefing.read",
+  "calendar.agenda.get",
+  "world.explain",
+]);
 
 function lastUserInput(items: ConversationItem[]): ForensicUserInput {
   for (let index = items.length - 1; index >= 0; index -= 1) {

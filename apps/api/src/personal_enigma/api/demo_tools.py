@@ -77,6 +77,8 @@ ToolName = Literal[
     "referent.get_duration",
     "availability.check",
     "agenda.get",
+    "briefing.read",
+    "calendar.agenda.get",
     "world.get_changes",
     "world.get_blockers",
     "world.explain",
@@ -96,6 +98,8 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "referent.get_duration",
         "availability.check",
         "agenda.get",
+        "briefing.read",
+        "calendar.agenda.get",
         "world.get_changes",
         "world.get_blockers",
         "world.explain",
@@ -349,6 +353,18 @@ def tool_schemas() -> list[dict[str, Any]]:
                     "What is on a time horizon: calendar events, attention items, and "
                     "next actions whose evidence falls in the period. Use for week or "
                     "day overviews. Does not invent venues, deadlines, or advice."
+                ),
+                "parameters": AgendaGetInput.model_json_schema(),
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "briefing.read",
+                "description": (
+                    "Composite period briefing: calendar events, attention needs_you, "
+                    "context radar, and next actions for the horizon. Preferred for "
+                    "'how is my week' style queries."
                 ),
                 "parameters": AgendaGetInput.model_json_schema(),
             },
@@ -738,7 +754,7 @@ def bind_authority_arguments(
         return bind_assist_approve(session, arguments)
     if name == ATTESTATION_TOOL:
         return bind_world_attestation(session, arguments, user_message=user_message)
-    if name == "agenda.get":
+    if name in {"agenda.get", "briefing.read"}:
         executed = dict(arguments)
         if not executed.get("period") and session.context.temporal_constraint:
             executed["period"] = session.context.temporal_constraint
@@ -885,7 +901,7 @@ def execute_tool(
             turn_items=turn,
         )
 
-    if name == "agenda.get":
+    if name in {"agenda.get", "briefing.read"}:
         parsed_agenda = AgendaGetInput.model_validate(arguments)
         try:
             period_enum = TimeExpression(parsed_agenda.period)
@@ -938,6 +954,48 @@ def execute_tool(
                 "empty_horizon": empty_horizon,
             },
             turn_items=turn,
+        )
+
+    if name == "calendar.agenda.get":
+        parsed_cal = AgendaGetInput.model_validate(arguments)
+        try:
+            cal_period = TimeExpression(parsed_cal.period)
+        except ValueError:
+            return ToolExecutionResult(
+                name="calendar.agenda.get",
+                ok=False,
+                data={"period": parsed_cal.period, "unknown_period": True},
+                turn_items=[
+                    {
+                        "kind": "enigma_message",
+                        "text": "I don't know that time horizon.",
+                        "at": at,
+                    }
+                ],
+            )
+        reference = datetime.fromisoformat(at.replace("Z", "+00:00"))
+        if reference.tzinfo is None:
+            reference = reference.replace(tzinfo=UTC)
+        start, end = period_bounds(reference, cal_period.value)
+        events = calendar_events_in_period(session.checkpoint_id, start, end)
+        if events:
+            cal_bits: list[str] = []
+            for event in events:
+                start_at = datetime.fromisoformat(event["start_at"].replace("Z", "+00:00"))
+                end_at = datetime.fromisoformat(event["end_at"].replace("Z", "+00:00"))
+                day = start_at.strftime("%A")
+                cal_bits.append(
+                    f"{day}: {event['title']}, "
+                    f"{start_at.strftime('%H:%M')}–{end_at.strftime('%H:%M')}"
+                )
+            text = "Calendar: " + "; ".join(cal_bits) + "."
+        else:
+            label = cal_period.value.replace("_", " ")
+            text = f"I don't see anything on the calendar {label}."
+        return ToolExecutionResult(
+            name="calendar.agenda.get",
+            data={"period": cal_period.value, "calendar_items": events},
+            turn_items=[{"kind": "enigma_message", "text": text, "at": at}],
         )
 
     if name == "world.get_changes":

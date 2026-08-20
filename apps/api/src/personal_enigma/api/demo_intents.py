@@ -290,7 +290,10 @@ def build_attention_horizon_turn(
 
     parts: list[str] = []
     if not needs:
-        parts.append(f"Nothing needs you {label} as an interrupt.")
+        if radar:
+            parts.append("Nothing needs your attention right now.")
+        else:
+            parts.append(f"Nothing needs you {label} as an interrupt.")
     else:
         titles = "; ".join(item.title for item in needs)
         parts.append(f"Needs you {label}: {titles}.")
@@ -309,7 +312,10 @@ def build_attention_horizon_turn(
 
     if radar:
         radar_phrase = " / ".join(item.title for item in radar)
-        parts.append(f"On radar {label}: {radar_phrase}.")
+        if not needs:
+            parts.append(f"Looking ahead {label}: {radar_phrase}.")
+        else:
+            parts.append(f"On radar {label}: {radar_phrase}.")
 
     if events:
         cal_bits: list[str] = []

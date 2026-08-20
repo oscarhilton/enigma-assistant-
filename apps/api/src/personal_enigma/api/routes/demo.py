@@ -31,13 +31,8 @@ from personal_enigma.api.demo_assist import (
 )
 from personal_enigma.api.demo_attestation import UserAttestation
 from personal_enigma.api.demo_chat import DemoChatIndex, load_demo_chat_index
-from personal_enigma.api.demo_intents import build_intent_turn, format_attention_summary_text
-from personal_enigma.api.demo_orchestrator import (
-    LlmTrace,
-    build_intent_router_trace,
-    demo_llm_conversation_enabled,
-    run_orchestrator_turn,
-)
+from personal_enigma.api.demo_intents import format_attention_summary_text
+from personal_enigma.api.demo_orchestrator import demo_llm_conversation_enabled
 from personal_enigma.api.demo_projection import (
     legacy_attention_items,
     project_checkpoint,
@@ -45,6 +40,7 @@ from personal_enigma.api.demo_projection import (
 )
 from personal_enigma.api.demo_tools import DemoToolSession
 from personal_enigma.api.routes.worlds import alex_lab_is_active
+from personal_enigma.api.turn_kernel import WorldTurnProfile, run_alex_turn
 from personal_enigma.attention.projection import NextActionView
 from personal_enigma.fixtures.demo_checkpoints import (
     DEFAULT_DEMO_CHECKPOINT,
@@ -618,11 +614,12 @@ class DemoSession:
         )
         state = self._attention_state()
         reconcile_action_focus(self.conversation_context, state)
-        conversation_state = {
-            "current_subject_id": self.conversation_context.current_subject_id,
-            "current_subject_kind": self.conversation_context.current_subject_kind,
-        }
-        last_intent = self.conversation_context.last_intent
+
+        alex_profile = WorldTurnProfile(
+            world_id="alex_lab",
+            environment="demo",
+            authority_ceiling="FULL",
+        )
 
         if demo_llm_conversation_enabled():
             tool_session = DemoToolSession(
@@ -640,49 +637,37 @@ class DemoSession:
                 attestations=self.attestations,
                 chat_index=self.chat_index,
             )
-            orchestrated = run_orchestrator_turn(
-                user_message=text,
-                session=tool_session,
-                correlation_id=corr,
-            )
-            turn_items = orchestrated.turn_items
-            plan = orchestrated.assist_plan
-            trace = orchestrated.llm_trace or build_intent_router_trace(
-                user_message=text,
-                conversation_state=conversation_state,
-                last_intent=last_intent,
-                turn_items=turn_items,
-                correlation_id=corr,
+            result = run_alex_turn(
+                text=text,
+                at=at,
+                corr=corr,
+                profile=alex_profile,
+                conversation_context=self.conversation_context,
+                llm_enabled=True,
+                tool_session=tool_session,
+                checkpoint_id=self.checkpoint_id,
             )
         else:
-            turn_items, plan = build_intent_turn(
-                text,
-                state,
+            result = run_alex_turn(
+                text=text,
                 at=at,
+                corr=corr,
+                profile=alex_profile,
+                conversation_context=self.conversation_context,
+                llm_enabled=False,
+                state=state,
                 checkpoint_id=self.checkpoint_id,
                 prior_state=self._prior_attention_state(),
                 conversation=self.conversation,
                 completed_item_ids=self.completed_item_ids,
-                conversation_context=self.conversation_context,
             )
-            turn_items = [
-                item if item.get("correlation_id") else {**item, "correlation_id": corr}
-                for item in turn_items
-            ]
-            trace = build_intent_router_trace(
-                user_message=text,
-                conversation_state=conversation_state,
-                last_intent=last_intent,
-                turn_items=turn_items,
-                correlation_id=corr,
-            )
+
+        turn_items = result.items
+        plan = result.assist_plan
+        payload = result.llm_trace
 
         if plan is not None:
             self.pending_assists[plan.proposal_id] = plan
-
-        payload = trace.model_dump(mode="json") if isinstance(trace, LlmTrace) else trace
-        if turn_items:
-            turn_items[0] = {**turn_items[0], "llm_trace": payload}
 
         self.conversation.extend(turn_items)
         update_context_from_turn_items(self.conversation_context, turn_items)

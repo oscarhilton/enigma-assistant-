@@ -64,6 +64,8 @@ const TOOL_ACTIVITY: Record<string, ToolActivitySpec> = {
   "availability.check": { kind: "availability.checked", label: "Checked your calendar" },
   "availability.time_fit": { kind: "availability.checked", label: "Checked your calendar" },
   "agenda.get": { kind: "agenda.queried", label: "Checked your week" },
+  "briefing.read": { kind: "agenda.queried", label: "Checked your week" },
+  "calendar.agenda.get": { kind: "agenda.queried", label: "Checked your calendar" },
   "attention.get_current": { kind: "attention.queried", label: "Checked what needs you" },
   "context.resolve_referent": {
     kind: "referent.resolved",

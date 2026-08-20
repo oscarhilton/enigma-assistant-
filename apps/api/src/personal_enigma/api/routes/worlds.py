@@ -172,6 +172,8 @@ _TOOL_INSPECT_LABELS: dict[str, str] = {
     "availability.check": "Checked your calendar",
     "availability.time_fit": "Checked your calendar",
     "agenda.get": "Checked your week",
+    "briefing.read": "Checked your week",
+    "calendar.agenda.get": "Checked your calendar",
     "attention.get_current": "Checked what needs you",
     "context.resolve_referent": "Matched this to the token inventory",
     "world.explain": "Checked why this matters",
@@ -216,8 +218,21 @@ def _agent_work_event(
     phase: str,
     payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    labels = _inspect_labels_from_payload(payload) if payload else []
-    semantic = labels[0] if labels else ("in-flight" if phase == "in_flight" else "complete")
+    labels: list[str] = []
+    semantic = "in-flight" if phase == "in_flight" else "complete"
+    if payload:
+        trace = payload.get("llm_trace")
+        if isinstance(trace, dict):
+            turn_outcome = trace.get("turn_outcome")
+            if isinstance(turn_outcome, dict):
+                label = turn_outcome.get("agent_work_label")
+                if isinstance(label, str) and label:
+                    labels = [label]
+                    semantic = label
+        if not labels:
+            labels = _inspect_labels_from_payload(payload)
+            if labels:
+                semantic = labels[0]
     return {
         "exists": True,
         "phase": phase,

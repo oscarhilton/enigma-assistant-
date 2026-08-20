@@ -214,7 +214,7 @@ def test_p03_get_my_events_routes_to_agenda_not_world_explain(
     trace = payload["llm_trace"]
     assert trace["planner"] == "private_calendar_read"
     assert trace["executed_tool_request"] == [
-        {"name": "agenda.get", "arguments": {"period": "this_week"}}
+        {"name": "briefing.read", "arguments": {"period": "this_week"}}
     ]
     reply = payload["items"][0]["text"].lower()
     assert "don't see" in reply or "nothing" in reply or "clear" in reply
@@ -411,8 +411,15 @@ def test_privacy_01_general_knowledge_never_retrieves_private_calendar(
             f"PRIVACY_01: {query!r} routed to private_calendar_read"
         )
         executed = trace.get("executed_tool_request") or []
-        private_tools = {"agenda.get", "availability.check", "attention.get_current"}
-        called = {t["name"] for t in executed} & private_tools
+        calendar_tools = {
+            "agenda.get",
+            "briefing.read",
+            "calendar.agenda.get",
+            "availability.check",
+            "world.explain",
+            "attention.get_current",
+        }
+        called = {t["name"] for t in executed} & calendar_tools
         assert not called, (
             f"PRIVACY_01: private tools {called} called for general-knowledge query {query!r}"
         )
@@ -421,7 +428,7 @@ def test_privacy_01_general_knowledge_never_retrieves_private_calendar(
 def test_week_agenda_01_whats_on_this_week(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """WEEK_AGENDA_01: 'whats on this week?' must route to agenda.get with period=this_week."""
+    """WEEK_AGENDA_01: 'whats on this week?' must route to briefing.read with period=this_week."""
     fixture = tmp_path / "calendar.json"
     _write_pilot_fixture(fixture, PILOT_NOW)
     client = _client(tmp_path, monkeypatch, fixture_path=fixture)
@@ -440,15 +447,15 @@ def test_week_agenda_01_whats_on_this_week(
 
     executed = trace.get("executed_tool_request") or []
     tool_names = [t["name"] for t in executed]
-    assert "agenda.get" in tool_names, (
-        f"WEEK_AGENDA_01: agenda.get not called; executed={tool_names}"
+    assert "briefing.read" in tool_names, (
+        f"WEEK_AGENDA_01: briefing.read not called; executed={tool_names}"
     )
     assert "world.explain" not in tool_names, (
         "WEEK_AGENDA_01: world.explain was called — query routed to general knowledge"
     )
 
     period = next(
-        (t["arguments"].get("period") for t in executed if t["name"] == "agenda.get"), None
+        (t["arguments"].get("period") for t in executed if t["name"] == "briefing.read"), None
     )
     assert period == "this_week", (
         f"WEEK_AGENDA_01: expected period='this_week', got {period!r}"
@@ -494,8 +501,9 @@ def test_gravity_phatic_01_affirmation_after_calendar_no_private_tool(
     )
     executed = trace.get("executed_tool_request") or []
     tool_names = [t["name"] for t in executed]
-    assert "agenda.get" not in tool_names, (
-        "GRAVITY_PHATIC_01: agenda.get called for phatic turn"
+    calendar_tools = {"agenda.get", "briefing.read", "calendar.agenda.get", "availability.check", "attention.get_current", "world.explain"}
+    assert not ({t["name"] for t in executed} & calendar_tools), (
+        "GRAVITY_PHATIC_01: calendar tool called for phatic turn"
     )
     assert "availability.check" not in tool_names, (
         "GRAVITY_PHATIC_01: availability.check called for phatic turn"
