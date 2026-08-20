@@ -25,6 +25,8 @@ DEFAULT_MODELS = frozenset(
     }
 )
 FORBIDDEN_HEAD_BRANCHES = frozenset({"main", "master"})
+# Stacked PR bases may be main/master or an allowlisted feature-branch prefix.
+DEFAULT_ALLOWED_BASE_BRANCHES = frozenset({"main", "master"})
 
 
 @dataclass(frozen=True)
@@ -52,11 +54,18 @@ class RelayConfig:
     allowed_branch_prefixes: tuple[str, ...] = DEFAULT_BRANCH_PREFIXES
     allowed_models: frozenset[str] = field(default_factory=lambda: DEFAULT_MODELS)
     forbidden_head_branches: frozenset[str] = field(default_factory=lambda: FORBIDDEN_HEAD_BRANCHES)
+    allowed_base_branches: frozenset[str] = field(
+        default_factory=lambda: DEFAULT_ALLOWED_BASE_BRANCHES
+    )
     max_in_flight: int = 3
     max_spend_units: float = 50.0
     spend_per_create: float = 1.0
     audit_path: str | None = None
     handoff_schema_path: str | None = None
+    # In-memory idempotency/quotas are process-local. Multi-replica requires
+    # RELAY_SINGLE_INSTANCE=0 and RELAY_SHARED_STORE_URL (guarded at load).
+    single_instance: bool = True
+    shared_store_url: str | None = None
 
 
 def _parse_caller_tokens(raw: str | None) -> dict[str, CallerRecord]:
@@ -108,6 +117,16 @@ def load_config_from_env(environ: dict[str, str] | None = None) -> RelayConfig:
             raise ValueError(msg)
 
     key = env.get("CURSOR_API_KEY") or None
+    single_raw = env.get("RELAY_SINGLE_INSTANCE", "1").strip().lower()
+    single_instance = single_raw not in {"0", "false", "no"}
+    shared_store = env.get("RELAY_SHARED_STORE_URL") or None
+    if not single_instance and not shared_store:
+        msg = (
+            "RELAY_SINGLE_INSTANCE=0 requires RELAY_SHARED_STORE_URL; "
+            "in-memory idempotency/quotas are unsafe across replicas"
+        )
+        raise ValueError(msg)
+
     return RelayConfig(
         cursor_api_key=key,
         cursor_api_base=env.get("CURSOR_API_BASE", "https://api.cursor.com").rstrip("/"),
@@ -118,11 +137,16 @@ def load_config_from_env(environ: dict[str, str] | None = None) -> RelayConfig:
             env.get("RELAY_ALLOWED_BRANCH_PREFIXES"), DEFAULT_BRANCH_PREFIXES
         ),
         allowed_models=_csv_set(env.get("RELAY_ALLOWED_MODELS"), DEFAULT_MODELS),
+        allowed_base_branches=_csv_set(
+            env.get("RELAY_ALLOWED_BASE_BRANCHES"), DEFAULT_ALLOWED_BASE_BRANCHES
+        ),
         max_in_flight=int(env.get("RELAY_MAX_IN_FLIGHT", "3")),
         max_spend_units=float(env.get("RELAY_MAX_SPEND_UNITS", "50")),
         spend_per_create=float(env.get("RELAY_SPEND_PER_CREATE", "1")),
         audit_path=env.get("RELAY_AUDIT_PATH"),
         handoff_schema_path=env.get("RELAY_HANDOFF_SCHEMA_PATH"),
+        single_instance=single_instance,
+        shared_store_url=shared_store,
     )
 
 
@@ -139,4 +163,7 @@ def config_public_dict(cfg: RelayConfig) -> dict[str, Any]:
         "max_in_flight": cfg.max_in_flight,
         "max_spend_units": cfg.max_spend_units,
         "caller_count": len(cfg.caller_tokens),
+        "allowed_base_branches": sorted(cfg.allowed_base_branches),
+        "single_instance": cfg.single_instance,
+        "shared_store_configured": bool(cfg.shared_store_url),
     }

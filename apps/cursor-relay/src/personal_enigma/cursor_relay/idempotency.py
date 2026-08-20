@@ -14,7 +14,12 @@ class IdempotencyError(Exception):
 
 @dataclass
 class IdempotencyStore:
-    """In-memory idempotency map (swap for Redis/SQL in production)."""
+    """In-memory idempotency map for the single-instance pilot.
+
+    Process-local only. Multi-replica deployments must set
+    ``RELAY_SINGLE_INSTANCE=0`` with ``RELAY_SHARED_STORE_URL`` (config fails
+    closed otherwise) and swap this store for a shared backend.
+    """
 
     _entries: dict[str, dict[str, Any]] = field(default_factory=dict)
 

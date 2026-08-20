@@ -75,6 +75,28 @@ def check_model(config: RelayConfig, model: str) -> str:
     return mid
 
 
+def check_base_branch(config: RelayConfig, branch: str | None) -> str | None:
+    """Fail closed: base must be an explicit allowlisted base or an allowed prefix.
+
+    Stacked PRs may use ``main``/``master`` as base, or another ticket/cursor branch.
+    Arbitrary bases are denied.
+    """
+
+    if branch is None or not str(branch).strip():
+        return None
+    base = branch.strip()
+    if base in config.allowed_base_branches:
+        return base
+    if any(base.startswith(prefix) for prefix in config.allowed_branch_prefixes):
+        return base
+    raise AllowlistError(
+        f"Base branch '{base}' is not allowlisted "
+        f"(allowed exact={sorted(config.allowed_base_branches)}, "
+        f"or prefixes {list(config.allowed_branch_prefixes)})",
+        dimension="base_branch",
+    )
+
+
 def validate_dispatch_target(
     config: RelayConfig,
     *,
@@ -89,5 +111,5 @@ def validate_dispatch_target(
         environment=check_environment(config, environment),
         head_branch=check_head_branch(config, head_branch),
         model=check_model(config, model),
-        base_branch=base_branch.strip() if base_branch else None,
+        base_branch=check_base_branch(config, base_branch),
     )

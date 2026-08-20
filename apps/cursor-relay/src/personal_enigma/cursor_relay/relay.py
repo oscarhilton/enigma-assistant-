@@ -107,6 +107,13 @@ class RelayService:
             return self._deny(
                 caller, tool, f"Missing required field: {exc}", "invalid_params", params
             )
+        except Exception as exc:  # noqa: BLE001 — last-resort schema-valid failure
+            # Never leak secrets via exception strings.
+            safe = "Relay internal error"
+            detail = type(exc).__name__
+            return self._deny(
+                caller, tool, f"{safe} ({detail})", "relay_internal_error", params
+            )
 
         return strip_secrets(result)
 

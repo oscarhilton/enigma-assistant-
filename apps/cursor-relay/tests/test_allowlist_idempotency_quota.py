@@ -153,3 +153,36 @@ def test_request_review_idempotency_and_quota(relay_config: RelayConfig) -> None
         authorization=bearer(APPROVER),
     )
     assert "concurrency_exceeded" in denied["recommended_action"]["rationale"]
+
+
+def test_base_branch_allowlist_denial(service: RelayService) -> None:
+    result = service.invoke(
+        "dispatch",
+        _dispatch_params("al-base", base_branch="totally-unrestricted/evil"),
+        authorization=bearer(DISPATCHER),
+    )
+    validate_handoff(result)
+    assert "allowlist_denied" in result["recommended_action"]["rationale"]
+    assert "Base branch" in result["recommended_action"]["rationale"]
+
+
+def test_base_branch_main_allowed(service: RelayService, mock_cursor: MockCursorClient) -> None:
+    result = service.invoke(
+        "dispatch",
+        _dispatch_params("al-base-main", base_branch="main"),
+        authorization=bearer(DISPATCHER),
+    )
+    assert result["observed_state"]["agent_id"]
+    assert len(mock_cursor.create_calls) == 1
+
+
+def test_base_branch_ticket_prefix_allowed(service: RelayService) -> None:
+    result = service.invoke(
+        "dispatch",
+        _dispatch_params(
+            "al-base-ticket",
+            base_branch="ticket/p03-forensic-calendar-gravity",
+        ),
+        authorization=bearer(DISPATCHER),
+    )
+    assert result["observed_state"]["agent_id"]
