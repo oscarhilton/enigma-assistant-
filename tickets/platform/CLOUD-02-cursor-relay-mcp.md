@@ -25,11 +25,11 @@ ChatGPT continues using its own session. The relay alone holds `CURSOR_API_KEY` 
 ## Hard depends
 
 - [CLOUD-01](./CLOUD-01-cloud-agent-environment.md) `done` — reproducible environment, conductor contract, handoff schema
-- **Operator prerequisite:** a saved **named** Cursor Cloud environment bound in the dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — still the unchecked CLOUD-01 UI bind item. [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) evidences a schema-shaped conductor handoff; it does **not** prove that a saved named environment was used. Do not claim CLOUD-02 until that bind is confirmed.
+- **Operator prerequisite:** a saved **named** Cursor Cloud environment bound in the dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — **satisfied** 2026-08-20. Environment `1baeb513-9c77-11f1-ba66-0e7d0216e441`; recurring build `bld-20260820-e34aab5b-78af-452d-960b-480aa87b26e5` SUCCEEDED. Claim/implementation of CLOUD-02 may proceed.
 
 ## Soft depends (~)
 
-- First manual conductor run transcript (topology + handoff shape) to calibrate dispatch payloads — **satisfied** by the CLOUD-01 pilot evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (schema-shaped conductor handoffs; not named-environment proof)
+- First manual conductor run transcript (topology + handoff shape) to calibrate dispatch payloads — **satisfied** by the CLOUD-01 pilot evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (schema-shaped conductor handoffs)
 - KERNEL / ticket work can proceed via dashboard until the relay lands
 
 ## Package boundary (hard)
@@ -97,7 +97,7 @@ Also required:
 
 - [ ] Trust chain documented: ChatGPT → MCP relay → Cursor Cloud Agents API; authenticated caller identity on **every** MCP tool (including `status`); no ChatGPT credentials to Cursor; no agent-driven account login
 - [ ] Anonymous MCP access is impossible by construction (including read-only `status`)
-- [ ] Operator named-environment dashboard bind confirmed (CLOUD-01 UI item); not inferred from PR #129 alone
+- [x] Operator named-environment dashboard bind confirmed (CLOUD-01 UI item); env `1baeb513-9c77-11f1-ba66-0e7d0216e441`; build `bld-20260820-e34aab5b-78af-452d-960b-480aa87b26e5` SUCCEEDED
 - [ ] Allowlists: repository, named environment, branch prefixes, models
 - [ ] Correlation / idempotency keys on `dispatch` and on `request_review` when it creates a run (and equivalent create paths)
 - [ ] Concurrency and spend limits enforced for `dispatch` and `request_review` (and other create paths), with audited denials
