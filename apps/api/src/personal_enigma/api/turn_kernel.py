@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 from uuid import uuid4
 
 from personal_enigma.api.build_identity import attach_forensic_provenance
@@ -74,7 +74,7 @@ def derive_turn_outcome(
     *,
     planned: ExecutionPlan,
     executed_names: list[str],
-    tool_results: list[ToolExecutionResult | dict[str, Any]],
+    tool_results: Sequence[ToolExecutionResult | dict[str, Any]],
     misdispatched: bool = False,
 ) -> TurnOutcome:
     """Conjunctive fulfilment: weakest critical link wins."""
