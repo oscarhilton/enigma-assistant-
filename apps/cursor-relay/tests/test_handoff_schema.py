@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tokens import DISPATCHER, bearer
+from tokens import DISPATCHER_CALLER
 
 from personal_enigma.cursor_relay.handoff import (
     load_handoff_schema,
@@ -45,7 +45,7 @@ def test_dispatch_response_validates(service: RelayService) -> None:
             "ticket_ids": ["CLOUD-02"],
             "job_brief": {"authorization": {"dry_run": True}},
         },
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     text = json.dumps(result)

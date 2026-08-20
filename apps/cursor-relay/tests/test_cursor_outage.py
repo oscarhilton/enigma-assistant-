@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tokens import DISPATCHER, bearer
+from tokens import DISPATCHER_CALLER
 
 from personal_enigma.cursor_relay.handoff import validate_handoff
 from personal_enigma.cursor_relay.relay import RelayService
@@ -24,7 +24,7 @@ def test_cursor_timeout_handoff(service: RelayService, mock_cursor) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch("out-timeout"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert result["recommended_action"]["kind"] == "stop_needs_human"
@@ -37,7 +37,7 @@ def test_cursor_http_outage_handoff(service: RelayService, mock_cursor) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch("out-503"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert "cursor_http_error" in result["recommended_action"]["rationale"]
@@ -48,7 +48,7 @@ def test_cursor_transport_error_handoff(service: RelayService, mock_cursor) -> N
     result = service.invoke(
         "status",
         {"agent_id": "bc-x"},
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     # status will call get_agent which fails
     validate_handoff(result)

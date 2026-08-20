@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 
-from tokens import APPROVER, DISPATCHER, bearer
+import pytest
+from tokens import APPROVER_CALLER, DISPATCHER_CALLER
 
 from personal_enigma.cursor_relay.audit import hash_prompt
 from personal_enigma.cursor_relay.cursor_client import MockCursorClient
@@ -28,7 +29,7 @@ def test_dispatch_status_cancel_smoke(service: RelayService, mock_cursor: MockCu
             "ticket_ids": ["CLOUD-02"],
             "job_brief": {"authorization": {"dry_run": True}},
         },
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(dispatched)
     agent_id = dispatched["observed_state"]["agent_id"]
@@ -37,7 +38,7 @@ def test_dispatch_status_cancel_smoke(service: RelayService, mock_cursor: MockCu
     status = service.invoke(
         "status",
         {"agent_id": agent_id, "run_id": run_id, "ticket_ids": ["CLOUD-02"]},
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(status)
     assert status["observed_state"]["lifecycle_status"] in {"CREATING", "ACTIVE", "UNKNOWN"}
@@ -45,7 +46,7 @@ def test_dispatch_status_cancel_smoke(service: RelayService, mock_cursor: MockCu
     cancelled = service.invoke(
         "cancel",
         {"agent_id": agent_id, "run_id": run_id, "ticket_ids": ["CLOUD-02"]},
-        authorization=bearer(APPROVER),
+        caller=APPROVER_CALLER,
     )
     validate_handoff(cancelled)
     assert mock_cursor.cancel_calls == [(agent_id, run_id)]
@@ -72,7 +73,6 @@ def test_mcp_tools_list_and_call(service: RelayService) -> None:
             "params": {
                 "name": "dispatch",
                 "arguments": {
-                    "authorization": bearer(DISPATCHER),
                     "idempotency_key": "mcp-1",
                     "repository": "oscarhilton/enigma-assistant-",
                     "environment": "enigma-assistant-",
@@ -89,6 +89,7 @@ def test_mcp_tools_list_and_call(service: RelayService) -> None:
     # Default content is structured JSON, not a raw transcript dump of secrets
     body = call["result"]["content"][0]["text"]
     assert "CURSOR_API_KEY" not in body
+    assert "Bearer" not in body
     parsed = json.loads(body)
     assert parsed["observed_state"]["agent_id"]
 
@@ -104,7 +105,7 @@ def test_follow_up_write_path(service: RelayService, mock_cursor: MockCursorClie
             "prompt": "setup",
             "job_brief": {"authorization": {"dry_run": True}},
         },
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     agent_id = dispatched["observed_state"]["agent_id"]
     result = service.invoke(
@@ -115,7 +116,7 @@ def test_follow_up_write_path(service: RelayService, mock_cursor: MockCursorClie
             "prompt": "continue",
             "job_brief": {"authorization": {"dry_run": True}},
         },
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert mock_cursor.run_calls
@@ -125,15 +126,18 @@ def test_follow_up_write_path(service: RelayService, mock_cursor: MockCursorClie
 def test_chatgpt_credentials_rejected_as_cursor_key() -> None:
     from personal_enigma.cursor_relay.config import load_config_from_env
 
-    try:
+    with pytest.raises(ValueError):
         load_config_from_env(
             {
                 "CURSOR_API_KEY": "shared-secret",
                 "CHATGPT_API_KEY": "shared-secret",
-                "RELAY_AUTH_TOKENS": "{}",
+                "RELAY_TUNNEL_CALLER": '{"caller_id":"x","roles":["admin"]}',
             }
         )
-        raised = False
-    except ValueError:
-        raised = True
-    assert raised
+
+
+def test_legacy_auth_tokens_rejected_without_tunnel_caller() -> None:
+    from personal_enigma.cursor_relay.config import load_config_from_env
+
+    with pytest.raises(ValueError, match="RELAY_TUNNEL_CALLER"):
+        load_config_from_env({"RELAY_AUTH_TOKENS": '{"t":{"caller_id":"x","roles":["admin"]}}'})

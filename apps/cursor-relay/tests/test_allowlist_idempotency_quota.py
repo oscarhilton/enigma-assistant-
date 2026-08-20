@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tokens import DISPATCHER, bearer
+from tokens import APPROVER_CALLER, DISPATCHER_CALLER
 
 from personal_enigma.cursor_relay.config import RelayConfig
 from personal_enigma.cursor_relay.cursor_client import MockCursorClient
@@ -28,7 +28,7 @@ def test_repo_allowlist_denial(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch_params("al-repo", repository="evil/other-repo"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert "allowlist_denied" in result["recommended_action"]["rationale"]
@@ -39,7 +39,7 @@ def test_environment_allowlist_denial(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch_params("al-env", environment="not-bound-env"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "allowlist_denied" in result["recommended_action"]["rationale"]
 
@@ -48,7 +48,7 @@ def test_branch_prefix_denial(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch_params("al-branch", head_branch="feature/nope"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "allowlist_denied" in result["recommended_action"]["rationale"]
 
@@ -57,7 +57,7 @@ def test_main_head_forbidden(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch_params("al-main", head_branch="main"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "allowlist_denied" in result["recommended_action"]["rationale"]
 
@@ -66,7 +66,7 @@ def test_model_allowlist_denial(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch_params("al-model", model="unapproved-model-xyz"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "allowlist_denied" in result["recommended_action"]["rationale"]
 
@@ -74,7 +74,7 @@ def test_model_allowlist_denial(service: RelayService) -> None:
 def test_idempotency_required(service: RelayService) -> None:
     params = _dispatch_params("x")
     del params["idempotency_key"]
-    result = service.invoke("dispatch", params, authorization=bearer(DISPATCHER))
+    result = service.invoke("dispatch", params, caller=DISPATCHER_CALLER)
     assert "idempotency_required" in result["recommended_action"]["rationale"]
 
 
@@ -82,12 +82,12 @@ def test_idempotency_replay(service: RelayService, mock_cursor: MockCursorClient
     first = service.invoke(
         "dispatch",
         _dispatch_params("idem-1"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     second = service.invoke(
         "dispatch",
         _dispatch_params("idem-1"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert first["observed_state"]["agent_id"] == second["observed_state"]["agent_id"]
     assert len(mock_cursor.create_calls) == 1
@@ -101,13 +101,13 @@ def test_concurrency_quota_denial(relay_config: RelayConfig) -> None:
     ok = service.invoke(
         "dispatch",
         _dispatch_params("q-1"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert ok["observed_state"]["agent_id"]
     denied = service.invoke(
         "dispatch",
         _dispatch_params("q-2"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "concurrency_exceeded" in denied["recommended_action"]["rationale"]
     assert any(r["decision"] == "deny" for r in service.audit.records)
@@ -120,19 +120,17 @@ def test_spend_quota_denial(relay_config: RelayConfig) -> None:
     service.invoke(
         "dispatch",
         _dispatch_params("s-1"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     denied = service.invoke(
         "dispatch",
         _dispatch_params("s-2"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "spend_exceeded" in denied["recommended_action"]["rationale"]
 
 
 def test_request_review_idempotency_and_quota(relay_config: RelayConfig) -> None:
-    from tokens import APPROVER
-
     cursor = MockCursorClient()
     quotas = QuotaTracker(max_in_flight=1, max_spend_units=100, spend_per_create=1)
     service = RelayService(relay_config, cursor=cursor, quotas=quotas)
@@ -143,14 +141,14 @@ def test_request_review_idempotency_and_quota(relay_config: RelayConfig) -> None
         "head_branch": "cursor/review-a131",
         "prompt": "review",
     }
-    first = service.invoke("request_review", params, authorization=bearer(APPROVER))
-    second = service.invoke("request_review", params, authorization=bearer(APPROVER))
+    first = service.invoke("request_review", params, caller=APPROVER_CALLER)
+    second = service.invoke("request_review", params, caller=APPROVER_CALLER)
     assert first["observed_state"]["agent_id"] == second["observed_state"]["agent_id"]
     assert len(cursor.create_calls) == 1
     denied = service.invoke(
         "request_review",
         {**params, "idempotency_key": "rr-2"},
-        authorization=bearer(APPROVER),
+        caller=APPROVER_CALLER,
     )
     assert "concurrency_exceeded" in denied["recommended_action"]["rationale"]
 
@@ -159,7 +157,7 @@ def test_base_branch_allowlist_denial(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         _dispatch_params("al-base", base_branch="totally-unrestricted/evil"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert "allowlist_denied" in result["recommended_action"]["rationale"]
@@ -170,7 +168,7 @@ def test_base_branch_main_allowed(service: RelayService, mock_cursor: MockCursor
     result = service.invoke(
         "dispatch",
         _dispatch_params("al-base-main", base_branch="main"),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert result["observed_state"]["agent_id"]
     assert len(mock_cursor.create_calls) == 1
@@ -183,6 +181,6 @@ def test_base_branch_ticket_prefix_allowed(service: RelayService) -> None:
             "al-base-ticket",
             base_branch="ticket/p03-forensic-calendar-gravity",
         ),
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert result["observed_state"]["agent_id"]

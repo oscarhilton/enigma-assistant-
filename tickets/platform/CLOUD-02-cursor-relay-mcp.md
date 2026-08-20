@@ -2,20 +2,20 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `done` |
-| Branch | `cursor/cloud-02-cursor-relay-mcp-a131` |
+| Status | `in_progress` |
+| Branch | `cursor/cloud-02-tunnel-caller-no-bearer-47cd` |
 | Domain | `platform` |
-| PR | [#131](https://github.com/oscarhilton/enigma-assistant-/pull/131) |
+| PR | [#131](https://github.com/oscarhilton/enigma-assistant-/pull/131) (merged); follow-up patch on this branch |
 
-**Done.** Implementation in `apps/cursor-relay/`. Operator next: set `CURSOR_API_KEY` + `RELAY_AUTH_TOKENS` on the **relay host only**, then authorize KERNEL-01 as first live cargo.
+**In progress (Secure MCP Tunnel auth patch).** Implementation in `apps/cursor-relay/`. Operator next: set `CURSOR_API_KEY` + `RELAY_TUNNEL_CALLER` on the **relay host only**, then authorize KERNEL-01 as first live cargo.
 
 ## Intent
 
 Replace Oscar-as-village-telephone with a thin, authenticated MCP relay:
 
 ```
-ChatGPT (existing authenticated session + caller identity)
-  → authenticated MCP relay (allowlists, quotas, audit)
+ChatGPT (Secure MCP Tunnel — single-user pilot)
+  → authenticated MCP relay (allowlists, quotas, audit; server-side caller)
   → Cursor Cloud Agents API (@cursor/sdk)
   → named environment + ticket branch (+ optional stacked base)
   → conductor / worker evidence (structured handoff JSON by default)
@@ -59,10 +59,12 @@ Must not edit:
 
 ## AuthN / AuthZ
 
-- **Chosen AuthN (claim time):** ChatGPT → relay hop carries a **Bearer token** mapped via server-side `RELAY_AUTH_TOKENS` JSON to `{caller_id, roles}`. Every MCP tool argument includes `authorization`. Equivalent OAuth/session adapters can mint the same bearer without changing the tool surface.
-- Every MCP call — **including `status`** — MUST carry an **authenticated caller identity**. `status` may be authorised read-only (`reader`); it must **never** be anonymous.
-- **Forbid anonymous** invocation of every MCP tool (`dispatch`, `status`, `follow_up`, `request_review`, `cancel`).
+- **Secure MCP Tunnel pilot (chosen):** caller identity is a fixed record from relay-host `RELAY_TUNNEL_CALLER` (`{caller_id, roles}`) injected internally into `RelayService`. Public MCP tool schemas and model-supplied arguments **must not** include bearer tokens or credentials; model-supplied secret keys are rejected.
+- Every MCP call — **including `status`** — MUST resolve an **authenticated caller identity** at the trusted transport boundary. `status` may be authorised read-only (`reader`); it must **never** be anonymous.
+- **Forbid anonymous** invocation of every MCP tool (`dispatch`, `status`, `follow_up`, `request_review`, `cancel`) when the tunnel caller is unset.
 - Approval policy gates who may `dispatch`, `request_review`, write-capable `follow_up`, and `cancel` (dry-run vs commit; no silent main merges).
+- **Multi-user / public deployment requires MCP OAuth** (or equivalent non-model-visible credentials). Do not reintroduce bearer tokens into tool schemas.
+- Legacy `RELAY_AUTH_TOKENS` is retired for this pilot (config fails closed if set without `RELAY_TUNNEL_CALLER` migration).
 
 ## Allowlists & limits
 
@@ -116,13 +118,14 @@ Also required:
 - [x] Conductor jobs remain read-only unless the job brief explicitly authorizes push/PR/merge
 - [x] Smoke: dispatch a read-only conductor against an allowlisted branch and retrieve a schema-valid handoff (mock Cursor API in CI; no live `CURSOR_API_KEY` required)
 - [x] Single-instance in-memory store constraint documented + operationally guarded
+- [x] Public MCP schemas/args never expose or accept bearer/credential secrets; tunnel caller injected server-side; multi-user → MCP OAuth documented
 
 ## Test plan
 
 - Unit: MCP tool schema validation; approval-policy deny/allow matrix (including `dispatch` and `request_review`); allowlist / idempotency / quota denials
 - Integration (relay staging): dispatch → status → cancel against a throwaway agent; no production secrets in agent env
 - Contract: handoff JSON validates against `docs/cloud-agents/handoff-schema.json`
-- Negative: anonymous invocation denied for **every** tool including `status`, `dispatch`, and `request_review`; ChatGPT credentials never accepted as relay config keys; transcripts/secrets absent from default responses; Cursor timeout/outage → schema-valid handoff
+- Negative: anonymous invocation denied for **every** tool including `status`, `dispatch`, and `request_review`; ChatGPT credentials never accepted as relay config keys; transcripts/secrets absent from default responses; Cursor timeout/outage → schema-valid handoff; MCP `tools/list` / `tools/call` never expose or accept authorization secrets
 
 ## Product order (cloud lane)
 
