@@ -76,8 +76,6 @@
 - [x] Local Docker build + version smoke
 - [ ] Manual: launch cloud agent against this branch from Cursor dashboard (Oscar)
 
-## Phase 2 (future ticket)
+## Phase 2
 
-- `@cursor/sdk` relay with explicit base branch for stacked PRs
-- MCP: dispatch, status, follow_up, request_review
-- Optional `beforeReadFile` / write hooks for ticket glob enforcement
+See [CLOUD-02 — Cursor relay MCP](./CLOUD-02-cursor-relay-mcp.md): authenticated MCP relay (`dispatch`, `status`, `follow_up`, `request_review`, `cancel`); `CURSOR_API_KEY` server-side only; no ChatGPT credentials to Cursor; no agent-driven account login.
