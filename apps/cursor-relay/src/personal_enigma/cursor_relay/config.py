@@ -31,7 +31,7 @@ DEFAULT_ALLOWED_BASE_BRANCHES = frozenset({"main", "master"})
 
 @dataclass(frozen=True)
 class CallerRecord:
-    """Authenticated caller mapped from a relay bearer token."""
+    """Authenticated caller identity (relay-host config only — never MCP args)."""
 
     caller_id: str
     roles: frozenset[str]
@@ -44,11 +44,15 @@ class RelayConfig:
 
     ``cursor_api_key`` is optional so unit tests can inject a mock Cursor client
     without ever touching a real key. Production must set ``CURSOR_API_KEY``.
+
+    ``tunnel_caller`` is the fixed single-user identity for the Secure MCP
+    Tunnel pilot (``RELAY_TUNNEL_CALLER``). Multi-user deployments require
+    MCP OAuth — not model-visible bearer tokens.
     """
 
     cursor_api_key: str | None = None
     cursor_api_base: str = "https://api.cursor.com"
-    caller_tokens: dict[str, CallerRecord] = field(default_factory=dict)
+    tunnel_caller: CallerRecord | None = None
     allowed_repositories: frozenset[str] = field(default_factory=lambda: DEFAULT_REPOSITORIES)
     allowed_environments: frozenset[str] = field(default_factory=lambda: DEFAULT_ENVIRONMENTS)
     allowed_branch_prefixes: tuple[str, ...] = DEFAULT_BRANCH_PREFIXES
@@ -68,27 +72,31 @@ class RelayConfig:
     shared_store_url: str | None = None
 
 
-def _parse_caller_tokens(raw: str | None) -> dict[str, CallerRecord]:
-    if not raw:
-        return {}
+def _parse_tunnel_caller(raw: str | None) -> CallerRecord | None:
+    if not raw or not raw.strip():
+        return None
     data = json.loads(raw)
     if not isinstance(data, dict):
-        msg = "RELAY_AUTH_TOKENS must be a JSON object mapping token → caller"
+        msg = "RELAY_TUNNEL_CALLER must be a JSON object {caller_id, roles}"
         raise ValueError(msg)
-    out: dict[str, CallerRecord] = {}
-    for token, entry in data.items():
-        if not isinstance(entry, dict):
-            msg = f"Caller entry for token must be an object, got {type(entry)}"
-            raise ValueError(msg)
-        caller_id = str(entry["caller_id"])
-        roles = frozenset(str(r) for r in entry.get("roles", []))
-        display_name = entry.get("display_name")
-        out[str(token)] = CallerRecord(
-            caller_id=caller_id,
-            roles=roles,
-            display_name=str(display_name) if display_name else None,
-        )
-    return out
+    caller_id = data.get("caller_id")
+    if not caller_id or not str(caller_id).strip():
+        msg = "RELAY_TUNNEL_CALLER.caller_id is required"
+        raise ValueError(msg)
+    roles_raw = data.get("roles", [])
+    if not isinstance(roles_raw, list):
+        msg = "RELAY_TUNNEL_CALLER.roles must be a JSON array"
+        raise ValueError(msg)
+    roles = frozenset(str(r) for r in roles_raw)
+    if not roles:
+        msg = "RELAY_TUNNEL_CALLER.roles must be non-empty"
+        raise ValueError(msg)
+    display_name = data.get("display_name")
+    return CallerRecord(
+        caller_id=str(caller_id).strip(),
+        roles=roles,
+        display_name=str(display_name) if display_name else None,
+    )
 
 
 def _csv_set(raw: str | None, default: frozenset[str]) -> frozenset[str]:
@@ -116,6 +124,16 @@ def load_config_from_env(environ: dict[str, str] | None = None) -> RelayConfig:
             msg = "ChatGPT credentials must not be used as CURSOR_API_KEY"
             raise ValueError(msg)
 
+    # Legacy RELAY_AUTH_TOKENS must not be used as a model-visible secret map.
+    # Secure MCP Tunnel uses RELAY_TUNNEL_CALLER only.
+    if env.get("RELAY_AUTH_TOKENS") and not env.get("RELAY_TUNNEL_CALLER"):
+        # Fail closed: operators must migrate to tunnel caller (no bearer in MCP).
+        msg = (
+            "RELAY_AUTH_TOKENS is retired for the Secure MCP Tunnel pilot; "
+            "set RELAY_TUNNEL_CALLER instead (multi-user requires MCP OAuth)"
+        )
+        raise ValueError(msg)
+
     key = env.get("CURSOR_API_KEY") or None
     single_raw = env.get("RELAY_SINGLE_INSTANCE", "1").strip().lower()
     single_instance = single_raw not in {"0", "false", "no"}
@@ -130,7 +148,7 @@ def load_config_from_env(environ: dict[str, str] | None = None) -> RelayConfig:
     return RelayConfig(
         cursor_api_key=key,
         cursor_api_base=env.get("CURSOR_API_BASE", "https://api.cursor.com").rstrip("/"),
-        caller_tokens=_parse_caller_tokens(env.get("RELAY_AUTH_TOKENS")),
+        tunnel_caller=_parse_tunnel_caller(env.get("RELAY_TUNNEL_CALLER")),
         allowed_repositories=_csv_set(env.get("RELAY_ALLOWED_REPOS"), DEFAULT_REPOSITORIES),
         allowed_environments=_csv_set(env.get("RELAY_ALLOWED_ENVIRONMENTS"), DEFAULT_ENVIRONMENTS),
         allowed_branch_prefixes=_csv_tuple(
@@ -156,13 +174,15 @@ def config_public_dict(cfg: RelayConfig) -> dict[str, Any]:
     return {
         "cursor_api_base": cfg.cursor_api_base,
         "cursor_api_key_configured": bool(cfg.cursor_api_key),
+        "tunnel_caller_configured": cfg.tunnel_caller is not None,
+        "tunnel_caller_id": cfg.tunnel_caller.caller_id if cfg.tunnel_caller else None,
+        "tunnel_roles": sorted(cfg.tunnel_caller.roles) if cfg.tunnel_caller else [],
         "allowed_repositories": sorted(cfg.allowed_repositories),
         "allowed_environments": sorted(cfg.allowed_environments),
         "allowed_branch_prefixes": list(cfg.allowed_branch_prefixes),
         "allowed_models": sorted(cfg.allowed_models),
         "max_in_flight": cfg.max_in_flight,
         "max_spend_units": cfg.max_spend_units,
-        "caller_count": len(cfg.caller_tokens),
         "allowed_base_branches": sorted(cfg.allowed_base_branches),
         "single_instance": cfg.single_instance,
         "shared_store_configured": bool(cfg.shared_store_url),

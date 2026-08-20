@@ -1,14 +1,41 @@
-"""Authenticate every MCP tool invocation — never anonymous."""
+"""Caller identity for the relay — never from model-supplied MCP arguments.
+
+Secure MCP Tunnel pilot: identity is fixed on the relay host
+(``RELAY_TUNNEL_CALLER``) and injected internally. Multi-user / public
+deployments require MCP OAuth (not model-visible bearer tokens).
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from personal_enigma.cursor_relay.config import CallerRecord, RelayConfig
 
+# Top-level MCP argument keys that must never appear in public tool schemas
+# or be accepted from the model. ``job_brief.authorization`` (policy flags)
+# is nested and is not in this set.
+MODEL_SUPPLIED_SECRET_KEYS = frozenset(
+    {
+        "authorization",
+        "bearer",
+        "token",
+        "api_key",
+        "cursor_api_key",
+        "relay_auth_token",
+        "relay_auth_tokens",
+        "chatgpt_api_key",
+        "chatgpt_session",
+        "openai_chatgpt_token",
+        "access_token",
+        "secret",
+        "password",
+    }
+)
+
 
 class AuthError(Exception):
-    """Caller failed authentication."""
+    """Caller failed authentication at the trusted transport boundary."""
 
     def __init__(self, message: str, *, code: str = "unauthenticated") -> None:
         super().__init__(message)
@@ -25,30 +52,45 @@ class AuthenticatedCaller:
         return role in self.roles or "admin" in self.roles
 
 
-def extract_bearer_token(authorization: str | None) -> str | None:
-    if not authorization:
-        return None
-    parts = authorization.strip().split(None, 1)
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        return None
-    token = parts[1].strip()
-    return token or None
-
-
-def authenticate(config: RelayConfig, authorization: str | None) -> AuthenticatedCaller:
-    """Resolve bearer token to a caller identity.
-
-    Anonymous (missing/invalid token) always raises — including for ``status``.
-    """
-
-    token = extract_bearer_token(authorization)
-    if token is None:
-        raise AuthError("Missing or invalid Authorization bearer token", code="unauthenticated")
-    record: CallerRecord | None = config.caller_tokens.get(token)
-    if record is None:
-        raise AuthError("Unknown caller token", code="unauthenticated")
+def caller_from_record(record: CallerRecord) -> AuthenticatedCaller:
     return AuthenticatedCaller(
         caller_id=record.caller_id,
         roles=record.roles,
         display_name=record.display_name,
     )
+
+
+def resolve_tunnel_caller(config: RelayConfig) -> AuthenticatedCaller:
+    """Fixed single-user identity from relay-host config (Secure MCP Tunnel).
+
+    Missing configuration is anonymous at the trusted transport boundary.
+    """
+
+    if config.tunnel_caller is None:
+        raise AuthError(
+            "Secure MCP Tunnel caller not configured (RELAY_TUNNEL_CALLER)",
+            code="unauthenticated",
+        )
+    return caller_from_record(config.tunnel_caller)
+
+
+def find_model_supplied_secret_keys(arguments: dict[str, Any]) -> list[str]:
+    """Return top-level argument keys that look like credentials."""
+
+    found: list[str] = []
+    for key in arguments:
+        if str(key).lower() in MODEL_SUPPLIED_SECRET_KEYS:
+            found.append(str(key))
+    return sorted(found)
+
+
+def reject_model_supplied_secrets(arguments: dict[str, Any]) -> None:
+    """Fail closed if the model attempted to pass credentials as tool args."""
+
+    found = find_model_supplied_secret_keys(arguments)
+    if found:
+        raise AuthError(
+            "Model-supplied credential arguments are not accepted "
+            f"(keys={found}); identity is server-side only",
+            code="model_supplied_secret",
+        )

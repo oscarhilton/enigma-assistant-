@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tokens import APPROVER, DISPATCHER, READER, bearer
+from tokens import APPROVER_CALLER, DISPATCHER_CALLER, READER_CALLER
 
 from personal_enigma.cursor_relay.handoff import validate_handoff
 from personal_enigma.cursor_relay.relay import RelayService
@@ -18,7 +18,7 @@ BASE_DISPATCH = {
 
 
 def test_reader_cannot_dispatch(service: RelayService) -> None:
-    result = service.invoke("dispatch", BASE_DISPATCH, authorization=bearer(READER))
+    result = service.invoke("dispatch", BASE_DISPATCH, caller=READER_CALLER)
     validate_handoff(result)
     assert "approval_denied" in result["recommended_action"]["rationale"]
 
@@ -27,7 +27,7 @@ def test_dispatcher_can_dispatch(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         {**BASE_DISPATCH, "idempotency_key": "apr-ok"},
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert result["recommended_action"]["kind"] == "no_action"
@@ -38,13 +38,13 @@ def test_reader_can_status_after_dispatch(service: RelayService) -> None:
     dispatched = service.invoke(
         "dispatch",
         {**BASE_DISPATCH, "idempotency_key": "apr-status"},
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     agent_id = dispatched["observed_state"]["agent_id"]
     result = service.invoke(
         "status",
         {"agent_id": agent_id},
-        authorization=bearer(READER),
+        caller=READER_CALLER,
     )
     validate_handoff(result)
     assert "Denied" not in result["recommended_action"]["rationale"]
@@ -60,7 +60,7 @@ def test_dispatcher_cannot_request_review(service: RelayService) -> None:
             "head_branch": "cursor/review-branch-a131",
             "prompt": "review please",
         },
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert "approval_denied" in result["recommended_action"]["rationale"]
@@ -76,7 +76,7 @@ def test_approver_can_request_review(service: RelayService) -> None:
             "head_branch": "cursor/review-branch-a131",
             "prompt": "review please",
         },
-        authorization=bearer(APPROVER),
+        caller=APPROVER_CALLER,
     )
     validate_handoff(result)
     assert result["recommended_action"]["kind"] == "request_review"
@@ -87,7 +87,7 @@ def test_merge_always_denied(service: RelayService) -> None:
     result = service.invoke(
         "dispatch",
         {**BASE_DISPATCH, "idempotency_key": "merge-no", "merge": True},
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "merge_forbidden" in result["recommended_action"]["rationale"]
 
@@ -101,7 +101,7 @@ def test_auto_pr_requires_brief_auth(service: RelayService) -> None:
             "auto_create_pr": True,
             "job_brief": {"authorization": {"dry_run": True}},
         },
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "pr_not_authorized" in result["recommended_action"]["rationale"]
 
@@ -121,7 +121,7 @@ def test_auto_pr_allowed_with_brief(service: RelayService) -> None:
                 }
             },
         },
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     validate_handoff(result)
     assert result["observed_state"]["agent_id"]
@@ -131,20 +131,20 @@ def test_cancel_requires_approver(service: RelayService) -> None:
     dispatched = service.invoke(
         "dispatch",
         {**BASE_DISPATCH, "idempotency_key": "cancel-setup"},
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     agent_id = dispatched["observed_state"]["agent_id"]
     run_id = dispatched["observed_state"]["run_id"]
     denied = service.invoke(
         "cancel",
         {"agent_id": agent_id, "run_id": run_id},
-        authorization=bearer(DISPATCHER),
+        caller=DISPATCHER_CALLER,
     )
     assert "approval_denied" in denied["recommended_action"]["rationale"]
     allowed = service.invoke(
         "cancel",
         {"agent_id": agent_id, "run_id": run_id},
-        authorization=bearer(APPROVER),
+        caller=APPROVER_CALLER,
     )
     validate_handoff(allowed)
     assert "Cancelled" in allowed["recommended_action"]["rationale"]

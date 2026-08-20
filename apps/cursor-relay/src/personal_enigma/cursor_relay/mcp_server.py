@@ -1,7 +1,9 @@
 """Minimal MCP stdio server exposing relay tools.
 
-Transport auth: every tool call MUST include ``authorization`` in arguments
-(Bearer token). The ChatGPT → relay hop supplies this; Cursor never sees it.
+Secure MCP Tunnel pilot: caller identity is derived server-side from
+``RELAY_TUNNEL_CALLER`` and injected into ``RelayService``. Public tool
+schemas and model-supplied arguments never carry bearer tokens or credentials.
+Multi-user / public deployment requires MCP OAuth (not model-visible secrets).
 """
 
 from __future__ import annotations
@@ -10,7 +12,13 @@ import json
 import sys
 from typing import Any
 
+from personal_enigma.cursor_relay.auth import (
+    AuthError,
+    reject_model_supplied_secrets,
+    resolve_tunnel_caller,
+)
 from personal_enigma.cursor_relay.config import load_config_from_env
+from personal_enigma.cursor_relay.handoff import denial_handoff, strip_secrets
 from personal_enigma.cursor_relay.relay import MCP_TOOLS, RelayService
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -18,22 +26,18 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "name": "dispatch",
         "description": (
             "Launch a cloud agent against an allowlisted named environment, "
-            "repository, and branch. Requires idempotency_key."
+            "repository, and branch. Requires idempotency_key. "
+            "Caller identity is server-side (Secure MCP Tunnel); do not pass secrets."
         ),
         "inputSchema": {
             "type": "object",
             "required": [
-                "authorization",
                 "idempotency_key",
                 "repository",
                 "environment",
                 "head_branch",
             ],
             "properties": {
-                "authorization": {
-                    "type": "string",
-                    "description": "Bearer token for authenticated caller identity",
-                },
                 "idempotency_key": {"type": "string"},
                 "repository": {"type": "string"},
                 "environment": {"type": "string"},
@@ -51,12 +55,14 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     },
     {
         "name": "status",
-        "description": "Poll run lifecycle / setup / PR linkage (authenticated, read-only authz).",
+        "description": (
+            "Poll run lifecycle / setup / PR linkage "
+            "(server-side authenticated; read-only authz)."
+        ),
         "inputSchema": {
             "type": "object",
-            "required": ["authorization", "agent_id"],
+            "required": ["agent_id"],
             "properties": {
-                "authorization": {"type": "string"},
                 "agent_id": {"type": "string"},
                 "run_id": {"type": "string"},
                 "head_branch": {"type": "string"},
@@ -69,9 +75,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "description": "Resume the same agent id with a follow-up brief (write-capable).",
         "inputSchema": {
             "type": "object",
-            "required": ["authorization", "idempotency_key", "agent_id", "prompt"],
+            "required": ["idempotency_key", "agent_id", "prompt"],
             "properties": {
-                "authorization": {"type": "string"},
                 "idempotency_key": {"type": "string"},
                 "agent_id": {"type": "string"},
                 "prompt": {"type": "string"},
@@ -89,9 +94,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         ),
         "inputSchema": {
             "type": "object",
-            "required": ["authorization", "idempotency_key"],
+            "required": ["idempotency_key"],
             "properties": {
-                "authorization": {"type": "string"},
                 "idempotency_key": {"type": "string"},
                 "repository": {"type": "string"},
                 "environment": {"type": "string"},
@@ -111,9 +115,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "description": "Cancel an in-flight run (approval-gated).",
         "inputSchema": {
             "type": "object",
-            "required": ["authorization", "agent_id", "run_id"],
+            "required": ["agent_id", "run_id"],
             "properties": {
-                "authorization": {"type": "string"},
                 "agent_id": {"type": "string"},
                 "run_id": {"type": "string"},
                 "head_branch": {"type": "string"},
@@ -122,6 +125,25 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
 ]
+
+
+def _schema_mentions_secrets(tools: list[dict[str, Any]]) -> list[str]:
+    """Collect forbidden credential property names found in public schemas."""
+
+    from personal_enigma.cursor_relay.auth import MODEL_SUPPLIED_SECRET_KEYS
+
+    hits: list[str] = []
+    for tool in tools:
+        props = (tool.get("inputSchema") or {}).get("properties") or {}
+        required = (tool.get("inputSchema") or {}).get("required") or []
+        for key in list(props) + list(required):
+            if str(key).lower() in MODEL_SUPPLIED_SECRET_KEYS:
+                hits.append(f"{tool.get('name')}:{key}")
+        blob = json.dumps(tool).lower()
+        for banned in ("bearer", "api_key", "cursor_api_key", "relay_auth"):
+            if banned in blob:
+                hits.append(f"{tool.get('name')}:description_or_schema:{banned}")
+    return hits
 
 
 class McpStdioServer:
@@ -155,14 +177,41 @@ class McpStdioServer:
             params = message.get("params") or {}
             name = params.get("name")
             arguments = dict(params.get("arguments") or {})
-            auth = arguments.pop("authorization", None)
             if name not in MCP_TOOLS:
                 return {
                     "jsonrpc": "2.0",
                     "id": msg_id,
                     "error": {"code": -32601, "message": f"Unknown tool: {name}"},
                 }
-            handoff = self.service.invoke(str(name), arguments, authorization=auth)
+            try:
+                reject_model_supplied_secrets(arguments)
+                caller = resolve_tunnel_caller(self.service.config)
+            except AuthError as exc:
+                handoff = strip_secrets(
+                    denial_handoff(tool=str(name), reason=str(exc), code=exc.code)
+                )
+                self.service.audit.emit(
+                    tool=str(name),
+                    caller_id="anonymous",
+                    decision="deny",
+                    detail=str(exc),
+                    extra={"code": exc.code},
+                )
+                return {
+                    "jsonrpc": "2.0",
+                    "id": msg_id,
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(handoff, indent=2, sort_keys=True),
+                            }
+                        ],
+                        "structuredContent": handoff,
+                        "isError": True,
+                    },
+                }
+            handoff = self.service.invoke(str(name), arguments, caller=caller)
             return {
                 "jsonrpc": "2.0",
                 "id": msg_id,

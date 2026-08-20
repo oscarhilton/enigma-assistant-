@@ -3,9 +3,10 @@
 ## Trust chain
 
 ```
-ChatGPT (existing authenticated session + caller identity)
+ChatGPT (Secure MCP Tunnel — single-user pilot)
   → authenticated MCP relay (apps/cursor-relay)
-       • AuthN: Bearer token on every tool (including status)
+       • AuthN: fixed caller from RELAY_TUNNEL_CALLER on the relay host
+         (injected internally; never in MCP tool schemas or model args)
        • AuthZ: roles + approval policy
        • Allowlists: repository, named environment, head/base branches, models
        • Idempotency + concurrency/spend limits
@@ -21,8 +22,25 @@ ChatGPT (existing authenticated session + caller identity)
 - ChatGPT credentials must not be used as `CURSOR_API_KEY`.
 - No agent automates ChatGPT or Cursor account login.
 - `CURSOR_API_KEY` lives only in the relay’s server-side secret store / process env at deploy time — never in git, `.cursor/`, Cloud Agent env secrets, handoffs, responses, logs, exception text, or test fixtures as real keys.
+- **No bearer token, API key, or credential may appear in public MCP tool input schemas or model-supplied arguments.** Identity is derived server-side and injected into `RelayService`.
 - Default MCP responses are schema-valid structured handoffs — never raw transcripts or secrets. Cursor timeouts/HTTP/transport failures are mapped to failure handoffs (no raw httpx exceptions to ChatGPT).
 - The relay **cannot merge PRs** and **does not** implicitly dispatch KERNEL-01 (or any ticket) — callers must pass an explicit job brief; KERNEL remains a separate authorized dispatch.
+
+## Secure MCP Tunnel pilot (single-user)
+
+This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay host:
+
+| Concern | Behaviour |
+| --- | --- |
+| Caller identity | Fixed via `RELAY_TUNNEL_CALLER` JSON `{caller_id, roles, display_name?}` on the relay host |
+| MCP tool schemas | No `authorization` / bearer / credential properties |
+| Model args | Credential-like top-level keys are **rejected** (`model_supplied_secret`) |
+| Missing tunnel caller | Anonymous denial at the transport boundary (every tool, including `status`) |
+| Roles / approval / audit | Unchanged — roles come from the tunnel caller record |
+
+**Multi-user or public deployment requires MCP OAuth** (or an equivalent non-model-visible credential channel). Do not reintroduce bearer tokens into tool schemas for multi-tenant use.
+
+`RELAY_AUTH_TOKENS` (legacy bearer map) is **retired** for this pilot; config load fails closed if it is set without migrating to `RELAY_TUNNEL_CALLER`.
 
 ## Named environment (defaults)
 
@@ -37,18 +55,18 @@ ChatGPT (existing authenticated session + caller identity)
 | Tool | AuthZ | Notes |
 | --- | --- | --- |
 | `dispatch` | `dispatcher`+ | Requires `idempotency_key`; create-path quotas |
-| `status` | `reader`+ | Authenticated; read-only authorization |
+| `status` | `reader`+ | Server-side authenticated; read-only authz |
 | `follow_up` | `dispatcher`+ | Write-capable; requires `idempotency_key` |
 | `request_review` | `approver`+ | No merge; idempotency when creating a run |
 | `cancel` | `approver`+ | Approval-gated |
 
-Every tool argument object includes `authorization` (Bearer token). Anonymous invocation is denied by construction.
+Anonymous invocation (no tunnel caller / no injected caller) is denied by construction.
 
 ## Approval policy
 
 - Roles: `reader`, `dispatcher`, `approver`, `admin`.
 - `merge` / `allow_merge` is always denied by the relay (no silent main merges).
-- `auto_create_pr` requires `job_brief.authorization.allow_open_pr=true`.
+- `auto_create_pr` requires `job_brief.authorization.allow_open_pr=true` (policy flags inside `job_brief` — not transport credentials).
 - Conductor jobs remain read-only unless the job brief explicitly authorizes push/PR (merge still forbidden via relay).
 
 ## Allowlists & limits
@@ -86,8 +104,8 @@ Two relay instances each with their own memory can both accept the same idempote
    ```
 
 3. Confirm handoff schema contract tests pass (`test_handoff_schema.py`).
-4. Optional stdio MCP probe against mock (tests cover `tools/list` + `tools/call`).
-5. Only after green: production deploy with `CURSOR_API_KEY` and `RELAY_AUTH_TOKENS` on the **relay host only** — never in Cursor worker environments.
+4. Confirm MCP surface never exposes/accepts secrets (`test_no_secrets_in_mcp_surface.py`).
+5. Only after green: production deploy with `CURSOR_API_KEY` and `RELAY_TUNNEL_CALLER` on the **relay host only** — never in Cursor worker environments.
 
 **Do not** inject `CURSOR_API_KEY` into Cloud Agent environments. **Do not** dispatch KERNEL-01 through the relay until this verify is green and a later job brief authorizes it.
 

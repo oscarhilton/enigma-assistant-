@@ -8,7 +8,7 @@ from typing import Any
 from personal_enigma.cursor_relay.allowlist import AllowlistError, validate_dispatch_target
 from personal_enigma.cursor_relay.approval import ApprovalError, enforce_write_policy
 from personal_enigma.cursor_relay.audit import AuditLog, hash_prompt
-from personal_enigma.cursor_relay.auth import AuthenticatedCaller, AuthError, authenticate
+from personal_enigma.cursor_relay.auth import AuthenticatedCaller
 from personal_enigma.cursor_relay.config import RelayConfig, config_public_dict
 from personal_enigma.cursor_relay.cursor_client import (
     CursorApiError,
@@ -63,25 +63,34 @@ class RelayService:
     def invoke(
         self,
         tool: str,
-        params: dict[str, Any] | None,
+        params: dict[str, Any] | None = None,
         *,
-        authorization: str | None,
+        caller: AuthenticatedCaller | None = None,
     ) -> dict[str, Any]:
-        """Invoke an MCP tool. Always authenticates first (including ``status``)."""
+        """Invoke a relay tool with an internally injected caller identity.
+
+        The public MCP surface never accepts bearer tokens. Callers are either
+        the Secure MCP Tunnel identity from relay-host config (injected by
+        ``McpStdioServer``) or an explicit ``AuthenticatedCaller`` in tests /
+        trusted in-process callers. Missing caller is anonymous denial —
+        including for ``status``.
+        """
 
         params = dict(params or {})
-        try:
-            caller = authenticate(self.config, authorization)
-        except AuthError as exc:
+        if caller is None:
             self.audit.emit(
                 tool=tool,
                 caller_id="anonymous",
                 decision="deny",
-                detail=str(exc),
-                extra={"code": exc.code},
+                detail="No authenticated caller at trusted transport boundary",
+                extra={"code": "unauthenticated"},
             )
             return strip_secrets(
-                denial_handoff(tool=tool, reason=str(exc), code=exc.code)
+                denial_handoff(
+                    tool=tool,
+                    reason="No authenticated caller at trusted transport boundary",
+                    code="unauthenticated",
+                )
             )
 
         if tool not in MCP_TOOLS:
