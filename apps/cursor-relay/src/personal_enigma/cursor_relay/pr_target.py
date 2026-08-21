@@ -6,6 +6,7 @@ stale long-lived agent workspace. Prefer GitHub PR URL + workOnCurrentBranch.
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -146,6 +147,9 @@ _PR_CONTEXT_TERMS = (
 )
 
 
+_PR_PERMISSION_FIELDS = frozenset({"createpullrequest", "autocreatepr"})
+
+
 def is_cursor_pr_permission_failure(
     entries: list[dict[str, str]] | None = None,
     *,
@@ -153,6 +157,11 @@ def is_cursor_pr_permission_failure(
     http_status: int | None = None,
 ) -> bool:
     """True when Cursor/GitHub rejected PR creation due to host/app permissions."""
+
+    for item in entries or []:
+        field_val = str(item.get("field", "")).strip().lower()
+        if field_val in _PR_PERMISSION_FIELDS:
+            return True
 
     chunks: list[str] = [message.lower()]
     for item in entries or []:
@@ -192,21 +201,46 @@ class MockGitHubPrResolver:
 
 
 class HttpGitHubPrResolver:
-    """Resolve PR head via the public GitHub REST API (no token for public repos)."""
+    """Resolve PR head via GitHub REST API.
+
+    Uses ``RELAY_GITHUB_TOKEN`` or ``GITHUB_TOKEN`` from relay host env when set
+    (server-side only — never MCP args). Unauthenticated access works for public
+    repos; private repos require a token on the relay host.
+    """
+
+    def __init__(self, *, token: str | None = None) -> None:
+        if token is not None:
+            self._token = token.strip() or None
+        else:
+            self._token = (
+                os.environ.get("RELAY_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+            )
+            self._token = self._token.strip() if self._token else None
+
+    def _request_headers(self) -> dict[str, str]:
+        headers = {"Accept": "application/vnd.github+json"}
+        if self._token:
+            headers["Authorization"] = f"Bearer {self._token}"
+        return headers
 
     def resolve_head_branch(self, pr: ParsedPrUrl) -> str:
         url = f"https://api.github.com/repos/{pr.owner}/{pr.repo}/pulls/{pr.number}"
         try:
             response = httpx.get(
                 url,
-                headers={"Accept": "application/vnd.github+json"},
+                headers=self._request_headers(),
                 timeout=15.0,
             )
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
             if status == 404:
-                msg = f"GitHub pull request not found: {pr.normalized_url}"
+                hint = (
+                    " (set RELAY_GITHUB_TOKEN on relay host for private repos)"
+                    if not self._token
+                    else ""
+                )
+                msg = f"GitHub pull request not found: {pr.normalized_url}{hint}"
                 raise PrTargetError(msg, code="pr_not_found") from exc
             msg = f"Unable to resolve GitHub PR head (HTTP {status})"
             raise PrTargetError(msg, code="pr_head_unresolved") from exc

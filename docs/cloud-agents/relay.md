@@ -108,6 +108,7 @@ Configured via env (defaults match the named environment above):
 - `RELAY_ALLOWED_BASE_BRANCHES` (default `main,master`; stacked bases may also use an allowed prefix)
 - `RELAY_ALLOWED_MODELS`
 - `RELAY_ENV_UUID_TO_NAME` (optional JSON `{uuid: api_registry_name}`; defaults map `1baeb513-…` → `enigma-assistant-`)
+- `RELAY_GITHUB_TOKEN` (optional; server-side only — resolves private-repo PR heads for `dispatch.pr_url`; falls back to `GITHUB_TOKEN`)
 - `RELAY_MAX_IN_FLIGHT` / `RELAY_MAX_SPEND_UNITS`
 
 Head branches `main` / `master` are forbidden as **heads**. Base branches fail closed (exact allowlist or allowed prefix). Denials are audited.

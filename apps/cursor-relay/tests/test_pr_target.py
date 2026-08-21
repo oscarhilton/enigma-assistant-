@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import httpx
+import pytest
 from tokens import DISPATCHER_CALLER
 
 from personal_enigma.cursor_relay.allowlist import DispatchTarget
@@ -13,6 +14,7 @@ from personal_enigma.cursor_relay.create_contract import build_create_payload, r
 from personal_enigma.cursor_relay.cursor_client import MockCursorClient, _safe_http_error
 from personal_enigma.cursor_relay.handoff import validate_handoff
 from personal_enigma.cursor_relay.pr_target import (
+    HttpGitHubPrResolver,
     MockGitHubPrResolver,
     is_cursor_pr_permission_failure,
     parse_github_pr_url,
@@ -172,6 +174,37 @@ def test_is_cursor_pr_permission_failure_detects_create_pull_request() -> None:
         message="Insufficient permissions to create repository",
         http_status=403,
     )
+    assert is_cursor_pr_permission_failure(
+        [
+            {
+                "code": "forbidden",
+                "message": "Resource not accessible by integration",
+                "field": "autoCreatePR",
+            }
+        ]
+    )
+
+
+def test_http_github_resolver_sends_token_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_get(url: str, *, headers: dict[str, str], timeout: float) -> httpx.Response:
+        captured["url"] = url
+        captured["headers"] = headers
+        request = httpx.Request("GET", url)
+        return httpx.Response(
+            200,
+            request=request,
+            json={"head": {"ref": "cursor/sprint2-relay-pr-target-47cd"}},
+        )
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    resolver = HttpGitHubPrResolver(token="ghp_test_token")
+    parsed = parse_github_pr_url(PR_URL)
+    assert resolver.resolve_head_branch(parsed) == PR_HEAD
+    headers = captured["headers"]
+    assert isinstance(headers, dict)
+    assert headers["Authorization"] == "Bearer ghp_test_token"
 
 
 def test_http_403_pr_permission_maps_to_host_blocker() -> None:
