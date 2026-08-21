@@ -1458,6 +1458,9 @@ def tools_for_interpretation(interp: RequestInterpretation) -> tuple[str, ...]:
     if interp.route_minimised and interp.capability_families:
         for family in interp.capability_families:
             names.extend(_FAMILY_TOOLS.get(family, ()))
+        if interp.constraints.source:
+            names.extend(_SOURCE_TOOLS)
+            names.extend(_FAMILY_TOOLS["attention"])
     else:
         names.extend(_PROFILE_TOOLS[interp.profile])
         for family in interp.capability_families:

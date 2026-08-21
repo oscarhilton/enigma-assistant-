@@ -12,7 +12,12 @@ from typing import Any
 
 import pytest
 
-from personal_enigma.api.context_compilation import interpret_request, tools_for_interpretation
+from personal_enigma.api.context_compilation import (
+    RequestConstraints,
+    RequestInterpretation,
+    interpret_request,
+    tools_for_interpretation,
+)
 from personal_enigma.api.conversation_context import ConversationContext
 from personal_enigma.api.demo_assist import SyntheticDemoServices
 from personal_enigma.api.demo_projection import project_checkpoint
@@ -341,4 +346,31 @@ def test_force_regex_router_skips_semantic(
     session = _tool_session()
     decision = interpret_with_router("What's on today?", session, bootstrap=None)
     assert decision.trace["primary"] in {"regex_degraded", "abstain"}
+    assert decision.interpretation.evidence_domain == "PRIVATE_WORLD"
+
+
+def test_route_minimised_keeps_source_tools_when_source_constraint() -> None:
+    interp = RequestInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        profile="PRIVATE_QUERY",
+        speech_act="QUESTION",
+        constraints=RequestConstraints(source="email"),
+        capability_families=("agenda",),
+        request_kind="important_from_source",
+        frame_inherited=False,
+        route_minimised=True,
+    )
+    tools = tools_for_interpretation(interp)
+    assert "source.recent" in tools
+    assert "source.quote" in tools
+    assert "attention.get_current" in tools
+
+
+def test_provider_down_trace_reports_regex_degraded_primary() -> None:
+    session = _tool_session()
+    remote = RemoteSemanticBootstrap(gate=_DownGate())
+    decision = interpret_with_router("What's on today?", session, bootstrap=remote)
+    assert decision.trace["primary"] == "regex_degraded"
+    assert decision.trace["fallback_reason"] == "provider_down"
     assert decision.interpretation.evidence_domain == "PRIVATE_WORLD"

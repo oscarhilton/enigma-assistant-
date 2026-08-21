@@ -541,6 +541,13 @@ def _semantic_counts(semantic: SemanticInterpretation | None) -> bool:
     return semantic.confidence >= _SEMANTIC_CONFIDENCE_FLOOR
 
 
+def _router_primary_path(semantic: SemanticInterpretation | None) -> str:
+    """Semantic primary only when the router contributed live route evidence."""
+    if semantic is not None and semantic.abstain:
+        return "abstain"
+    return "semantic" if _semantic_counts(semantic) else "regex_degraded"
+
+
 def _action_authority_allowed(deterministic: Authority, candidate: Authority | None) -> bool:
     if candidate is None:
         return False
@@ -718,11 +725,12 @@ def interpret_with_router(
     primary = "regex_degraded"
     if resolved is None and interpreter is not None:
         resolved = interpreter.interpret(utterance, session.context.live_capsule())
-        primary = "semantic"
+        primary = _router_primary_path(resolved)
         if resolved is None:
             resolved = SemanticInterpretation(abstain=True, fallback_reason="abstain")
+            primary = "abstain"
     elif resolved is not None:
-        primary = "semantic"
+        primary = _router_primary_path(resolved)
     if resolved is None and (
         not _letters_are_ascii_english(utterance) or _regex_false_positive(utterance)
     ):
@@ -761,7 +769,7 @@ def interpret_with_router(
     trace = routing_trace(
         semantic=resolved,
         selected=chosen,
-        primary=primary if not (resolved and resolved.abstain) else "abstain",
+        primary=primary,
         model_id=str(model_id) if model_id else None,
     )
     if resolved is not None and resolved.abstain:
