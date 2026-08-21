@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any
+
+from personal_enigma.api.conversation_context import ConversationContext
 from personal_enigma.api.demo_orchestrator import LlmTrace
 from personal_enigma.api.demo_tools import ToolExecutionResult
 from personal_enigma.api.turn_kernel import (
@@ -10,7 +14,13 @@ from personal_enigma.api.turn_kernel import (
     agent_work_label_from_outcome,
     attach_kernel_forensics,
     derive_turn_outcome,
+    run_private_turn,
 )
+
+
+class _EmptyCalendarAdapter:
+    def list_events(self) -> list[Any]:
+        return []
 
 
 def test_derive_turn_outcome_fulfilled_when_planned_matches_executed() -> None:
@@ -96,3 +106,76 @@ def test_attach_kernel_forensics_populates_provenance() -> None:
     assert payload.get("forensic_provenance") is not None
     build = payload["forensic_provenance"]["build"]
     assert build.get("git_sha")
+
+
+def test_run_private_turn_general_knowledge_ejects_calendar_tools() -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="What's the capital of France?",
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    assert result.llm_trace["planner"] == "general_knowledge_ejected"
+    assert result.llm_trace["executed_tool_request"] == []
+    assert result.outcome.status == "fulfilled"
+    assert "search engine" in result.items[0]["text"].lower()
+
+
+def test_run_private_turn_authority_refusal_before_calendar_read() -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="Book lunch on my calendar tomorrow",
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    assert result.llm_trace["planner"] == "authority_refusal"
+    assert result.llm_trace["executed_tool_request"] == []
+    assert "can't create or change calendar" in result.items[0]["text"].lower()
+
+
+def test_run_private_turn_interpret_request_routes_agenda_with_oracle() -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="What's on today?",
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    assert result.llm_trace["planner"] == "private_calendar_read"
+    executed = result.llm_trace["executed_tool_request"]
+    assert executed and executed[0]["name"] == "briefing.read"
+    assert executed[0]["arguments"]["period"] == "today"
+    assert "briefing.read" in result.outcome.planned_capabilities
+    assert result.outcome.status == "fulfilled"
+
+
+def test_run_private_turn_get_my_events_uses_briefing_read() -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="Get my events",
+        at=datetime(2026, 8, 18, 10, 0, tzinfo=UTC).isoformat(),
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    executed = result.llm_trace["executed_tool_request"]
+    assert executed == [{"name": "briefing.read", "arguments": {"period": "this_week"}}]
+    assert result.outcome.status == "fulfilled"
+
+
+def test_run_private_turn_phatic_turn_stays_conversation_only() -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="Yep, im so ready for you",
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    assert result.llm_trace["planner"] == "conversation"
+    assert result.llm_trace["executed_tool_request"] == []

@@ -183,6 +183,19 @@ _CATCH_UP_CUE = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+_AGENDA_LIST_CUE = re.compile(
+    r"\b(?:get|show|list|what are)\s+(?:my\s+)?(?:calendar\s+)?events\b"
+    r"|\bmy\s+(?:calendar\s+)?events\b",
+    re.IGNORECASE,
+)
+_AVAILABILITY_FREE_CUE = re.compile(
+    r"\bam i (?:actually )?free\b|\b(?:free|available|clear)\b",
+    re.IGNORECASE,
+)
+_WEEKDAY_CUE = re.compile(
+    r"\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+    re.IGNORECASE,
+)
 _SHOULD_BE_DOING = re.compile(r"\bwhat should i be doing\b", re.IGNORECASE)
 _PERSONAL_SCOPE = re.compile(
     r"\b(personal(?:\s+life)?|at home|home life|social life|relationships?)\b",
@@ -676,6 +689,14 @@ def _has_private_world_cues(utterance: str, session: _SessionLike | None) -> boo
         return True
     if _FOCUS_NOW.search(utterance):
         return True
+    if _AGENDA_LIST_CUE.search(utterance):
+        return True
+    if _AVAILABILITY_FREE_CUE.search(utterance) and (
+        _infer_period(utterance) is not None
+        or _PERSONAL_HORIZON.search(utterance)
+        or _WEEKDAY_CUE.search(utterance)
+    ):
+        return True
     return False
 
 
@@ -800,6 +821,12 @@ def _infer_capability_families(
         families.append("attention")
     if constraints.period or "what's on" in hay or "whats on" in hay or "on this week" in hay:
         families.append("agenda")
+    if _AVAILABILITY_FREE_CUE.search(utterance) and (
+        constraints.period
+        or _PERSONAL_HORIZON.search(utterance)
+        or _WEEKDAY_CUE.search(utterance)
+    ):
+        families.append("availability")
     if _FOCUS_NOW.search(utterance) or "right now" in hay or "urgent" in hay:
         families.append("attention")
     if authority == "SUPPORT":
@@ -981,6 +1008,12 @@ def _infer_request_kind(
             return "important_from_source"
     if authority == "SUPPORT" or _HELP_CUE.search(utterance):
         return "support_explain"
+    if _AVAILABILITY_FREE_CUE.search(utterance) and (
+        constraints.period
+        or _PERSONAL_HORIZON.search(utterance)
+        or _WEEKDAY_CUE.search(utterance)
+    ):
+        return "agenda"
     if constraints.period or _AGENDA_CUE.search(utterance) or "agenda" in families:
         if _NEXT_WORK_CUE.search(utterance) and not _AGENDA_CUE.search(utterance):
             return "next_work"

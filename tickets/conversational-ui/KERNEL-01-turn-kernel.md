@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `ticket/kernel-01-turn-kernel` |
 | Domain | `conversational-ui` |
 | Programme | Shared conversation turn path (Alex Lab + My Enigma) |
@@ -51,10 +51,10 @@ Soft only: kernel work can proceed on the stacked branch; merge order prefers #1
 
 ## Remaining exit conditions
 
-- [ ] My Enigma conversation path fully through `interpret_request` (no parallel private-only interpret fork)
-- [ ] Compiler / oracle alignment for turn outcomes
-- [ ] Removal of `_route_private_tool` (or equivalent private-only router leftover)
-- [ ] Routing / privacy tests covering the full kernel contract beyond the six-turn gate
+- [x] My Enigma conversation path fully through `interpret_request` (no parallel private-only interpret fork)
+- [x] Compiler / oracle alignment for turn outcomes
+- [x] Removal of `_route_private_tool` (or equivalent private-only router leftover)
+- [x] Routing / privacy tests covering the full kernel contract beyond the six-turn gate
 
 ## Explicit non-goals (this run)
 
