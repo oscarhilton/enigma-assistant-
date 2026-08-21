@@ -84,12 +84,89 @@ def _safe_http_error(exc: BaseException) -> CursorApiError:
     return CursorApiError("Cursor API failure", code="cursor_api_error")
 
 
+@dataclass
+class StreamRunOutcome:
+    """Terminal payload from SSE ``result`` / ``error`` events."""
+
+    status: str
+    text: str | None = None
+    duration_ms: int | None = None
+    git: dict[str, Any] | None = None
+    stream_error: dict[str, str] | None = None
+
+
+def _parse_sse_run_stream(lines: Any) -> StreamRunOutcome:
+    """Parse Cursor run SSE until ``result``, ``error``, or ``done``."""
+
+    event_name: str | None = None
+    data_lines: list[str] = []
+    terminal: StreamRunOutcome | None = None
+
+    def _flush_event() -> None:
+        nonlocal terminal, event_name, data_lines
+        if not event_name:
+            data_lines = []
+            return
+        raw = "\n".join(data_lines).strip()
+        payload: dict[str, Any] = {}
+        if raw:
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    payload = parsed
+            except (json.JSONDecodeError, ValueError):
+                payload = {}
+        if event_name == "result":
+            terminal = StreamRunOutcome(
+                status=str(payload.get("status") or "FINISHED"),
+                text=str(payload["text"]) if isinstance(payload.get("text"), str) else None,
+                duration_ms=payload.get("durationMs")
+                if isinstance(payload.get("durationMs"), int)
+                else None,
+                git=payload.get("git") if isinstance(payload.get("git"), dict) else None,
+            )
+        elif event_name == "error":
+            terminal = StreamRunOutcome(
+                status="ERROR",
+                stream_error={
+                    "code": str(payload.get("code") or "stream_error"),
+                    "message": str(payload.get("message") or "Run stream error"),
+                },
+            )
+        event_name = None
+        data_lines = []
+
+    for line in lines:
+        if line is None:
+            continue
+        text = line.decode("utf-8") if isinstance(line, bytes) else str(line)
+        if text.startswith(":"):
+            continue
+        if text == "":
+            _flush_event()
+            if terminal is not None:
+                return terminal
+            continue
+        if text.startswith("event:"):
+            event_name = text.split(":", 1)[1].strip()
+            continue
+        if text.startswith("data:"):
+            data_lines.append(text.split(":", 1)[1].lstrip())
+            continue
+    _flush_event()
+    if terminal is not None:
+        return terminal
+    raise CursorApiError("Run stream ended without terminal event", code="stream_no_terminal")
+
+
 class CursorClient(Protocol):
     def create_agent(self, payload: dict[str, Any]) -> CursorAgentRef: ...
 
     def get_agent(self, agent_id: str) -> dict[str, Any]: ...
 
     def get_run(self, agent_id: str, run_id: str) -> dict[str, Any]: ...
+
+    def stream_run(self, agent_id: str, run_id: str) -> StreamRunOutcome: ...
 
     def create_run(self, agent_id: str, payload: dict[str, Any]) -> CursorAgentRef: ...
 
@@ -150,6 +227,26 @@ class HttpCursorClient:
         except httpx.HTTPError as exc:
             raise _safe_http_error(exc) from None
 
+    def stream_run(self, agent_id: str, run_id: str) -> StreamRunOutcome:
+        try:
+            with self._client() as client:
+                with client.stream(
+                    "GET",
+                    f"/v1/agents/{agent_id}/runs/{run_id}/stream",
+                    headers={"Accept": "text/event-stream"},
+                ) as resp:
+                    if resp.status_code == 410:
+                        raise CursorApiError(
+                            "Run stream retention expired",
+                            code="stream_expired",
+                        )
+                    resp.raise_for_status()
+                    return _parse_sse_run_stream(resp.iter_lines())
+        except CursorApiError:
+            raise
+        except httpx.HTTPError as exc:
+            raise _safe_http_error(exc) from None
+
     def create_run(self, agent_id: str, payload: dict[str, Any]) -> CursorAgentRef:
         try:
             with self._client() as client:
@@ -185,9 +282,11 @@ class MockCursorClient:
         self.create_calls: list[dict[str, Any]] = []
         self.run_calls: list[dict[str, Any]] = []
         self.cancel_calls: list[tuple[str, str]] = []
+        self.stream_calls: list[tuple[str, str]] = []
         self._seq = 0
         self.fail_next: str | None = None
         self.fail_validation: list[dict[str, str]] | None = None
+        self.stream_expired_for: set[tuple[str, str]] = set()
 
     def _maybe_fail(self) -> None:
         mode = self.fail_next
@@ -256,6 +355,35 @@ class MockCursorClient:
         run = dict(self.runs[run_id])
         run["agentId"] = agent_id
         return run
+
+    def stream_run(self, agent_id: str, run_id: str) -> StreamRunOutcome:
+        self._maybe_fail()
+        self.stream_calls.append((agent_id, run_id))
+        if (agent_id, run_id) in self.stream_expired_for:
+            raise CursorApiError("Run stream retention expired", code="stream_expired")
+        if run_id not in self.runs:
+            raise CursorApiError(f"Unknown run_id: {run_id}", code="run_not_found")
+        run = self.runs[run_id]
+        status = str(run.get("status") or "UNKNOWN").upper()
+        if status in {"FINISHED", "ERROR", "CANCELLED", "EXPIRED"}:
+            if status == "ERROR" and run.get("stream_error"):
+                err = run["stream_error"]
+                return StreamRunOutcome(
+                    status="ERROR",
+                    stream_error={
+                        "code": str(err.get("code") or "run_error"),
+                        "message": str(err.get("message") or "Run failed"),
+                    },
+                )
+            return StreamRunOutcome(
+                status=status,
+                text=run.get("result") if isinstance(run.get("result"), str) else None,
+                duration_ms=run.get("durationMs")
+                if isinstance(run.get("durationMs"), int)
+                else None,
+                git=run.get("git") if isinstance(run.get("git"), dict) else None,
+            )
+        raise CursorApiError("Run stream ended without terminal event", code="stream_no_terminal")
 
     def create_run(self, agent_id: str, payload: dict[str, Any]) -> CursorAgentRef:
         self._maybe_fail()
