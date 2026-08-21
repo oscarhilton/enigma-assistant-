@@ -64,6 +64,7 @@ def _safe_http_error(exc: BaseException) -> CursorApiError:
             if body is not None:
                 validation = extract_validation_fields(body)
             msg = "Cursor API HTTP 400"
+            code = "cursor_validation_error"
             if validation:
                 # Compact allowlisted summary only (already scrubbed + capped).
                 bits = []
@@ -74,7 +75,13 @@ def _safe_http_error(exc: BaseException) -> CursorApiError:
                     ]
                     bits.append("{" + ", ".join(parts) + "}")
                 msg = f"Cursor API HTTP 400 validation: {'; '.join(bits)}"
-            return CursorApiError(msg, code="cursor_validation_error", validation=validation)
+                from personal_enigma.cursor_relay.create_contract import (
+                    is_cursor_env_not_found_validation,
+                )
+
+                if is_cursor_env_not_found_validation(validation):
+                    code = "cursor_env_not_found"
+            return CursorApiError(msg, code=code, validation=validation)
         return CursorApiError(
             f"Cursor API HTTP {status}",
             code="cursor_http_error",
@@ -203,9 +210,18 @@ class MockCursorClient:
                 {"code": "invalid_argument", "message": "bad env", "field": "env.name"}
             ]
             self.fail_validation = None
+            from personal_enigma.cursor_relay.create_contract import (
+                is_cursor_env_not_found_validation,
+            )
+
+            code = (
+                "cursor_env_not_found"
+                if is_cursor_env_not_found_validation(validation)
+                else "cursor_validation_error"
+            )
             raise CursorApiError(
                 "Cursor API HTTP 400",
-                code="cursor_validation_error",
+                code=code,
                 validation=validation,
             )
 

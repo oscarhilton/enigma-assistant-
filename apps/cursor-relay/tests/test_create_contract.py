@@ -335,3 +335,97 @@ def test_request_review_dry_run_no_create(
     validate_handoff(result)
     assert mock_cursor.create_calls == []
     assert result["observed_state"]["dry_run"] is True
+
+
+def test_uuid_to_name_override_via_config(
+    mock_cursor: MockCursorClient,
+) -> None:
+    from personal_enigma.cursor_relay.config import CallerRecord, RelayConfig
+
+    cfg = RelayConfig(
+        cursor_api_key=None,
+        tunnel_caller=CallerRecord("t", frozenset({"admin"})),
+        env_uuid_to_name={ENV_UUID: "dashboard-registered-name"},
+    )
+    svc = RelayService(cfg, cursor=mock_cursor)
+    result = svc.invoke(
+        "dispatch",
+        {
+            "idempotency_key": "cloud04-override",
+            "repository": "oscarhilton/enigma-assistant-",
+            "environment": ENV_UUID,
+            "head_branch": "ticket/kernel-01-turn-kernel",
+            "prompt": "plan",
+            "job_brief": {"authorization": {"dry_run": True}},
+        },
+        caller=DISPATCHER_CALLER,
+    )
+    validate_handoff(result)
+    plan = result["observed_state"]["create_request_plan"]
+    assert plan["env"]["name"] == "dashboard-registered-name"
+    assert "repos" not in plan
+    assert "workOnCurrentBranch" not in plan
+
+
+def test_env_not_found_gets_distinct_error_code(
+    service: RelayService, mock_cursor: MockCursorClient
+) -> None:
+    mock_cursor.fail_next = "http_400"
+    mock_cursor.fail_validation = [
+        {
+            "code": "validation_error",
+            "message": 'No cloud environment named "enigma-assistant-" was found.',
+            "field": "env.name",
+        }
+    ]
+    result = service.invoke(
+        "dispatch",
+        {
+            "idempotency_key": "cloud04-env-missing",
+            "repository": "oscarhilton/enigma-assistant-",
+            "environment": ENV_UUID,
+            "head_branch": "ticket/kernel-01-turn-kernel",
+            "prompt": "go",
+            "job_brief": {
+                "authorization": {"dry_run": False, "allow_push": True}
+            },
+        },
+        caller=DISPATCHER_CALLER,
+    )
+    validate_handoff(result)
+    assert "cursor_env_not_found" in result["recommended_action"]["rationale"]
+    assert mock_cursor.create_calls == []
+
+
+def test_is_cursor_env_not_found_validation() -> None:
+    from personal_enigma.cursor_relay.create_contract import (
+        is_cursor_env_not_found_validation,
+    )
+
+    assert is_cursor_env_not_found_validation(
+        [
+            {
+                "message": 'No cloud environment named "enigma-assistant-" was found.',
+                "field": "env.name",
+            }
+        ]
+    )
+    assert not is_cursor_env_not_found_validation(
+        [{"message": "bad model", "field": "model.id"}]
+    )
+
+
+def test_load_config_parses_env_uuid_to_name_override() -> None:
+    from personal_enigma.cursor_relay.config import load_config_from_env
+
+    cfg = load_config_from_env(
+        {
+            "RELAY_TUNNEL_CALLER": json.dumps(
+                {"caller_id": "t", "roles": ["admin"]}
+            ),
+            "RELAY_ENV_UUID_TO_NAME": json.dumps(
+                {ENV_UUID: "my-dashboard-env"}
+            ),
+        }
+    )
+    assert cfg.env_uuid_to_name[ENV_UUID] == "my-dashboard-env"

@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from personal_enigma.cursor_relay.allowlist import DispatchTarget
 
-# Allowlisted UUID → Cursor dashboard environment name for env.name serialization.
-ENV_UUID_TO_NAME: dict[str, str] = {
+# Allowlisted UUID → Cursor *API registry* name for env.name serialization.
+# IMPORTANT: this is the dashboard-registered Cloud Environment name that
+# POST /v1/agents looks up — NOT the UUID, and NOT automatically equal to
+# `.cursor/environment.json` "name" (repo-file config). Live environment-info
+# for this UUID has reported name=null until the dashboard display name is set.
+DEFAULT_ENV_UUID_TO_NAME: dict[str, str] = {
     "1baeb513-9c77-11f1-ba66-0e7d0216e441": "enigma-assistant-",
 }
+# Back-compat alias for tests / importers.
+ENV_UUID_TO_NAME = DEFAULT_ENV_UUID_TO_NAME
 CANONICAL_ENV_NAME = "enigma-assistant-"
-NAMED_ENV_ALIASES = frozenset({CANONICAL_ENV_NAME, *ENV_UUID_TO_NAME.keys()})
+NAMED_ENV_ALIASES = frozenset({CANONICAL_ENV_NAME, *DEFAULT_ENV_UUID_TO_NAME.keys()})
 
 # Allowlisted validation field keys only (truncated + scrubbed).
 _VALIDATION_KEYS = frozenset({"code", "message", "field"})
@@ -25,17 +32,51 @@ _REDACTED = "[redacted]"
 PENDING_BRANCH = "pending"
 
 
-def canonicalize_environment_name(environment: str) -> str:
-    """Map allowlisted UUID to Cursor env name before serializing env.name."""
+def canonicalize_environment_name(
+    environment: str,
+    *,
+    uuid_to_name: Mapping[str, str] | None = None,
+) -> str:
+    """Map allowlisted UUID to Cursor API registry name before serializing env.name.
+
+    ``uuid_to_name`` defaults to ``DEFAULT_ENV_UUID_TO_NAME`` (overridable via
+    ``RELAY_ENV_UUID_TO_NAME`` on the relay host). The resulting string must
+    exist as a named cloud environment in the Cursor dashboard / API.
+    """
 
     value = environment.strip()
-    return ENV_UUID_TO_NAME.get(value, value)
+    mapping = DEFAULT_ENV_UUID_TO_NAME if uuid_to_name is None else uuid_to_name
+    return mapping.get(value, value)
 
 
-def is_named_cloud_environment(environment: str) -> bool:
-    """True when the target uses the bound named cloud environment."""
+def is_named_cloud_environment(
+    environment: str,
+    *,
+    uuid_to_name: Mapping[str, str] | None = None,
+    canonical_names: frozenset[str] | None = None,
+) -> bool:
+    """True when the target uses a bound named cloud environment."""
 
-    return canonicalize_environment_name(environment) == CANONICAL_ENV_NAME
+    resolved = canonicalize_environment_name(environment, uuid_to_name=uuid_to_name)
+    names = (
+        frozenset({CANONICAL_ENV_NAME, *DEFAULT_ENV_UUID_TO_NAME.values()})
+        if canonical_names is None
+        else canonical_names
+    )
+    return resolved in names
+
+
+def is_cursor_env_not_found_validation(entries: list[dict[str, str]] | None) -> bool:
+    """True when Cursor validation indicates unknown env.name registry lookup."""
+
+    for item in entries or []:
+        message = str(item.get("message") or "").lower()
+        if "no cloud environment named" in message:
+            return True
+        field = str(item.get("field") or "").lower()
+        if field in {"env.name", "env"} and "not found" in message:
+            return True
+    return False
 
 
 def looks_secret_like(value: Any) -> bool:
@@ -170,11 +211,12 @@ def build_create_payload(
     ticket_path: Any = None,
     job_brief: dict[str, Any] | None = None,
     review_lane: bool = False,
+    uuid_to_name: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build the exact Cursor create-agent body for a named cloud environment.
 
     Contract:
-    - ``env.name`` is the canonical name (UUID mapped → ``enigma-assistant-``)
+    - ``env.name`` is the Cursor API registry name (UUID mapped when allowlisted)
     - ``repos`` is never sent for named cloud environments
     - ``workOnCurrentBranch`` is never set (Cursor-generated feature branch)
     """
@@ -194,7 +236,8 @@ def build_create_payload(
             f"allow_merge=false (relay enforced)."
         )
 
-    env_name = canonicalize_environment_name(target.environment)
+    mapping = DEFAULT_ENV_UUID_TO_NAME if uuid_to_name is None else uuid_to_name
+    env_name = canonicalize_environment_name(target.environment, uuid_to_name=mapping)
     text += (
         f"\n\nRelay branch intent: requested_head={target.head_branch}"
         + (f" base={target.base_branch}" if target.base_branch else "")
@@ -210,7 +253,10 @@ def build_create_payload(
         "autoCreatePR": auto_create_pr,
     }
     # Named cloud env: never repos, never workOnCurrentBranch.
-    if is_named_cloud_environment(env_name):
+    canonical_names = frozenset({*mapping.values(), CANONICAL_ENV_NAME})
+    if is_named_cloud_environment(
+        env_name, uuid_to_name=mapping, canonical_names=canonical_names
+    ):
         payload.pop("repos", None)
         payload.pop("workOnCurrentBranch", None)
     return payload

@@ -42,23 +42,26 @@ This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay
 
 `RELAY_AUTH_TOKENS` (legacy bearer map) is **retired** for this pilot; config load fails closed if it is set without migrating to `RELAY_TUNNEL_CALLER`.
 
-## Create-agent contract (CLOUD-03)
+## Create-agent contract (CLOUD-03 + CLOUD-04)
 
 | Rule | Behaviour |
 | --- | --- |
-| `env.name` | Allowlisted UUID `1baeb513-9c77-11f1-ba66-0e7d0216e441` is canonicalized to `enigma-assistant-` before serialization |
+| `env.name` | Allowlisted UUID is mapped to a Cursor **API registry** name (default `enigma-assistant-`) before serialization. Override map with `RELAY_ENV_UUID_TO_NAME` JSON `{uuid: api_name}` on the relay host |
+| Registry ≠ repo file | `.cursor/environment.json` `"name"` is **not** automatically the API registry name. Dashboard Cloud Environment display name must match `env.name` or create returns `cursor_env_not_found` |
 | Named cloud env | Never send `repos`; never set `workOnCurrentBranch=true` (omit field — Cursor-generated feature branch) |
 | Branch claim | Dispatch/review create reports `branch=pending` + `requested_head_branch`; `actual_head_branch` only from `status` |
 | `dry_run` | `job_brief.authorization.dry_run=true` validates and returns a redacted request plan — **no** `POST /v1/agents` |
-| HTTP 400 | Only truncated `code` / `message` / `field` validation entries — never headers, credentials, or raw bodies |
+| HTTP 400 | Only truncated `code` / `message` / `field` validation entries — never headers, credentials, or raw bodies. Unknown env name → `cursor_env_not_found` |
 
 ## Named environment (defaults)
 
 | Field | Value |
 | --- | --- |
-| Environment id | `1baeb513-9c77-11f1-ba66-0e7d0216e441` |
-| Display name | `enigma-assistant-` |
+| Environment id (dashboard URL UUID) | `1baeb513-9c77-11f1-ba66-0e7d0216e441` |
+| Required API registry name | `enigma-assistant-` (must be set on the Cursor dashboard environment; live `environment-info` has reported `name: null` when unset) |
 | Repository | `oscarhilton/enigma-assistant-` |
+
+**Operator unblock (CLOUD-04):** In [Cloud Agents → Environments](https://cursor.com/dashboard/cloud-agents/environments/e/1baeb513-9c77-11f1-ba66-0e7d0216e441), set the environment **display/API name** to exactly `enigma-assistant-` (or change `RELAY_ENV_UUID_TO_NAME` to the actual dashboard name and redeploy). Then re-dry-run and live-dispatch with fresh idempotency keys.
 
 ## MCP tools
 
@@ -88,6 +91,7 @@ Configured via env (defaults match the named environment above):
 - `RELAY_ALLOWED_BRANCH_PREFIXES` (default `ticket/,cursor/,agent/`)
 - `RELAY_ALLOWED_BASE_BRANCHES` (default `main,master`; stacked bases may also use an allowed prefix)
 - `RELAY_ALLOWED_MODELS`
+- `RELAY_ENV_UUID_TO_NAME` (optional JSON `{uuid: api_registry_name}`; defaults map `1baeb513-…` → `enigma-assistant-`)
 - `RELAY_MAX_IN_FLIGHT` / `RELAY_MAX_SPEND_UNITS`
 
 Head branches `main` / `master` are forbidden as **heads**. Base branches fail closed (exact allowlist or allowed prefix). Denials are audited.
