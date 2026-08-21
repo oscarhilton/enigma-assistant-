@@ -2,12 +2,12 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `done` |
 | Branch | `cursor/cloud-03-create-contract-47cd` |
 | Domain | `platform` |
-| PR | [#133](https://github.com/oscarhilton/enigma-assistant-/pull/133) (draft) |
+| PR | [#133](https://github.com/oscarhilton/enigma-assistant-/pull/133) (merged) |
 
-**Claimed.** Create-contract correction + validation hardening in `apps/cursor-relay/`. Draft PR open — do not merge until authorized.
+**Done.** Create-contract correction + validation hardening landed on `main` via #133. Operator: **redeploy relay host** from `main`, then re-run dry-run dispatch before any KERNEL-01 live cargo.
 
 ## Intent
 
