@@ -26,7 +26,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "name": "dispatch",
         "description": (
             "Launch a cloud agent against an allowlisted named environment, "
-            "repository, and branch. Requires idempotency_key. "
+            "repository, and branch — or an existing GitHub PR via pr_url. "
+            "Requires idempotency_key. "
             "Caller identity is server-side (Secure MCP Tunnel); do not pass secrets."
         ),
         "inputSchema": {
@@ -49,6 +50,13 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "ticket_ids": {"type": "array", "items": {"type": "string"}},
                 "job_brief": {"type": "object"},
                 "auto_create_pr": {"type": "boolean"},
+                "pr_url": {
+                    "type": "string",
+                    "description": (
+                        "Existing GitHub PR URL. Uses native repos[].prUrl + "
+                        "workOnCurrentBranch=true (no named-env busboy branch)."
+                    ),
+                },
                 "name": {"type": "string"},
             },
         },

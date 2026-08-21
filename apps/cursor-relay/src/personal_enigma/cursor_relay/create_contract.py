@@ -212,14 +212,23 @@ def build_create_payload(
     job_brief: dict[str, Any] | None = None,
     review_lane: bool = False,
     uuid_to_name: Mapping[str, str] | None = None,
+    pr_url: str | None = None,
 ) -> dict[str, Any]:
-    """Build the exact Cursor create-agent body for a named cloud environment.
+    """Build the Cursor create-agent body.
 
-    Contract:
-    - ``env.name`` is the Cursor API registry name (UUID mapped when allowlisted)
-    - ``repos`` is never sent for named cloud environments
-    - ``workOnCurrentBranch`` is never set (Cursor-generated feature branch)
+    Modes:
+    - **existing_pr** (``pr_url`` set): native ``repos[].prUrl`` +
+      ``workOnCurrentBranch=true``; no ``env`` (mutually exclusive with named env).
+      ``autoCreatePR`` is forced false — the PR already exists.
+    - **named_env** (default): ``env.name`` registry name; never ``repos`` /
+      ``workOnCurrentBranch`` (Cursor-generated feature branch).
     """
+
+    from personal_enigma.cursor_relay.pr_target import (
+        assert_pr_matches_repository,
+        github_https_repo_url,
+        parse_github_pr_url,
+    )
 
     text = prompt
     if ticket_path:
@@ -238,6 +247,31 @@ def build_create_payload(
 
     mapping = DEFAULT_ENV_UUID_TO_NAME if uuid_to_name is None else uuid_to_name
     env_name = canonicalize_environment_name(target.environment, uuid_to_name=mapping)
+
+    if pr_url and str(pr_url).strip():
+        parsed = parse_github_pr_url(str(pr_url))
+        assert_pr_matches_repository(parsed, target.repository)
+        text += (
+            f"\n\nRelay PR target: pr_url={parsed.normalized_url} "
+            f"requested_head_intent={target.head_branch} "
+            f"repository={target.repository} "
+            "(branch identity from GitHub PR head; workOnCurrentBranch=true)"
+        )
+        return {
+            "prompt": {"text": text},
+            "model": {"id": target.model},
+            "name": name or f"relay:pr-{parsed.number}",
+            "repos": [
+                {
+                    "url": github_https_repo_url(target.repository),
+                    "prUrl": parsed.normalized_url,
+                }
+            ],
+            "workOnCurrentBranch": True,
+            # Existing PR — never open a second busboy PR.
+            "autoCreatePR": False,
+        }
+
     text += (
         f"\n\nRelay branch intent: requested_head={target.head_branch}"
         + (f" base={target.base_branch}" if target.base_branch else "")

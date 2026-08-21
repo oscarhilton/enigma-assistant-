@@ -56,32 +56,54 @@ def _safe_http_error(exc: BaseException) -> CursorApiError:
     if isinstance(exc, httpx.HTTPStatusError):
         status = exc.response.status_code if exc.response is not None else "?"
         validation: list[dict[str, str]] = []
-        if exc.response is not None and status == 400:
+        body_message = ""
+        if exc.response is not None and status in {400, 401, 403}:
             try:
                 body = exc.response.json()
             except (json.JSONDecodeError, ValueError):
                 body = None
             if body is not None:
                 validation = extract_validation_fields(body)
-            msg = "Cursor API HTTP 400"
-            code = "cursor_validation_error"
-            if validation:
-                # Compact allowlisted summary only (already scrubbed + capped).
-                bits = []
-                for item in validation:
-                    parts = [
-                        f"{k}={scrub_validation_value(v, limit=80)}"
-                        for k, v in sorted(item.items())
-                    ]
-                    bits.append("{" + ", ".join(parts) + "}")
-                msg = f"Cursor API HTTP 400 validation: {'; '.join(bits)}"
-                from personal_enigma.cursor_relay.create_contract import (
-                    is_cursor_env_not_found_validation,
-                )
+                if isinstance(body, dict):
+                    body_message = str(body.get("message") or body.get("error") or "")
+            from personal_enigma.cursor_relay.pr_target import classify_cursor_error_code
 
-                if is_cursor_env_not_found_validation(validation):
-                    code = "cursor_env_not_found"
-            return CursorApiError(msg, code=code, validation=validation)
+            specific = classify_cursor_error_code(
+                http_status=int(status) if isinstance(status, int) else None,
+                validation=validation,
+                message=body_message,
+            )
+            if specific == "host_permission_blocker":
+                msg = (
+                    "Host configuration blocker: Cursor/GitHub denied pull-request "
+                    "permission (createPullRequest). Fix GitHub App permissions "
+                    "on the relay host — this is not a branch identity failure."
+                )
+                if validation:
+                    bits = []
+                    for item in validation:
+                        parts = [
+                            f"{k}={scrub_validation_value(v, limit=80)}"
+                            for k, v in sorted(item.items())
+                        ]
+                        bits.append("{" + ", ".join(parts) + "}")
+                    msg = f"{msg} Details: {'; '.join(bits)}"
+                return CursorApiError(msg, code=specific, validation=validation)
+            if status == 400:
+                msg = "Cursor API HTTP 400"
+                code = "cursor_validation_error"
+                if validation:
+                    bits = []
+                    for item in validation:
+                        parts = [
+                            f"{k}={scrub_validation_value(v, limit=80)}"
+                            for k, v in sorted(item.items())
+                        ]
+                        bits.append("{" + ", ".join(parts) + "}")
+                    msg = f"Cursor API HTTP 400 validation: {'; '.join(bits)}"
+                if specific == "cursor_env_not_found":
+                    code = specific
+                return CursorApiError(msg, code=code, validation=validation)
         return CursorApiError(
             f"Cursor API HTTP {status}",
             code="cursor_http_error",
@@ -210,18 +232,33 @@ class MockCursorClient:
                 {"code": "invalid_argument", "message": "bad env", "field": "env.name"}
             ]
             self.fail_validation = None
-            from personal_enigma.cursor_relay.create_contract import (
-                is_cursor_env_not_found_validation,
-            )
+            from personal_enigma.cursor_relay.pr_target import classify_cursor_error_code
 
             code = (
-                "cursor_env_not_found"
-                if is_cursor_env_not_found_validation(validation)
-                else "cursor_validation_error"
+                classify_cursor_error_code(
+                    http_status=400, validation=validation, message=""
+                )
+                or "cursor_validation_error"
             )
             raise CursorApiError(
                 "Cursor API HTTP 400",
                 code=code,
+                validation=validation,
+            )
+        if mode == "http_403_pr_permission":
+            validation = self.fail_validation or [
+                {
+                    "code": "forbidden",
+                    "message": "Resource not accessible by integration (createPullRequest)",
+                    "field": "autoCreatePR",
+                }
+            ]
+            self.fail_validation = None
+            raise CursorApiError(
+                "Host configuration blocker: Cursor/GitHub denied pull-request "
+                "permission (createPullRequest). Fix GitHub App permissions "
+                "on the relay host — this is not a branch identity failure.",
+                code="host_permission_blocker",
                 validation=validation,
             )
 

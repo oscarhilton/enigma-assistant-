@@ -49,9 +49,12 @@ This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay
 | `env.name` | Allowlisted UUID is mapped to a Cursor **API registry** name (default `enigma-assistant-`) before serialization. Override map with `RELAY_ENV_UUID_TO_NAME` JSON `{uuid: api_name}` on the relay host |
 | Registry ≠ repo file | `.cursor/environment.json` `"name"` is **not** automatically the API registry name. Dashboard Cloud Environment display name must match `env.name` or create returns `cursor_env_not_found` |
 | Named cloud env | Never send `repos`; never set `workOnCurrentBranch=true` (omit field — Cursor-generated feature branch) |
-| Branch claim | Dispatch/review create reports `branch=pending` + `requested_head_branch`; `actual_head_branch` only from `status` |
+| **Existing PR (`pr_url`)** | Native Cursor `repos[].prUrl` + `workOnCurrentBranch=true`; **no** `env` (mutually exclusive). `autoCreatePR` forced false. Branch identity comes from the GitHub PR head — not a stale agent workspace / `cursor/auto-*` reconstruction |
+| Stale-workspace guard | Create against `cursor/auto-*` without `pr_url` is denied (`stale_workspace_branch`) |
+| Branch claim | Dispatch/review create reports `branch=pending` + `requested_head_branch`; `actual_head_branch` only from `status` (except existing-PR mode records PR URL identity immediately) |
 | `dry_run` | `job_brief.authorization.dry_run=true` validates and returns a redacted request plan — **no** `POST /v1/agents` |
 | HTTP 400 | Only truncated `code` / `message` / `field` validation entries — never headers, credentials, or raw bodies. Unknown env name → `cursor_env_not_found` |
+| PR permission failures | `createPullRequest` / “Resource not accessible by integration” → `host_permission_blocker` (host GitHub App/token config — **not** a branch failure) |
 
 ## Named environment (defaults)
 
@@ -105,6 +108,7 @@ Configured via env (defaults match the named environment above):
 - `RELAY_ALLOWED_BASE_BRANCHES` (default `main,master`; stacked bases may also use an allowed prefix)
 - `RELAY_ALLOWED_MODELS`
 - `RELAY_ENV_UUID_TO_NAME` (optional JSON `{uuid: api_registry_name}`; defaults map `1baeb513-…` → `enigma-assistant-`)
+- `RELAY_GITHUB_TOKEN` (optional; server-side only — resolves private-repo PR heads for `dispatch.pr_url`; falls back to `GITHUB_TOKEN`)
 - `RELAY_MAX_IN_FLIGHT` / `RELAY_MAX_SPEND_UNITS`
 
 Head branches `main` / `master` are forbidden as **heads**. Base branches fail closed (exact allowlist or allowed prefix). Denials are audited.
