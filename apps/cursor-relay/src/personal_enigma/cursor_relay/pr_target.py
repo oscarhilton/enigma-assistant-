@@ -7,11 +7,18 @@ stale long-lived agent workspace. Prefer GitHub PR URL + workOnCurrentBranch.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Protocol
 from urllib.parse import urlparse
 
-from personal_enigma.cursor_relay.allowlist import AllowlistError, normalize_repository
+import httpx
+
+from personal_enigma.cursor_relay.allowlist import (
+    AllowlistError,
+    check_head_branch,
+    normalize_repository,
+)
+from personal_enigma.cursor_relay.config import RelayConfig
 
 # Cursor-minted feature branches (CLOUD-03 mock / live auto heads).
 _STALE_AUTO_HEAD = re.compile(r"^cursor/auto-", re.IGNORECASE)
@@ -120,6 +127,25 @@ def assert_create_branch_identity(
         )
 
 
+_PR_PERMISSION_NEEDLES = (
+    "createpullrequest",
+    "create_pull_request",
+    "create pull request",
+    "pullrequest.create",
+    "not authorized to open",
+    "lacks permission to create pull request",
+    "permission to create pull request",
+    "pull request creation failed",
+)
+
+_PR_CONTEXT_TERMS = (
+    "pull request",
+    "pullrequest",
+    "createpullrequest",
+    "create pull request",
+)
+
+
 def is_cursor_pr_permission_failure(
     entries: list[dict[str, str]] | None = None,
     *,
@@ -134,25 +160,81 @@ def is_cursor_pr_permission_failure(
             if key in item and item[key] is not None:
                 chunks.append(str(item[key]).lower())
     blob = " ".join(chunks)
-    needles = (
-        "createpullrequest",
-        "create_pull_request",
-        "create pull request",
-        "pullrequest.create",
-        "resource not accessible by integration",
-        "not authorized to open",
-        "lacks permission to create pull request",
-        "permission to create pull request",
-        "pull request creation failed",
-        "insufficient permissions to create",
-    )
-    if any(n in blob for n in needles):
+    if any(n in blob for n in _PR_PERMISSION_NEEDLES):
         return True
-    if http_status == 403 and any(
-        n in blob for n in ("pull request", "pullrequest", "pr ", "permission", "integration")
+    if "resource not accessible by integration" in blob and any(
+        n in blob for n in _PR_CONTEXT_TERMS
     ):
         return True
+    if http_status == 403 and any(n in blob for n in _PR_CONTEXT_TERMS):
+        return True
     return False
+
+
+class GitHubPrResolver(Protocol):
+    """Resolve the live GitHub head ref for an existing pull request."""
+
+    def resolve_head_branch(self, pr: ParsedPrUrl) -> str: ...
+
+
+@dataclass
+class MockGitHubPrResolver:
+    """Test double mapping normalized PR URLs to head branch names."""
+
+    heads: dict[str, str] = field(default_factory=dict)
+
+    def resolve_head_branch(self, pr: ParsedPrUrl) -> str:
+        head = self.heads.get(pr.normalized_url)
+        if not head:
+            msg = f"No mock GitHub head configured for {pr.normalized_url}"
+            raise PrTargetError(msg, code="pr_head_unresolved")
+        return head
+
+
+class HttpGitHubPrResolver:
+    """Resolve PR head via the public GitHub REST API (no token for public repos)."""
+
+    def resolve_head_branch(self, pr: ParsedPrUrl) -> str:
+        url = f"https://api.github.com/repos/{pr.owner}/{pr.repo}/pulls/{pr.number}"
+        try:
+            response = httpx.get(
+                url,
+                headers={"Accept": "application/vnd.github+json"},
+                timeout=15.0,
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            if status == 404:
+                msg = f"GitHub pull request not found: {pr.normalized_url}"
+                raise PrTargetError(msg, code="pr_not_found") from exc
+            msg = f"Unable to resolve GitHub PR head (HTTP {status})"
+            raise PrTargetError(msg, code="pr_head_unresolved") from exc
+        except httpx.HTTPError as exc:
+            msg = "Unable to resolve GitHub PR head (transport error)"
+            raise PrTargetError(msg, code="pr_head_unresolved") from exc
+
+        data = response.json()
+        head_ref = (data.get("head") or {}).get("ref")
+        if not head_ref or not str(head_ref).strip():
+            msg = f"GitHub PR head ref missing for {pr.normalized_url}"
+            raise PrTargetError(msg, code="pr_head_unresolved")
+        return str(head_ref).strip()
+
+
+def validate_existing_pr_head(
+    config: RelayConfig,
+    *,
+    parsed: ParsedPrUrl,
+    resolver: GitHubPrResolver,
+) -> str:
+    """Resolve GitHub PR head and run it through the relay branch allowlist."""
+
+    head = resolver.resolve_head_branch(parsed)
+    try:
+        return check_head_branch(config, head)
+    except AllowlistError as exc:
+        raise PrTargetError(str(exc), code=exc.code) from exc
 
 
 def classify_cursor_error_code(
@@ -184,12 +266,19 @@ def as_allowlist_error(exc: PrTargetError) -> AllowlistError:
     return err
 
 
-def pr_target_observed_fields(pr: ParsedPrUrl) -> dict[str, Any]:
+def pr_target_observed_fields(
+    pr: ParsedPrUrl,
+    *,
+    github_pr_head: str | None = None,
+) -> dict[str, Any]:
     """Handoff observed_state fields for existing-PR creates."""
 
-    return {
+    fields: dict[str, Any] = {
         "target_mode": "existing_pr",
         "pr_url": pr.normalized_url,
         "pr_number": pr.number,
-        "branch_identity_source": "pr_url",
+        "branch_identity_source": "github_pr_head",
     }
+    if github_pr_head:
+        fields["github_pr_head"] = github_pr_head
+    return fields

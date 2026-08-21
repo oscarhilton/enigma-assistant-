@@ -34,11 +34,15 @@ from personal_enigma.cursor_relay.handoff import (
 )
 from personal_enigma.cursor_relay.idempotency import IdempotencyError, IdempotencyStore
 from personal_enigma.cursor_relay.pr_target import (
+    GitHubPrResolver,
+    HttpGitHubPrResolver,
     PrTargetError,
     as_allowlist_error,
     assert_create_branch_identity,
+    assert_pr_matches_repository,
     parse_github_pr_url,
     pr_target_observed_fields,
+    validate_existing_pr_head,
 )
 from personal_enigma.cursor_relay.quotas import QuotaError, QuotaTracker
 
@@ -53,6 +57,7 @@ class RelayService:
         config: RelayConfig,
         *,
         cursor: CursorClient | None = None,
+        github: GitHubPrResolver | None = None,
         audit: AuditLog | None = None,
         idempotency: IdempotencyStore | None = None,
         quotas: QuotaTracker | None = None,
@@ -68,6 +73,7 @@ class RelayService:
         else:
             # Safe default for local/unit use — never invent a real key.
             self.cursor = MockCursorClient()
+        self.github = github or HttpGitHubPrResolver()
         self.audit = audit or AuditLog(
             path=Path(config.audit_path) if config.audit_path else None
         )
@@ -212,11 +218,14 @@ class RelayService:
             msg = "job_brief must be an object"
             raise ApprovalError(msg, code="invalid_params")
 
+        raw_pr_url = params.get("pr_url")
+        pr_url = str(raw_pr_url).strip() if raw_pr_url else None
+
         brief_auth = enforce_write_policy(
             "dispatch",
             caller=caller,
             job_brief=brief if isinstance(brief, dict) else None,
-            auto_create_pr=bool(params.get("auto_create_pr", False)),
+            auto_create_pr=bool(params.get("auto_create_pr", False)) and not pr_url,
             merge_requested=bool(params.get("merge", False)),
         )
 
@@ -229,11 +238,20 @@ class RelayService:
             base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
         )
 
-        raw_pr_url = params.get("pr_url")
-        pr_url = str(raw_pr_url).strip() if raw_pr_url else None
         try:
             assert_create_branch_identity(head_branch=target.head_branch, pr_url=pr_url)
             parsed_pr = parse_github_pr_url(pr_url) if pr_url else None
+            if parsed_pr is not None:
+                assert_pr_matches_repository(parsed_pr, target.repository)
+            github_pr_head = (
+                validate_existing_pr_head(
+                    self.config,
+                    parsed=parsed_pr,
+                    resolver=self.github,
+                )
+                if parsed_pr is not None
+                else None
+            )
         except PrTargetError as exc:
             raise as_allowlist_error(exc) from exc
 
@@ -257,10 +275,14 @@ class RelayService:
         )
         env_name = canonicalize_environment_name(target.environment, uuid_to_name=mapping)
         redacted_plan = redact_create_payload(payload)
-        pr_observed = pr_target_observed_fields(parsed_pr) if parsed_pr is not None else {
-            "target_mode": "named_env",
-            "branch_identity_source": "cursor_generated_until_status",
-        }
+        pr_observed = (
+            pr_target_observed_fields(parsed_pr, github_pr_head=github_pr_head)
+            if parsed_pr is not None
+            else {
+                "target_mode": "named_env",
+                "branch_identity_source": "cursor_generated_until_status",
+            }
+        )
 
         # Genuine dry_run: validate + redacted plan only — never POST /v1/agents.
         if brief_auth.dry_run:
@@ -268,7 +290,7 @@ class RelayService:
                 tool="dispatch",
                 agent_id=None,
                 run_id=None,
-                branch=PENDING_BRANCH if parsed_pr is None else target.head_branch,
+                branch=PENDING_BRANCH,
                 ticket_ids=_ticket_ids(params),
                 summary=(
                     "Dry-run: existing-PR create plan validated (no POST /v1/agents)"
@@ -310,7 +332,7 @@ class RelayService:
             tool="dispatch",
             agent_id=ref.agent_id,
             run_id=ref.run_id,
-            branch=PENDING_BRANCH if parsed_pr is None else target.head_branch,
+            branch=PENDING_BRANCH,
             ticket_ids=_ticket_ids(params),
             summary=f"Dispatched agent {ref.agent_id} run {ref.run_id}",
             action_kind="no_action",

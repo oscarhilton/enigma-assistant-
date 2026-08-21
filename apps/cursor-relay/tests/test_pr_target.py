@@ -8,17 +8,22 @@ import httpx
 from tokens import DISPATCHER_CALLER
 
 from personal_enigma.cursor_relay.allowlist import DispatchTarget
+from personal_enigma.cursor_relay.config import RelayConfig
 from personal_enigma.cursor_relay.create_contract import build_create_payload, redact_create_payload
 from personal_enigma.cursor_relay.cursor_client import MockCursorClient, _safe_http_error
 from personal_enigma.cursor_relay.handoff import validate_handoff
 from personal_enigma.cursor_relay.pr_target import (
+    MockGitHubPrResolver,
     is_cursor_pr_permission_failure,
     parse_github_pr_url,
+    validate_existing_pr_head,
 )
 from personal_enigma.cursor_relay.relay import RelayService
 
 ENV_UUID = "1baeb513-9c77-11f1-ba66-0e7d0216e441"
 PR_URL = "https://github.com/oscarhilton/enigma-assistant-/pull/136"
+PR_HEAD = "cursor/sprint2-relay-pr-target-47cd"
+FORBIDDEN_PR_URL = "https://github.com/oscarhilton/enigma-assistant-/pull/999"
 
 
 def _target() -> DispatchTarget:
@@ -122,7 +127,6 @@ def test_stale_auto_head_allowed_with_pr_url(
             "job_brief": {
                 "authorization": {
                     "dry_run": True,
-                    "allow_open_pr": True,
                 }
             },
         },
@@ -133,7 +137,9 @@ def test_stale_auto_head_allowed_with_pr_url(
     observed = result["observed_state"]
     assert observed["target_mode"] == "existing_pr"
     assert observed["pr_url"] == PR_URL
-    assert observed["branch_identity_source"] == "pr_url"
+    assert observed["branch_identity_source"] == "github_pr_head"
+    assert observed["github_pr_head"] == PR_HEAD
+    assert observed["branch"] == "pending"
     plan = observed["create_request_plan"]
     assert "env" not in plan
     assert plan["workOnCurrentBranch"] is True
@@ -157,6 +163,14 @@ def test_is_cursor_pr_permission_failure_detects_create_pull_request() -> None:
     )
     assert not is_cursor_pr_permission_failure(
         [{"message": "No cloud environment named enigma-assistant- was found."}]
+    )
+    assert not is_cursor_pr_permission_failure(
+        message="Resource not accessible by integration",
+        http_status=403,
+    )
+    assert not is_cursor_pr_permission_failure(
+        message="Insufficient permissions to create repository",
+        http_status=403,
     )
 
 
@@ -205,6 +219,45 @@ def test_mock_create_pr_permission_surfaces_host_blocker(
     rationale = result["recommended_action"]["rationale"]
     assert "host_permission_blocker" in rationale
     assert "branch" not in rationale.lower() or "not a branch" in rationale.lower()
+
+
+def test_forbidden_github_pr_head_denied(
+    service: RelayService,
+    mock_cursor: MockCursorClient,
+    relay_config: RelayConfig,
+) -> None:
+    github = MockGitHubPrResolver(
+        heads={FORBIDDEN_PR_URL: "main"},
+    )
+    svc = RelayService(relay_config, cursor=mock_cursor, github=github)
+    result = svc.invoke(
+        "dispatch",
+        {
+            "idempotency_key": "forbidden-pr-head-1",
+            "repository": "oscarhilton/enigma-assistant-",
+            "environment": ENV_UUID,
+            "head_branch": "ticket/kernel-01-turn-kernel",
+            "pr_url": FORBIDDEN_PR_URL,
+            "prompt": "attempt forbidden PR head",
+            "job_brief": {"authorization": {"dry_run": True}},
+        },
+        caller=DISPATCHER_CALLER,
+    )
+    validate_handoff(result)
+    assert mock_cursor.create_calls == []
+    rationale = result["recommended_action"]["rationale"]
+    assert "forbidden" in rationale.lower() or "allowlist" in rationale.lower()
+
+
+def test_validate_existing_pr_head_allowlists_resolved_branch(
+    relay_config: RelayConfig,
+) -> None:
+    parsed = parse_github_pr_url(PR_URL)
+    github = MockGitHubPrResolver(heads={PR_URL: PR_HEAD})
+    assert (
+        validate_existing_pr_head(relay_config, parsed=parsed, resolver=github)
+        == PR_HEAD
+    )
 
 
 def test_redact_preserves_pr_target_shape() -> None:
