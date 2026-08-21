@@ -124,6 +124,25 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "result",
+        "description": (
+            "Fetch the terminal report-back for a finished cloud-agent run: final result text, "
+            "duration, git branches, and PR URLs. Uses SSE stream when available and falls back "
+            "to GET /v1/agents/{agentId}/runs/{runId} when stream retention expired. "
+            "Read-only; server-side authenticated."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "required": ["agent_id", "run_id"],
+            "properties": {
+                "agent_id": {"type": "string"},
+                "run_id": {"type": "string"},
+                "head_branch": {"type": "string"},
+                "ticket_ids": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+    },
 ]
 
 

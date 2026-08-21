@@ -1,4 +1,4 @@
-"""MCP tool handlers: dispatch, status, follow_up, request_review, cancel."""
+"""MCP tool handlers: dispatch, status, follow_up, request_review, cancel, result."""
 
 from __future__ import annotations
 
@@ -33,8 +33,10 @@ from personal_enigma.cursor_relay.handoff import (
 )
 from personal_enigma.cursor_relay.idempotency import IdempotencyError, IdempotencyStore
 from personal_enigma.cursor_relay.quotas import QuotaError, QuotaTracker
+from personal_enigma.cursor_relay.report_back import build_result_handoff, resolve_terminal_snapshot
+from personal_enigma.cursor_relay.result_store import ResultStore
 
-MCP_TOOLS = ("dispatch", "status", "follow_up", "request_review", "cancel")
+MCP_TOOLS = ("dispatch", "status", "follow_up", "request_review", "cancel", "result")
 
 
 class RelayService:
@@ -48,6 +50,7 @@ class RelayService:
         audit: AuditLog | None = None,
         idempotency: IdempotencyStore | None = None,
         quotas: QuotaTracker | None = None,
+        result_store: ResultStore | None = None,
     ) -> None:
         self.config = config
         if cursor is not None:
@@ -69,6 +72,7 @@ class RelayService:
             max_spend_units=config.max_spend_units,
             spend_per_create=config.spend_per_create,
         )
+        self.result_store = result_store or ResultStore()
 
     def invoke(
         self,
@@ -117,6 +121,8 @@ class RelayService:
                 result = self._request_review(caller, params)
             elif tool == "cancel":
                 result = self._cancel(caller, params)
+            elif tool == "result":
+                result = self._result(caller, params)
             else:  # pragma: no cover
                 result = self._deny(caller, tool, "unreachable", "unknown_tool", params)
         except (ApprovalError, AllowlistError, IdempotencyError, QuotaError, CursorApiError) as exc:
@@ -544,6 +550,41 @@ class RelayService:
             prompt_hash=ph,
             usage={"spend_units": self.quotas.spend_per_create},
             idempotency_key=key,
+        )
+        return handoff
+
+    def _result(self, caller: AuthenticatedCaller, params: dict[str, Any]) -> dict[str, Any]:
+        enforce_write_policy("result", caller=caller)
+        agent_id = str(params["agent_id"])
+        run_id = str(params["run_id"])
+        ticket_ids = _ticket_ids(params)
+
+        snapshot, run_status, terminal = resolve_terminal_snapshot(
+            cursor=self.cursor,
+            result_store=self.result_store,
+            agent_id=agent_id,
+            run_id=run_id,
+        )
+        handoff = build_result_handoff(
+            snapshot=snapshot,
+            agent_id=agent_id,
+            run_id=run_id,
+            ticket_ids=ticket_ids,
+            run_status=run_status,
+            terminal=terminal,
+        )
+        self.audit.emit(
+            tool="result",
+            caller_id=caller.caller_id,
+            decision="allow",
+            agent_id=agent_id,
+            run_id=run_id,
+            usage={},
+            extra={
+                "terminal": terminal,
+                "run_status": run_status,
+                "result_source": (snapshot.result_source if snapshot else None),
+            },
         )
         return handoff
 

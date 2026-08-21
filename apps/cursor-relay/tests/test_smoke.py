@@ -63,7 +63,7 @@ def test_mcp_tools_list_and_call(service: RelayService) -> None:
     listed = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
     assert listed is not None
     names = {t["name"] for t in listed["result"]["tools"]}
-    assert names == {"dispatch", "status", "follow_up", "request_review", "cancel"}
+    assert names == {"dispatch", "status", "follow_up", "request_review", "cancel", "result"}
 
     call = server.handle(
         {

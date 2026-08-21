@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from tokens import APPROVER_CALLER, DISPATCHER_CALLER, READER_CALLER
 
+from personal_enigma.cursor_relay.cursor_client import MockCursorClient
 from personal_enigma.cursor_relay.handoff import validate_handoff
 from personal_enigma.cursor_relay.relay import RelayService
 
@@ -32,6 +33,33 @@ def test_dispatcher_can_dispatch(service: RelayService) -> None:
     validate_handoff(result)
     assert result["recommended_action"]["kind"] == "no_action"
     assert result["observed_state"]["agent_id"]
+
+
+def test_reader_can_result_after_dispatch(
+    service: RelayService, mock_cursor: MockCursorClient
+) -> None:
+    dispatched = service.invoke(
+        "dispatch",
+        {**BASE_DISPATCH, "idempotency_key": "apr-result"},
+        caller=DISPATCHER_CALLER,
+    )
+    agent_id = dispatched["observed_state"]["agent_id"]
+    run_id = dispatched["observed_state"]["run_id"]
+    mock_cursor.runs[run_id].update(
+        {
+            "status": "FINISHED",
+            "durationMs": 1000,
+            "result": "Done",
+        }
+    )
+    result = service.invoke(
+        "result",
+        {"agent_id": agent_id, "run_id": run_id, "ticket_ids": ["CLOUD-04"]},
+        caller=READER_CALLER,
+    )
+    validate_handoff(result)
+    assert "Denied" not in result["recommended_action"]["rationale"]
+    assert result["observed_state"]["terminal"] is True
 
 
 def test_reader_can_status_after_dispatch(service: RelayService) -> None:

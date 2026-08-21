@@ -21,6 +21,7 @@ class ApprovalError(Exception):
 # Tool → minimum role required
 TOOL_ROLES: dict[str, frozenset[str]] = {
     "status": frozenset({"reader", "dispatcher", "approver", "admin"}),
+    "result": frozenset({"reader", "dispatcher", "approver", "admin"}),
     "dispatch": frozenset({"dispatcher", "admin"}),
     "follow_up": frozenset({"dispatcher", "admin"}),
     "request_review": frozenset({"approver", "admin"}),

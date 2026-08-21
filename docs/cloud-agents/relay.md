@@ -66,6 +66,7 @@ This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay
 | --- | --- | --- |
 | `dispatch` | `dispatcher`+ | Requires `idempotency_key`; create-path quotas |
 | `status` | `reader`+ | Server-side authenticated; read-only authz |
+| `result` | `reader`+ | Terminal report-back (final result, duration, branches, PRs); stream → GET fallback |
 | `follow_up` | `dispatcher`+ | Write-capable; requires `idempotency_key` |
 | `request_review` | `approver`+ | No merge; idempotency when creating a run |
 | `cancel` | `approver`+ | Approval-gated |
@@ -102,6 +103,20 @@ Idempotency and concurrency/spend trackers are **in-memory and process-local** b
 | Multi-replica | `RELAY_SINGLE_INSTANCE=0` **and** `RELAY_SHARED_STORE_URL=…` | Required together — config load **fails closed** if multi without a shared store URL |
 
 Two relay instances each with their own memory can both accept the same idempotency key — do not run that way without a shared store. The URL is a future durable backend hook; until a shared adapter is implemented, keep a single replica.
+
+## Agent report-back (CLOUD-04)
+
+Finished cloud-agent runs expose their terminal assistant reply via the read-only MCP tool **`result`** — no extra `request_review` run required.
+
+| Step | Behaviour |
+| --- | --- |
+| Cache | Process-local `ResultStore` keyed by `agent_id:run_id` |
+| Terminal check | `GET /v1/agents/{agentId}/runs/{runId}` |
+| Stream | `GET /v1/agents/{agentId}/runs/{runId}/stream` for terminal runs (SSE `result` / `error` events) |
+| Fallback | On `410 stream_expired`, use Get Run payload (`result`, `durationMs`, `git`) |
+| Non-terminal | Returns `terminal=false` without streaming in-progress runs |
+
+Handoff fields: `run_status`, `final_result`, `duration_ms`, `git_branches`, `pr_urls`, `agent_id`, `run_id`, `ticket_ids`, `result_source`. Secret scrubbing applies to `final_result`. This is the agent's terminal summary — not a raw transcript dump.
 
 ## Local / staging runbook (verify independently)
 
