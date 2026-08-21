@@ -132,8 +132,9 @@ def test_ranked_routes_and_abstain_on_fixture() -> None:
     assert coming is not None
     assert coming.abstain is False
     assert coming.routes[0] == RouteCandidate("agenda", 0.91)
-    assert selected_route(coming) is not None
-    assert selected_route(coming).area == "agenda"
+    chosen = selected_route(coming)
+    assert chosen is not None
+    assert chosen.area == "agenda"
 
     abstain = SemanticInterpretation(abstain=True, fallback_reason="unsupported")
     assert selected_route(abstain) is None
@@ -219,7 +220,10 @@ def test_life_script_week_and_next_work_outcomes() -> None:
 
     next_work = compile_with_bootstrap("What should I do next?", session, _FIXTURE)
     assert next_work.evidence_domain == "PRIVATE_WORLD"
-    assert "attention.get_current" in next_work.tool_names or "next_action.get" in next_work.tool_names
+    assert (
+        "attention.get_current" in next_work.tool_names
+        or "next_action.get" in next_work.tool_names
+    )
     assert "assist.approve" not in next_work.tool_names
 
 

@@ -341,9 +341,15 @@ def _ranked_routes(semantic: SemanticInterpretation) -> tuple[RouteCandidate, ..
             for family in semantic.candidate_families
             if family in _ROUTE_AREAS
         )
-    if semantic.evidence_domain == "GENERAL_KNOWLEDGE" and semantic.confidence >= ROUTE_INCLUDE_THRESHOLD:
+    if (
+        semantic.evidence_domain == "GENERAL_KNOWLEDGE"
+        and semantic.confidence >= ROUTE_INCLUDE_THRESHOLD
+    ):
         return (RouteCandidate(area="general_knowledge", confidence=semantic.confidence),)
-    if semantic.evidence_domain == "CONVERSATION_ONLY" and semantic.confidence >= ROUTE_INCLUDE_THRESHOLD:
+    if (
+        semantic.evidence_domain == "CONVERSATION_ONLY"
+        and semantic.confidence >= ROUTE_INCLUDE_THRESHOLD
+    ):
         return (RouteCandidate(area="conversation", confidence=semantic.confidence),)
     return ()
 
@@ -424,9 +430,13 @@ def build_bootstrap_payload(
     utterance: str,
     capsule: ConversationCapsule | None,
 ) -> dict[str, Any]:
-    """Utterance + public capsule only. No private-world modules."""
+    """Utterance + public capsule only. No private-world modules.
+
+    Casefold the utterance so contractions like ``What's`` do not trip the
+    possessive-identity leak detector. The router does not need original case.
+    """
     return {
-        "utterance": utterance,
+        "utterance": utterance.strip().casefold(),
         "conversation": bootstrap_conversation_view(capsule),
     }
 
@@ -931,25 +941,25 @@ class RemoteSemanticBootstrap:
         from personal_enigma.privacy.remote import RemoteInferenceConfig
 
         started = time.monotonic()
-        remote_ctx = build_bootstrap_remote_context(
-            utterance,
-            capsule,
-            model=self._model,
-            provider=self._provider,
-        )
-        gate = self._gate
-        if gate is None:
-            shared = get_audited_egress_gate()
-            gate = shared
-            if not getattr(gate, "remote_config", None) or not gate.remote_config.enabled:
-                from personal_enigma.privacy.egress import build_audited_egress_gate
-
-                gate = build_audited_egress_gate(
-                    remote_config=RemoteInferenceConfig(enabled=True),
-                    disclosure_store=shared.disclosure_store,
-                    fireworks_api_key=os.environ.get("FIREWORKS_API_KEY", ""),
-                )
         try:
+            remote_ctx = build_bootstrap_remote_context(
+                utterance,
+                capsule,
+                model=self._model,
+                provider=self._provider,
+            )
+            gate = self._gate
+            if gate is None:
+                shared = get_audited_egress_gate()
+                gate = shared
+                if not getattr(gate, "remote_config", None) or not gate.remote_config.enabled:
+                    from personal_enigma.privacy.egress import build_audited_egress_gate
+
+                    gate = build_audited_egress_gate(
+                        remote_config=RemoteInferenceConfig(enabled=True),
+                        disclosure_store=shared.disclosure_store,
+                        fireworks_api_key=os.environ.get("FIREWORKS_API_KEY", ""),
+                    )
             egress = gate.submit(
                 remote_ctx,
                 purpose="conversation.semantic_router",
@@ -1157,6 +1167,17 @@ def get_semantic_bootstrap() -> SemanticBootstrap | None:
     if _BOOTSTRAP_OVERRIDE is not None:
         return _BOOTSTRAP_OVERRIDE
     if not semantic_bootstrap_enabled():
+        return None
+    # Pytest must not live-call Fireworks just because the cloud VM has a key.
+    # Production (no PYTEST_CURRENT_TEST) still enables the cheap router when a
+    # provider key is present. Tests inject FixtureSemanticBootstrap or a gated
+    # RemoteSemanticBootstrap explicitly.
+    opted_in = os.environ.get("ENIGMA_SEMANTIC_BOOTSTRAP", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if os.environ.get("PYTEST_CURRENT_TEST") and not opted_in:
         return None
     if os.environ.get("FIREWORKS_API_KEY"):
         return RemoteSemanticBootstrap(provider="fireworks")

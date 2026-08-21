@@ -58,8 +58,8 @@ from personal_enigma.api.intent_router import (
 )
 from personal_enigma.api.respond_grounding import apply_respond_grounding_fence
 from personal_enigma.api.semantic_bootstrap import (
-    interpret_with_router,
     get_semantic_bootstrap,
+    interpret_with_router,
 )
 from personal_enigma.api.speech_acts import (
     SpeechAct,
