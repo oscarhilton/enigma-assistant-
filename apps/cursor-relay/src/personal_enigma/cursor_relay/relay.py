@@ -15,6 +15,7 @@ from personal_enigma.cursor_relay.audit import AuditLog, hash_prompt
 from personal_enigma.cursor_relay.auth import AuthenticatedCaller
 from personal_enigma.cursor_relay.config import RelayConfig, config_public_dict
 from personal_enigma.cursor_relay.create_contract import (
+    DEFAULT_ENV_UUID_TO_NAME,
     PENDING_BRANCH,
     build_create_payload,
     canonicalize_environment_name,
@@ -69,6 +70,11 @@ class RelayService:
             max_spend_units=config.max_spend_units,
             spend_per_create=config.spend_per_create,
         )
+
+    def _env_uuid_to_name(self) -> dict[str, str]:
+        """Active UUID→API registry name map (host override or defaults)."""
+
+        return self.config.env_uuid_to_name or dict(DEFAULT_ENV_UUID_TO_NAME)
 
     def invoke(
         self,
@@ -214,6 +220,7 @@ class RelayService:
             raise ApprovalError("prompt or ticket_path is required", code="invalid_params")
 
         ph = hash_prompt(prompt)
+        mapping = self._env_uuid_to_name()
         payload = build_create_payload(
             prompt=prompt,
             target=target,
@@ -221,8 +228,9 @@ class RelayService:
             auto_create_pr=bool(params.get("auto_create_pr", False)),
             ticket_path=params.get("ticket_path"),
             job_brief=brief if isinstance(brief, dict) else None,
+            uuid_to_name=mapping,
         )
-        env_name = canonicalize_environment_name(target.environment)
+        env_name = canonicalize_environment_name(target.environment, uuid_to_name=mapping)
         redacted_plan = redact_create_payload(payload)
 
         # Genuine dry_run: validate + redacted plan only — never POST /v1/agents.
@@ -437,6 +445,7 @@ class RelayService:
                 or "Perform a structured code review. Do not merge. Emit a schema-valid handoff."
             )
             ph = hash_prompt(prompt)
+            mapping = self._env_uuid_to_name()
             payload = build_create_payload(
                 prompt=prompt,
                 target=target,
@@ -445,10 +454,11 @@ class RelayService:
                 ticket_path=params.get("ticket_path"),
                 job_brief=brief if isinstance(brief, dict) else None,
                 review_lane=True,
+                uuid_to_name=mapping,
             )
             brief_auth = parse_job_brief_auth(brief if isinstance(brief, dict) else None)
             redacted_plan = redact_create_payload(payload)
-            env_name = canonicalize_environment_name(target.environment)
+            env_name = canonicalize_environment_name(target.environment, uuid_to_name=mapping)
             if brief_auth.dry_run:
                 handoff = success_handoff_for_tool(
                     tool="request_review",

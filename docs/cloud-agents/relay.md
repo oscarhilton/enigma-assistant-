@@ -42,23 +42,39 @@ This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay
 
 `RELAY_AUTH_TOKENS` (legacy bearer map) is **retired** for this pilot; config load fails closed if it is set without migrating to `RELAY_TUNNEL_CALLER`.
 
-## Create-agent contract (CLOUD-03)
+## Create-agent contract (CLOUD-03 + CLOUD-04)
 
 | Rule | Behaviour |
 | --- | --- |
-| `env.name` | Allowlisted UUID `1baeb513-9c77-11f1-ba66-0e7d0216e441` is canonicalized to `enigma-assistant-` before serialization |
+| `env.name` | Allowlisted UUID is mapped to a Cursor **API registry** name (default `enigma-assistant-`) before serialization. Override map with `RELAY_ENV_UUID_TO_NAME` JSON `{uuid: api_name}` on the relay host |
+| Registry ≠ repo file | `.cursor/environment.json` `"name"` is **not** automatically the API registry name. Dashboard Cloud Environment display name must match `env.name` or create returns `cursor_env_not_found` |
 | Named cloud env | Never send `repos`; never set `workOnCurrentBranch=true` (omit field — Cursor-generated feature branch) |
 | Branch claim | Dispatch/review create reports `branch=pending` + `requested_head_branch`; `actual_head_branch` only from `status` |
 | `dry_run` | `job_brief.authorization.dry_run=true` validates and returns a redacted request plan — **no** `POST /v1/agents` |
-| HTTP 400 | Only truncated `code` / `message` / `field` validation entries — never headers, credentials, or raw bodies |
+| HTTP 400 | Only truncated `code` / `message` / `field` validation entries — never headers, credentials, or raw bodies. Unknown env name → `cursor_env_not_found` |
 
 ## Named environment (defaults)
 
 | Field | Value |
 | --- | --- |
-| Environment id | `1baeb513-9c77-11f1-ba66-0e7d0216e441` |
-| Display name | `enigma-assistant-` |
+| Environment id (dashboard URL UUID) | `1baeb513-9c77-11f1-ba66-0e7d0216e441` |
+| Required API registry name | `enigma-assistant-` (must appear as the **Name** in the Cloud Agents → Environments list; live `environment-info.name` has reported `null` when unset) |
 | Repository | `oscarhilton/enigma-assistant-` |
+| This-run provenance | `source=Repository` / `recordedVia=REPO_FILE_OBSERVED` — repo-file bind does **not** imply the API registry has a lookupable name |
+
+**Operator unblock (CLOUD-04):** Live create needs an API-registry **Name**. Dashboard **Overview** for UUID `1baeb513-…` (operator paste 2026-08-21) shows Repository / Scope=Personal / Config File / Builds — and **no Name field**. Live `environment-info.name` remains `null` (`REPO_FILE_OBSERVED`). Repo-file `.cursor/environment.json` `"name"` alone is insufficient.
+
+Pick one:
+
+1. **Parent list:** [Environments](https://cursor.com/dashboard/cloud-agents#environments) — if a Name column/title exists for this row, set it to exactly `enigma-assistant-` and paste the exact string back.
+2. **New saved env:** Create a new saved Cloud Environment with explicit Name `enigma-assistant-`, repo `oscarhilton/enigma-assistant-`. Paste **new UUID + Name**. Update relay `RELAY_ENV_UUID_TO_NAME` / allowlist, merge/redeploy CLOUD-04 (#136).
+3. **API key identity:** Confirm relay-host `CURSOR_API_KEY` is the **same Cursor user** that owns this Personal-scope environment (Personal envs are invisible to other accounts/teams → same 400).
+
+Then dry-run `kernel-01-dry-run-after-cloud-04-v1` and live `kernel-01-first-dispatch-v2` (do not reuse `v1`).
+
+**Not the blocker:** Recent Recurring builds **Skipped** and Active Build `—` (last Success `bld-20260821-4b0fdf78-…`). Fix Name/registry first; rebuild later if needed.
+
+Marking setup “complete” while Overview has no Name / `environment-info.name` is null does **not** unblock live create.
 
 ## MCP tools
 
@@ -88,6 +104,7 @@ Configured via env (defaults match the named environment above):
 - `RELAY_ALLOWED_BRANCH_PREFIXES` (default `ticket/,cursor/,agent/`)
 - `RELAY_ALLOWED_BASE_BRANCHES` (default `main,master`; stacked bases may also use an allowed prefix)
 - `RELAY_ALLOWED_MODELS`
+- `RELAY_ENV_UUID_TO_NAME` (optional JSON `{uuid: api_registry_name}`; defaults map `1baeb513-…` → `enigma-assistant-`)
 - `RELAY_MAX_IN_FLIGHT` / `RELAY_MAX_SPEND_UNITS`
 
 Head branches `main` / `master` are forbidden as **heads**. Base branches fail closed (exact allowlist or allowed prefix). Denials are audited.

@@ -5,7 +5,7 @@
 | Status | `done` |
 | Branch | — (merged #108) |
 | Domain | `pilot` |
-| Programme | [PILOT-01](./README.md) |
+| Programme | [PILOT-01](./README.md) · **Boot level 1** ([data-boot.md](../../docs/architecture/data-boot.md)) |
 
 **Do not claim until P01 is `done`.** Do not implement in P01.
 
@@ -44,6 +44,7 @@ Play-shaped scripts live under [apps/web/src/pilot/life-scripts/](../../apps/web
 - New Goose motions, Shadows, speech, affection
 - Connecting Oscar’s mailbox
 - Calendar writes
+- Hugging Face Alex corpus / full-life reprime (Level 2 — [P04](./P04-alex-full-life-reprime.md); not this ticket)
 
 ## Acceptance criteria
 

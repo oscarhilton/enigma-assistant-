@@ -107,11 +107,11 @@ ChatGPT (Secure MCP Tunnel — single-user pilot)
   → only decisions reach Oscar
 ```
 
-Trust invariants: Cursor never receives ChatGPT credentials; Cloud Agents never automate ChatGPT or Cursor account login; `CURSOR_API_KEY` must not appear in the repo or agent VM env; **public MCP tool schemas and model args never carry bearer tokens or credentials** (server-side tunnel caller). Multi-user / public deployment requires MCP OAuth. Create-agent contract (CLOUD-03): `env.name` is the canonical name `enigma-assistant-` (UUID mapped); named env never sends `repos` / never defaults `workOnCurrentBranch=true`; `dry_run` does not `POST /v1/agents`.
+Trust invariants: Cursor never receives ChatGPT credentials; Cloud Agents never automate ChatGPT or Cursor account login; `CURSOR_API_KEY` must not appear in the repo or agent VM env; **public MCP tool schemas and model args never carry bearer tokens or credentials** (server-side tunnel caller). Multi-user / public deployment requires MCP OAuth. Create-agent contract (CLOUD-03/04): `env.name` is the Cursor **API registry** name (UUID mapped; overridable via `RELAY_ENV_UUID_TO_NAME`); named env never sends `repos` / never defaults `workOnCurrentBranch=true`; `dry_run` does not `POST /v1/agents`. **Dashboard display name must match** — `.cursor/environment.json` `name` alone is insufficient (live env has reported `name: null`).
 
 MCP surface: `dispatch`, `status`, `follow_up`, `request_review`, `cancel` — **every** tool requires authenticated caller identity at the trusted transport boundary (including `status`).
 
-Default named environment: id `1baeb513-9c77-11f1-ba66-0e7d0216e441`, name `enigma-assistant-`, repo `oscarhilton/enigma-assistant-`.
+Default named environment: id `1baeb513-9c77-11f1-ba66-0e7d0216e441`, required API name `enigma-assistant-`, repo `oscarhilton/enigma-assistant-`.
 
 Ticket markdown files remain the source of truth for scope; branches/PRs are durable handoffs.
 
