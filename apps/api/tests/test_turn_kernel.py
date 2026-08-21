@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+import json
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from personal_enigma.api import create_app
 from personal_enigma.api.demo_orchestrator import LlmTrace
 from personal_enigma.api.demo_tools import ToolExecutionResult
 from personal_enigma.api.turn_kernel import (
@@ -11,6 +19,60 @@ from personal_enigma.api.turn_kernel import (
     attach_kernel_forensics,
     derive_turn_outcome,
 )
+
+PILOT_NOW = datetime(2026, 8, 18, 10, 0, tzinfo=UTC)
+
+
+def _write_pilot_fixture(path: Path, reference: datetime) -> None:
+    tomorrow = (reference + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+    events = [
+        {
+            "id": "cal-standup-tomorrow",
+            "provider": "apple_calendar",
+            "provider_event_id": "evt-standup",
+            "title": "Team standup",
+            "start_at": tomorrow.isoformat(),
+            "end_at": (tomorrow + timedelta(minutes=30)).isoformat(),
+            "all_day": False,
+        }
+    ]
+    path.write_text(json.dumps({"events": events}), encoding="utf-8")
+
+
+def _my_enigma_client(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    fixture_path: Path,
+) -> TestClient:
+    monkeypatch.setenv("ENIGMA_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("LLM_DISABLED", "1")
+    monkeypatch.setenv("ENIGMA_CALENDAR_FIXTURE", str(fixture_path))
+    client = TestClient(create_app())
+    registry = client.app.state.world_registry  # type: ignore[attr-defined]
+    registry.active.clock.now = lambda: PILOT_NOW  # type: ignore[method-assign]
+    return client
+
+
+def _post(client: TestClient, text: str) -> dict:
+    response = client.post("/worlds/my_enigma/conversation/message", json={"text": text})
+    assert response.status_code == 200
+    return response.json()
+
+
+def _executed_tool(payload: dict) -> tuple[str | None, dict]:
+    executed = payload["llm_trace"].get("executed_tool_request") or []
+    if not executed:
+        return None, {}
+    row = executed[0]
+    return row.get("name"), row.get("arguments") or {}
+
+
+@pytest.fixture
+def kernel_my_enigma_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    fixture = tmp_path / "calendar.json"
+    _write_pilot_fixture(fixture, PILOT_NOW)
+    return _my_enigma_client(tmp_path, monkeypatch, fixture_path=fixture)
 
 
 def test_derive_turn_outcome_fulfilled_when_planned_matches_executed() -> None:
@@ -96,3 +158,60 @@ def test_attach_kernel_forensics_populates_provenance() -> None:
     assert payload.get("forensic_provenance") is not None
     build = payload["forensic_provenance"]["build"]
     assert build.get("git_sha")
+
+
+def test_private_elliptical_followups_inherit_intent_and_period(
+    kernel_my_enigma_client: TestClient,
+) -> None:
+    """KERNEL-01: horizon follow-ups compose with last intent — not stale temporal_constraint."""
+    _post(kernel_my_enigma_client, "What's on today?")
+
+    tomorrow = _post(kernel_my_enigma_client, "tomorrow?")
+    tool, args = _executed_tool(tomorrow)
+    assert tool == "availability.check"
+    assert args.get("period") == "tomorrow"
+    assert "tomorrow" in tomorrow["items"][0]["text"].lower()
+    assert "Team standup" in tomorrow["items"][0]["text"]
+
+    next_week = _post(kernel_my_enigma_client, "Next week?")
+    tool, args = _executed_tool(next_week)
+    assert tool == "availability.check"
+    assert args.get("period") == "next_week"
+
+    show_me = _post(kernel_my_enigma_client, "Show me")
+    tool, _args = _executed_tool(show_me)
+    assert tool == "availability.check"
+    assert show_me["llm_trace"]["conversation_state"].get("frame_inherited") is True
+
+    free_now = _post(kernel_my_enigma_client, "im free now?")
+    tool, args = _executed_tool(free_now)
+    assert tool == "availability.check"
+    assert args.get("period") == "today"
+
+
+def test_private_kernel_interpret_request_path_stamps_capsule(
+    kernel_my_enigma_client: TestClient,
+) -> None:
+    """My Enigma uses interpret_request + capsule — not the removed private router fork."""
+    payload = _post(kernel_my_enigma_client, "What's on today?")
+    assert payload["llm_trace"]["planner"] == "private_calendar_read"
+    ctx = payload["context"]
+    assert ctx.get("last_intent") is not None
+    assert ctx.get("capsule") is not None
+    assert ctx["capsule"]["evidence_domain"] == "PRIVATE_WORLD"
+
+
+def test_private_phatic_and_gk_never_inherit_calendar_tools(
+    kernel_my_enigma_client: TestClient,
+) -> None:
+    """KERNEL safety: phatic/GK turns do not retrieve after a calendar frame."""
+    _post(kernel_my_enigma_client, "What's on today?")
+
+    phatic = _post(kernel_my_enigma_client, "Yep, im so ready for you")
+    assert phatic["llm_trace"]["planner"] == "conversation"
+    assert _executed_tool(phatic)[0] is None
+
+    gk = _post(kernel_my_enigma_client, "What's the capital of France?")
+    assert gk["llm_trace"]["planner"] == "general_knowledge_ejected"
+    assert _executed_tool(gk)[0] is None
+    assert gk["context"].get("capsule") is None

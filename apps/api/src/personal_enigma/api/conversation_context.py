@@ -786,9 +786,20 @@ _KIND_FAMILIES: dict[RequestKind, tuple[str, ...]] = {
 _AUTHORITATIVE_QUERY_TOOLS = frozenset(
     {
         "agenda.get",
+        "briefing.read",
+        "calendar.agenda.get",
+        "availability.check",
         "attention.get_current",
         "next_action.get",
         "next_action.get_alternatives",
+    }
+)
+
+_AGENDA_SATISFACTION_TOOLS = frozenset(
+    {
+        "agenda.get",
+        "briefing.read",
+        "calendar.agenda.get",
     }
 )
 
@@ -808,7 +819,7 @@ def assess_request_satisfaction(
     if kind is None:
         return "SATISFIED"
     if kind == "agenda":
-        return "SATISFIED" if "agenda.get" in names else "UNSATISFIED"
+        return "SATISFIED" if names & _AGENDA_SATISFACTION_TOOLS else "UNSATISFIED"
     if kind == "important_from_source":
         if names & _AUTHORITATIVE_QUERY_TOOLS:
             return "SATISFIED"
