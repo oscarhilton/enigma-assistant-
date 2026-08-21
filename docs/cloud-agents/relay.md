@@ -58,10 +58,19 @@ This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay
 | Field | Value |
 | --- | --- |
 | Environment id (dashboard URL UUID) | `1baeb513-9c77-11f1-ba66-0e7d0216e441` |
-| Required API registry name | `enigma-assistant-` (must be set on the Cursor dashboard environment; live `environment-info` has reported `name: null` when unset) |
+| Required API registry name | `enigma-assistant-` (must appear as the **Name** in the Cloud Agents → Environments list; live `environment-info.name` has reported `null` when unset) |
 | Repository | `oscarhilton/enigma-assistant-` |
+| This-run provenance | `source=Repository` / `recordedVia=REPO_FILE_OBSERVED` — repo-file bind does **not** imply the API registry has a lookupable name |
 
-**Operator unblock (CLOUD-04):** In [Cloud Agents → Environments](https://cursor.com/dashboard/cloud-agents/environments/e/1baeb513-9c77-11f1-ba66-0e7d0216e441), set the environment **display/API name** to exactly `enigma-assistant-` (or change `RELAY_ENV_UUID_TO_NAME` to the actual dashboard name and redeploy). Then re-dry-run and live-dispatch with fresh idempotency keys.
+**Operator unblock (CLOUD-04):** Open [Cloud Agents → Environments](https://cursor.com/dashboard/cloud-agents/environments/e/1baeb513-9c77-11f1-ba66-0e7d0216e441).
+
+1. In the **Environments list**, find the row for this env (UUID `1baeb513-…`).
+2. Set / rename its **Name** field to exactly `enigma-assistant-` (trailing hyphen). Editing only `.cursor/environment.json` is insufficient — that file already has `"name": "enigma-assistant-"` while live `environment-info.name` can still be `null`.
+3. Confirm the list shows Name = `enigma-assistant-` (not blank). Reply with that exact Name string.
+4. If the list Name is a different non-empty string, set relay host `RELAY_ENV_UUID_TO_NAME={"1baeb513-9c77-11f1-ba66-0e7d0216e441":"<that-name>"}` and redeploy.
+5. Merge/redeploy CLOUD-04 (#136), then dry-run `kernel-01-dry-run-after-cloud-04-v1` and live `kernel-01-first-dispatch-v2` (do not reuse `v1`).
+
+Marking an env-setup action “complete” without a non-blank list Name does **not** unblock live create.
 
 ## MCP tools
 

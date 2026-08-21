@@ -38,7 +38,7 @@ Must not edit:
 - [x] UUID→name map is overridable via `RELAY_ENV_UUID_TO_NAME` JSON on the relay host
 - [x] HTTP 400 “No cloud environment named …” maps to distinct `cursor_env_not_found` code with allowlisted validation fields
 - [x] Contract tests cover override + env-not-found classification
-- [ ] Operator: set dashboard env display name to the canonical API name (default `enigma-assistant-`), redeploy relay with this PR, then dry-run + live with new idempotency keys
+- [ ] Operator: Environments **list Name** for UUID `1baeb513-…` is exactly `enigma-assistant-` (or `RELAY_ENV_UUID_TO_NAME` matches the real list Name). Note: marking setup actions complete while live `environment-info.name` stays `null` / list Name blank does **not** satisfy this. Then merge/redeploy this PR; dry-run `kernel-01-dry-run-after-cloud-04-v1`; live `kernel-01-first-dispatch-v2`
 
 ## Test plan
 
