@@ -44,7 +44,20 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "environment": {"type": "string"},
                 "head_branch": {"type": "string"},
                 "base_branch": {"type": "string"},
-                "model": {"type": "string"},
+                "model": {
+                    "type": "string",
+                    "description": (
+                        "Optional explicit model id. Omit for Cursor default/green. "
+                        "Premium models require model_escalation_reason."
+                    ),
+                },
+                "model_escalation_reason": {
+                    "type": "string",
+                    "description": (
+                        "Required when model is premium (composer-2.5*, grok, gpt-5*, "
+                        "thinking). Concise escalation justification (8-240 chars)."
+                    ),
+                },
                 "prompt": {"type": "string"},
                 "ticket_path": {"type": "string"},
                 "ticket_ids": {"type": "array", "items": {"type": "string"}},
@@ -109,7 +122,20 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "environment": {"type": "string"},
                 "head_branch": {"type": "string"},
                 "base_branch": {"type": "string"},
-                "model": {"type": "string"},
+                "model": {
+                    "type": "string",
+                    "description": (
+                        "Optional explicit model id. Omit for Cursor default/green. "
+                        "Premium models require model_escalation_reason."
+                    ),
+                },
+                "model_escalation_reason": {
+                    "type": "string",
+                    "description": (
+                        "Required when model is premium (composer-2.5*, grok, gpt-5*, "
+                        "thinking). Concise escalation justification (8-240 chars)."
+                    ),
+                },
                 "prompt": {"type": "string"},
                 "agent_id": {"type": "string"},
                 "create_run": {"type": "boolean"},

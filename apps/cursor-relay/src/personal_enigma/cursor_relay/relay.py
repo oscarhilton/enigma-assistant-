@@ -33,6 +33,10 @@ from personal_enigma.cursor_relay.handoff import (
     success_handoff_for_tool,
 )
 from personal_enigma.cursor_relay.idempotency import IdempotencyError, IdempotencyStore
+from personal_enigma.cursor_relay.model_budget import (
+    enforce_model_escalation_policy,
+    model_budget_observed_fields,
+)
 from personal_enigma.cursor_relay.pr_target import (
     GitHubPrResolver,
     HttpGitHubPrResolver,
@@ -229,12 +233,19 @@ class RelayService:
             merge_requested=bool(params.get("merge", False)),
         )
 
+        requested_model = _optional_model_param(params)
+        escalation_reason = enforce_model_escalation_policy(params, model=requested_model)
+        model_observed = model_budget_observed_fields(
+            model=requested_model,
+            escalation_reason=escalation_reason,
+        )
+
         target = validate_dispatch_target(
             self.config,
             repository=str(params["repository"]),
             environment=str(params["environment"]),
             head_branch=str(params["head_branch"]),
-            model=_optional_model_param(params),
+            model=requested_model,
             base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
         )
 
@@ -309,6 +320,7 @@ class RelayService:
                     "model": target.model,
                     "prompt_hash": ph,
                     "create_request_plan": redacted_plan,
+                    **model_observed,
                     **pr_observed,
                 },
             )
@@ -320,7 +332,7 @@ class RelayService:
                 prompt_hash=ph,
                 usage={},
                 idempotency_key=key,
-                extra={"dry_run": True, "allowlist": "pass", **pr_observed},
+                extra={"dry_run": True, "allowlist": "pass", **model_observed, **pr_observed},
             )
             return handoff
 
@@ -348,6 +360,7 @@ class RelayService:
                 "agent_url": ref.url,
                 "prompt_hash": ph,
                 "create_request_plan": redacted_plan,
+                **model_observed,
                 **pr_observed,
             },
         )
@@ -361,7 +374,12 @@ class RelayService:
             prompt_hash=ph,
             usage={"spend_units": self.quotas.spend_per_create},
             idempotency_key=key,
-            extra={"allowlist": "pass", "quotas": self.quotas.snapshot(), **pr_observed},
+            extra={
+                "allowlist": "pass",
+                "quotas": self.quotas.snapshot(),
+                **model_observed,
+                **pr_observed,
+            },
         )
         return handoff
 
@@ -489,12 +507,20 @@ class RelayService:
             if cached is not None:
                 return cached
 
+            requested_model = _optional_model_param(params)
+            escalation_reason = enforce_model_escalation_policy(
+                params, model=requested_model
+            )
+            model_observed = model_budget_observed_fields(
+                model=requested_model,
+                escalation_reason=escalation_reason,
+            )
             target = validate_dispatch_target(
                 self.config,
                 repository=str(params["repository"]),
                 environment=str(params["environment"]),
                 head_branch=str(params["head_branch"]),
-                model=_optional_model_param(params),
+                model=requested_model,
                 base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
             )
             prompt = str(
@@ -532,8 +558,10 @@ class RelayService:
                         "requested_head_branch": target.head_branch,
                         "actual_head_branch": None,
                         "environment": env_name,
+                        "model": target.model,
                         "prompt_hash": ph,
                         "create_request_plan": redacted_plan,
+                        **model_observed,
                     },
                 )
                 self.idempotency.put("request_review", key, handoff)
@@ -543,7 +571,7 @@ class RelayService:
                     decision="allow",
                     prompt_hash=ph,
                     idempotency_key=key,
-                    extra={"dry_run": True},
+                    extra={"dry_run": True, **model_observed},
                 )
                 return handoff
 
@@ -564,7 +592,9 @@ class RelayService:
                     "requested_head_branch": target.head_branch,
                     "actual_head_branch": None,
                     "environment": env_name,
+                    "model": target.model,
                     "create_request_plan": redacted_plan,
+                    **model_observed,
                 },
             )
             self.idempotency.put("request_review", key, handoff)
@@ -577,6 +607,7 @@ class RelayService:
                 prompt_hash=ph,
                 usage={"spend_units": self.quotas.spend_per_create},
                 idempotency_key=key,
+                extra=model_observed,
             )
             return handoff
 

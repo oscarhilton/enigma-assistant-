@@ -96,8 +96,28 @@ Marking setup “complete” while Overview has no Name / `environment-info.name
 | Omitted `model` | Relay omits `model` from the Cursor create payload — Cursor default/green selection applies |
 | Explicit `model` | Must be allowlisted; sent verbatim as `model.id` (e.g. `composer-2.5` for escalation) |
 | No silent default | Relay never injects `composer-2` / `composer-2.5` when the conductor omitted `model` |
+| Premium escalation | `composer-2.5*`, grok, `gpt-5*`, and thinking models require `model_escalation_reason` (8–240 chars) |
 
-**Conductor policy:** routine work → omit `model`; escalate to `composer-2.5` only after a substantive default-model attempt stalls or for clearly high-complexity architecture.
+**Observed 2026-08-21 daily mix (212.8M tokens):**
+
+| Model | Tokens (M) | Share |
+| --- | ---: | ---: |
+| default (green) | 34.2 | 16.1% |
+| composer-2.5-fast | 98.7 | 46.4% |
+| cursor-grok-4.6-high-fast | 29.2 | 13.7% |
+| Bugbot | 13.6 | 6.4% |
+| cursor-grok-4.6-medium-fast | 21.3 | 10.0% |
+| gpt-5.3-codex | 15.8 | 7.4% |
+
+**Operating targets:** default/green ≥60% of token volume (ideally 60–80%); explicit premium models <30% in steady-state.
+
+**Conductor policy:**
+
+- Routine dispatch/review → **omit `model`** (Cursor default/green).
+- Explicit premium models → escalation-only; pass concise `model_escalation_reason`.
+- Never use premium models for status polling, reporting, CI bookkeeping, straightforward review fixes, or routine test reruns.
+- While iterating: ticket-scoped tests; run canonical suites only at meaningful gates (pre-push/PR, after final review-fix batch).
+- After one substantive premium escalation without reducing uncertainty → stop/reassess rather than re-escalate.
 
 Anonymous invocation (no tunnel caller / no injected caller) is denied by construction.
 

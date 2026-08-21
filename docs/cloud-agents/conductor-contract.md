@@ -60,7 +60,11 @@ Scope pytest to ticket paths when the job is ticket-bound.
 ## Model budgeting (relay dispatch)
 
 - **Default / green:** Omit `model` on `dispatch` and `request_review` so Cursor applies its default/green model selection. The relay must not silently inject `composer-2` or `composer-2.5`.
-- **Explicit escalation:** Pass `model: "composer-2.5"` only after a substantive default-model attempt stalls, or for clearly high-complexity architecture work.
+- **Operating mix (observed 2026-08-21):** default/green was 16.1% vs target ≥60%; composer-2.5-fast alone was 46.4%. Steady-state target: default/green ≥60%, explicit premium <30%.
+- **Explicit escalation:** Pass `model: "composer-2.5"` (or other allowlisted premium id) only after a substantive default-model attempt stalls, or for clearly high-complexity architecture work. Premium models (`composer-2.5*`, grok, `gpt-5*`, thinking) require `model_escalation_reason` (8–240 chars); the relay rejects premium requests without it.
+- **Never premium for:** status polling, reporting, ordinary CI bookkeeping, straightforward review fixes, routine test reruns.
+- **Testing while iterating:** ticket-scoped pytest/commands; canonical suites (`uv run pytest`, `pnpm test`, etc.) at pre-push/PR gates and after final review-fix batches unless the ticket requires otherwise.
+- **Escalation cap:** after one substantive premium escalation without reducing uncertainty, stop/reassess — do not repeatedly escalate.
 - **Allowlist:** When `model` is provided, it must still pass the relay model allowlist (`RELAY_ALLOWED_MODELS`).
 
 ## Escalation
