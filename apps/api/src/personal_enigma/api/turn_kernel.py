@@ -181,16 +181,14 @@ def _private_planned_capabilities(
     *,
     selected_tool: str | None = None,
 ) -> tuple[str, ...]:
-    """Align ExecutionPlan with compiler oracle (evidence_bundle) + private tool aliases."""
+    """Plan only the tool the private kernel executes this turn."""
+    if selected_tool:
+        return (selected_tool,)
     oracle = [
         _DEMO_TO_PRIVATE_TOOL.get(name, name)
         for name in planned_tools_for_kind(interp.request_kind)
     ]
     oracle = list(dict.fromkeys(oracle))
-    if selected_tool:
-        if selected_tool in oracle:
-            return tuple(oracle)
-        return (selected_tool,)
     if oracle:
         return tuple(oracle)
     if "availability" in interp.capability_families:
@@ -204,16 +202,27 @@ def _private_planned_capabilities(
     return ()
 
 
+def _explicit_private_period(
+    text: str,
+    interp: RequestInterpretation,
+) -> str | None:
+    return interp.constraints.period or infer_private_calendar_period(text)
+
+
 def _resolve_private_period(
     text: str,
     interp: RequestInterpretation,
     context: ConversationContext,
 ) -> str | None:
-    return (
-        interp.constraints.period
-        or infer_private_calendar_period(text)
-        or context.temporal_constraint
-    )
+    explicit = _explicit_private_period(text, interp)
+    if explicit is not None:
+        return explicit
+    # next_work / attention asks without an explicit horizon must not inherit calendar scope.
+    if interp.request_kind == "next_work":
+        return None
+    if interp.frame_inherited or interp.request_kind == "agenda":
+        return context.temporal_constraint
+    return None
 
 
 def _select_private_tool(
@@ -238,7 +247,7 @@ def _select_private_tool(
     if interp.request_kind == "support_explain" or interp.profile == "SUPPORT":
         return "world.explain", {}
 
-    if interp.request_kind == "next_work" and not period:
+    if interp.request_kind == "next_work" and _explicit_private_period(text, interp) is None:
         return "attention.get_current", {}
 
     if period or "agenda" in families or interp.request_kind == "agenda":
@@ -597,8 +606,12 @@ def run_private_turn(
         state=_silence_attention(at),
         adapter=adapter,
     )
-    authority_refusal = _PREPARE_RE.search(text) is not None
     interp = interpret_request(text, kernel_session)
+    authority_refusal = (
+        _PREPARE_RE.search(text) is not None
+        or interp.authority == "PREPARE"
+        or interp.profile == "PREPARE_ACTION"
+    )
 
     if authority_refusal:
         result = _conversation_only_payload(

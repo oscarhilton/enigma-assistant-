@@ -179,3 +179,47 @@ def test_run_private_turn_phatic_turn_stays_conversation_only() -> None:
     )
     assert result.llm_trace["planner"] == "conversation"
     assert result.llm_trace["executed_tool_request"] == []
+
+
+def test_run_private_turn_next_work_ignores_stale_calendar_period() -> None:
+    ctx = ConversationContext(temporal_constraint="next_week")
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="What should I do next?",
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ctx,
+    )
+    executed = result.llm_trace["executed_tool_request"]
+    assert executed == [{"name": "attention.get_current", "arguments": {}}]
+    assert result.outcome.status == "fulfilled"
+    assert result.outcome.planned_capabilities == ("attention.get_current",)
+
+
+def test_run_private_turn_prepare_speech_act_refuses_without_regex() -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="Please prepare something for my meeting",
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    assert result.llm_trace["planner"] == "authority_refusal"
+    assert result.llm_trace["executed_tool_request"] == []
+    assert "can't create or change calendar" in result.items[0]["text"].lower()
+
+
+def test_run_private_turn_single_tool_plan_is_fulfilled_for_next_work() -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text="What needs my attention?",
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    assert result.outcome.status == "fulfilled"
+    assert result.outcome.coverage_adequate is True
+    assert result.outcome.planned_capabilities == result.outcome.executed_capabilities
