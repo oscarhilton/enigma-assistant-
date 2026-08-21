@@ -171,13 +171,15 @@ _LATEST_EMAIL_RE = re.compile(
 _SOMETHING_TO_DO_RE = re.compile(r"\bgive me something to do\b")
 _SHOULD_TACKLE_RE = re.compile(r"\bwhat should i tackle\b")
 
-_AM_I_FREE_RE = re.compile(r"\bam i free\b")
+_AM_I_FREE_RE = re.compile(r"\bam i\b.*\bfree\b")
+_IM_FREE_RE = re.compile(r"\b(i'?m|im)\s+free\b")
 _AM_I_FEE_TYPO_RE = re.compile(r"\bam i fee\b")
 _CAN_I_DO_RE = re.compile(
     r"\bcan i do\b.*\b(friday|saturday|sunday|weekend|night)\b"
 )
 _SATURDAY_LOOKING_RE = re.compile(r"\bwhat'?s?\s+saturday\s+looking like\b")
 _LATER_RE = re.compile(r"\blater(?:\s+today)?\b")
+_RIGHT_NOW_RE = re.compile(r"\bright now\b")
 _THIS_AFTERNOON_RE = re.compile(r"\bthis afternoon\b")
 _THIS_EVENING_RE = re.compile(r"\bthis evening\b")
 _TOMORROW_RE = re.compile(r"\btomorrow\b")
@@ -305,7 +307,9 @@ def _detect_availability_period(normalized: str) -> TimeExpression | None:
     if _matches_today_agenda(normalized):
         return TimeExpression.TODAY
     text = _repair_availability_typos(normalized)
-    if _AM_I_FREE_RE.search(text) or _CAN_I_DO_RE.search(text):
+    if _AM_I_FREE_RE.search(text) or _IM_FREE_RE.search(text) or _CAN_I_DO_RE.search(text):
+        if _RIGHT_NOW_RE.search(text) or re.search(r"\bnow\b", text):
+            return TimeExpression.TODAY
         if _LATER_RE.search(text):
             return TimeExpression.LATER_TODAY
         if _THIS_AFTERNOON_RE.search(text):
@@ -320,13 +324,18 @@ def _detect_availability_period(normalized: str) -> TimeExpression | None:
         return TimeExpression.FRIDAY_NIGHT
     if _SATURDAY_LOOKING_RE.search(text) or _SATURDAY_RE.search(text):
         return TimeExpression.SATURDAY
-    if _AM_I_FREE_RE.search(text) or _CAN_I_DO_RE.search(text):
+    if _AM_I_FREE_RE.search(text) or _IM_FREE_RE.search(text) or _CAN_I_DO_RE.search(text):
         return TimeExpression.THIS_WEEKEND
     return None
 
 
 def _matches_availability(normalized: str) -> bool:
-    return _detect_availability_period(normalized) is not None
+    text = _repair_availability_typos(normalized)
+    return (
+        _detect_availability_period(normalized) is not None
+        or _AM_I_FREE_RE.search(text) is not None
+        or _IM_FREE_RE.search(text) is not None
+    )
 
 
 def _matches_unsupported_world(normalized: str) -> bool:

@@ -2,19 +2,27 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import uuid4
 
 from personal_enigma.api.build_identity import attach_forensic_provenance
+from personal_enigma.api.context_compilation import RequestInterpretation, interpret_request
 from personal_enigma.api.conversation_context import (
     ConversationContext,
+    assess_request_satisfaction,
+    reduce_conversation_capsule,
     update_context_from_turn_items,
 )
 from personal_enigma.api.demo_orchestrator import LlmTrace, build_intent_router_trace
 from personal_enigma.api.demo_tools import ToolExecutionResult
-from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
+from personal_enigma.api.intent_router import ConversationIntent, ConversationIntentKind
+from personal_enigma.api.private_calendar_read import (
+    infer_private_calendar_period,
+    is_private_agenda_list_request,
+)
 from personal_enigma.api.private_tools import (
     PrivateToolSession,
     execute_private_tool,
@@ -30,6 +38,74 @@ TurnOutcomeStatus = Literal[
     "source_unavailable",
     "failed",
 ]
+
+_EXPLICIT_GENERAL_KNOWLEDGE_RE = re.compile(
+    r"\b(capital of|who (?:is|was)|what is (?:the )?(?:capital|currency|population|language)"
+    r"|how (?:tall|far|old|long|many|much)|when (?:was|did|is)|where is|"
+    r"define |meaning of|who invented|what does .{1,40} mean)\b",
+    re.IGNORECASE,
+)
+
+_PHATIC_SURFACE_RE = re.compile(
+    r"^(?:"
+    r"yep|yup|yeah|yes|nope|nah|no|ok|okay|k|sure|alright|right|cool|got it|"
+    r"sounds good|sounds great|makes sense|perfect|great|awesome|nice|good|"
+    r"thanks?|thank you|cheers|no worries|no problem|np|"
+    r"lol|haha|heh|wow|oh|ah|hmm|hm|uh|"
+    r"im so ready(?: for you)?|i(?:'m| am) so ready(?: for you)?|"
+    r"(?:so\s+)?ready(?: for(?: you)?)?|"
+    r"let'?s(?: go)?|let us go|"
+    r"i(?:'m| am) (?:here|back|ready|set|good|all set)|"
+    r"(?:all\s+)?set(?: and ready)?|"
+    r"(?:i(?:'m| am) )?pumped|(?:i(?:'m| am) )?excited|"
+    r"you there\??|you good\??|still there\??"
+    r")[\s!.?,]*$",
+    re.IGNORECASE,
+)
+
+
+def _is_explicit_general_knowledge(text: str) -> bool:
+    return bool(_EXPLICIT_GENERAL_KNOWLEDGE_RE.search(text))
+
+
+def _is_phatic_surface(text: str) -> bool:
+    stripped = text.strip()
+    if _PHATIC_SURFACE_RE.match(stripped):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:im so ready(?: for you)?|i(?:'m| am) so ready(?: for you)?)\b",
+            stripped,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _is_underspecified_follow_up(
+    text: str,
+    resolved: ConversationIntent,
+) -> bool:
+    """True when a live frame may supply the missing private-world subject."""
+    from personal_enigma.api.intent_router import (
+        detect_period_follow_up,
+        is_after_that_follow_up,
+        normalize_utterance,
+    )
+
+    if detect_period_follow_up(text) is not None:
+        return True
+    if is_after_that_follow_up(text):
+        return True
+    if resolved.kind != ConversationIntentKind.UNKNOWN:
+        return True
+    if is_private_agenda_list_request(text):
+        return True
+    if infer_private_calendar_period(text) is not None:
+        return True
+    normalized = normalize_utterance(text)
+    if normalized and len(normalized.split()) <= 3 and not _is_explicit_general_knowledge(text):
+        return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -369,6 +445,155 @@ def _attach_trace(turn_items: list[dict[str, Any]], trace_payload: dict[str, Any
     turn_items[0] = stamped
 
 
+@dataclass(frozen=True)
+class _PrivateInterpretSession:
+    """Minimal session surface for interpret_request in My Enigma."""
+
+    context: ConversationContext
+    state: AttentionState
+
+
+def _effective_intent_kind(
+    resolved: ConversationIntent,
+    interp: RequestInterpretation,
+    ctx: ConversationContext,
+) -> ConversationIntentKind:
+    if resolved.kind != ConversationIntentKind.UNKNOWN:
+        return resolved.kind
+    if interp.frame_inherited and ctx.last_intent is not None:
+        return ctx.last_intent.kind
+    return resolved.kind
+
+
+def _resolve_private_period(
+    text: str,
+    resolved: ConversationIntent,
+    interp: RequestInterpretation,
+    ctx: ConversationContext,
+) -> str | None:
+    explicit = infer_private_calendar_period(text)
+    if explicit is not None:
+        return explicit
+    if resolved.period is not None:
+        return resolved.period.value
+    if interp.constraints.period:
+        return interp.constraints.period
+    return ctx.temporal_constraint
+
+
+def _private_request_kind(
+    *,
+    text: str,
+    resolved: ConversationIntent,
+    interp: RequestInterpretation,
+    ctx: ConversationContext,
+    tool_name: str,
+) -> str | None:
+    if interp.request_kind is not None:
+        return interp.request_kind
+    kind = _effective_intent_kind(resolved, interp, ctx)
+    if kind == ConversationIntentKind.AVAILABILITY_QUERY:
+        return "agenda"
+    if kind == ConversationIntentKind.ATTENTION_QUERY:
+        period = _resolve_private_period(text, resolved, interp, ctx)
+        return "next_work" if period is None else "agenda"
+    if tool_name == "briefing.read":
+        return "agenda"
+    if tool_name == "availability.check":
+        return "agenda"
+    if tool_name == "attention.get_current":
+        return "next_work"
+    return None
+
+
+def _select_private_tool(
+    *,
+    text: str,
+    resolved: ConversationIntent,
+    interp: RequestInterpretation,
+    ctx: ConversationContext,
+) -> tuple[str, dict[str, Any]] | None:
+    """Plan one READ/SUPPORT tool from composed intent + interpret_request."""
+    self_contained = (
+        is_private_agenda_list_request(text)
+        or infer_private_calendar_period(text) is not None
+        or resolved.kind
+        in {
+            ConversationIntentKind.ATTENTION_QUERY,
+            ConversationIntentKind.AVAILABILITY_QUERY,
+            ConversationIntentKind.NEXT_ACTION_QUERY,
+            ConversationIntentKind.HELP_QUERY,
+        }
+    )
+    if (
+        interp.evidence_domain not in {"PRIVATE_WORLD"}
+        and not interp.frame_inherited
+        and not self_contained
+    ):
+        return None
+
+    explicit_period = infer_private_calendar_period(text)
+    if explicit_period is not None and resolved.kind != ConversationIntentKind.AVAILABILITY_QUERY:
+        return "briefing.read", {"period": explicit_period}
+
+    kind = _effective_intent_kind(resolved, interp, ctx)
+    period = _resolve_private_period(text, resolved, interp, ctx)
+
+    if kind == ConversationIntentKind.AVAILABILITY_QUERY:
+        return "availability.check", {"period": period}
+    if kind == ConversationIntentKind.ATTENTION_QUERY:
+        if period:
+            return "briefing.read", {"period": period}
+        return "attention.get_current", {}
+    if kind == ConversationIntentKind.HELP_QUERY:
+        return "world.explain", {}
+    if kind == ConversationIntentKind.NEXT_ACTION_QUERY:
+        if period:
+            return "briefing.read", {"period": period}
+        return "attention.get_current", {}
+    if interp.request_kind == "agenda" and period:
+        return "briefing.read", {"period": period}
+    if period:
+        return "briefing.read", {"period": period}
+    if is_private_agenda_list_request(text):
+        return "briefing.read", {"period": period or "this_week"}
+    return None
+
+
+def _reduce_private_capsule(
+    *,
+    text: str,
+    ctx: ConversationContext,
+    interp: RequestInterpretation,
+    resolved: ConversationIntent,
+    tool_name: str,
+    ok: bool,
+) -> None:
+    request_kind = _private_request_kind(
+        text=text,
+        resolved=resolved,
+        interp=interp,
+        ctx=ctx,
+        tool_name=tool_name,
+    )
+    satisfaction = assess_request_satisfaction(
+        request_kind,  # type: ignore[arg-type]
+        [tool_name] if ok else [],
+    )
+    reduce_conversation_capsule(
+        ctx,
+        evidence_domain="PRIVATE_WORLD",
+        authority=interp.authority if interp.authority != "NONE" else "READ",
+        request_kind=request_kind,  # type: ignore[arg-type]
+        satisfaction=satisfaction,
+        temporal_constraint=_resolve_private_period(text, resolved, interp, ctx),
+        scope=interp.constraints.scope,
+        source=interp.constraints.source,
+        last_capability=tool_name if ok else None,
+        repair=bool(interp.frame_inherited and satisfaction != "SATISFIED"),
+    )
+
+
 def _conversation_only_payload(
     *,
     text: str,
@@ -425,16 +650,10 @@ def run_private_turn(
     adapter: Any,
     conversation: list[dict[str, Any]],
     context: ConversationContext | None,
-    route_private_tool: Any,
     silence_attention: Any,
-    is_general_knowledge: Any,
-    turn_semantic_completeness: Any,
 ) -> TurnResult:
-    """My Enigma turn via shared kernel — deterministic READ/SUPPORT."""
-    from personal_enigma.api.private_conversation import (  # noqa: PLC0415
-        _PREPARE_RE,
-        TurnSemanticKind,
-    )
+    """My Enigma turn via shared kernel — interpret_request → plan → execute."""
+    from personal_enigma.api.private_conversation import _PREPARE_RE  # noqa: PLC0415
 
     ctx = context or ConversationContext()
     corr = f"corr-{uuid4().hex}"
@@ -443,6 +662,7 @@ def run_private_turn(
         environment="private",
         authority_ceiling="READ_SUPPORT",
     )
+    ctx.begin_user_turn()
     conversation.append(
         {"kind": "user_message", "text": text, "at": at, "correlation_id": corr}
     )
@@ -464,8 +684,12 @@ def run_private_turn(
         result.context = ctx
         return result
 
-    resolved_up_front = resolve_intent(text)
-    if resolved_up_front.kind == ConversationIntentKind.GREETING:
+    resolved = ctx.compose_intent(text)
+    state: AttentionState = silence_attention(at)
+    session = _PrivateInterpretSession(context=ctx, state=state)
+    interp = interpret_request(text, session)
+
+    if resolved.kind == ConversationIntentKind.GREETING:
         result = _conversation_only_payload(
             text="Hey! Ask me what's on your calendar or what needs your attention.",
             user_message=text,
@@ -479,7 +703,11 @@ def run_private_turn(
         result.context = ctx
         return result
 
-    if is_general_knowledge(text):
+    gk_without_follow_up = (
+        interp.evidence_domain == "GENERAL_KNOWLEDGE"
+        and not _is_underspecified_follow_up(text, resolved)
+    )
+    if _is_explicit_general_knowledge(text) or gk_without_follow_up:
         result = _conversation_only_payload(
             text="I don't have general knowledge — try a search engine for that.",
             user_message=text,
@@ -488,13 +716,17 @@ def run_private_turn(
             ctx=ctx,
             planner="general_knowledge_ejected",
         )
+        ctx.capsule = None
+        ctx.temporal_constraint = None
         conversation.extend(result.items)
         update_context_from_turn_items(ctx, result.items)
         result.context = ctx
         return result
 
-    semantic_kind = turn_semantic_completeness(text, ctx)
-    if semantic_kind == TurnSemanticKind.CONVERSATIONAL:
+    if _is_phatic_surface(text) or (
+        interp.evidence_domain == "CONVERSATION_ONLY"
+        and not _is_underspecified_follow_up(text, resolved)
+    ):
         result = _conversation_only_payload(
             text="I'm here — ask me what's on your calendar or what needs your attention.",
             user_message=text,
@@ -508,7 +740,7 @@ def run_private_turn(
         result.context = ctx
         return result
 
-    routed = route_private_tool(text, ctx)
+    routed = _select_private_tool(text=text, resolved=resolved, interp=interp, ctx=ctx)
     if routed is None:
         result = _conversation_only_payload(
             text="I'm not sure how to help with that yet — try asking about your calendar.",
@@ -527,8 +759,7 @@ def run_private_turn(
     if arguments.get("period"):
         ctx.temporal_constraint = str(arguments["period"])
 
-    state: AttentionState = silence_attention(at)
-    session = PrivateToolSession(
+    tool_session = PrivateToolSession(
         state=state,
         context=ctx,
         at=at,
@@ -539,11 +770,20 @@ def run_private_turn(
         planned_capabilities=(tool_name,),
         steps=({"name": tool_name, "arguments": arguments},),
     )
-    exec_result = execute_private_tool(session, tool_name, arguments)
+    exec_result = execute_private_tool(tool_session, tool_name, arguments)
     turn_items = [
         {**item, "correlation_id": corr} if item.get("correlation_id") is None else item
         for item in exec_result.turn_items
     ]
+
+    _reduce_private_capsule(
+        text=text,
+        ctx=ctx,
+        interp=interp,
+        resolved=resolved,
+        tool_name=tool_name,
+        ok=exec_result.ok,
+    )
 
     outcome = derive_turn_outcome(
         planned=plan,
@@ -559,6 +799,14 @@ def run_private_turn(
         conversation_state={
             "authority_ceiling": profile.authority_ceiling,
             "capability_contract": private_capability_contract(),
+            "request_kind": _private_request_kind(
+                text=text,
+                resolved=resolved,
+                interp=interp,
+                ctx=ctx,
+                tool_name=tool_name,
+            ),
+            "frame_inherited": interp.frame_inherited,
         },
         tools_available=list(private_capability_contract()["allowed"]),
         executed_tool_request=[{"name": tool_name, "arguments": arguments}],
@@ -581,7 +829,7 @@ def run_private_turn(
         items=turn_items,
         llm_trace=trace_payload,
         outcome=outcome,
-        calendar_facts_used=session.last_calendar_facts,
+        calendar_facts_used=tool_session.last_calendar_facts,
         context=ctx,
     )
 
@@ -594,10 +842,7 @@ def run_turn(
     adapter: Any,
     conversation: list[dict[str, Any]],
     context: ConversationContext | None = None,
-    route_private_tool: Any | None = None,
     silence_attention: Any | None = None,
-    is_general_knowledge: Any | None = None,
-    turn_semantic_completeness: Any | None = None,
 ) -> TurnResult:
     """Unified kernel entry — dispatches by world profile."""
     if profile.world_id == "my_enigma":
@@ -609,11 +854,7 @@ def run_turn(
             adapter=adapter,
             conversation=conversation,
             context=context,
-            route_private_tool=route_private_tool or pc._route_private_tool,
             silence_attention=silence_attention or pc._silence_attention,
-            is_general_knowledge=is_general_knowledge or pc._is_general_knowledge,
-            turn_semantic_completeness=turn_semantic_completeness
-            or pc._turn_semantic_completeness,
         )
     if profile.world_id == "alex_lab":
         raise ValueError(

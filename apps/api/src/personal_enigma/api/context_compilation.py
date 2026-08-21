@@ -209,6 +209,8 @@ _PERIOD_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bthis afternoon\b", re.IGNORECASE), "this_afternoon"),
     (re.compile(r"\bthis evening\b", re.IGNORECASE), "this_evening"),
     (re.compile(r"\btomorrow\b", re.IGNORECASE), "tomorrow"),
+    (re.compile(r"\bright now\b", re.IGNORECASE), "today"),
+    (re.compile(r"\bnow\b", re.IGNORECASE), "today"),
     (re.compile(r"\btoday\b", re.IGNORECASE), "today"),
     (re.compile(r"\bsaturday\b", re.IGNORECASE), "saturday"),
     (re.compile(r"\bfriday night\b", re.IGNORECASE), "friday_night"),
