@@ -7,8 +7,6 @@
 | Domain | `conversational-ui` |
 | Programme | Shared conversation turn path (Alex Lab + My Enigma) |
 
-**Partial.** First stacked PR extracts the shared kernel and tool wiring; exit criteria below remain open.
-
 ## Intent
 
 One turn execution path for Demo and Private worlds:
@@ -76,4 +74,4 @@ uv run pytest \
 
 ## PR
 
-- Partial KERNEL-01 stacked on `ticket/p03-forensic-calendar-gravity` (base ≠ `main`)
+- Partial landed via [#127](https://github.com/oscarhilton/enigma-assistant-/pull/127); remaining exit conditions consolidated on `ticket/kernel-01-turn-kernel`.
