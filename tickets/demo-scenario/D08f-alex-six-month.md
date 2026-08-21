@@ -42,6 +42,7 @@
 - WhatsApp / chat ingestion runtime (use existing source types)
 - Expanding `intent_router` phrase families
 - Moving 0.2.1 `week-*.yaml` into `2026-01/` before the 0.3.0 bump
+- Hugging Face full-life reprime ([P04](../pilot/P04-alex-full-life-reprime.md) / [data-boot.md](../../docs/architecture/data-boot.md) Level 2). D08f is authored ordinary events on the alex-v1 spine, not HF ingest as a prebuilt brain.
 
 ## Why
 

@@ -88,6 +88,16 @@ Alex Lab and My Enigma are the **same Enigma** against different worlds — not 
 
 Same shell (Today, Cases, Assistant, THE Goose). Different adapters, storage roots, clocks, and identities. Demo never shares Private HMAC / PERSON_* keys ([ADR-005](../adr/005-demo-private-storage-roots.md)).
 
+**Data boot** is three levels — do not collapse them ([data-boot.md](./data-boot.md) · [ADR-042](../adr/042-three-level-data-boot.md)):
+
+```text
+LEVEL 1 — Life Scripts     "Does the system behave correctly?"     = P02 / UI2-06
+LEVEL 2 — Full Alex corpus "Does it behave correctly when noisy?" = P04 (NOT UI2-06)
+LEVEL 3 — My Enigma        "Does it genuinely help?"              = P03+
+```
+
+Current Alex Lab boot uses in-repo deterministic fixtures. It does **not** need Hugging Face. Level 2 must ingest the HF corpus through normal machinery — never a prebuilt Alex brain.
+
 See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.  
 Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).  
 Background email corpus: [demo-corpus.md](./demo-corpus.md).  
