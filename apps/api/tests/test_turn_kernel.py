@@ -209,9 +209,49 @@ def test_private_phatic_and_gk_never_inherit_calendar_tools(
 
     phatic = _post(kernel_my_enigma_client, "Yep, im so ready for you")
     assert phatic["llm_trace"]["planner"] == "conversation"
+    assert phatic["llm_trace"]["conversation_state"].get("semantic_router") is True
     assert _executed_tool(phatic)[0] is None
 
     gk = _post(kernel_my_enigma_client, "What's the capital of France?")
     assert gk["llm_trace"]["planner"] == "general_knowledge_ejected"
+    assert gk["llm_trace"]["conversation_state"].get("evidence_domain") == "GENERAL_KNOWLEDGE"
+    assert gk["llm_trace"]["conversation_state"].get("semantic_router") is True
     assert _executed_tool(gk)[0] is None
     assert gk["context"].get("capsule") is None
+
+
+def test_general_knowledge_routes_via_semantic_router_not_regex(
+    kernel_my_enigma_client: TestClient,
+) -> None:
+    """GK domain is owned by the semantic router merge — not kernel regex heuristics."""
+    _post(kernel_my_enigma_client, "What's on today?")
+    gk = _post(kernel_my_enigma_client, "What's the capital of France?")
+    state = gk["llm_trace"]["conversation_state"]
+    assert state.get("semantic_router") is True
+    assert state.get("evidence_domain") == "GENERAL_KNOWLEDGE"
+    assert gk["llm_trace"]["planner"] == "general_knowledge_ejected"
+
+
+def test_who_is_phrase_in_calendar_context_not_regex_misrouted(
+    kernel_my_enigma_client: TestClient,
+) -> None:
+    """Overlapping 'who is' phrasing stays private when the router inherits the frame."""
+    _post(kernel_my_enigma_client, "What am I doing tomorrow?")
+    turn = _post(kernel_my_enigma_client, "Who is she meeting?")
+    state = turn["llm_trace"]["conversation_state"]
+    assert state.get("semantic_router") is True
+    assert state.get("evidence_domain") == "PRIVATE_WORLD"
+    assert turn["llm_trace"]["planner"] == "private_calendar_read"
+
+
+def test_elliptical_show_me_inherits_active_frame_via_router(
+    kernel_my_enigma_client: TestClient,
+) -> None:
+    """Bare 'show me' inherits the active calendar frame through router + compose_intent."""
+    _post(kernel_my_enigma_client, "What's on today?")
+    turn = _post(kernel_my_enigma_client, "Show me")
+    state = turn["llm_trace"]["conversation_state"]
+    assert state.get("semantic_router") is True
+    assert state.get("frame_inherited") is True
+    tool, _args = _executed_tool(turn)
+    assert tool == "availability.check"

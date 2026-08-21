@@ -313,7 +313,13 @@ def merge_request_interpretation(
         sem_domain = semantic.evidence_domain
         if sem_domain == "EXTERNAL_WORLD":
             sem_domain = "GENERAL_KNOWLEDGE"
-        if (
+        router_ejects_frame = (
+            sem_domain in {"GENERAL_KNOWLEDGE", "CONVERSATION_ONLY"}
+            and not semantic.inherit_capsule
+        )
+        if router_ejects_frame and sem_domain is not None:
+            domain = sem_domain
+        elif (
             det_domain == "GENERAL_KNOWLEDGE"
             and sem_domain == "PRIVATE_WORLD"
             and not is_generic_knowledge_utterance(utterance)
@@ -328,7 +334,12 @@ def merge_request_interpretation(
             if det_domain != "PRIVATE_WORLD":
                 domain = sem_domain if sem_domain != "PRIVATE_WORLD" else domain
 
-    if inherit and capsule is not None and capsule.evidence_domain == "PRIVATE_WORLD":
+    if (
+        inherit
+        and capsule is not None
+        and capsule.evidence_domain == "PRIVATE_WORLD"
+        and domain == "PRIVATE_WORLD"
+    ):
         if det_domain in {"GENERAL_KNOWLEDGE", "CONVERSATION_ONLY"}:
             domain = "PRIVATE_WORLD"
 
@@ -375,10 +386,14 @@ def merge_request_interpretation(
             source = capsule.source or getattr(capsule, "source_scope", None)
 
     request_kind = getattr(deterministic, "request_kind", None)
-    if inherit and request_kind is None and capsule is not None:
+    if inherit and request_kind is None and capsule is not None and domain == "PRIVATE_WORLD":
         request_kind = capsule.active_goal or (
             "agenda" if capsule.temporal_constraint else None
         )
+
+    frame_inherited = domain == "PRIVATE_WORLD" and (
+        inherit or bool(getattr(deterministic, "frame_inherited", False))
+    )
 
     return RequestInterpretation(
         evidence_domain=domain,
@@ -388,7 +403,7 @@ def merge_request_interpretation(
         constraints=RequestConstraints(period=period, scope=scope, source=source),
         capability_families=tuple(families),
         request_kind=request_kind,
-        frame_inherited=inherit or bool(getattr(deterministic, "frame_inherited", False)),
+        frame_inherited=frame_inherited,
     )
 
 
@@ -451,6 +466,44 @@ class FixtureSemanticBootstrap:
                 evidence_domain="GENERAL_KNOWLEDGE",
                 authority="NONE",
                 confidence=0.96,
+            )
+        if hay in {
+            "what's the capital of france?",
+            "whats the capital of france?",
+            "what is the capital of france?",
+            "who is the president of the united states?",
+            "what is the population of tokyo?",
+        }:
+            return SemanticInterpretation(
+                evidence_domain="GENERAL_KNOWLEDGE",
+                authority="NONE",
+                confidence=0.95,
+            )
+        if hay in {
+            "yep, im so ready for you",
+            "sounds good",
+            "ok!",
+            "thanks",
+            "let's go",
+            "i'm here",
+        }:
+            return SemanticInterpretation(
+                evidence_domain="CONVERSATION_ONLY",
+                authority="NONE",
+                confidence=0.9,
+            )
+        if hay in {"show me", "show"}:
+            return SemanticInterpretation(
+                inherit_capsule=True,
+                confidence=0.85,
+            )
+        if hay.startswith("who is she meeting"):
+            return SemanticInterpretation(
+                evidence_domain="PRIVATE_WORLD",
+                authority="READ",
+                candidate_families=("agenda",),
+                inherit_capsule=True,
+                confidence=0.88,
             )
         if hay in {"anything coming up?", "anything coming up"}:
             return SemanticInterpretation(
