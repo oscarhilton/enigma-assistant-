@@ -70,6 +70,9 @@ class RelayConfig:
     # RELAY_SINGLE_INSTANCE=0 and RELAY_SHARED_STORE_URL (guarded at load).
     single_instance: bool = True
     shared_store_url: str | None = None
+    # UUID → Cursor API registry env.name (dashboard name). Overridable via
+    # RELAY_ENV_UUID_TO_NAME JSON object on the relay host.
+    env_uuid_to_name: dict[str, str] = field(default_factory=dict)
 
 
 def _parse_tunnel_caller(raw: str | None) -> CallerRecord | None:
@@ -109,6 +112,29 @@ def _csv_tuple(raw: str | None, default: tuple[str, ...]) -> tuple[str, ...]:
     if raw is None or raw.strip() == "":
         return default
     return tuple(part.strip() for part in raw.split(",") if part.strip())
+
+
+def _parse_env_uuid_to_name(raw: str | None) -> dict[str, str]:
+    """Parse RELAY_ENV_UUID_TO_NAME JSON; default to create_contract map."""
+
+    from personal_enigma.cursor_relay.create_contract import DEFAULT_ENV_UUID_TO_NAME
+
+    if raw is None or not raw.strip():
+        return dict(DEFAULT_ENV_UUID_TO_NAME)
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        msg = "RELAY_ENV_UUID_TO_NAME must be a JSON object {uuid: api_env_name}"
+        raise ValueError(msg)
+    out: dict[str, str] = {}
+    for key, value in data.items():
+        if not str(key).strip() or not str(value).strip():
+            msg = "RELAY_ENV_UUID_TO_NAME entries must be non-empty strings"
+            raise ValueError(msg)
+        out[str(key).strip()] = str(value).strip()
+    if not out:
+        msg = "RELAY_ENV_UUID_TO_NAME must be non-empty when set"
+        raise ValueError(msg)
+    return out
 
 
 def load_config_from_env(environ: dict[str, str] | None = None) -> RelayConfig:
@@ -165,6 +191,7 @@ def load_config_from_env(environ: dict[str, str] | None = None) -> RelayConfig:
         handoff_schema_path=env.get("RELAY_HANDOFF_SCHEMA_PATH"),
         single_instance=single_instance,
         shared_store_url=shared_store,
+        env_uuid_to_name=_parse_env_uuid_to_name(env.get("RELAY_ENV_UUID_TO_NAME")),
     )
 
 
@@ -186,4 +213,5 @@ def config_public_dict(cfg: RelayConfig) -> dict[str, Any]:
         "allowed_base_branches": sorted(cfg.allowed_base_branches),
         "single_instance": cfg.single_instance,
         "shared_store_configured": bool(cfg.shared_store_url),
+        "env_uuid_to_name": dict(sorted(cfg.env_uuid_to_name.items())),
     }
