@@ -12,7 +12,6 @@ from personal_enigma.api.build_identity import attach_forensic_provenance
 from personal_enigma.api.context_compilation import (
     _AVAILABILITY_FREE_CUE,
     RequestInterpretation,
-    interpret_request,
 )
 from personal_enigma.api.conversation_context import (
     ConversationContext,
@@ -28,6 +27,7 @@ from personal_enigma.api.private_tools import (
     execute_private_tool,
     private_capability_contract,
 )
+from personal_enigma.api.semantic_bootstrap import interpret_with_router
 from personal_enigma.attention.projection import AttentionState, build_presentation_plan
 
 TurnOutcomeStatus = Literal[
@@ -542,6 +542,7 @@ def _conversation_only_payload(
     corr: str,
     ctx: ConversationContext,
     planner: str,
+    routing: dict[str, Any] | None = None,
 ) -> TurnResult:
     turn_items: list[dict[str, Any]] = [
         {"kind": "enigma_message", "text": text, "at": at, "correlation_id": corr}
@@ -553,13 +554,20 @@ def _conversation_only_payload(
         turn_items=turn_items,
         correlation_id=corr,
     )
+    path = "intent_router"
+    if routing and routing.get("primary") == "semantic":
+        path = "llm"
+    elif routing and routing.get("abstain"):
+        path = "intent_router"
     trace = trace.model_copy(
         update={
-            "path": "intent_router",
+            "path": path,
             "planner": planner,
             "tools_available": [],
             "executed_tool_request": [],
             "tool_results": [],
+            "routing": routing,
+            "router_fallback": not bool(routing and routing.get("primary") == "semantic"),
         }
     )
     profile = WorldTurnProfile(
@@ -591,7 +599,7 @@ def run_private_turn(
     conversation: list[dict[str, Any]],
     context: ConversationContext | None = None,
 ) -> TurnResult:
-    """My Enigma turn via shared kernel — interpret_request → plan → execute."""
+    """My Enigma turn via shared kernel — semantic router → compiler → plan → execute."""
     ctx = context or ConversationContext()
     corr = f"corr-{uuid4().hex}"
     profile = WorldTurnProfile(
@@ -608,7 +616,9 @@ def run_private_turn(
         state=_silence_attention(at),
         adapter=adapter,
     )
-    interp = interpret_request(text, kernel_session)
+    decision = interpret_with_router(text, kernel_session)
+    interp = decision.interpretation
+    routing = decision.trace
     authority_refusal = (
         _PREPARE_RE.search(text) is not None
         or interp.authority == "PREPARE"
@@ -625,6 +635,7 @@ def run_private_turn(
             corr=corr,
             ctx=ctx,
             planner=_planner_from_interpretation(interp, authority_refusal=True),
+            routing=routing,
         )
         conversation.extend(result.items)
         update_context_from_turn_items(ctx, result.items)
@@ -643,6 +654,7 @@ def run_private_turn(
             corr=corr,
             ctx=ctx,
             planner=_planner_from_interpretation(interp),
+            routing=routing,
         )
         conversation.extend(result.items)
         update_context_from_turn_items(ctx, result.items)
@@ -658,6 +670,7 @@ def run_private_turn(
             corr=corr,
             ctx=ctx,
             planner="conversation",
+            routing=routing,
         )
         conversation.extend(result.items)
         update_context_from_turn_items(ctx, result.items)
@@ -694,7 +707,7 @@ def run_private_turn(
     )
 
     trace = LlmTrace(
-        path="intent_router",
+        path="llm" if routing.get("primary") == "semantic" else "intent_router",
         planner=_planner_from_interpretation(interp),
         user_message=text,
         conversation_state={
@@ -713,6 +726,8 @@ def run_private_turn(
             }
         ],
         correlation_id=corr,
+        routing=routing,
+        router_fallback=routing.get("primary") != "semantic",
     )
     trace_payload = attach_kernel_forensics(trace, profile=profile)
     trace_payload = stamp_turn_outcome_on_trace(trace_payload, outcome, tool_name=tool_name)

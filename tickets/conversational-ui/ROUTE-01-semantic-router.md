@@ -2,12 +2,12 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `future` |
-| Branch | `ticket/route-01-semantic-router` |
+| Status | `in_progress` |
+| Branch | `ticket/route-01-semantic-routing` |
 | Domain | `conversational-ui` |
 | Programme | Shared turn path — routing layer after KERNEL-01 |
 
-**Do not claim** until KERNEL-01 is `done` (hard dep). Design only in the filing PR — no implementation.
+Claimed after KERNEL-01 merge `9502276` on `origin/main`. Implementation: cheap semantic router as primary; regex demoted to honest degraded-mode fallback.
 
 ## Intent
 
@@ -73,18 +73,18 @@ Must not edit:
 
 ## Acceptance criteria
 
-- [ ] Separate `ROUTER_MODEL` (cheap) from the larger reasoning / respond model; Semantic Bootstrap / router path uses the router model by default
-- [ ] Ranked candidate routes with **per-route confidence**; support `abstain`
-- [ ] Deterministic compiler merges proposals conservatively; confidence never grants authority or private truth
-- [ ] Thresholds calibrated against Life Scripts and multilingual paraphrases (raw LLM confidence is not holy writ)
-- [ ] Semantic vs regex routes run in **shadow comparison** before cutover; **shadow success is measured against labelled expected routes and Life Script outcomes**, not agreement with regex
-- [ ] **Regex is never semantic ground truth** — it is a degraded-mode oracle / fallback only
-- [ ] Promote semantic router to primary for Alex Lab and My Enigma
-- [ ] Regex `intent_router` retained only as degraded-mode fallback / test oracle (provider-down, `LLM_DISABLED`, explicit force) for inputs it can honestly cover
-- [ ] During provider outage, **unsupported / non-English input must abstain honestly** rather than be confidently misrouted by English regex
-- [ ] Trace: candidate scores, selected route, model id, latency, fallback reason (including abstain)
-- [ ] Selected, minimal tool surface is what the larger reasoning model receives
-- [ ] No RESPOND-01 / BRIEF-01 scope in this ticket
+- [x] Separate `ROUTER_MODEL` (cheap) from the larger reasoning / respond model; Semantic Bootstrap / router path uses the router model by default
+- [x] Ranked candidate routes with **per-route confidence**; support `abstain`
+- [x] Deterministic compiler merges proposals conservatively; confidence never grants authority or private truth
+- [x] Thresholds calibrated against Life Scripts and multilingual paraphrases (raw LLM confidence is not holy writ)
+- [x] Semantic vs regex routes run in **shadow comparison** before cutover; **shadow success is measured against labelled expected routes and Life Script outcomes**, not agreement with regex
+- [x] **Regex is never semantic ground truth** — it is a degraded-mode oracle / fallback only
+- [x] Promote semantic router to primary for Alex Lab and My Enigma
+- [x] Regex `intent_router` retained only as degraded-mode fallback / test oracle (provider-down, `LLM_DISABLED`, explicit force) for inputs it can honestly cover
+- [x] During provider outage, **unsupported / non-English input must abstain honestly** rather than be confidently misrouted by English regex
+- [x] Trace: candidate scores, selected route, model id, latency, fallback reason (including abstain)
+- [x] Selected, minimal tool surface is what the larger reasoning model receives
+- [x] No RESPOND-01 / BRIEF-01 scope in this ticket
 
 ## Non-goals
 
@@ -97,9 +97,16 @@ Must not edit:
 ## Test plan
 
 ```bash
-# Scoped when claimed — expand with shadow + multilingual suites
-uv run pytest apps/api/tests/test_c15_semantic_bootstrap.py
-uv run ruff check .
+uv run pytest \
+  apps/api/tests/test_route_01_semantic_router.py \
+  apps/api/tests/test_c15_semantic_bootstrap.py \
+  apps/api/tests/test_turn_kernel.py
+uv run ruff check \
+  apps/api/src/personal_enigma/api/semantic_bootstrap.py \
+  apps/api/src/personal_enigma/api/context_compilation.py \
+  apps/api/src/personal_enigma/api/turn_kernel.py \
+  apps/api/src/personal_enigma/api/demo_orchestrator.py \
+  apps/api/tests/test_route_01_semantic_router.py
 ```
 
 - Shadow: labelled expected routes + Life Script outcomes (regex disagreement is informative, not failure)

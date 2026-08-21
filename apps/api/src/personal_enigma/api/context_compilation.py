@@ -526,6 +526,7 @@ class RequestInterpretation:
     capability_families: tuple[str, ...]
     request_kind: RequestKind | None = None
     frame_inherited: bool = False
+    route_minimised: bool = False
 
 
 @dataclass(frozen=True)
@@ -1450,14 +1451,23 @@ def tools_for_interpretation(interp: RequestInterpretation) -> tuple[str, ...]:
     earned by evidence domain + authority. The fence strips escalation
     (SUPPORT never gains assist.approve). Minimisation may hide irrelevant
     capabilities. It must not hide the capability required to satisfy a
-    private-world request.
+    private-world request. Ranked semantic routes may minimise to selected
+    families so the larger reasoning model sees a small tool surface.
     """
-    names: list[str] = list(_PROFILE_TOOLS[interp.profile])
-    for family in interp.capability_families:
-        names.extend(_FAMILY_TOOLS[family])
-    if interp.constraints.source:
-        names.extend(_SOURCE_TOOLS)
-        names.extend(_FAMILY_TOOLS["attention"])
+    names: list[str] = []
+    if interp.route_minimised and interp.capability_families:
+        for family in interp.capability_families:
+            names.extend(_FAMILY_TOOLS.get(family, ()))
+        if interp.constraints.source:
+            names.extend(_SOURCE_TOOLS)
+            names.extend(_FAMILY_TOOLS["attention"])
+    else:
+        names.extend(_PROFILE_TOOLS[interp.profile])
+        for family in interp.capability_families:
+            names.extend(_FAMILY_TOOLS.get(family, ()))
+        if interp.constraints.source:
+            names.extend(_SOURCE_TOOLS)
+            names.extend(_FAMILY_TOOLS["attention"])
     forbidden = _AUTHORITY_FORBIDDEN.get(interp.authority, frozenset())
     deduped: list[str] = []
     seen: set[str] = set()
@@ -1583,6 +1593,7 @@ def compile_remote_context(
             capability_families=interp.capability_families,
             request_kind=interp.request_kind,
             frame_inherited=interp.frame_inherited,
+            route_minimised=interp.route_minimised,
         )
     _remember_constraints(session, interp.constraints)
     spec = profile_spec(interp.profile)
