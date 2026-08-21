@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `in_progress` |
+| Status | `in_progress` (parked — orchestration freeze; not KERNEL critical path) |
 | Branch | `cursor/cloud-04-env-name-resolution-47cd` |
 | Domain | `platform` |
 | PR | [#136](https://github.com/oscarhilton/enigma-assistant-/pull/136) (draft) |
