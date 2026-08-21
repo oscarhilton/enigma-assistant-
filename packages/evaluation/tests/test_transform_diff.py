@@ -6,7 +6,6 @@ from pathlib import Path
 
 from personal_enigma.evaluation.checkpoint_runner import load_checkpoint_snapshot
 from personal_enigma.evaluation.transform_diff import (
-    InformationLossClass,
     diff_checkpoint_transform,
     run_transform_diff,
 )

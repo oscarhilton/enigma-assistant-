@@ -14,6 +14,7 @@ from typing import Any
 
 from personal_enigma.domain import PrivateNote, PrivatePerson, SourceType
 from personal_enigma.privacy.allowlist import (
+    COMPILED_REMOTE_SOURCE_TYPES,
     PERSON_PSEUDONYM_PREFIX,
     REMOTE_METADATA_KEYS,
     REMOTE_PAYLOAD_TOP_LEVEL_KEYS,
@@ -211,6 +212,8 @@ def assert_high_privacy_not_remote(
             "may_transmit_remotely requires metadata.source_type "
             "(or an explicit source_type argument)"
         )
+    if isinstance(raw_source, str) and raw_source in COMPILED_REMOTE_SOURCE_TYPES:
+        return
     try:
         source = SourceType(raw_source) if not isinstance(raw_source, SourceType) else raw_source
     except ValueError as exc:

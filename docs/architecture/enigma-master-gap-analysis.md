@@ -113,3 +113,35 @@ The first slice is successful when the repo can represent:
 - a bundle that can answer “what did I establish?” separately from “did I search enough?”
 
 That gives the later continuity, Brain, Cortex, and proactivity work a serious substrate to stand on.
+
+## Programme checkpoint — C29 frozen (2026-08-18)
+
+C29 life-memory lifecycle is **complete and frozen**:
+
+```text
+establish → retain → persist → expire / forget / correct → inspect
+```
+
+`MemoryInventory` is a projection over governed retained assertions, not a second truth database. **The vault remembers. The inventory explains.**
+
+**TTL invariant:** **NO LONGER CURRENT ≠ FULLY FORGOTTEN.** TTL expiry removes an item from current-memory projections at validity expiry; governed forgetting and derivative invalidation complete when the expiry propagation path runs. Projection expiry must never be reported as completed deletion. Inventory can hide elapsed TTL while vault rows and descendants still exist until `expire_ttl` / expiry propagation run.
+
+**Not C29 — do not start here:** Brain UI, Goose choreography.
+
+## Programme checkpoint — C32 slice A frozen (2026-08-18)
+
+C32 semantic recall slice A is **complete and frozen** at `9eb7477`:
+
+```text
+approximate retrieval → candidate assertion IDs → governed-memory lookup → current / retained / valid check → only then expose
+```
+
+Recall is an index over governed memory, not a second store. An embedding hit is never usable memory. Forgotten ceramics stay rejected even if a stale index entry remains; later independent evidence may mint a new lineage recall can find.
+
+> Recall may find governed memory. It may not create, promote, resurrect, or retain it.
+
+> Retrieval may be approximate. Authority may not be.
+
+**Freeze question:** Can recall be wrong about relevance without ever being wrong about what Enigma may treat as current memory? **Yes.**
+
+**Not C32 slice A — do not start here:** crypto slice B, C30 Brain / Cortex / Case File UI, C31 Goose.

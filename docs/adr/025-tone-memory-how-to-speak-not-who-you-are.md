@@ -194,3 +194,4 @@ Parked ticket: [C11](../../tickets/conversational-ui/C11-tone-memory.md).
 - [ADR-011](./011-observable-support-challenges-only.md)
 - [N03](../../tickets/next-action/N03-preference-learning.md) — Next Action fitness, not tone
 - [ADR-026](./026-ethics-creed-user-is-subject.md) · [ethics.md](../architecture/ethics.md) — style enums are inspectable; inner-life profiling is forbidden
+- [ADR-038](./038-humour-constitution-not-user-trainable.md) — humour constitution sits below personalisation; not a trainable taste dossier

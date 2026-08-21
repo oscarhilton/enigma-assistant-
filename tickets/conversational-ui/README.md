@@ -1,4 +1,4 @@
-# Conversational UI programme (C00–C31)
+# Conversational UI programme (C00–C33)
 
 **Status:** MVP green (C00–C07 on Alex) · **C09 harness green / LLM 🟡** — C08 deferred · **C09b specified** (focus vs radar; C09 implements) · **C10 deferred** (scaffold landed; r3f + live feeds after SEC-04 event plumbing; not on HomePage) · **C11 future** (tone memory after C09 LLM proof) · **C12 landed** (Life Scripts CLI; first episodes green · PR [#89](https://github.com/oscarhilton/enigma-assistant-/pull/89) Python CI red) · **C13 todo** (repeat the same life against Fireworks) · **C14 done** (v0 activity strip merged [#90](https://github.com/oscarhilton/enigma-assistant-/pull/90); SSE/assistant-ui remaining) · **C09c landed · frozen** (conversation capsule; ADR-030) · **C15 in_progress** (ADR-029 handoff / `"ffs"` AC local; not in [#92](https://github.com/oscarhilton/enigma-assistant-/pull/92); C09c frozen) · **C16 in_progress** (attested completion invalidates next-action) · **C17–C22 todo/future** · **C23 landed · frozen as a specification** (gate red until C16–C21) · **C24 future** (read-only evidence worker after P0; [ADR-033](../../docs/adr/033-bounded-subtask-workers.md)) · **C25 in_progress** (evidence coverage bundle + courier / Goose projection; [ADR-034](../../docs/adr/034-evidence-coverage-bundle.md))  
 **Programme observability:** UI 🟢 frozen · Disclosure 🟢 active · Cortex 💤 deferred · Conversation activity 🟡 v0 strip + courier (not SSE)  
@@ -93,10 +93,12 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C25](./C25-evidence-coverage-bundle.md) | Evidence coverage bundle + courier / Goose projection | **in_progress** (ADR-034) |
 | [C26](./C26-grounded-assertions-epistemics.md) | Grounded assertions, epistemic status, and challenge/reconciliation | **todo** |
 | [C27](./C27-handoff-turn-contract.md) | Handoff and turn contract | **todo** |
-| [C28](./C28-event-spine-agent-work.md) | Event spine and agent-work lifecycle | **todo** |
-| [C29](./C29-life-memory-and-retention.md) | Life memory, retention gate, and third-party ethics | **todo** |
+| [C28](./C28-event-spine-agent-work.md) | Event spine and agent-work lifecycle | **done · frozen** (substrate + assist.approve bridge) |
+| [C29](./C29-life-memory-and-retention.md) | Life memory, retention gate, and third-party ethics | **done · frozen** (slices 1–4 lifecycle) |
 | [C30](./C30-brain-cortex-case-file.md) | Brain, Cortex, and Case File projections | **todo** |
 | [C31](./C31-goose-work-projection-and-proactivity.md) | Goose work projection and proactivity timing | **todo** |
+| [C32](./C32-semantic-recall.md) | Semantic recall slice A (index + governed-memory filter) | **done · frozen** (slice A · [#96](https://github.com/oscarhilton/enigma-assistant-/pull/96)) |
+| [C33](./C33-brunch-token-goose-forensic.md) | Brunch / token / Goose forensic corpus + humour constitution | **in_progress** (docs + corpus; no Goose UI) |
 
 ## First milestone (Alex)
 
@@ -150,4 +152,6 @@ M11 Gmail ingestion scaffold is **not** sufficient for live mailbox connection.
 - [ADR-021 — Personal data security boundary](../../docs/adr/021-personal-data-security-boundary.md) · [SEC programme](../security/)
 - [ADR-024 — Shareable recipes](../../docs/adr/024-shareable-recipes-procedure-never-personal-state.md) · [REC00](../recipes/REC00-shareable-recipes-north-star.md) (`future`)
 - [ADR-025 — Tone memory](../../docs/adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [C11](./C11-tone-memory.md) (`future`)
+- [ADR-038 — Humour constitution](../../docs/adr/038-humour-constitution-not-user-trainable.md) · [C33](./C33-brunch-token-goose-forensic.md) (docs + corpus; no Goose UI)
+- [product-characters.md](../../docs/architecture/product-characters.md) · [enigma-interior.md](../../docs/architecture/enigma-interior.md) · [shadows-and-machine.md](../../docs/architecture/shadows-and-machine.md)
 - R-L10 findings · ADR-010 Next Action ≠ Attention

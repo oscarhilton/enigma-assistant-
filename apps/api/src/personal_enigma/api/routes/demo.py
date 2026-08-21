@@ -27,12 +27,14 @@ from personal_enigma.api.conversation_context import (
 )
 from personal_enigma.api.db.demo import drop_demo_database
 from personal_enigma.api.demo_assist import (
+    AssistExecution,
     AssistPlan,
     SyntheticDemoServices,
     apply_verified_assist_effect,
     assist_result_item,
-    execute_and_verify,
+    execute_assist,
     overlay_session_world,
+    verify_assist_execution,
 )
 from personal_enigma.api.demo_attestation import UserAttestation
 from personal_enigma.api.demo_chat import DemoChatIndex, load_demo_chat_index
@@ -313,6 +315,110 @@ class AssistApproveBody(BaseModel):
     proposal_id: str
 
 
+SemanticEventKind = Literal[
+    "source.event_detected",
+    "work.created",
+    "work.investigating",
+    "work.waiting_external",
+    "world.dependency_arrived",
+    "work.ready_for_user",
+    "conversation.user_approved_effect",
+    "effect.executed",
+    "effect.verified",
+    "work.handled",
+]
+AgentWorkStatus = Literal[
+    "DETECTED",
+    "INVESTIGATING",
+    "WAITING_EXTERNAL",
+    "READY_FOR_USER",
+    "EXECUTING",
+    "VERIFYING",
+    "HANDLED",
+]
+EffectStatus = Literal["PENDING_USER", "EXECUTING", "EXECUTED", "VERIFIED", "FAILED"]
+
+
+@dataclass
+class SemanticEvent:
+    event_id: str
+    kind: SemanticEventKind
+    at: str
+    subject_id: str | None = None
+    work_id: str | None = None
+    effect_id: str | None = None
+    dependency_key: str | None = None
+    caused_by: tuple[str, ...] = ()
+    payload: dict[str, Any] = field(default_factory=dict)
+    duplicate_of: str | None = None
+
+    def public_view(self) -> dict[str, Any]:
+        return {
+            "event_id": self.event_id,
+            "kind": self.kind,
+            "at": self.at,
+            "subject_id": self.subject_id,
+            "work_id": self.work_id,
+            "effect_id": self.effect_id,
+            "dependency_key": self.dependency_key,
+            "caused_by": list(self.caused_by),
+            "payload": dict(self.payload),
+            "duplicate_of": self.duplicate_of,
+        }
+
+
+@dataclass
+class AgentEffectRecord:
+    effect_id: str
+    proposal_id: str
+    work_id: str
+    subject_id: str
+    status: EffectStatus
+    execution_id: str | None = None
+    execution_count: int = 0
+    verification_count: int = 0
+    artifact_id: str | None = None
+    artifact_kind: str | None = None
+
+    def public_view(self) -> dict[str, Any]:
+        return {
+            "effect_id": self.effect_id,
+            "proposal_id": self.proposal_id,
+            "work_id": self.work_id,
+            "subject_id": self.subject_id,
+            "status": self.status,
+            "execution_id": self.execution_id,
+            "execution_count": self.execution_count,
+            "verification_count": self.verification_count,
+            "artifact_id": self.artifact_id,
+            "artifact_kind": self.artifact_kind,
+        }
+
+
+@dataclass
+class AgentWork:
+    work_id: str
+    subject_id: str
+    title: str
+    status: AgentWorkStatus
+    causal_event_ids: list[str] = field(default_factory=list)
+    dependency_key: str | None = None
+    pending_proposal_id: str | None = None
+    effect_id: str | None = None
+
+    def public_view(self) -> dict[str, Any]:
+        return {
+            "work_id": self.work_id,
+            "subject_id": self.subject_id,
+            "title": self.title,
+            "status": self.status,
+            "causal_event_ids": list(self.causal_event_ids),
+            "dependency_key": self.dependency_key,
+            "pending_proposal_id": self.pending_proposal_id,
+            "effect_id": self.effect_id,
+        }
+
+
 @dataclass
 class DemoSession:
     """In-process Demo clock session wired to Alex checkpoint projection."""
@@ -329,6 +435,12 @@ class DemoSession:
     attestations: list[UserAttestation] = field(default_factory=list)
     pending_assists: dict[str, AssistPlan] = field(default_factory=dict)
     executed_assists: dict[str, dict[str, Any]] = field(default_factory=dict)
+    semantic_events: list[SemanticEvent] = field(default_factory=list)
+    processed_event_ids: dict[str, str] = field(default_factory=dict)
+    agent_work: dict[str, AgentWork] = field(default_factory=dict)
+    agent_work_by_subject: dict[str, str] = field(default_factory=dict)
+    effect_records: dict[str, AgentEffectRecord] = field(default_factory=dict)
+    effect_by_proposal: dict[str, str] = field(default_factory=dict)
     synthetic_services: SyntheticDemoServices = field(default_factory=SyntheticDemoServices)
     env: DemoEnvironment = field(init=False)
     _wall_anchor: datetime | None = field(default=None, init=False, repr=False)
@@ -356,6 +468,12 @@ class DemoSession:
         self.attestations = []
         self.pending_assists = {}
         self.executed_assists = {}
+        self.semantic_events = []
+        self.processed_event_ids = {}
+        self.agent_work = {}
+        self.agent_work_by_subject = {}
+        self.effect_records = {}
+        self.effect_by_proposal = {}
         self.synthetic_services = SyntheticDemoServices()
         self._wall_anchor = None
         self._last_attention_fingerprint = None
@@ -633,7 +751,423 @@ class DemoSession:
         }
 
     def events_payload(self) -> dict[str, Any]:
-        return {"events": list(self.event_log[-50:])}
+        return {
+            "events": list(self.event_log[-50:]),
+            "semantic_events": [row.public_view() for row in self.semantic_events[-100:]],
+            "agent_work": [row.public_view() for row in self.agent_work.values()],
+            "effects": [row.public_view() for row in self.effect_records.values()],
+        }
+
+    def _rebuild_event_spine_indexes(self) -> None:
+        """Rebuild dedupe indexes from retained semantic events and work ledger.
+
+        Supports process reconstruction when in-memory maps are lost but the
+        append-only semantic event log and agent-work records survive.
+        """
+        self.processed_event_ids.clear()
+        self.agent_work_by_subject.clear()
+        for work in self.agent_work.values():
+            self.agent_work_by_subject[work.subject_id] = work.work_id
+        for event in self.semantic_events:
+            if event.duplicate_of is not None:
+                continue
+            if event.kind not in {"source.event_detected", "world.dependency_arrived"}:
+                continue
+            if event.work_id is None:
+                continue
+            self.processed_event_ids[event.event_id] = event.work_id
+
+    def _append_semantic_event(
+        self,
+        kind: SemanticEventKind,
+        *,
+        at: str,
+        event_id: str | None = None,
+        subject_id: str | None = None,
+        work_id: str | None = None,
+        effect_id: str | None = None,
+        dependency_key: str | None = None,
+        caused_by: tuple[str, ...] = (),
+        payload: dict[str, Any] | None = None,
+        duplicate_of: str | None = None,
+    ) -> SemanticEvent:
+        record = SemanticEvent(
+            event_id=event_id or f"evt-{uuid4().hex[:12]}",
+            kind=kind,
+            at=at,
+            subject_id=subject_id,
+            work_id=work_id,
+            effect_id=effect_id,
+            dependency_key=dependency_key,
+            caused_by=caused_by,
+            payload=payload or {},
+            duplicate_of=duplicate_of,
+        )
+        self.semantic_events.append(record)
+        return record
+
+    def _resolve_subject_title(self, subject_id: str) -> str:
+        state = self._attention_state()
+        for item in state.needs_you + state.context:
+            if item.id == subject_id:
+                return item.title
+        for action in state.next_actions:
+            if action.id == subject_id or action.source_candidate_id == subject_id:
+                return action.title
+        return subject_id
+
+    def _ensure_agent_work(
+        self,
+        *,
+        subject_id: str,
+        at: str,
+        cause_event_id: str,
+        title: str | None = None,
+    ) -> AgentWork:
+        existing_id = self.agent_work_by_subject.get(subject_id)
+        if existing_id is not None:
+            work = self.agent_work[existing_id]
+            if cause_event_id not in work.causal_event_ids:
+                work.causal_event_ids.append(cause_event_id)
+            return work
+        work_id = f"work-{uuid4().hex[:12]}"
+        work = AgentWork(
+            work_id=work_id,
+            subject_id=subject_id,
+            title=title or self._resolve_subject_title(subject_id),
+            status="DETECTED",
+            causal_event_ids=[cause_event_id],
+        )
+        self.agent_work[work_id] = work
+        self.agent_work_by_subject[subject_id] = work_id
+        self._append_semantic_event(
+            "work.created",
+            at=at,
+            subject_id=subject_id,
+            work_id=work_id,
+            caused_by=(cause_event_id,),
+            payload={"status": work.status, "title": work.title},
+        )
+        return work
+
+    def receive_source_event(
+        self,
+        *,
+        event_id: str,
+        subject_id: str,
+        at: str | None = None,
+        title: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> AgentWork:
+        stamp = at or self.clock.now().isoformat()
+        duplicate = self.processed_event_ids.get(event_id)
+        if duplicate is not None:
+            work = self.agent_work[duplicate]
+            self._append_semantic_event(
+                "source.event_detected",
+                at=stamp,
+                event_id=f"{event_id}-duplicate-{len(self.semantic_events)}",
+                subject_id=subject_id,
+                work_id=work.work_id,
+                payload=payload or {},
+                duplicate_of=event_id,
+            )
+            return work
+        incoming = self._append_semantic_event(
+            "source.event_detected",
+            at=stamp,
+            event_id=event_id,
+            subject_id=subject_id,
+            payload=payload or {},
+        )
+        work = self._ensure_agent_work(
+            subject_id=subject_id,
+            at=stamp,
+            cause_event_id=incoming.event_id,
+            title=title,
+        )
+        self.processed_event_ids[event_id] = work.work_id
+        return work
+
+    def advance_agent_work(self, work_id: str, *, at: str | None = None) -> AgentWork:
+        work = self.agent_work[work_id]
+        work.status = "INVESTIGATING"
+        self._append_semantic_event(
+            "work.investigating",
+            at=at or self.clock.now().isoformat(),
+            subject_id=work.subject_id,
+            work_id=work.work_id,
+            caused_by=tuple(work.causal_event_ids[-1:]),
+            payload={"status": work.status},
+        )
+        return work
+
+    def wait_for_dependency(
+        self,
+        work_id: str,
+        *,
+        dependency_key: str,
+        at: str | None = None,
+    ) -> AgentWork:
+        work = self.agent_work[work_id]
+        work.status = "WAITING_EXTERNAL"
+        work.dependency_key = dependency_key
+        self._append_semantic_event(
+            "work.waiting_external",
+            at=at or self.clock.now().isoformat(),
+            subject_id=work.subject_id,
+            work_id=work.work_id,
+            dependency_key=dependency_key,
+            caused_by=tuple(work.causal_event_ids[-1:]),
+            payload={"status": work.status},
+        )
+        return work
+
+    def link_assist_to_work(
+        self,
+        *,
+        proposal_id: str,
+        subject_id: str,
+        at: str | None = None,
+    ) -> AgentWork:
+        work = self._ensure_agent_work(
+            subject_id=subject_id,
+            at=at or self.clock.now().isoformat(),
+            cause_event_id=f"proposal-{proposal_id}",
+        )
+        work.pending_proposal_id = proposal_id
+        if work.status not in {"EXECUTING", "VERIFYING", "HANDLED"}:
+            work.status = "READY_FOR_USER"
+            self._append_semantic_event(
+                "work.ready_for_user",
+                at=at or self.clock.now().isoformat(),
+                subject_id=work.subject_id,
+                work_id=work.work_id,
+                caused_by=tuple(work.causal_event_ids[-1:]),
+                payload={"status": work.status, "proposal_id": proposal_id},
+            )
+        return work
+
+    def receive_dependency_event(
+        self,
+        *,
+        event_id: str,
+        subject_id: str,
+        dependency_key: str,
+        proposal_id: str | None = None,
+        at: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> AgentWork:
+        stamp = at or self.clock.now().isoformat()
+        work = self._ensure_agent_work(
+            subject_id=subject_id,
+            at=stamp,
+            cause_event_id=event_id,
+        )
+        if event_id in self.processed_event_ids:
+            self._append_semantic_event(
+                "world.dependency_arrived",
+                at=stamp,
+                event_id=f"{event_id}-duplicate-{len(self.semantic_events)}",
+                subject_id=subject_id,
+                work_id=work.work_id,
+                dependency_key=dependency_key,
+                payload=payload or {},
+                duplicate_of=event_id,
+            )
+            return work
+        dependency_event = self._append_semantic_event(
+            "world.dependency_arrived",
+            at=stamp,
+            event_id=event_id,
+            subject_id=subject_id,
+            work_id=work.work_id,
+            dependency_key=dependency_key,
+            payload=payload or {},
+        )
+        self.processed_event_ids[event_id] = work.work_id
+        if dependency_event.event_id not in work.causal_event_ids:
+            work.causal_event_ids.append(dependency_event.event_id)
+        if proposal_id is not None:
+            work.pending_proposal_id = proposal_id
+        dependency_matches = (
+            work.dependency_key is not None and work.dependency_key == dependency_key
+        )
+        if (
+            work.status == "WAITING_EXTERNAL"
+            and work.effect_id is None
+            and dependency_matches
+        ):
+            work.status = "READY_FOR_USER"
+            self._append_semantic_event(
+                "work.ready_for_user",
+                at=stamp,
+                subject_id=subject_id,
+                work_id=work.work_id,
+                dependency_key=dependency_key,
+                caused_by=(dependency_event.event_id,),
+                payload={
+                    "status": work.status,
+                    "proposal_id": work.pending_proposal_id,
+                },
+            )
+        return work
+
+    def _work_for_proposal(self, proposal_id: str, *, subject_id: str) -> AgentWork:
+        effect_id = self.effect_by_proposal.get(proposal_id)
+        if effect_id is not None:
+            return self.agent_work[self.effect_records[effect_id].work_id]
+        for work in self.agent_work.values():
+            if work.pending_proposal_id == proposal_id:
+                return work
+        return self.link_assist_to_work(proposal_id=proposal_id, subject_id=subject_id)
+
+    def _effect_for_plan(self, plan: AssistPlan, work: AgentWork) -> AgentEffectRecord:
+        effect_id = self.effect_by_proposal.get(plan.proposal_id)
+        if effect_id is not None:
+            effect = self.effect_records[effect_id]
+            work.effect_id = effect.effect_id
+            return effect
+        effect = AgentEffectRecord(
+            effect_id=f"effect-{uuid4().hex[:12]}",
+            proposal_id=plan.proposal_id,
+            work_id=work.work_id,
+            subject_id=plan.source_item_id,
+            status="PENDING_USER",
+        )
+        self.effect_records[effect.effect_id] = effect
+        self.effect_by_proposal[plan.proposal_id] = effect.effect_id
+        work.effect_id = effect.effect_id
+        return effect
+
+    def start_assist_execution(self, proposal_id: str) -> AssistExecution:
+        at = self.clock.now().isoformat()
+        plan = self.pending_assists.get(proposal_id)
+        if plan is None:
+            raise HTTPException(status_code=404, detail=f"Unknown assist proposal {proposal_id}")
+        work = self._work_for_proposal(proposal_id, subject_id=plan.source_item_id)
+        work.pending_proposal_id = proposal_id
+        work.status = "EXECUTING"
+        approved = self._append_semantic_event(
+            "conversation.user_approved_effect",
+            at=at,
+            subject_id=plan.source_item_id,
+            work_id=work.work_id,
+            caused_by=tuple(work.causal_event_ids[-1:]),
+            payload={"proposal_id": proposal_id},
+        )
+        effect = self._effect_for_plan(plan, work)
+        if effect.status in {"EXECUTED", "VERIFIED"} and effect.execution_id is not None:
+            return AssistExecution(
+                execution_id=effect.execution_id,
+                artifact_kind="calendar_event"
+                if effect.artifact_kind == "calendar_event"
+                else "note",
+                artifact_id=effect.artifact_id or "",
+                payload={},
+            )
+        execution = execute_assist(plan, self.synthetic_services)
+        effect.status = "EXECUTED"
+        effect.execution_id = execution.execution_id
+        effect.execution_count += 1
+        effect.artifact_id = execution.artifact_id
+        effect.artifact_kind = execution.artifact_kind
+        work.status = "VERIFYING"
+        self._append_semantic_event(
+            "effect.executed",
+            at=at,
+            subject_id=plan.source_item_id,
+            work_id=work.work_id,
+            effect_id=effect.effect_id,
+            caused_by=(approved.event_id,),
+            payload={
+                "proposal_id": proposal_id,
+                "execution_id": execution.execution_id,
+                "artifact_id": execution.artifact_id,
+                "artifact_kind": execution.artifact_kind,
+            },
+        )
+        return execution
+
+    def verify_assist_effect(self, proposal_id: str, execution: AssistExecution) -> dict[str, Any]:
+        at = self.clock.now().isoformat()
+        plan = self.pending_assists.get(proposal_id)
+        if plan is None:
+            raise HTTPException(status_code=404, detail=f"Unknown assist proposal {proposal_id}")
+        work = self._work_for_proposal(proposal_id, subject_id=plan.source_item_id)
+        effect = self._effect_for_plan(plan, work)
+        ok, message = verify_assist_execution(plan, self.synthetic_services, execution)
+        effect.verification_count += 1
+        if ok:
+            effect.status = "VERIFIED"
+            self._append_semantic_event(
+                "effect.verified",
+                at=at,
+                subject_id=plan.source_item_id,
+                work_id=work.work_id,
+                effect_id=effect.effect_id,
+                caused_by=(execution.execution_id,),
+                payload={"proposal_id": proposal_id, "verified": True},
+            )
+            apply_verified_assist_effect(
+                plan,
+                completed_item_ids=self.completed_item_ids,
+                advances=self.assist_advances,
+            )
+            work.status = "HANDLED"
+            self._append_semantic_event(
+                "work.handled",
+                at=at,
+                subject_id=plan.source_item_id,
+                work_id=work.work_id,
+                effect_id=effect.effect_id,
+                caused_by=(execution.execution_id,),
+                payload={"status": work.status},
+            )
+            self._last_attention_fingerprint = self._attention_fingerprint()
+            reconcile_action_focus(self.conversation_context, self._attention_state())
+        else:
+            effect.status = "FAILED"
+        result = assist_result_item(
+            proposal_id=proposal_id,
+            ok=ok,
+            message=message,
+            at=at,
+        )
+        result["execution_id"] = execution.execution_id
+        result["artifact_id"] = execution.artifact_id
+        result["artifact_kind"] = execution.artifact_kind
+        self.executed_assists[proposal_id] = result
+        self.pending_assists.pop(proposal_id, None)
+        return result
+
+    def build_tool_session(
+        self,
+        *,
+        at: str | None = None,
+        user_message: str = "",
+    ) -> DemoToolSession:
+        """Tool slice sharing mutable session state and the C28 event spine."""
+        stamp = at or self.clock.now().isoformat()
+        state = self._attention_state()
+        frozen = project_checkpoint(self.checkpoint_id).state
+        return DemoToolSession(
+            state=state,
+            context=self.conversation_context,
+            checkpoint_id=self.checkpoint_id,
+            prior_state=self._prior_attention_state(),
+            at=stamp,
+            conversation=self.conversation,
+            completed_item_ids=self.completed_item_ids,
+            pending_assists=self.pending_assists,
+            synthetic_services=self.synthetic_services,
+            user_message=user_message,
+            assist_advances=self.assist_advances,
+            attestations=self.attestations,
+            chat_index=self.chat_index,
+            base_state=frozen,
+            event_spine=self,
+        )
 
     def handle_message(self, text: str) -> dict[str, Any]:
         self.sync_realtime()
@@ -652,22 +1186,8 @@ class DemoSession:
 
         if demo_llm_conversation_enabled():
             frozen = project_checkpoint(self.checkpoint_id).state
-            tool_session = DemoToolSession(
-                state=state,
-                context=self.conversation_context,
-                checkpoint_id=self.checkpoint_id,
-                prior_state=self._prior_attention_state(),
-                at=at,
-                conversation=self.conversation,
-                completed_item_ids=self.completed_item_ids,
-                pending_assists=self.pending_assists,
-                synthetic_services=self.synthetic_services,
-                user_message=text,
-                assist_advances=self.assist_advances,
-                attestations=self.attestations,
-                chat_index=self.chat_index,
-                base_state=frozen,
-            )
+            tool_session = self.build_tool_session(at=at, user_message=text)
+            tool_session.base_state = frozen
             orchestrated = run_orchestrator_turn(
                 user_message=text,
                 session=tool_session,
@@ -707,6 +1227,11 @@ class DemoSession:
 
         if plan is not None:
             self.pending_assists[plan.proposal_id] = plan
+            self.link_assist_to_work(
+                proposal_id=plan.proposal_id,
+                subject_id=plan.source_item_id,
+                at=at,
+            )
 
         mode = environment_mode_from_env()
         trace = attach_forensic_provenance(
@@ -733,32 +1258,32 @@ class DemoSession:
 
     def approve_assist(self, proposal_id: str) -> dict[str, Any]:
         self.sync_realtime()
-        at = self.clock.now().isoformat()
         previous = self.executed_assists.get(proposal_id)
         if previous is not None:
             return previous
-        plan = self.pending_assists.get(proposal_id)
-        if plan is None:
-            raise HTTPException(status_code=404, detail=f"Unknown assist proposal {proposal_id}")
-        ok, message = execute_and_verify(plan, self.synthetic_services)
-        if ok:
-            apply_verified_assist_effect(
-                plan,
-                completed_item_ids=self.completed_item_ids,
-                advances=self.assist_advances,
-            )
-            self._last_attention_fingerprint = self._attention_fingerprint()
-            reconcile_action_focus(self.conversation_context, self._attention_state())
-        result = assist_result_item(
-            proposal_id=proposal_id,
-            ok=ok,
-            message=message,
-            at=at,
-        )
-        self.executed_assists[proposal_id] = result
-        self.pending_assists.pop(proposal_id, None)
+        execution = self.start_assist_execution(proposal_id)
+        result = self.verify_assist_effect(proposal_id, execution)
         self.conversation.append(result)
         return result
+
+
+def attach_event_spine_to_tool_session(tool: DemoToolSession) -> DemoSession:
+    """Share mutable tool-session state with a DemoSession C28 event spine host."""
+    if tool.event_spine is not None:
+        host = tool.event_spine
+        if not isinstance(host, DemoSession):
+            raise TypeError("event_spine must be a DemoSession instance")
+        return host
+    demo = DemoSession(checkpoint_id=tool.checkpoint_id)
+    demo.conversation = tool.conversation
+    demo.conversation_context = tool.context
+    demo.completed_item_ids = tool.completed_item_ids
+    demo.pending_assists = tool.pending_assists
+    demo.synthetic_services = tool.synthetic_services
+    demo.assist_advances = tool.assist_advances
+    demo.attestations = tool.attestations
+    tool.event_spine = demo
+    return demo
 
 
 _LOCK_TYPE = type(Lock())

@@ -45,6 +45,10 @@ class RetentionPurpose(StrEnum):
     RELATION_INFERENCE = "relation_inference"
     RETRIEVAL_INDEX = "retrieval_index"
     INTERACTION_AGGREGATE = "interaction_aggregate"
+    # C29 life-memory purposes (concrete facts only — no profiling)
+    LIFE_FACT = "life_fact"
+    TEMPORARY_CASE = "temporary_case"
+    USER_EXPLICIT_RECALL = "user_explicit_recall"
 
 
 class LineageMetadata(BaseModel):

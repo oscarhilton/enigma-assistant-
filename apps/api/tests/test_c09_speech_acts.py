@@ -19,6 +19,7 @@ from personal_enigma.api.demo_orchestrator import (
 )
 from personal_enigma.api.demo_projection import project_checkpoint
 from personal_enigma.api.demo_tools import DemoToolSession, ToolCallRecord, execute_tool
+from personal_enigma.api.routes.demo import attach_event_spine_to_tool_session
 from personal_enigma.api.speech_acts import (
     ASSIST_FUNNEL,
     classify_speech_act,
@@ -49,7 +50,7 @@ class _ScriptedLLM:
 
 def _tool_session() -> DemoToolSession:
     state = project_checkpoint(JAN19).state
-    return DemoToolSession(
+    session = DemoToolSession(
         state=state,
         context=ConversationContext(),
         checkpoint_id=JAN19,
@@ -58,6 +59,8 @@ def _tool_session() -> DemoToolSession:
         conversation=[],
         synthetic_services=SyntheticDemoServices(),
     )
+    attach_event_spine_to_tool_session(session)
+    return session
 
 
 def _seed_token(session: DemoToolSession) -> None:
@@ -276,7 +279,9 @@ def test_overwhelmed_help_is_support_not_propose() -> None:
     assert turn.tool_results[0].data.get("first_step")
     assert session.pending_assists == {}
     prose = " ".join(
-        str(item.get("text") or "") for item in turn.turn_items if item.get("kind") == "enigma_message"
+        str(item.get("text") or "")
+        for item in turn.turn_items
+        if item.get("kind") == "enigma_message"
     )
     assert prose.strip()
     names = {call.name for call in turn.tool_calls}
@@ -358,7 +363,9 @@ def test_discuss_first_returns_useful_support_payload() -> None:
     assert data.get("support_options")
     assert data.get("assist_offered") is False
     prose = " ".join(
-        str(item.get("text") or "") for item in turn.turn_items if item.get("kind") == "enigma_message"
+        str(item.get("text") or "")
+        for item in turn.turn_items
+        if item.get("kind") == "enigma_message"
     )
     assert "first step" in prose.casefold()
     assert "prepare something if you ask" in prose.casefold()

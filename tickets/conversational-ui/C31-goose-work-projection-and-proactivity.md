@@ -14,6 +14,8 @@
 
 Render bounded agent work as THE Goose without allowing presentation to drive the system.
 
+Core state drives Goose state. GooseCargo is a presentation projection of EvidenceBundle / work-state, not a memory store ([shadows-and-machine.md](../../docs/architecture/shadows-and-machine.md)). Holding is not remembering. Visibility: You / Assistant / Goose / Cases on the surface; Engine Room is inspectable, not a new cast ([north-star.md](../../docs/architecture/north-star.md)). Humour constitution: [ADR-038](../../docs/adr/038-humour-constitution-not-user-trainable.md). Do not implement Goose UI in C33.
+
 ## Deliverables
 
 - [ ] Deterministic Goose presentation states derived from real work/evidence state

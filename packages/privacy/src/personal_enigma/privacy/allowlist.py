@@ -19,6 +19,8 @@ on the wire to a hosted model.
 ## Allowed metadata keys
 
 See :data:`REMOTE_METADATA_KEYS`. Values must not reintroduce raw PII.
+Opaque eval/demo identifiers (``checkpoint_id``, ``context_mode``,
+``judge_arm``, ``rep``) are allowed; they are not personal data.
 
 ## Forbidden in remote payloads
 
@@ -67,8 +69,15 @@ REMOTE_METADATA_KEYS: Final[frozenset[str]] = frozenset(
         "passage_chars",
         "body_chars",
         "wholesale_body_included",
+        "checkpoint_id",
+        "context_mode",
+        "judge_arm",
+        "rep",
     }
 )
+
+# Compiled remote-safe aggregates — not ingestion SourceType values.
+COMPILED_REMOTE_SOURCE_TYPES: Final[frozenset[str]] = frozenset({"attention_checkpoint"})
 
 PERSON_PSEUDONYM_PREFIX: Final[str] = "PERSON_"
 

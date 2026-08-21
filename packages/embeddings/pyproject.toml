@@ -3,7 +3,12 @@ name = "personal-enigma-embeddings"
 version = "0.1.0"
 description = "Local embedding and vector index interfaces"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "personal-enigma-domain",
+]
+
+[tool.uv.sources]
+personal-enigma-domain = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

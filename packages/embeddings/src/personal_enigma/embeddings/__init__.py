@@ -10,6 +10,7 @@ from personal_enigma.embeddings.corpus import (
     passages_from_note,
     passages_from_reminder,
 )
+from personal_enigma.embeddings.governed_index import LocalCandidateIndex
 from personal_enigma.embeddings.index import InMemoryVectorIndex
 from personal_enigma.embeddings.model import (
     FakeEmbeddingModel,
@@ -24,6 +25,7 @@ __all__ = [
     "FakeEmbeddingModel",
     "InMemoryVectorIndex",
     "IndexConfig",
+    "LocalCandidateIndex",
     "LocalEmbeddingModel",
     "Passage",
     "RetrievalPipeline",

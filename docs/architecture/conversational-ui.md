@@ -412,3 +412,7 @@ The **Cortex** panel is a read-only debug view of state transitions and privacy 
 - Privacy mode ties to the same disclosure feed as [EgressDisclosurePanel](../../apps/web/src/enigma/EgressDisclosurePanel.tsx)
 - SEC-07 retention slider stub: utility vs reconstructability across SOURCE → SHADOW → FORGOTTEN ([SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md))
 - Cortex shows system events, not thoughts or emotions ([ethics.md](./ethics.md))
+
+## Product language (C33 docs; no Goose UI)
+
+Always visible: You, Assistant, THE Goose, Cases. Vault / Machine / Sources are inspectable when relevant. Cortex and EvidenceBundle stay forensic. Shadows, satchel, cargo, Workbench, Engine Room are internal metaphors ([north-star.md](./north-star.md) · [ADR-038](../adr/038-humour-constitution-not-user-trainable.md) · [C33](../../tickets/conversational-ui/C33-brunch-token-goose-forensic.md)). Do not implement Goose choreography from this page.
