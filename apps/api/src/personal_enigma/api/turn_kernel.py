@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import uuid4
 
 from personal_enigma.api.build_identity import attach_forensic_provenance
-from personal_enigma.api.context_compilation import RequestInterpretation, interpret_request
+from personal_enigma.api.context_compilation import RequestInterpretation
 from personal_enigma.api.conversation_context import (
     ConversationContext,
     assess_request_satisfaction,
@@ -28,6 +27,11 @@ from personal_enigma.api.private_tools import (
     execute_private_tool,
     private_capability_contract,
 )
+from personal_enigma.api.semantic_bootstrap import (
+    SemanticBootstrap,
+    get_semantic_bootstrap,
+    merge_request_interpretation,
+)
 from personal_enigma.attention.projection import AttentionState
 
 TurnOutcomeStatus = Literal[
@@ -38,74 +42,6 @@ TurnOutcomeStatus = Literal[
     "source_unavailable",
     "failed",
 ]
-
-_EXPLICIT_GENERAL_KNOWLEDGE_RE = re.compile(
-    r"\b(capital of|who (?:is|was)|what is (?:the )?(?:capital|currency|population|language)"
-    r"|how (?:tall|far|old|long|many|much)|when (?:was|did|is)|where is|"
-    r"define |meaning of|who invented|what does .{1,40} mean)\b",
-    re.IGNORECASE,
-)
-
-_PHATIC_SURFACE_RE = re.compile(
-    r"^(?:"
-    r"yep|yup|yeah|yes|nope|nah|no|ok|okay|k|sure|alright|right|cool|got it|"
-    r"sounds good|sounds great|makes sense|perfect|great|awesome|nice|good|"
-    r"thanks?|thank you|cheers|no worries|no problem|np|"
-    r"lol|haha|heh|wow|oh|ah|hmm|hm|uh|"
-    r"im so ready(?: for you)?|i(?:'m| am) so ready(?: for you)?|"
-    r"(?:so\s+)?ready(?: for(?: you)?)?|"
-    r"let'?s(?: go)?|let us go|"
-    r"i(?:'m| am) (?:here|back|ready|set|good|all set)|"
-    r"(?:all\s+)?set(?: and ready)?|"
-    r"(?:i(?:'m| am) )?pumped|(?:i(?:'m| am) )?excited|"
-    r"you there\??|you good\??|still there\??"
-    r")[\s!.?,]*$",
-    re.IGNORECASE,
-)
-
-
-def _is_explicit_general_knowledge(text: str) -> bool:
-    return bool(_EXPLICIT_GENERAL_KNOWLEDGE_RE.search(text))
-
-
-def _is_phatic_surface(text: str) -> bool:
-    stripped = text.strip()
-    if _PHATIC_SURFACE_RE.match(stripped):
-        return True
-    return bool(
-        re.search(
-            r"\b(?:im so ready(?: for you)?|i(?:'m| am) so ready(?: for you)?)\b",
-            stripped,
-            re.IGNORECASE,
-        )
-    )
-
-
-def _is_underspecified_follow_up(
-    text: str,
-    resolved: ConversationIntent,
-) -> bool:
-    """True when a live frame may supply the missing private-world subject."""
-    from personal_enigma.api.intent_router import (
-        detect_period_follow_up,
-        is_after_that_follow_up,
-        normalize_utterance,
-    )
-
-    if detect_period_follow_up(text) is not None:
-        return True
-    if is_after_that_follow_up(text):
-        return True
-    if resolved.kind != ConversationIntentKind.UNKNOWN:
-        return True
-    if is_private_agenda_list_request(text):
-        return True
-    if infer_private_calendar_period(text) is not None:
-        return True
-    normalized = normalize_utterance(text)
-    if normalized and len(normalized.split()) <= 3 and not _is_explicit_general_knowledge(text):
-        return True
-    return False
 
 
 @dataclass(frozen=True)
@@ -461,6 +397,55 @@ class _PrivateInterpretSession:
         return self._state
 
 
+def _has_lexical_follow_up_signal(
+    text: str,
+    resolved: ConversationIntent,
+) -> bool:
+    """Lexical feature extractors only — domain/intent come from the semantic router."""
+    from personal_enigma.api.intent_router import (
+        detect_period_follow_up,
+        is_after_that_follow_up,
+        normalize_utterance,
+    )
+
+    if detect_period_follow_up(text) is not None:
+        return True
+    if is_after_that_follow_up(text):
+        return True
+    if infer_private_calendar_period(text) is not None:
+        return True
+    if is_private_agenda_list_request(text):
+        return True
+    if resolved.kind != ConversationIntentKind.UNKNOWN:
+        return True
+    normalized = normalize_utterance(text)
+    return bool(normalized and len(normalized.split()) <= 3)
+
+
+def _interpret_private_turn(
+    text: str,
+    session: _PrivateInterpretSession,
+    *,
+    semantic_bootstrap: SemanticBootstrap | None = None,
+) -> RequestInterpretation:
+    """Deterministic lexical baseline + semantic router merge."""
+    from personal_enigma.api.context_compilation import interpret_request
+
+    deterministic = interpret_request(text, session)  # type: ignore[arg-type]
+    bootstrap = (
+        semantic_bootstrap if semantic_bootstrap is not None else get_semantic_bootstrap()
+    )
+    semantic = None
+    if bootstrap is not None:
+        semantic = bootstrap.interpret(text, session.context.live_capsule())
+    return merge_request_interpretation(
+        text,
+        deterministic,
+        semantic,
+        session.context.live_capsule(),
+    )
+
+
 def _effective_intent_kind(
     resolved: ConversationIntent,
     interp: RequestInterpretation,
@@ -610,13 +595,21 @@ def _conversation_only_payload(
     corr: str,
     ctx: ConversationContext,
     planner: str,
+    interp: RequestInterpretation | None = None,
+    semantic_router: bool = False,
 ) -> TurnResult:
     turn_items: list[dict[str, Any]] = [
         {"kind": "enigma_message", "text": text, "at": at, "correlation_id": corr}
     ]
+    conversation_state: dict[str, Any] = {"authority_ceiling": "READ_SUPPORT"}
+    if interp is not None:
+        conversation_state["evidence_domain"] = interp.evidence_domain
+        conversation_state["frame_inherited"] = interp.frame_inherited
+    if semantic_router:
+        conversation_state["semantic_router"] = True
     trace = build_intent_router_trace(
         user_message=user_message,
-        conversation_state={"authority_ceiling": "READ_SUPPORT"},
+        conversation_state=conversation_state,
         last_intent=ctx.last_intent,
         turn_items=turn_items,
         correlation_id=corr,
@@ -659,8 +652,9 @@ def run_private_turn(
     conversation: list[dict[str, Any]],
     context: ConversationContext | None,
     silence_attention: Any,
+    semantic_bootstrap: SemanticBootstrap | None = None,
 ) -> TurnResult:
-    """My Enigma turn via shared kernel — interpret_request → plan → execute."""
+    """My Enigma turn via shared kernel — semantic router → plan → execute."""
     from personal_enigma.api.private_conversation import _PREPARE_RE  # noqa: PLC0415
 
     ctx = context or ConversationContext()
@@ -695,7 +689,8 @@ def run_private_turn(
     resolved = ctx.compose_intent(text)
     state: AttentionState = silence_attention(at)
     session = _PrivateInterpretSession(_context=ctx, _state=state)
-    interp = interpret_request(text, session)  # type: ignore[arg-type]
+    router = semantic_bootstrap if semantic_bootstrap is not None else get_semantic_bootstrap()
+    interp = _interpret_private_turn(text, session, semantic_bootstrap=router)
 
     if resolved.kind == ConversationIntentKind.GREETING:
         result = _conversation_only_payload(
@@ -711,11 +706,7 @@ def run_private_turn(
         result.context = ctx
         return result
 
-    gk_without_follow_up = (
-        interp.evidence_domain == "GENERAL_KNOWLEDGE"
-        and not _is_underspecified_follow_up(text, resolved)
-    )
-    if _is_explicit_general_knowledge(text) or gk_without_follow_up:
+    if interp.evidence_domain == "GENERAL_KNOWLEDGE" and not interp.frame_inherited:
         result = _conversation_only_payload(
             text="I don't have general knowledge — try a search engine for that.",
             user_message=text,
@@ -723,6 +714,8 @@ def run_private_turn(
             corr=corr,
             ctx=ctx,
             planner="general_knowledge_ejected",
+            interp=interp,
+            semantic_router=router is not None,
         )
         ctx.capsule = None
         ctx.temporal_constraint = None
@@ -731,9 +724,8 @@ def run_private_turn(
         result.context = ctx
         return result
 
-    if _is_phatic_surface(text) or (
-        interp.evidence_domain == "CONVERSATION_ONLY"
-        and not _is_underspecified_follow_up(text, resolved)
+    if interp.evidence_domain == "CONVERSATION_ONLY" and not (
+        interp.frame_inherited or _has_lexical_follow_up_signal(text, resolved)
     ):
         result = _conversation_only_payload(
             text="I'm here — ask me what's on your calendar or what needs your attention.",
@@ -742,6 +734,8 @@ def run_private_turn(
             corr=corr,
             ctx=ctx,
             planner="conversation",
+            interp=interp,
+            semantic_router=router is not None,
         )
         conversation.extend(result.items)
         update_context_from_turn_items(ctx, result.items)
@@ -815,6 +809,8 @@ def run_private_turn(
                 tool_name=tool_name,
             ),
             "frame_inherited": interp.frame_inherited,
+            "evidence_domain": interp.evidence_domain,
+            "semantic_router": router is not None,
         },
         tools_available=list(private_capability_contract()["allowed"]),
         executed_tool_request=[{"name": tool_name, "arguments": arguments}],
