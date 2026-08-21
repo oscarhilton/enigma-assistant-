@@ -449,8 +449,16 @@ def _attach_trace(turn_items: list[dict[str, Any]], trace_payload: dict[str, Any
 class _PrivateInterpretSession:
     """Minimal session surface for interpret_request in My Enigma."""
 
-    context: ConversationContext
-    state: AttentionState
+    _context: ConversationContext
+    _state: AttentionState
+
+    @property
+    def context(self) -> ConversationContext:
+        return self._context
+
+    @property
+    def state(self) -> AttentionState:
+        return self._state
 
 
 def _effective_intent_kind(
@@ -686,8 +694,8 @@ def run_private_turn(
 
     resolved = ctx.compose_intent(text)
     state: AttentionState = silence_attention(at)
-    session = _PrivateInterpretSession(context=ctx, state=state)
-    interp = interpret_request(text, session)
+    session = _PrivateInterpretSession(_context=ctx, _state=state)
+    interp = interpret_request(text, session)  # type: ignore[arg-type]
 
     if resolved.kind == ConversationIntentKind.GREETING:
         result = _conversation_only_payload(
