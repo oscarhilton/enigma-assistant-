@@ -299,12 +299,14 @@ def merge_request_interpretation(
     from personal_enigma.api.context_compilation import (
         RequestConstraints,
         RequestInterpretation,
+        _is_frustration,
         is_generic_knowledge_utterance,
         profile_for_axes,
     )
 
     det_domain: EvidenceDomain = deterministic.evidence_domain
     det_authority: Authority = deterministic.authority
+    det_act = deterministic.speech_act
     inherit = bool(semantic and semantic.inherit_capsule and capsule is not None)
     semantic_live = _semantic_counts(semantic)
 
@@ -316,6 +318,7 @@ def merge_request_interpretation(
         router_ejects_frame = (
             sem_domain in {"GENERAL_KNOWLEDGE", "CONVERSATION_ONLY"}
             and not semantic.inherit_capsule
+            and not _is_frustration(utterance, det_act)
         )
         if router_ejects_frame and sem_domain is not None:
             domain = sem_domain
