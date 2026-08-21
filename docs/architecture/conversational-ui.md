@@ -95,6 +95,19 @@ Tone memory (future, after C09 LLM proof): send a **small style-enum profile** w
 
 See also: [next-action.md](./next-action.md), [ADR-012](../adr/012-reasoning-value-gate-decision.md), [ADR-020](../adr/020-llm-conversational-boundary-not-truth.md), [ADR-027](../adr/027-streaming-presentation-adapter.md), [conversational-stream.md](./conversational-stream.md), R-L10 ticket.
 
+## Semantic router (ROUTE-01)
+
+Language routing is a **cheap small model**, not semantic regex ([ADR-043](../adr/043-semantic-router-not-regex.md)).
+
+| Knob | Role |
+| --- | --- |
+| `FIREWORKS_ROUTER_MODEL` | Cheap router (default `accounts/fireworks/models/llama-v3p2-3b-instruct`) |
+| `FIREWORKS_MODEL` | Larger respond / reason model (unchanged) |
+| `ENIGMA_FORCE_REGEX_ROUTER=1` / `LLM_DISABLED=1` | Degraded English regex oracle |
+| `ENIGMA_SEMANTIC_BOOTSTRAP=0` | Opt out of the semantic router |
+
+The router returns ranked `{area, confidence}` routes and may **abstain**. The compiler merges conservatively: confidence never grants authority. During provider outage, non-English / unsupported input abstains rather than following English regex. Shared path: `interpret_with_router` in `semantic_bootstrap.py` (Alex Lab + My Enigma). Frozen `intent_router` remains a fallback / test oracle only.
+
 ## C09 conversational boundary
 
 **The model understands and speaks. Enigma knows and acts.** ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md))

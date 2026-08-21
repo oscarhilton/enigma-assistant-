@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 from personal_enigma.api.build_identity import ForensicProvenance
 from personal_enigma.api.context_compilation import (
     CompiledRemoteContext,
-    compile_remote_context,
 )
 from personal_enigma.api.conversation_context import (
     ConversationContext,
@@ -59,7 +58,7 @@ from personal_enigma.api.intent_router import (
 )
 from personal_enigma.api.respond_grounding import apply_respond_grounding_fence
 from personal_enigma.api.semantic_bootstrap import (
-    compile_with_bootstrap,
+    interpret_with_router,
     get_semantic_bootstrap,
 )
 from personal_enigma.api.speech_acts import (
@@ -150,6 +149,7 @@ class LlmTrace(BaseModel):
     correlation_id: str | None = None
     evidence_bundle: dict[str, Any] | None = None
     forensic_provenance: ForensicProvenance | None = None
+    routing: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -320,6 +320,7 @@ def build_llm_trace(
     executed_tool_request: list[ToolCallRecord] | None = None,
     tools_available: list[str] | None = None,
     evidence_bundle: dict[str, Any] | None = None,
+    routing: dict[str, Any] | None = None,
 ) -> LlmTrace:
     included: list[str] = []
     excluded: list[str] = list(_PRIVACY_EXCLUDED)
@@ -361,6 +362,7 @@ def build_llm_trace(
         excluded=excluded,
         correlation_id=correlation_id,
         evidence_bundle=evidence_bundle,
+        routing=routing,
     )
 
 
@@ -435,19 +437,17 @@ def _planner_wire_context(
     session: DemoToolSession,
     *,
     bootstrap: Any | None = None,
-) -> tuple[CompiledRemoteContext, dict[str, Any]]:
+) -> tuple[CompiledRemoteContext, dict[str, Any], dict[str, Any]]:
     """Compile the remote working set; keep last_intent locally for the oracle."""
     interpreter = bootstrap if bootstrap is not None else get_semantic_bootstrap()
-    if interpreter is not None:
-        compiled = compile_with_bootstrap(user_message, session, interpreter)
-    else:
-        compiled = compile_remote_context(user_message, session)
+    decision = interpret_with_router(user_message, session, interpreter)
+    compiled = decision.compiled
     local = context_summary(session.context, session.state)
     wire = compiled.wire_context()
     wire["last_intent_kind"] = local.get("last_intent_kind")
     wire["last_period"] = local.get("last_period")
     wire["context_manifest"] = compiled.manifest.model_dump(mode="json")
-    return compiled, wire
+    return compiled, wire, decision.trace
 
 
 def _reduce_capsule_after_turn(
@@ -1340,7 +1340,7 @@ def run_orchestrator_turn(
     if resolved.period is not None:
         session.context.temporal_constraint = resolved.period.value
     speech_act = classify_speech_act(user_message)
-    compiled, wire = _planner_wire_context(
+    compiled, wire, routing = _planner_wire_context(
         user_message, session, bootstrap=bootstrap
     )
 
@@ -1367,6 +1367,7 @@ def run_orchestrator_turn(
                 intent_name=resolved.kind.value,
                 correlation_id=corr,
                 tools_available=compiled.tool_names,
+                routing=routing,
             ),
         )
 
@@ -1460,6 +1461,7 @@ def run_orchestrator_turn(
                 correlation_id=corr,
                 tools_available=compiled.tool_names,
                 evidence_bundle=bundle_payload,
+                routing=routing,
             ),
         )
 
@@ -1568,6 +1570,7 @@ def run_orchestrator_turn(
             executed_tool_request=executed_calls,
             tools_available=compiled.tool_names,
             evidence_bundle=bundle_payload,
+            routing=routing,
         ),
     )
 

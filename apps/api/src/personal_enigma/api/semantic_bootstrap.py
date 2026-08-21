@@ -1,20 +1,25 @@
-"""Semantic bootstrap — the model interprets language; the compiler grants context.
+"""Semantic router — the small model interprets language; the compiler grants context.
 
-ADR-031. This layer is not an amendment to the ADR-029 independent-axes compiler
-and not a new ``interpret_request`` phrasebook. Capsule continuity is ADR-030.
+ADR-031 + ADR-043. This layer is not an amendment to the ADR-029 independent-axes
+compiler and not a new ``interpret_request`` phrasebook. Capsule continuity is
+ADR-030. Regex ``intent_router`` is a degraded-mode oracle, never semantic ground
+truth (ROUTE-01).
 
 The capsule carries continuity.
-The bootstrap interprets language.
+The cheap router interprets language.
 The compiler grants context.
 The world establishes truth.
 
-The bootstrap may improve comprehension. It may not improve its own authority.
+The router may improve comprehension. It may not improve its own authority.
+Confidence is routing evidence, never authority.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
+import time
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
@@ -51,7 +56,122 @@ _AUTHORITY_RANK: dict[str, int] = {
 }
 _ACTION_AUTHORITY = frozenset({"ATTEST", "PREPARE", "APPROVE", "EXECUTE"})
 _SEMANTIC_CONFIDENCE_FLOOR = 0.5
-
+# Calibrated against Life Script paraphrases + labelled multilingual routes (ROUTE-01).
+# Raw LLM confidence is not holy writ — these floors only admit a proposal to the compiler.
+ROUTE_SELECT_THRESHOLD = 0.55
+ROUTE_INCLUDE_THRESHOLD = 0.35
+DEFAULT_FIREWORKS_ROUTER_MODEL = "accounts/fireworks/models/llama-v3p2-3b-instruct"
+DEFAULT_FIREWORKS_REASONING_MODEL = "accounts/fireworks/models/gpt-oss-120b"
+_ROUTE_AREAS = frozenset(
+    {
+        "agenda",
+        "attention",
+        "availability",
+        "source",
+        "explain",
+        "attestation",
+        "assist",
+        "conversation",
+        "general_knowledge",
+    }
+)
+_ROUTE_TO_FAMILIES: dict[str, tuple[str, ...]] = {
+    "agenda": ("agenda",),
+    "attention": ("attention",),
+    "availability": ("availability",),
+    "source": ("source", "attention"),
+    "explain": ("explain", "attention"),
+    "attestation": ("attestation",),
+    "assist": ("assist_prepare",),
+    "conversation": (),
+    "general_knowledge": (),
+}
+# Honesty check for regex degraded mode — vocabulary the frozen router may claim.
+# Not a new phrase family and not production semantic routing.
+_ENGLISH_FUNCTION_WORDS = frozenset(
+    {
+        "a",
+        "am",
+        "an",
+        "and",
+        "are",
+        "be",
+        "can",
+        "do",
+        "for",
+        "have",
+        "how",
+        "i",
+        "in",
+        "is",
+        "it",
+        "me",
+        "my",
+        "need",
+        "on",
+        "should",
+        "that",
+        "the",
+        "this",
+        "to",
+        "what",
+        "whats",
+        "with",
+        "you",
+    }
+)
+_REGEX_FALLBACK_LEXICON = _ENGLISH_FUNCTION_WORDS | frozenset(
+    {
+        "afternoon",
+        "agenda",
+        "attention",
+        "bothered",
+        "calendar",
+        "changed",
+        "check",
+        "day",
+        "done",
+        "double",
+        "email",
+        "emails",
+        "evening",
+        "focus",
+        "free",
+        "friday",
+        "hello",
+        "help",
+        "hey",
+        "hi",
+        "important",
+        "later",
+        "latest",
+        "looking",
+        "mail",
+        "next",
+        "night",
+        "now",
+        "priorities",
+        "recent",
+        "saturday",
+        "schedule",
+        "something",
+        "sunday",
+        "tackle",
+        "task",
+        "things",
+        "time",
+        "today",
+        "tomorrow",
+        "top",
+        "urgent",
+        "waiting",
+        "weather",
+        "week",
+        "weekend",
+        "whats",
+        "why",
+    }
+)
 _KNOWN_PERIODS = frozenset(
     {
         "this_week",
@@ -79,20 +199,26 @@ _GOAL_FAMILIES: dict[str, tuple[str, ...]] = {
 }
 
 _BOOTSTRAP_SYSTEM_PROMPT = (
-    "You interpret a user utterance for Enigma. "
-    "You do not receive the user's private world. "
-    "Return JSON only with keys: evidence_domain, authority, "
-    "candidate_families, temporal_constraint, scope, inherit_capsule, "
-    "active_goal, confidence. "
+    "You are Enigma's cheap semantic router. You interpret language. "
+    "You do not receive the user's private world and you do not grant authority. "
+    "Return JSON only with keys: routes, evidence_domain, speech_act, "
+    "authority, candidate_families, temporal_constraint, scope, inherit_capsule, "
+    "active_goal, abstain, confidence. "
+    "routes is a ranked array of {area, confidence} using areas: "
+    "agenda, attention, availability, source, explain, attestation, assist, "
+    "conversation, general_knowledge. "
     "evidence_domain is PRIVATE_WORLD, GENERAL_KNOWLEDGE, or CONVERSATION_ONLY. "
     "Do not use EXTERNAL_WORLD. "
+    "speech_act is QUERY, FOLLOW_UP, or ACTION. "
     "authority is NONE, READ, or SUPPORT unless the utterance is an explicit "
     "prepare/approve/execute command. "
     "Never invent PRIVATE_WORLD for public-world questions "
     "(why is the sky blue, why is rain wet). "
+    "If the utterance is unsupported, unclear, or you should not guess, set "
+    "abstain true and routes []. "
     "Elliptical follow-ups (and?, what else?, what about work?) should set "
     "inherit_capsule true and may add scope. "
-    "You do not decide which tools exist."
+    "You do not decide which tools exist. Confidence is routing evidence, never authority."
 )
 
 _FORBIDDEN_BOOTSTRAP_CONVERSATION_KEYS = frozenset(
@@ -114,19 +240,43 @@ _FORBIDDEN_BOOTSTRAP_CONVERSATION_KEYS = frozenset(
 
 
 @dataclass(frozen=True)
+class RouteCandidate:
+    """One ranked route. Confidence is evidence for the compiler, not a grant."""
+
+    area: str
+    confidence: float
+
+
+@dataclass(frozen=True)
 class SemanticInterpretation:
     """Constrained language interpretation. Not a capability grant."""
 
     evidence_domain: EvidenceDomain | None = None
     authority: Authority | None = None
     candidate_families: tuple[str, ...] = ()
+    routes: tuple[RouteCandidate, ...] = ()
     temporal_constraint: str | None = None
     scope: str | None = None
     source_scope: str | None = None
     active_goal: str | None = None
     inherit_capsule: bool = False
     unresolved_goal: bool = False
+    abstain: bool = False
     confidence: float = 0.0
+    fallback_reason: str | None = None
+    model_id: str | None = None
+    latency_ms: float | None = None
+    speech_act: str | None = None
+
+
+@dataclass(frozen=True)
+class RouterDecision:
+    """Shared interpret merge result for Demo + My Enigma (no private-only fork)."""
+
+    interpretation: Any
+    semantic: SemanticInterpretation | None
+    trace: dict[str, Any]
+    compiled: Any = None
 
 
 class SemanticBootstrap(Protocol):
@@ -139,6 +289,109 @@ class SemanticBootstrap(Protocol):
     ) -> SemanticInterpretation | None:
         """Return a constrained interpretation, or None to abstain."""
         ...
+
+
+def default_router_model() -> str:
+    """Cheap router model. Never silently fall back to the 120B reasoning model."""
+    return (
+        os.environ.get("FIREWORKS_ROUTER_MODEL")
+        or os.environ.get("ENIGMA_ROUTER_MODEL")
+        or DEFAULT_FIREWORKS_ROUTER_MODEL
+    )
+
+
+def default_reasoning_model() -> str:
+    """Larger respond / reason model — not used on the router path."""
+    return os.environ.get("FIREWORKS_MODEL", DEFAULT_FIREWORKS_REASONING_MODEL)
+
+
+def _alpha_tokens(utterance: str) -> tuple[str, ...]:
+    return tuple(re.findall(r"[A-Za-zÀ-ÿ]+", utterance.casefold()))
+
+
+def _letters_are_ascii_english(utterance: str) -> bool:
+    letters = [ch for ch in utterance if ch.isalpha()]
+    if not letters:
+        return True
+    return all(ch.isascii() for ch in letters)
+
+
+def regex_fallback_is_honest(utterance: str) -> bool:
+    """Whether frozen English regex may claim this utterance in degraded mode.
+
+    This is coverage honesty, not semantic routing. Non-English / mixed
+    utterances must not be confidently misrouted by English phrase families.
+    """
+    if not _letters_are_ascii_english(utterance):
+        return False
+    tokens = _alpha_tokens(utterance)
+    if not tokens:
+        return True
+    known = sum(1 for token in tokens if token in _REGEX_FALLBACK_LEXICON)
+    return known / len(tokens) >= 0.5
+
+
+def _ranked_routes(semantic: SemanticInterpretation) -> tuple[RouteCandidate, ...]:
+    if semantic.routes:
+        return tuple(sorted(semantic.routes, key=lambda row: row.confidence, reverse=True))
+    if semantic.candidate_families:
+        conf = semantic.confidence
+        return tuple(
+            RouteCandidate(area=family, confidence=conf)
+            for family in semantic.candidate_families
+            if family in _ROUTE_AREAS
+        )
+    if semantic.evidence_domain == "GENERAL_KNOWLEDGE" and semantic.confidence >= ROUTE_INCLUDE_THRESHOLD:
+        return (RouteCandidate(area="general_knowledge", confidence=semantic.confidence),)
+    if semantic.evidence_domain == "CONVERSATION_ONLY" and semantic.confidence >= ROUTE_INCLUDE_THRESHOLD:
+        return (RouteCandidate(area="conversation", confidence=semantic.confidence),)
+    return ()
+
+
+def selected_route(semantic: SemanticInterpretation | None) -> RouteCandidate | None:
+    if semantic is None or semantic.abstain:
+        return None
+    ranked = _ranked_routes(semantic)
+    if not ranked:
+        return None
+    top = ranked[0]
+    if top.confidence < ROUTE_SELECT_THRESHOLD:
+        return None
+    return top
+
+
+def families_from_routes(semantic: SemanticInterpretation) -> tuple[str, ...]:
+    families: list[str] = []
+    for route in _ranked_routes(semantic):
+        if route.confidence < ROUTE_INCLUDE_THRESHOLD:
+            continue
+        families.extend(_ROUTE_TO_FAMILIES.get(route.area, ()))
+    families.extend(semantic.candidate_families)
+    return tuple(dict.fromkeys(families))
+
+
+def routing_trace(
+    *,
+    semantic: SemanticInterpretation | None,
+    selected: RouteCandidate | None,
+    primary: str,
+    model_id: str | None = None,
+) -> dict[str, Any]:
+    """Forensic routing payload. Candidate scores never grant authority."""
+    routes = _ranked_routes(semantic) if semantic is not None else ()
+    fallback = semantic.fallback_reason if semantic is not None else "no_semantic_router"
+    if semantic is not None and semantic.abstain and not fallback:
+        fallback = "abstain"
+    return {
+        "candidates": [{"area": row.area, "confidence": row.confidence} for row in routes],
+        "selected": selected.area if selected is not None else None,
+        "selected_confidence": selected.confidence if selected is not None else None,
+        "abstain": bool(semantic.abstain) if semantic is not None else False,
+        "model": model_id or (semantic.model_id if semantic is not None else None),
+        "latency_ms": semantic.latency_ms if semantic is not None else None,
+        "fallback_reason": fallback,
+        "primary": primary,
+    }
 
 
 def empty_capsule_view() -> dict[str, str | None]:
@@ -269,9 +522,11 @@ def _safer_authority(*authorities: str | None) -> Authority:
 
 
 def _semantic_counts(semantic: SemanticInterpretation | None) -> bool:
-    if semantic is None:
+    if semantic is None or semantic.abstain:
         return False
     if semantic.inherit_capsule:
+        return True
+    if selected_route(semantic) is not None:
         return True
     return semantic.confidence >= _SEMANTIC_CONFIDENCE_FLOOR
 
@@ -305,6 +560,20 @@ def merge_request_interpretation(
 
     det_domain: EvidenceDomain = deterministic.evidence_domain
     det_authority: Authority = deterministic.authority
+    if semantic is not None and semantic.abstain:
+        # Honest abstain: do not let English regex invent a private-world route.
+        return RequestInterpretation(
+            evidence_domain="CONVERSATION_ONLY",
+            authority="NONE",
+            profile=profile_for_axes("CONVERSATION_ONLY", "NONE"),
+            speech_act=deterministic.speech_act,
+            constraints=RequestConstraints(),
+            capability_families=(),
+            request_kind=None,
+            frame_inherited=False,
+            route_minimised=True,
+        )
+
     inherit = bool(semantic and semantic.inherit_capsule and capsule is not None)
     semantic_live = _semantic_counts(semantic)
 
@@ -343,8 +612,14 @@ def merge_request_interpretation(
         authority = "NONE"
 
     families = list(deterministic.capability_families)
+    route_minimised = False
     if semantic_live and semantic is not None:
-        families.extend(semantic.candidate_families)
+        route_families = families_from_routes(semantic)
+        families.extend(route_families)
+        if selected_route(semantic) is not None:
+            # Ranked semantic routes constrain the large model's tool surface.
+            families = list(route_families) if route_families else families
+            route_minimised = True
     if inherit and capsule is not None and capsule.active_goal:
         from personal_enigma.api.conversation_context import families_for_request_kind
 
@@ -389,6 +664,7 @@ def merge_request_interpretation(
         capability_families=tuple(families),
         request_kind=request_kind,
         frame_inherited=inherit or bool(getattr(deterministic, "frame_inherited", False)),
+        route_minimised=route_minimised,
     )
 
 
@@ -401,6 +677,25 @@ def compile_with_bootstrap(
     semantic: SemanticInterpretation | None = None,
 ) -> Any:
     """Deterministic baseline + optional semantic + capsule → compiler."""
+    decision = interpret_with_router(
+        utterance,
+        session,
+        bootstrap,
+        profile=profile,
+        semantic=semantic,
+    )
+    return decision.compiled
+
+
+def interpret_with_router(
+    utterance: str,
+    session: Any,
+    bootstrap: SemanticBootstrap | None = None,
+    *,
+    profile: str | None = None,
+    semantic: SemanticInterpretation | None = None,
+) -> RouterDecision:
+    """Shared Demo + My Enigma interpret merge. No private-only fork."""
     from personal_enigma.api.context_compilation import (
         RequestProfileName,
         compile_remote_context,
@@ -409,8 +704,21 @@ def compile_with_bootstrap(
 
     deterministic = interpret_request(utterance, session)
     resolved = semantic
-    if resolved is None and bootstrap is not None:
-        resolved = bootstrap.interpret(utterance, session.context.live_capsule())
+    interpreter = bootstrap if bootstrap is not None else get_semantic_bootstrap()
+    primary = "regex_degraded"
+    if resolved is None and interpreter is not None:
+        resolved = interpreter.interpret(utterance, session.context.live_capsule())
+        primary = "semantic"
+        if resolved is None:
+            resolved = SemanticInterpretation(abstain=True, fallback_reason="abstain")
+    elif resolved is not None:
+        primary = "semantic"
+    if resolved is None and (
+        not _letters_are_ascii_english(utterance) or _regex_false_positive(utterance)
+    ):
+        reason = "llm_disabled" if llm_router_forced_off() else "no_provider"
+        resolved = _degraded_mode_semantic(utterance, reason=reason)
+        primary = "abstain"
     merged = merge_request_interpretation(
         utterance,
         deterministic,
@@ -428,12 +736,123 @@ def compile_with_bootstrap(
         "AUTHORITATIVE_ACTION",
     }:
         typed_profile = profile  # type: ignore[assignment]
-    return compile_remote_context(
+    compiled = compile_remote_context(
         utterance,
         session,
         profile=typed_profile,
         interpretation=merged,
     )
+    chosen = selected_route(resolved)
+    model_id = None
+    if resolved is not None:
+        model_id = resolved.model_id
+    elif interpreter is not None:
+        model_id = getattr(interpreter, "_model", None)
+    trace = routing_trace(
+        semantic=resolved,
+        selected=chosen,
+        primary=primary if not (resolved and resolved.abstain) else "abstain",
+        model_id=str(model_id) if model_id else None,
+    )
+    if resolved is not None and resolved.abstain:
+        trace["fallback_reason"] = resolved.fallback_reason or "abstain"
+    elif interpreter is None and resolved is None:
+        trace["fallback_reason"] = (
+            "llm_disabled" if llm_router_forced_off() else "no_provider"
+        )
+    return RouterDecision(interpretation=merged, semantic=resolved, trace=trace, compiled=compiled)
+
+
+_LABELLED_ORACLE: dict[str, SemanticInterpretation] = {
+    "what's on this week?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("agenda",),
+        routes=(RouteCandidate("agenda", 0.94),),
+        temporal_constraint="this_week",
+        active_goal="agenda",
+        confidence=0.94,
+    ),
+    "whats on this week?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("agenda",),
+        routes=(RouteCandidate("agenda", 0.94),),
+        temporal_constraint="this_week",
+        active_goal="agenda",
+        confidence=0.94,
+    ),
+    "qué hay esta semana?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("agenda",),
+        routes=(RouteCandidate("agenda", 0.9),),
+        temporal_constraint="this_week",
+        active_goal="agenda",
+        confidence=0.9,
+    ),
+    "que hay esta semana?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("agenda",),
+        routes=(RouteCandidate("agenda", 0.9),),
+        temporal_constraint="this_week",
+        active_goal="agenda",
+        confidence=0.9,
+    ),
+    "was steht diese woche an?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("agenda",),
+        routes=(RouteCandidate("agenda", 0.89),),
+        temporal_constraint="this_week",
+        active_goal="agenda",
+        confidence=0.89,
+    ),
+    "qu'est-ce qu'il y a cette semaine?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("agenda",),
+        routes=(RouteCandidate("agenda", 0.88),),
+        temporal_constraint="this_week",
+        active_goal="agenda",
+        confidence=0.88,
+    ),
+    "cosa c'è in programma questa settimana?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("agenda",),
+        routes=(RouteCandidate("agenda", 0.87),),
+        temporal_constraint="this_week",
+        active_goal="agenda",
+        confidence=0.87,
+    ),
+    "what should i do next?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("attention",),
+        routes=(
+            RouteCandidate("attention", 0.92),
+            RouteCandidate("agenda", 0.31),
+        ),
+        active_goal="next_work",
+        confidence=0.92,
+    ),
+    "qué debería hacer ahora?": SemanticInterpretation(
+        evidence_domain="PRIVATE_WORLD",
+        authority="READ",
+        candidate_families=("attention",),
+        routes=(RouteCandidate("attention", 0.9),),
+        active_goal="next_work",
+        confidence=0.9,
+    ),
+    "por qué el cielo es azul?": SemanticInterpretation(
+        evidence_domain="GENERAL_KNOWLEDGE",
+        authority="NONE",
+        routes=(RouteCandidate("general_knowledge", 0.97),),
+        confidence=0.97,
+    ),
+}
 
 
 class FixtureSemanticBootstrap:
@@ -450,6 +869,7 @@ class FixtureSemanticBootstrap:
             return SemanticInterpretation(
                 evidence_domain="GENERAL_KNOWLEDGE",
                 authority="NONE",
+                routes=(RouteCandidate("general_knowledge", 0.96),),
                 confidence=0.96,
             )
         if hay in {"anything coming up?", "anything coming up"}:
@@ -457,6 +877,10 @@ class FixtureSemanticBootstrap:
                 evidence_domain="PRIVATE_WORLD",
                 authority="READ",
                 candidate_families=("agenda",),
+                routes=(
+                    RouteCandidate("agenda", 0.91),
+                    RouteCandidate("attention", 0.22),
+                ),
                 temporal_constraint="near_future",
                 active_goal="agenda",
                 confidence=0.91,
@@ -466,6 +890,7 @@ class FixtureSemanticBootstrap:
                 evidence_domain="PRIVATE_WORLD",
                 authority="READ",
                 candidate_families=("agenda",),
+                routes=(RouteCandidate("agenda", 0.88),),
                 scope="work",
                 inherit_capsule=True,
                 confidence=0.88,
@@ -474,13 +899,17 @@ class FixtureSemanticBootstrap:
             return SemanticInterpretation(
                 inherit_capsule=True,
                 unresolved_goal=True,
+                routes=(RouteCandidate("agenda", 0.84),),
                 confidence=0.84,
             )
-        return SemanticInterpretation(confidence=0.0)
+        labelled = _LABELLED_ORACLE.get(hay)
+        if labelled is not None:
+            return labelled
+        return SemanticInterpretation(confidence=0.0, abstain=False)
 
 
 class RemoteSemanticBootstrap:
-    """Optional Fireworks bootstrap. Default tests never require a key."""
+    """Optional Fireworks cheap router. Default tests never require a key."""
 
     def __init__(
         self,
@@ -491,9 +920,7 @@ class RemoteSemanticBootstrap:
     ) -> None:
         self._gate = gate
         self._provider = provider
-        self._model = model or os.environ.get(
-            "FIREWORKS_MODEL", "accounts/fireworks/models/gpt-oss-120b"
-        )
+        self._model = model or default_router_model()
 
     def interpret(
         self,
@@ -503,6 +930,7 @@ class RemoteSemanticBootstrap:
         from personal_enigma.privacy.egress import get_audited_egress_gate
         from personal_enigma.privacy.remote import RemoteInferenceConfig
 
+        started = time.monotonic()
         remote_ctx = build_bootstrap_remote_context(
             utterance,
             capsule,
@@ -524,15 +952,64 @@ class RemoteSemanticBootstrap:
         try:
             egress = gate.submit(
                 remote_ctx,
-                purpose="conversation.semantic_bootstrap",
+                purpose="conversation.semantic_router",
                 transformed_context=build_bootstrap_transformed_context(utterance, capsule),
                 max_output_tokens=256,
             )
         except Exception:
-            return SemanticInterpretation(confidence=0.0)
+            latency_ms = (time.monotonic() - started) * 1000
+            return _degraded_mode_semantic(
+                utterance,
+                reason="provider_down",
+                model_id=self._model,
+                latency_ms=latency_ms,
+            )
+        latency_ms = (time.monotonic() - started) * 1000
         if not getattr(egress, "sent", False) or egress.response is None:
-            return SemanticInterpretation(confidence=0.0)
-        return _parse_semantic_response(egress.response.text)
+            return _degraded_mode_semantic(
+                utterance,
+                reason="provider_down",
+                model_id=self._model,
+                latency_ms=latency_ms,
+            )
+        parsed = _parse_semantic_response(egress.response.text)
+        return SemanticInterpretation(
+            evidence_domain=parsed.evidence_domain,
+            authority=parsed.authority,
+            candidate_families=parsed.candidate_families,
+            routes=parsed.routes,
+            temporal_constraint=parsed.temporal_constraint,
+            scope=parsed.scope,
+            source_scope=parsed.source_scope,
+            active_goal=parsed.active_goal,
+            inherit_capsule=parsed.inherit_capsule,
+            unresolved_goal=parsed.unresolved_goal,
+            abstain=parsed.abstain,
+            confidence=parsed.confidence,
+            fallback_reason=parsed.fallback_reason,
+            model_id=self._model,
+            latency_ms=latency_ms,
+            speech_act=parsed.speech_act,
+        )
+
+
+def _parse_routes(data: dict[str, Any]) -> tuple[RouteCandidate, ...]:
+    raw = data.get("routes") or ()
+    if not isinstance(raw, list):
+        return ()
+    parsed: list[RouteCandidate] = []
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        area = str(row.get("area") or "")
+        if area not in _ROUTE_AREAS:
+            continue
+        try:
+            conf = float(row.get("confidence") or 0.0)
+        except (TypeError, ValueError):
+            conf = 0.0
+        parsed.append(RouteCandidate(area=area, confidence=conf))
+    return tuple(sorted(parsed, key=lambda row: row.confidence, reverse=True))
 
 
 def _parse_semantic_response(raw: str) -> SemanticInterpretation:
@@ -553,7 +1030,9 @@ def _parse_semantic_response(raw: str) -> SemanticInterpretation:
             return SemanticInterpretation(confidence=0.0)
     elif isinstance(content, dict):
         data = content
-    elif isinstance(message, dict) and "evidence_domain" in message:
+    elif isinstance(message, dict) and (
+        "evidence_domain" in message or "routes" in message or "abstain" in message
+    ):
         data = message
     else:
         return SemanticInterpretation(confidence=0.0)
@@ -561,6 +1040,7 @@ def _parse_semantic_response(raw: str) -> SemanticInterpretation:
         return SemanticInterpretation(confidence=0.0)
     families_raw = data.get("candidate_families") or ()
     families = tuple(str(row) for row in families_raw if row)
+    routes = _parse_routes(data)
     domain = data.get("evidence_domain")
     if domain == "EXTERNAL_WORLD":
         domain = "GENERAL_KNOWLEDGE"
@@ -569,6 +1049,9 @@ def _parse_semantic_response(raw: str) -> SemanticInterpretation:
         confidence = float(data.get("confidence") or 0.0)
     except (TypeError, ValueError):
         confidence = 0.0
+    if routes and confidence <= 0:
+        confidence = routes[0].confidence
+    abstain = bool(data.get("abstain"))
     allowed_domains = {"PRIVATE_WORLD", "GENERAL_KNOWLEDGE", "CONVERSATION_ONLY"}
     allowed_authorities = {
         "NONE",
@@ -579,10 +1062,12 @@ def _parse_semantic_response(raw: str) -> SemanticInterpretation:
         "APPROVE",
         "EXECUTE",
     }
+    speech = data.get("speech_act")
     return SemanticInterpretation(
         evidence_domain=domain if domain in allowed_domains else None,
         authority=authority if authority in allowed_authorities else None,
         candidate_families=families,
+        routes=routes,
         temporal_constraint=str(data["temporal_constraint"])
         if data.get("temporal_constraint")
         else None,
@@ -591,13 +1076,73 @@ def _parse_semantic_response(raw: str) -> SemanticInterpretation:
         active_goal=str(data["active_goal"]) if data.get("active_goal") else None,
         inherit_capsule=bool(data.get("inherit_capsule")),
         unresolved_goal=bool(data.get("unresolved_goal")),
+        abstain=abstain,
         confidence=confidence,
+        speech_act=str(speech) if speech else None,
     )
 
 
-def semantic_bootstrap_enabled() -> bool:
+def llm_router_forced_off() -> bool:
+    if os.environ.get("LLM_DISABLED", "").lower() in {"1", "true", "yes"}:
+        return True
+    if os.environ.get("ENIGMA_FORCE_REGEX_ROUTER", "").lower() in {"1", "true", "yes"}:
+        return True
+    flag = os.environ.get("ENIGMA_DEMO_LLM_CONVERSATION", "").lower()
+    return flag in {"0", "false", "no"}
+
+
+def semantic_router_opted_out() -> bool:
     flag = os.environ.get("ENIGMA_SEMANTIC_BOOTSTRAP", "").lower()
-    return flag in {"1", "true", "yes"}
+    return flag in {"0", "false", "no"}
+
+
+def semantic_bootstrap_enabled() -> bool:
+    """True when the cheap semantic router should be the primary interpret path."""
+    if llm_router_forced_off() or semantic_router_opted_out():
+        return False
+    flag = os.environ.get("ENIGMA_SEMANTIC_BOOTSTRAP", "").lower()
+    if flag in {"1", "true", "yes"}:
+        return True
+    return bool(os.environ.get("FIREWORKS_API_KEY") or os.environ.get("OPENAI_API_KEY"))
+
+
+def _regex_false_positive(utterance: str) -> bool:
+    from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
+
+    if regex_fallback_is_honest(utterance):
+        return False
+    return resolve_intent(utterance).kind != ConversationIntentKind.UNKNOWN
+
+
+def _degraded_mode_semantic(
+    utterance: str,
+    *,
+    reason: str,
+    model_id: str | None = None,
+    latency_ms: float | None = None,
+) -> SemanticInterpretation:
+    """Regex may cover English it knows. It must not confidently misroute the rest."""
+    from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
+
+    kind = resolve_intent(utterance).kind
+    honest = regex_fallback_is_honest(utterance)
+    non_english = not _letters_are_ascii_english(utterance)
+    if non_english or (not honest and kind != ConversationIntentKind.UNKNOWN):
+        return SemanticInterpretation(
+            evidence_domain="CONVERSATION_ONLY",
+            authority="NONE",
+            abstain=True,
+            fallback_reason=f"{reason}_unsupported",
+            model_id=model_id,
+            latency_ms=latency_ms,
+        )
+    return SemanticInterpretation(
+        confidence=0.0,
+        abstain=False,
+        fallback_reason=reason,
+        model_id=model_id,
+        latency_ms=latency_ms,
+    )
 
 
 _BOOTSTRAP_OVERRIDE: SemanticBootstrap | None = None
@@ -611,21 +1156,35 @@ def set_semantic_bootstrap(bootstrap: SemanticBootstrap | None) -> None:
 def get_semantic_bootstrap() -> SemanticBootstrap | None:
     if _BOOTSTRAP_OVERRIDE is not None:
         return _BOOTSTRAP_OVERRIDE
-    if semantic_bootstrap_enabled() and os.environ.get("FIREWORKS_API_KEY"):
-        return RemoteSemanticBootstrap()
+    if not semantic_bootstrap_enabled():
+        return None
+    if os.environ.get("FIREWORKS_API_KEY"):
+        return RemoteSemanticBootstrap(provider="fireworks")
+    if os.environ.get("OPENAI_API_KEY"):
+        return RemoteSemanticBootstrap(provider="openai")
     return None
 
 
 __all__ = [
+    "DEFAULT_FIREWORKS_ROUTER_MODEL",
     "FixtureSemanticBootstrap",
     "RemoteSemanticBootstrap",
+    "RouteCandidate",
+    "RouterDecision",
     "SemanticBootstrap",
     "SemanticInterpretation",
     "build_bootstrap_payload",
     "build_bootstrap_remote_context",
     "build_bootstrap_transformed_context",
     "compile_with_bootstrap",
+    "default_reasoning_model",
+    "default_router_model",
     "get_semantic_bootstrap",
+    "interpret_with_router",
+    "llm_router_forced_off",
     "merge_request_interpretation",
+    "regex_fallback_is_honest",
+    "routing_trace",
+    "selected_route",
     "set_semantic_bootstrap",
 ]
