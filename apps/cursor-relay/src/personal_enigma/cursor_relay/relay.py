@@ -33,6 +33,13 @@ from personal_enigma.cursor_relay.handoff import (
     success_handoff_for_tool,
 )
 from personal_enigma.cursor_relay.idempotency import IdempotencyError, IdempotencyStore
+from personal_enigma.cursor_relay.pr_target import (
+    PrTargetError,
+    as_allowlist_error,
+    assert_create_branch_identity,
+    parse_github_pr_url,
+    pr_target_observed_fields,
+)
 from personal_enigma.cursor_relay.quotas import QuotaError, QuotaTracker
 
 MCP_TOOLS = ("dispatch", "status", "follow_up", "request_review", "cancel")
@@ -125,7 +132,14 @@ class RelayService:
                 result = self._cancel(caller, params)
             else:  # pragma: no cover
                 result = self._deny(caller, tool, "unreachable", "unknown_tool", params)
-        except (ApprovalError, AllowlistError, IdempotencyError, QuotaError, CursorApiError) as exc:
+        except (
+            ApprovalError,
+            AllowlistError,
+            IdempotencyError,
+            QuotaError,
+            CursorApiError,
+            PrTargetError,
+        ) as exc:
             code = getattr(exc, "code", "denied")
             validation = getattr(exc, "validation", None)
             return self._deny(
@@ -215,23 +229,38 @@ class RelayService:
             base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
         )
 
+        raw_pr_url = params.get("pr_url")
+        pr_url = str(raw_pr_url).strip() if raw_pr_url else None
+        try:
+            assert_create_branch_identity(head_branch=target.head_branch, pr_url=pr_url)
+            parsed_pr = parse_github_pr_url(pr_url) if pr_url else None
+        except PrTargetError as exc:
+            raise as_allowlist_error(exc) from exc
+
         prompt = str(params.get("prompt") or params.get("ticket_path") or "")
         if not prompt.strip():
             raise ApprovalError("prompt or ticket_path is required", code="invalid_params")
 
         ph = hash_prompt(prompt)
         mapping = self._env_uuid_to_name()
+        # Existing PR: never auto-create a second PR (busboy).
+        auto_pr = bool(params.get("auto_create_pr", False)) and parsed_pr is None
         payload = build_create_payload(
             prompt=prompt,
             target=target,
             name=params.get("name"),
-            auto_create_pr=bool(params.get("auto_create_pr", False)),
+            auto_create_pr=auto_pr,
             ticket_path=params.get("ticket_path"),
             job_brief=brief if isinstance(brief, dict) else None,
             uuid_to_name=mapping,
+            pr_url=pr_url,
         )
         env_name = canonicalize_environment_name(target.environment, uuid_to_name=mapping)
         redacted_plan = redact_create_payload(payload)
+        pr_observed = pr_target_observed_fields(parsed_pr) if parsed_pr is not None else {
+            "target_mode": "named_env",
+            "branch_identity_source": "cursor_generated_until_status",
+        }
 
         # Genuine dry_run: validate + redacted plan only — never POST /v1/agents.
         if brief_auth.dry_run:
@@ -239,9 +268,13 @@ class RelayService:
                 tool="dispatch",
                 agent_id=None,
                 run_id=None,
-                branch=PENDING_BRANCH,
+                branch=PENDING_BRANCH if parsed_pr is None else target.head_branch,
                 ticket_ids=_ticket_ids(params),
-                summary="Dry-run: create-agent plan validated (no POST /v1/agents)",
+                summary=(
+                    "Dry-run: existing-PR create plan validated (no POST /v1/agents)"
+                    if parsed_pr is not None
+                    else "Dry-run: create-agent plan validated (no POST /v1/agents)"
+                ),
                 action_kind="no_action",
                 extra_observed={
                     "dry_run": True,
@@ -254,6 +287,7 @@ class RelayService:
                     "model": target.model,
                     "prompt_hash": ph,
                     "create_request_plan": redacted_plan,
+                    **pr_observed,
                 },
             )
             self.idempotency.put("dispatch", key, handoff)
@@ -264,7 +298,7 @@ class RelayService:
                 prompt_hash=ph,
                 usage={},
                 idempotency_key=key,
-                extra={"dry_run": True, "allowlist": "pass"},
+                extra={"dry_run": True, "allowlist": "pass", **pr_observed},
             )
             return handoff
 
@@ -276,7 +310,7 @@ class RelayService:
             tool="dispatch",
             agent_id=ref.agent_id,
             run_id=ref.run_id,
-            branch=PENDING_BRANCH,
+            branch=PENDING_BRANCH if parsed_pr is None else target.head_branch,
             ticket_ids=_ticket_ids(params),
             summary=f"Dispatched agent {ref.agent_id} run {ref.run_id}",
             action_kind="no_action",
@@ -292,6 +326,7 @@ class RelayService:
                 "agent_url": ref.url,
                 "prompt_hash": ph,
                 "create_request_plan": redacted_plan,
+                **pr_observed,
             },
         )
         self.idempotency.put("dispatch", key, handoff)
@@ -304,7 +339,7 @@ class RelayService:
             prompt_hash=ph,
             usage={"spend_units": self.quotas.spend_per_create},
             idempotency_key=key,
-            extra={"allowlist": "pass", "quotas": self.quotas.snapshot()},
+            extra={"allowlist": "pass", "quotas": self.quotas.snapshot(), **pr_observed},
         )
         return handoff
 
