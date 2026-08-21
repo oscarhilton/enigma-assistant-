@@ -489,8 +489,11 @@ _PROVIDER_MAX_BYTES: dict[str, int] = {
 
 
 class _SessionLike(Protocol):
-    context: ConversationContext
-    state: AttentionState
+    @property
+    def context(self) -> ConversationContext: ...
+
+    @property
+    def state(self) -> AttentionState: ...
 
 
 @dataclass(frozen=True)

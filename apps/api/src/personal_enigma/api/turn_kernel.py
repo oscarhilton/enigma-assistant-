@@ -157,7 +157,7 @@ class _PrivateKernelSession(Protocol):
     state: AttentionState
 
 
-@dataclass
+@dataclass(frozen=True)
 class _PrivateKernelSessionImpl:
     context: ConversationContext
     state: AttentionState
