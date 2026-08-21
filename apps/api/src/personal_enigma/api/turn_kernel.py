@@ -2,25 +2,29 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 from uuid import uuid4
 
 from personal_enigma.api.build_identity import attach_forensic_provenance
+from personal_enigma.api.context_compilation import RequestInterpretation, interpret_request
 from personal_enigma.api.conversation_context import (
     ConversationContext,
     update_context_from_turn_items,
 )
 from personal_enigma.api.demo_orchestrator import LlmTrace, build_intent_router_trace
 from personal_enigma.api.demo_tools import ToolExecutionResult
+from personal_enigma.api.evidence_bundle import planned_tools_for_kind
 from personal_enigma.api.intent_router import ConversationIntentKind, resolve_intent
+from personal_enigma.api.private_calendar_read import infer_private_calendar_period
 from personal_enigma.api.private_tools import (
     PrivateToolSession,
     execute_private_tool,
     private_capability_contract,
 )
-from personal_enigma.attention.projection import AttentionState
+from personal_enigma.attention.projection import AttentionState, build_presentation_plan
 
 TurnOutcomeStatus = Literal[
     "fulfilled",
@@ -131,6 +135,156 @@ def derive_turn_outcome(
         executed_capabilities=executed,
         coverage_adequate=True,
     )
+
+
+_PREPARE_RE = re.compile(
+    r"\b(book it|schedule it|add to calendar|create (?:an )?event|send (?:the )?invite|"
+    r"book\b[^.?!]{0,40}\bcalendar)\b",
+    re.IGNORECASE,
+)
+
+_DEMO_TO_PRIVATE_TOOL: dict[str, str] = {
+    "agenda.get": "briefing.read",
+    "availability.check": "availability.check",
+    "attention.get_current": "attention.get_current",
+    "next_action.get": "attention.get_current",
+    "world.explain": "world.explain",
+}
+
+
+class _PrivateKernelSession(Protocol):
+    context: ConversationContext
+    state: AttentionState
+
+
+@dataclass(frozen=True)
+class _PrivateKernelSessionImpl:
+    context: ConversationContext
+    state: AttentionState
+    adapter: Any
+
+
+def _silence_attention(now: str) -> AttentionState:
+    return AttentionState(
+        simulated_time=now,
+        checkpoint_id=None,
+        needs_you=[],
+        context=[],
+        next_actions=[],
+        can_wait_summary=None,
+        presentation=build_presentation_plan(0),
+    )
+
+
+def _private_planned_capabilities(
+    interp: RequestInterpretation,
+    *,
+    selected_tool: str | None = None,
+) -> tuple[str, ...]:
+    """Align ExecutionPlan with compiler oracle (evidence_bundle) + private tool aliases."""
+    oracle = [
+        _DEMO_TO_PRIVATE_TOOL.get(name, name)
+        for name in planned_tools_for_kind(interp.request_kind)
+    ]
+    oracle = list(dict.fromkeys(oracle))
+    if selected_tool:
+        if selected_tool in oracle:
+            return tuple(oracle)
+        return (selected_tool,)
+    if oracle:
+        return tuple(oracle)
+    if "availability" in interp.capability_families:
+        return ("availability.check",)
+    if "agenda" in interp.capability_families:
+        return ("briefing.read",)
+    if "attention" in interp.capability_families:
+        return ("attention.get_current",)
+    if "explain" in interp.capability_families:
+        return ("world.explain",)
+    return ()
+
+
+def _resolve_private_period(
+    text: str,
+    interp: RequestInterpretation,
+    context: ConversationContext,
+) -> str | None:
+    return (
+        interp.constraints.period
+        or infer_private_calendar_period(text)
+        or context.temporal_constraint
+    )
+
+
+def _select_private_tool(
+    text: str,
+    interp: RequestInterpretation,
+    context: ConversationContext,
+) -> tuple[str, dict[str, Any]] | None:
+    """Pick one private READ/SUPPORT tool from compiler interpretation."""
+    if interp.evidence_domain != "PRIVATE_WORLD":
+        return None
+    if interp.authority in {"PREPARE", "APPROVE", "EXECUTE", "ATTEST"}:
+        return None
+
+    period = _resolve_private_period(text, interp, context)
+    hay = text.casefold()
+    families = set(interp.capability_families)
+    availability_query = any(token in hay for token in ("free", "clear", "available"))
+
+    if availability_query and (period or "availability" in families):
+        return "availability.check", {"period": period}
+
+    if interp.request_kind == "support_explain" or interp.profile == "SUPPORT":
+        return "world.explain", {}
+
+    if interp.request_kind == "next_work" and not period:
+        return "attention.get_current", {}
+
+    if period or "agenda" in families or interp.request_kind == "agenda":
+        return "briefing.read", {"period": period or "this_week"}
+
+    oracle = planned_tools_for_kind(interp.request_kind)
+    if oracle:
+        private_name = _DEMO_TO_PRIVATE_TOOL.get(oracle[0], oracle[0])
+        args: dict[str, Any] = {}
+        if private_name in {"briefing.read", "availability.check"}:
+            args["period"] = period or "this_week"
+        return private_name, args
+
+    return None
+
+
+def _planner_from_interpretation(
+    interp: RequestInterpretation,
+    *,
+    authority_refusal: bool = False,
+) -> str:
+    if authority_refusal or interp.authority == "PREPARE" or interp.profile == "PREPARE_ACTION":
+        return "authority_refusal"
+    if interp.evidence_domain == "GENERAL_KNOWLEDGE" or interp.profile == "GENERAL_KNOWLEDGE":
+        return "general_knowledge_ejected"
+    if interp.evidence_domain == "PRIVATE_WORLD" and interp.authority in {"READ", "SUPPORT"}:
+        return "private_calendar_read"
+    return "conversation"
+
+
+def _conversation_text_for_interpretation(
+    interp: RequestInterpretation,
+    *,
+    text: str,
+    authority_refusal: bool = False,
+) -> str:
+    if authority_refusal or interp.authority == "PREPARE" or interp.profile == "PREPARE_ACTION":
+        return (
+            "I can read your calendar and help you think through it — "
+            "I can't create or change calendar events yet."
+        )
+    if interp.evidence_domain == "GENERAL_KNOWLEDGE" or interp.profile == "GENERAL_KNOWLEDGE":
+        return "I don't have general knowledge — try a search engine for that."
+    if resolve_intent(text).kind == ConversationIntentKind.GREETING:
+        return "Hey! Ask me what's on your calendar or what needs your attention."
+    return "I'm here — ask me what's on your calendar or what needs your attention."
 
 
 def agent_work_label_from_outcome(outcome: TurnOutcome, *, tool_name: str | None = None) -> str:
@@ -424,18 +578,9 @@ def run_private_turn(
     at: str,
     adapter: Any,
     conversation: list[dict[str, Any]],
-    context: ConversationContext | None,
-    route_private_tool: Any,
-    silence_attention: Any,
-    is_general_knowledge: Any,
-    turn_semantic_completeness: Any,
+    context: ConversationContext | None = None,
 ) -> TurnResult:
-    """My Enigma turn via shared kernel — deterministic READ/SUPPORT."""
-    from personal_enigma.api.private_conversation import (  # noqa: PLC0415
-        _PREPARE_RE,
-        TurnSemanticKind,
-    )
-
+    """My Enigma turn via shared kernel — interpret_request → plan → execute."""
     ctx = context or ConversationContext()
     corr = f"corr-{uuid4().hex}"
     profile = WorldTurnProfile(
@@ -447,68 +592,49 @@ def run_private_turn(
         {"kind": "user_message", "text": text, "at": at, "correlation_id": corr}
     )
 
-    if _PREPARE_RE.search(text):
+    kernel_session = _PrivateKernelSessionImpl(
+        context=ctx,
+        state=_silence_attention(at),
+        adapter=adapter,
+    )
+    authority_refusal = _PREPARE_RE.search(text) is not None
+    interp = interpret_request(text, kernel_session)
+
+    if authority_refusal:
         result = _conversation_only_payload(
-            text=(
-                "I can read your calendar and help you think through it — "
-                "I can't create or change calendar events yet."
+            text=_conversation_text_for_interpretation(
+                interp, text=text, authority_refusal=True
             ),
             user_message=text,
             at=at,
             corr=corr,
             ctx=ctx,
-            planner="authority_refusal",
+            planner=_planner_from_interpretation(interp, authority_refusal=True),
         )
         conversation.extend(result.items)
         update_context_from_turn_items(ctx, result.items)
         result.context = ctx
         return result
 
-    resolved_up_front = resolve_intent(text)
-    if resolved_up_front.kind == ConversationIntentKind.GREETING:
+    if (
+        interp.evidence_domain in {"CONVERSATION_ONLY", "GENERAL_KNOWLEDGE"}
+        or interp.profile in {"CONVERSATION", "GENERAL_KNOWLEDGE"}
+        or interp.authority == "NONE"
+    ):
         result = _conversation_only_payload(
-            text="Hey! Ask me what's on your calendar or what needs your attention.",
+            text=_conversation_text_for_interpretation(interp, text=text),
             user_message=text,
             at=at,
             corr=corr,
             ctx=ctx,
-            planner="conversation",
+            planner=_planner_from_interpretation(interp),
         )
         conversation.extend(result.items)
         update_context_from_turn_items(ctx, result.items)
         result.context = ctx
         return result
 
-    if is_general_knowledge(text):
-        result = _conversation_only_payload(
-            text="I don't have general knowledge — try a search engine for that.",
-            user_message=text,
-            at=at,
-            corr=corr,
-            ctx=ctx,
-            planner="general_knowledge_ejected",
-        )
-        conversation.extend(result.items)
-        update_context_from_turn_items(ctx, result.items)
-        result.context = ctx
-        return result
-
-    semantic_kind = turn_semantic_completeness(text, ctx)
-    if semantic_kind == TurnSemanticKind.CONVERSATIONAL:
-        result = _conversation_only_payload(
-            text="I'm here — ask me what's on your calendar or what needs your attention.",
-            user_message=text,
-            at=at,
-            corr=corr,
-            ctx=ctx,
-            planner="conversation",
-        )
-        conversation.extend(result.items)
-        update_context_from_turn_items(ctx, result.items)
-        result.context = ctx
-        return result
-
-    routed = route_private_tool(text, ctx)
+    routed = _select_private_tool(text, interp, ctx)
     if routed is None:
         result = _conversation_only_payload(
             text="I'm not sure how to help with that yet — try asking about your calendar.",
@@ -527,16 +653,16 @@ def run_private_turn(
     if arguments.get("period"):
         ctx.temporal_constraint = str(arguments["period"])
 
-    state: AttentionState = silence_attention(at)
     session = PrivateToolSession(
-        state=state,
+        state=kernel_session.state,
         context=ctx,
         at=at,
         adapter=adapter,
         user_message=text,
     )
+    planned_caps = _private_planned_capabilities(interp, selected_tool=tool_name)
     plan = ExecutionPlan(
-        planned_capabilities=(tool_name,),
+        planned_capabilities=planned_caps,
         steps=({"name": tool_name, "arguments": arguments},),
     )
     exec_result = execute_private_tool(session, tool_name, arguments)
@@ -554,11 +680,13 @@ def run_private_turn(
 
     trace = LlmTrace(
         path="intent_router",
-        planner="private_calendar_read",
+        planner=_planner_from_interpretation(interp),
         user_message=text,
         conversation_state={
             "authority_ceiling": profile.authority_ceiling,
             "capability_contract": private_capability_contract(),
+            "request_kind": interp.request_kind,
+            "evidence_domain": interp.evidence_domain,
         },
         tools_available=list(private_capability_contract()["allowed"]),
         executed_tool_request=[{"name": tool_name, "arguments": arguments}],
@@ -594,26 +722,15 @@ def run_turn(
     adapter: Any,
     conversation: list[dict[str, Any]],
     context: ConversationContext | None = None,
-    route_private_tool: Any | None = None,
-    silence_attention: Any | None = None,
-    is_general_knowledge: Any | None = None,
-    turn_semantic_completeness: Any | None = None,
 ) -> TurnResult:
     """Unified kernel entry — dispatches by world profile."""
     if profile.world_id == "my_enigma":
-        from personal_enigma.api import private_conversation as pc  # noqa: PLC0415
-
         return run_private_turn(
             text=text,
             at=at,
             adapter=adapter,
             conversation=conversation,
             context=context,
-            route_private_tool=route_private_tool or pc._route_private_tool,
-            silence_attention=silence_attention or pc._silence_attention,
-            is_general_knowledge=is_general_knowledge or pc._is_general_knowledge,
-            turn_semantic_completeness=turn_semantic_completeness
-            or pc._turn_semantic_completeness,
         )
     if profile.world_id == "alex_lab":
         raise ValueError(
