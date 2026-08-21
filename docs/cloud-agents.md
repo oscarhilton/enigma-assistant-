@@ -92,12 +92,14 @@ Before building `@cursor/sdk` relay (Phase 2):
 
 Suggested first pilots: small test/doc tickets, or follow-on API work with globs confined to `apps/api/**`.
 
-## Planned relay (Phase 2) — [CLOUD-02](../tickets/platform/CLOUD-02-cursor-relay-mcp.md)
+## Relay MCP (Phase 2) — [CLOUD-02](../tickets/platform/CLOUD-02-cursor-relay-mcp.md)
+
+Implementation: [`apps/cursor-relay`](../apps/cursor-relay/) — see [relay.md](./cloud-agents/relay.md).
 
 ```
-ChatGPT (existing authenticated session)
-  → authenticated MCP relay (CURSOR_API_KEY in relay secret store only)
-  → Cursor Cloud Agents API (@cursor/sdk)
+ChatGPT (Secure MCP Tunnel — single-user pilot)
+  → authenticated MCP relay (CURSOR_API_KEY + RELAY_TUNNEL_CALLER on relay host only)
+  → Cursor Cloud Agents API (@cursor/sdk surface / HTTP v1)
   → named environment + ticket branch (+ optional stacked base)
   → implement / conduct + test
   → PR / structured handoff (handoff-schema.json)
@@ -105,11 +107,22 @@ ChatGPT (existing authenticated session)
   → only decisions reach Oscar
 ```
 
-Trust invariants: Cursor never receives ChatGPT credentials; Cloud Agents never automate ChatGPT or Cursor account login; `CURSOR_API_KEY` must not appear in the repo or agent VM env.
+Trust invariants: Cursor never receives ChatGPT credentials; Cloud Agents never automate ChatGPT or Cursor account login; `CURSOR_API_KEY` must not appear in the repo or agent VM env; **public MCP tool schemas and model args never carry bearer tokens or credentials** (server-side tunnel caller). Multi-user / public deployment requires MCP OAuth. Create-agent contract (CLOUD-03): `env.name` is the canonical name `enigma-assistant-` (UUID mapped); named env never sends `repos` / never defaults `workOnCurrentBranch=true`; `dry_run` does not `POST /v1/agents`.
 
-MCP surface: `dispatch`, `status`, `follow_up`, `request_review`, `cancel`.
+MCP surface: `dispatch`, `status`, `follow_up`, `request_review`, `cancel` — **every** tool requires authenticated caller identity at the trusted transport boundary (including `status`).
+
+Default named environment: id `1baeb513-9c77-11f1-ba66-0e7d0216e441`, name `enigma-assistant-`, repo `oscarhilton/enigma-assistant-`.
 
 Ticket markdown files remain the source of truth for scope; branches/PRs are durable handoffs.
+
+### Independent verify (before KERNEL dispatch)
+
+```bash
+uv run pytest apps/cursor-relay/tests -q
+uv run ruff check apps/cursor-relay
+```
+
+Tests mock the Cursor API. Do **not** require a live `CURSOR_API_KEY` in CI or Cloud Agent env. Do not dispatch KERNEL-01 until this verify is green and a job brief authorizes it.
 
 ## Privacy invariants (cloud)
 

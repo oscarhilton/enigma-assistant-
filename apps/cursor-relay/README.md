@@ -1,0 +1,55 @@
+# Cursor relay MCP (CLOUD-02)
+
+Authenticated MCP relay (Secure MCP Tunnel pilot):
+
+```
+ChatGPT (trusted tunnel)
+  → apps/cursor-relay (server-side caller identity, allowlists, quotas, approval, audit)
+  → Cursor Cloud Agents API (HTTP; same surface as @cursor/sdk)
+```
+
+## Layout
+
+| Path | Role |
+| --- | --- |
+| `apps/cursor-relay/` | Relay package (this app) |
+| `docs/cloud-agents/relay.md` | Trust chain, auth, allowlists, runbook |
+| `docs/cloud-agents/handoff-schema.json` | Default response schema |
+
+## Security invariants
+
+- `CURSOR_API_KEY` only in relay process env / secret store — never git, `.cursor/`, agent VM secrets, handoffs, or test fixtures as real keys.
+- Public MCP tool schemas and model-supplied arguments **never** carry bearer tokens or credentials.
+- Caller identity comes from `RELAY_TUNNEL_CALLER` on the relay host and is injected internally.
+- Multi-user / public deployment requires **MCP OAuth** (do not put secrets in tool args).
+- Tests use `MockCursorClient` only.
+
+## Local verify
+
+```bash
+uv sync --all-packages --group dev
+uv run pytest apps/cursor-relay/tests -q
+uv run ruff check apps/cursor-relay
+```
+
+## Staging smoke (mock)
+
+```bash
+export RELAY_TUNNEL_CALLER='{"caller_id":"local-dev","roles":["admin"]}'
+# Do NOT set CURSOR_API_KEY for mock-mode unit smoke; inject MockCursorClient in tests.
+uv run pytest apps/cursor-relay/tests/test_smoke.py -q
+```
+
+## Production
+
+Set at deploy time (server-side only):
+
+- `CURSOR_API_KEY`
+- `RELAY_TUNNEL_CALLER` (JSON `{caller_id, roles, display_name?}`)
+- Optional: `RELAY_ALLOWED_REPOS`, `RELAY_ALLOWED_ENVIRONMENTS`, `RELAY_MAX_IN_FLIGHT`, `RELAY_MAX_SPEND_UNITS`, `RELAY_AUDIT_PATH`
+
+Run MCP stdio:
+
+```bash
+uv run enigma-cursor-relay
+```

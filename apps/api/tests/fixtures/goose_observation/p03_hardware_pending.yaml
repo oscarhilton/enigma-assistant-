@@ -1,16 +1,57 @@
 scenario: goose_calibration_hardware
-status: pending_operator
-observed:
-  bridge_reachable: false
-  bridge_url: http://127.0.0.1:8765/health
-  note: Apple Bridge not running at plan execution time; operator must run docs/pilot/goose-calibration-hardware.md on macOS with bridge live.
+status: blocked_operator
+observed_at: "2026-08-18T20:05:00+01:00"
+operator: agent_turn_the_key
+worktree: .worktrees/demo-main-run@aa9814f
+
+prerequisites:
+  apple_bridge_listening: false
+  bridge_health_url: http://127.0.0.1:8765/health
+  bridge_token_configured: false
+  bridge_token_error: BridgeError.tokenNotConfigured
+  enigma_pilot_apple_calendar_ids: absent
+  enigma_calendar_fixture: unset_ok
+  my_enigma_private_storage: false
+  private_storage_path: ~/.enigma/private
+  api_on_8000_has_p03c_routes: false
+  api_on_8000_mode: demo
+  api_on_8000_revision_note: primary checkout 22949ba (pre-P03c calendar/sync); not aa9814f worktree
+
+bridge_attempt:
+  stale_binary: dumps capabilities JSON then exits (no listener)
+  swift_run: fatal BridgeError.tokenNotConfigured without ENIGMA_BRIDGE_TOKEN or Keychain token
+  calendar_authorised_when_probed: false
+
+sync:
+  attempted: false
+  reason: bridge down; API missing POST /worlds/my_enigma/calendar/sync on :8000
+  events_json_present: false
+
+proof_gates:
+  step_1_sync_ok: not_run
+  step_2_events_json_goose: not_run
+  step_3_tomorrow_1430: not_run
+  step_4_provenance_reduced: not_run
+  step_5_alex_isolated: not_run
+  step_6_7_time_change_1500: not_run
+  step_8_9_delete_no_residual: not_run
+  step_10_weekend: not_run
+  step_11_monday_free: not_run
+
+invariants_verified: false
+
+p03_closed: false
+p03c_hardware_slice_closed: false
+
 problem: true
-severity: low
+severity: medium
 possible_fix: NOT YET
+
 next_steps:
-  - Start apple-bridge with ENIGMA_BRIDGE_TOKEN
-  - Set ENIGMA_PILOT_APPLE_CALENDAR_IDS
-  - Create Goose Calibration event tomorrow 14:30
-  - POST /worlds/my_enigma/calendar/sync
-  - Run three boring pilot questions
-  - Mark P03 done when checklist passes
+  - Create Goose Calibration event Wed 19 Aug 2026 14:30 in Calendar.app (operator)
+  - Configure bridge bearer (see operator_commands below)
+  - Grant Calendar permission when bridge prompts
+  - Set ENIGMA_PILOT_APPLE_CALENDAR_IDS to real EventKit calendar ID(s)
+  - Run API from origin/main (aa9814f+) with pilot mode; not demo-only pre-P03c binary on :8000
+  - POST /worlds/my_enigma/calendar/sync then run docs/pilot/goose-calibration-hardware.md checklist
+  - On full pass, mark P03 and P03c hardware slice done and add p03_hardware_pass.yaml

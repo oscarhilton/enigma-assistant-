@@ -2,19 +2,20 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `todo` |
-| Branch | `ticket/cloud-02-cursor-relay-mcp` |
+| Status | `done` |
+| Branch | `cursor/cloud-02-tunnel-caller-no-bearer-47cd` |
 | Domain | `platform` |
+| PR | [#132](https://github.com/oscarhilton/enigma-assistant-/pull/132) (tunnel auth); [#131](https://github.com/oscarhilton/enigma-assistant-/pull/131) (initial relay) |
 
-**Design only until claimed.** No relay implementation in the filing PR.
+**Done.** Secure MCP Tunnel caller on relay host; no bearer in MCP schemas. Operator: `CURSOR_API_KEY` + `RELAY_TUNNEL_CALLER` on relay host only (configured). First live cargo: KERNEL-01 via explicit job brief.
 
 ## Intent
 
 Replace Oscar-as-village-telephone with a thin, authenticated MCP relay:
 
 ```
-ChatGPT (existing authenticated session + caller identity)
-  → authenticated MCP relay (allowlists, quotas, audit)
+ChatGPT (Secure MCP Tunnel — single-user pilot)
+  → authenticated MCP relay (allowlists, quotas, audit; server-side caller)
   → Cursor Cloud Agents API (@cursor/sdk)
   → named environment + ticket branch (+ optional stacked base)
   → conductor / worker evidence (structured handoff JSON by default)
@@ -25,19 +26,20 @@ ChatGPT continues using its own session. The relay alone holds `CURSOR_API_KEY` 
 ## Hard depends
 
 - [CLOUD-01](./CLOUD-01-cloud-agent-environment.md) `done` — reproducible environment, conductor contract, handoff schema
-- **Operator prerequisite:** a saved **named** Cursor Cloud environment bound in the dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — still the unchecked CLOUD-01 UI bind item. [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) evidences a schema-shaped conductor handoff; it does **not** prove that a saved named environment was used. Do not claim CLOUD-02 until that bind is confirmed.
+- **Operator prerequisite:** a saved **named** Cursor Cloud environment bound in the dashboard (`enigma-assistant-`, repo `oscarhilton/enigma-assistant-`) — **satisfied** 2026-08-20. Environment `1baeb513-9c77-11f1-ba66-0e7d0216e441`; recurring build `bld-20260820-e34aab5b-78af-452d-960b-480aa87b26e5` SUCCEEDED. Claim/implementation of CLOUD-02 may proceed.
 
 ## Soft depends (~)
 
-- First manual conductor run transcript (topology + handoff shape) to calibrate dispatch payloads — **satisfied** by the CLOUD-01 pilot evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (schema-shaped conductor handoffs; not named-environment proof)
+- First manual conductor run transcript (topology + handoff shape) to calibrate dispatch payloads — **satisfied** by the CLOUD-01 pilot evidenced on [PR #129](https://github.com/oscarhilton/enigma-assistant-/pull/129) (schema-shaped conductor handoffs)
 - KERNEL / ticket work can proceed via dashboard until the relay lands
 
 ## Package boundary (hard)
 
 When claimed, may edit:
 
-- New relay package / app path (exact location chosen at claim time; document in PR)
+- **Chosen path:** `apps/cursor-relay/**` (Python MCP relay; documented in [relay.md](../../docs/cloud-agents/relay.md) and package README)
 - `docs/cloud-agents.md`, `docs/cloud-agents/**` (trust chain, MCP surface, approval policy, allowlists)
+- Root `pyproject.toml` workspace wiring for the new member only
 - Tickets under `tickets/platform/CLOUD-02*`
 
 Must not edit:
@@ -57,9 +59,12 @@ Must not edit:
 
 ## AuthN / AuthZ
 
-- Every MCP call — **including `status`** — MUST carry an **authenticated caller identity** from the ChatGPT → relay hop (session / OAuth / equivalent — chosen at claim time). `status` may be authorised read-only; it must **never** be anonymous.
-- **Forbid anonymous** invocation of every MCP tool (`dispatch`, `status`, `follow_up`, `request_review`, `cancel`).
+- **Secure MCP Tunnel pilot (chosen):** caller identity is a fixed record from relay-host `RELAY_TUNNEL_CALLER` (`{caller_id, roles}`) injected internally into `RelayService`. Public MCP tool schemas and model-supplied arguments **must not** include bearer tokens or credentials; model-supplied secret keys are rejected.
+- Every MCP call — **including `status`** — MUST resolve an **authenticated caller identity** at the trusted transport boundary. `status` may be authorised read-only (`reader`); it must **never** be anonymous.
+- **Forbid anonymous** invocation of every MCP tool (`dispatch`, `status`, `follow_up`, `request_review`, `cancel`) when the tunnel caller is unset.
 - Approval policy gates who may `dispatch`, `request_review`, write-capable `follow_up`, and `cancel` (dry-run vs commit; no silent main merges).
+- **Multi-user / public deployment requires MCP OAuth** (or equivalent non-model-visible credentials). Do not reintroduce bearer tokens into tool schemas.
+- Legacy `RELAY_AUTH_TOKENS` is retired for this pilot (config fails closed if set without `RELAY_TUNNEL_CALLER` migration).
 
 ## Allowlists & limits
 
@@ -70,18 +75,22 @@ Must not edit:
 | Repository | Only permitted GitHub repos (e.g. `oscarhilton/enigma-assistant-`) |
 | Named environment | Only saved Cursor Cloud environments bound to this product (operator bind prerequisite above) |
 | Branch prefixes | e.g. `ticket/`, `cursor/`, `agent/` — never bare `main`/`master` as head without explicit policy |
+| Base branch | Fail closed: `main`/`master` or an allowlisted prefix (stacked bases) |
 | Models | Only approved model ids for cloud agents |
 
 Also required:
 
 - **Correlation / idempotency keys** on `dispatch` and on `request_review` when it creates a run (and on follow-ups that create work) so retries do not spawn duplicate agents
 - **Concurrency and spend limits** applied to `dispatch` and `request_review` (and other create paths): max in-flight agents; budget / rate caps; hard deny when exceeded
+- **Single-instance pilot:** in-memory idempotency/quota stores are process-local; multi-replica requires an explicit shared store (see [relay.md](../../docs/cloud-agents/relay.md))
 
 ## Responses & audit
 
 - Default MCP responses: **structured conductor/worker handoffs** conforming to [handoff-schema.json](../../docs/cloud-agents/handoff-schema.json) — not raw transcripts, not secrets, not `CURSOR_API_KEY` material
+- Malformed payloads, Cursor HTTP errors, and timeouts map to schema-valid failure handoffs (never raw exceptions to ChatGPT)
 - Audit log (relay-side, retained per ops policy): caller identity, agent id, run id, prompt hash, usage/spend counters, tool name, allowlist decision, correlation/idempotency key
 - `CURSOR_API_KEY` remains **relay-side only** (never in repo, agent VM env, ChatGPT, or handoff payloads)
+- Relay **never** merges PRs and **never** implicitly dispatches KERNEL-01
 
 ## MCP surface
 
@@ -95,26 +104,28 @@ Also required:
 
 ## Acceptance criteria
 
-- [ ] Trust chain documented: ChatGPT → MCP relay → Cursor Cloud Agents API; authenticated caller identity on **every** MCP tool (including `status`); no ChatGPT credentials to Cursor; no agent-driven account login
-- [ ] Anonymous MCP access is impossible by construction (including read-only `status`)
-- [ ] Operator named-environment dashboard bind confirmed (CLOUD-01 UI item); not inferred from PR #129 alone
-- [ ] Allowlists: repository, named environment, branch prefixes, models
-- [ ] Correlation / idempotency keys on `dispatch` and on `request_review` when it creates a run (and equivalent create paths)
-- [ ] Concurrency and spend limits enforced for `dispatch` and `request_review` (and other create paths), with audited denials
-- [ ] Default responses are schema-valid structured handoffs — not raw transcripts or secrets
-- [ ] Audit records caller, agent id, run id, prompt hash, and usage
-- [ ] `CURSOR_API_KEY` lives only in the relay’s server-side secret store
-- [ ] Dispatch accepts: named Cursor environment, repository, head branch, optional stacked `base` branch, ticket path / job brief
-- [ ] Approval policy for `dispatch`, `request_review`, write-capable follow-ups, and `cancel`
-- [ ] Conductor jobs remain read-only unless the job brief explicitly authorizes push/PR/merge
-- [ ] Smoke: dispatch a read-only conductor against an allowlisted branch and retrieve a schema-valid handoff
+- [x] Trust chain documented: ChatGPT → MCP relay → Cursor Cloud Agents API; authenticated caller identity on **every** MCP tool (including `status`); no ChatGPT credentials to Cursor; no agent-driven account login
+- [x] Anonymous MCP access is impossible by construction (including read-only `status`)
+- [x] Operator named-environment dashboard bind confirmed (CLOUD-01 UI item); env `1baeb513-9c77-11f1-ba66-0e7d0216e441`; build `bld-20260820-e34aab5b-78af-452d-960b-480aa87b26e5` SUCCEEDED
+- [x] Allowlists: repository, named environment, branch prefixes, **base branch**, models
+- [x] Correlation / idempotency keys on `dispatch` and on `request_review` when it creates a run (and equivalent create paths)
+- [x] Concurrency and spend limits enforced for `dispatch` and `request_review` (and other create paths), with audited denials
+- [x] Default responses are schema-valid structured handoffs — not raw transcripts or secrets (incl. Cursor outage/timeout paths)
+- [x] Audit records caller, agent id, run id, prompt hash, and usage
+- [x] `CURSOR_API_KEY` lives only in the relay’s server-side secret store
+- [x] Dispatch accepts: named Cursor environment, repository, head branch, optional stacked `base` branch, ticket path / job brief
+- [x] Approval policy for `dispatch`, `request_review`, write-capable follow-ups, and `cancel`
+- [x] Conductor jobs remain read-only unless the job brief explicitly authorizes push/PR/merge
+- [x] Smoke: dispatch a read-only conductor against an allowlisted branch and retrieve a schema-valid handoff (mock Cursor API in CI; no live `CURSOR_API_KEY` required)
+- [x] Single-instance in-memory store constraint documented + operationally guarded
+- [x] Public MCP schemas/args never expose or accept bearer/credential secrets; tunnel caller injected server-side; multi-user → MCP OAuth documented
 
 ## Test plan
 
 - Unit: MCP tool schema validation; approval-policy deny/allow matrix (including `dispatch` and `request_review`); allowlist / idempotency / quota denials
 - Integration (relay staging): dispatch → status → cancel against a throwaway agent; no production secrets in agent env
 - Contract: handoff JSON validates against `docs/cloud-agents/handoff-schema.json`
-- Negative: anonymous invocation denied for **every** tool including `status`, `dispatch`, and `request_review`; ChatGPT credentials never accepted as relay config keys; transcripts/secrets absent from default responses
+- Negative: anonymous invocation denied for **every** tool including `status`, `dispatch`, and `request_review`; ChatGPT credentials never accepted as relay config keys; transcripts/secrets absent from default responses; Cursor timeout/outage → schema-valid handoff; MCP `tools/list` / `tools/call` never expose or accept authorization secrets
 
 ## Product order (cloud lane)
 
