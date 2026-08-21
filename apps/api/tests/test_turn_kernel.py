@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
+
 from personal_enigma.api.conversation_context import ConversationContext
 from personal_enigma.api.demo_orchestrator import LlmTrace
 from personal_enigma.api.demo_tools import ToolExecutionResult
@@ -209,6 +211,50 @@ def test_run_private_turn_prepare_speech_act_refuses_without_regex() -> None:
     assert result.llm_trace["planner"] == "authority_refusal"
     assert result.llm_trace["executed_tool_request"] == []
     assert "can't create or change calendar" in result.items[0]["text"].lower()
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The path is clear on Monday",
+        "Monday looks clear for the meeting",
+    ],
+)
+def test_run_private_turn_generic_clear_does_not_route_availability(text: str) -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text=text,
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    executed = result.llm_trace["executed_tool_request"]
+    tool_names = [call["name"] for call in executed]
+    assert "availability.check" not in tool_names
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Am I free Monday?",
+        "Is Monday clear?",
+        "Is my schedule clear Monday?",
+        "Am I clear Monday?",
+    ],
+)
+def test_run_private_turn_scheduling_clear_availability_routes(text: str) -> None:
+    conversation: list[dict[str, Any]] = []
+    result = run_private_turn(
+        text=text,
+        at="2026-08-18T10:00:00Z",
+        adapter=_EmptyCalendarAdapter(),
+        conversation=conversation,
+        context=ConversationContext(),
+    )
+    executed = result.llm_trace["executed_tool_request"]
+    assert executed and executed[0]["name"] == "availability.check"
+    assert result.outcome.status == "fulfilled"
 
 
 def test_run_private_turn_single_tool_plan_is_fulfilled_for_next_work() -> None:

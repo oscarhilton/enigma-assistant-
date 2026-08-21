@@ -9,7 +9,11 @@ from typing import Any, Literal, Protocol
 from uuid import uuid4
 
 from personal_enigma.api.build_identity import attach_forensic_provenance
-from personal_enigma.api.context_compilation import RequestInterpretation, interpret_request
+from personal_enigma.api.context_compilation import (
+    _AVAILABILITY_FREE_CUE,
+    RequestInterpretation,
+    interpret_request,
+)
 from personal_enigma.api.conversation_context import (
     ConversationContext,
     update_context_from_turn_items,
@@ -237,11 +241,9 @@ def _select_private_tool(
         return None
 
     period = _resolve_private_period(text, interp, context)
-    hay = text.casefold()
     families = set(interp.capability_families)
-    availability_query = any(token in hay for token in ("free", "clear", "available"))
 
-    if availability_query and (period or "availability" in families):
+    if "availability" in families and _AVAILABILITY_FREE_CUE.search(text):
         return "availability.check", {"period": period}
 
     if interp.request_kind == "support_explain" or interp.profile == "SUPPORT":

@@ -188,8 +188,12 @@ _AGENDA_LIST_CUE = re.compile(
     r"|\bmy\s+(?:calendar\s+)?events\b",
     re.IGNORECASE,
 )
+# Scheduling availability only — bare "clear" is not an availability cue (e.g. "path is clear").
 _AVAILABILITY_FREE_CUE = re.compile(
-    r"\bam i (?:actually )?free\b|\b(?:free|available|clear)\b",
+    r"\bam i (?:actually )?(?:free|clear)\b"
+    r"|\b(?:free|available)\b"
+    r"|\b(?:is|are)\s+(?:my\s+)?(?:schedule|calendar|diary)\s+clear\b"
+    r"|\bis\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)\s+clear\b",
     re.IGNORECASE,
 )
 _WEEKDAY_CUE = re.compile(
