@@ -172,6 +172,27 @@ _REGEX_FALLBACK_LEXICON = _ENGLISH_FUNCTION_WORDS | frozenset(
         "why",
     }
 )
+# Titlecase + 's that are English contractions, not identity (What's / It's).
+# Matches packages/privacy _RAW_POSSESSIVE_LEAK; do not wholesale-casefold the
+# utterance or real possessives like Sarah's bypass the egress detector.
+_TITLECASE_POSSESSIVE = re.compile(r"\b[A-Z][a-z]+'s\b")
+_ROUTER_CONTRACTION_STEMS = frozenset(
+    {
+        "he",
+        "here",
+        "how",
+        "it",
+        "let",
+        "she",
+        "that",
+        "there",
+        "what",
+        "when",
+        "where",
+        "who",
+        "why",
+    }
+)
 _KNOWN_PERIODS = frozenset(
     {
         "this_week",
@@ -426,17 +447,32 @@ def bootstrap_conversation_view(capsule: ConversationCapsule | None) -> dict[str
     }
 
 
+def utterance_for_router(utterance: str) -> str:
+    """Fold English contraction possessives; keep identity possessives intact.
+
+    Fireworks ``semantic_bootstrap_v1`` posts ``RemoteSafeContext.prompt`` as
+    the Chat Completions user message and does not rescan it. Wholesale
+    casefold would hide ``Sarah's`` from ``assert_remote_safe`` while the
+    original casing still left the machine.
+    """
+
+    def _fold_contraction(match: re.Match[str]) -> str:
+        token = match.group(0)
+        stem = token[:-2].casefold()
+        if stem in _ROUTER_CONTRACTION_STEMS:
+            return token.casefold()
+        return token
+
+    return _TITLECASE_POSSESSIVE.sub(_fold_contraction, utterance.strip())
+
+
 def build_bootstrap_payload(
     utterance: str,
     capsule: ConversationCapsule | None,
 ) -> dict[str, Any]:
-    """Utterance + public capsule only. No private-world modules.
-
-    Casefold the utterance so contractions like ``What's`` do not trip the
-    possessive-identity leak detector. The router does not need original case.
-    """
+    """Utterance + public capsule only. No private-world modules."""
     return {
-        "utterance": utterance.strip().casefold(),
+        "utterance": utterance_for_router(utterance),
         "conversation": bootstrap_conversation_view(capsule),
     }
 
@@ -485,11 +521,12 @@ def build_bootstrap_remote_context(
     """Wire payload for a remote bootstrap call. Tools are not included."""
     safe = build_bootstrap_transformed_context(utterance, capsule)
     payload = json.loads(safe.summary)
+    user_content = json.dumps(payload, default=str)
     body: dict[str, Any] = {
         "model": model,
         "messages": [
             {"role": "system", "content": _BOOTSTRAP_SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(payload, default=str)},
+            {"role": "user", "content": user_content},
         ],
         "response_format": {"type": "json_object"},
     }
@@ -497,7 +534,7 @@ def build_bootstrap_remote_context(
         transformation_profile="semantic_bootstrap_v1",
         provider=provider,
         model=model,
-        prompt=utterance,
+        prompt=user_content,
         wire_body=body,
         may_transmit_remotely=True,
         included=["utterance", "conversation capsule (public fields only)"],
@@ -1216,4 +1253,5 @@ __all__ = [
     "routing_trace",
     "selected_route",
     "set_semantic_bootstrap",
+    "utterance_for_router",
 ]

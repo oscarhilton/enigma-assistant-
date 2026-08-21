@@ -29,6 +29,9 @@ from personal_enigma.api.semantic_bootstrap import (
     RemoteSemanticBootstrap,
     RouteCandidate,
     SemanticInterpretation,
+    build_bootstrap_payload,
+    build_bootstrap_remote_context,
+    build_bootstrap_transformed_context,
     compile_with_bootstrap,
     default_reasoning_model,
     default_router_model,
@@ -37,8 +40,10 @@ from personal_enigma.api.semantic_bootstrap import (
     regex_fallback_is_honest,
     selected_route,
     set_semantic_bootstrap,
+    utterance_for_router,
 )
 from personal_enigma.api.turn_kernel import run_private_turn
+from personal_enigma.privacy.egress.errors import EgressBlockedError
 
 JAN19 = "cp-2026-01-19T10:00"
 _FIXTURE = FixtureSemanticBootstrap()
@@ -374,3 +379,56 @@ def test_provider_down_trace_reports_regex_degraded_primary() -> None:
     assert decision.trace["primary"] == "regex_degraded"
     assert decision.trace["fallback_reason"] == "provider_down"
     assert decision.interpretation.evidence_domain == "PRIVATE_WORLD"
+
+
+def test_contraction_possessive_folds_but_identity_does_not() -> None:
+    assert utterance_for_router("What's on today?") == "what's on today?"
+    assert utterance_for_router("It's raining") == "it's raining"
+    assert utterance_for_router("Sarah's birthday is tomorrow") == (
+        "Sarah's birthday is tomorrow"
+    )
+
+
+def test_router_prompt_is_sanitised_payload_not_original_utterance() -> None:
+    payload = build_bootstrap_payload("What's on today?", None)
+    assert payload["utterance"] == "what's on today?"
+    assert "What's" not in json.dumps(payload)
+
+    ctx = build_bootstrap_remote_context(
+        "What's on today?",
+        None,
+        model=DEFAULT_FIREWORKS_ROUTER_MODEL,
+    )
+    assert ctx.prompt == json.dumps(payload, default=str)
+    assert "What's" not in ctx.prompt
+    assert "What's" not in json.dumps(ctx.wire_body)
+
+
+def test_identity_possessive_stays_blocked_and_never_submits() -> None:
+    identity = "Sarah's birthday is tomorrow"
+    with pytest.raises(EgressBlockedError):
+        build_bootstrap_transformed_context(identity, None)
+
+    gate = _JsonGate(
+        {
+            "routes": [{"area": "agenda", "confidence": 0.9}],
+            "evidence_domain": "PRIVATE_WORLD",
+            "abstain": False,
+            "confidence": 0.9,
+        }
+    )
+    submitted: list[Any] = []
+    original_submit = gate.submit
+
+    def _capture(*args: Any, **kwargs: Any) -> Any:
+        submitted.append((args, kwargs))
+        return original_submit(*args, **kwargs)
+
+    gate.submit = _capture  # type: ignore[method-assign]
+    parsed = RemoteSemanticBootstrap(
+        gate=gate, model=DEFAULT_FIREWORKS_ROUTER_MODEL
+    ).interpret(identity, None)
+    assert submitted == []
+    assert parsed is not None
+    assert parsed.fallback_reason is not None
+    assert "provider_down" in parsed.fallback_reason
