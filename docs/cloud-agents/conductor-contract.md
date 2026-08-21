@@ -57,6 +57,12 @@ pnpm --dir apps/web test
 
 Scope pytest to ticket paths when the job is ticket-bound.
 
+## Model budgeting (relay dispatch)
+
+- **Default / green:** Omit `model` on `dispatch` and `request_review` so Cursor applies its default/green model selection. The relay must not silently inject `composer-2` or `composer-2.5`.
+- **Explicit escalation:** Pass `model: "composer-2.5"` only after a substantive default-model attempt stalls, or for clearly high-complexity architecture work.
+- **Allowlist:** When `model` is provided, it must still pass the relay model allowlist (`RELAY_ALLOWED_MODELS`).
+
 ## Escalation
 
 Set `requires_oscar: true` when:

@@ -89,6 +89,16 @@ Marking setup “complete” while Overview has no Name / `environment-info.name
 | `request_review` | `approver`+ | No merge; idempotency when creating a run |
 | `cancel` | `approver`+ | Approval-gated |
 
+## Model budgeting
+
+| Rule | Behaviour |
+| --- | --- |
+| Omitted `model` | Relay omits `model` from the Cursor create payload — Cursor default/green selection applies |
+| Explicit `model` | Must be allowlisted; sent verbatim as `model.id` (e.g. `composer-2.5` for escalation) |
+| No silent default | Relay never injects `composer-2` / `composer-2.5` when the conductor omitted `model` |
+
+**Conductor policy:** routine work → omit `model`; escalate to `composer-2.5` only after a substantive default-model attempt stalls or for clearly high-complexity architecture.
+
 Anonymous invocation (no tunnel caller / no injected caller) is denied by construction.
 
 ## Approval policy

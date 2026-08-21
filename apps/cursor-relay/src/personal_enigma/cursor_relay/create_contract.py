@@ -202,6 +202,14 @@ def _short_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
 
 
+def _apply_optional_model(payload: dict[str, Any], model: str | None) -> dict[str, Any]:
+    """Include model.id only when the conductor explicitly chose a model."""
+
+    if model:
+        payload["model"] = {"id": model}
+    return payload
+
+
 def build_create_payload(
     *,
     prompt: str,
@@ -257,20 +265,22 @@ def build_create_payload(
             f"repository={target.repository} "
             "(branch identity from GitHub PR head; workOnCurrentBranch=true)"
         )
-        return {
-            "prompt": {"text": text},
-            "model": {"id": target.model},
-            "name": name or f"relay:pr-{parsed.number}",
-            "repos": [
-                {
-                    "url": github_https_repo_url(target.repository),
-                    "prUrl": parsed.normalized_url,
-                }
-            ],
-            "workOnCurrentBranch": True,
-            # Existing PR — never open a second busboy PR.
-            "autoCreatePR": False,
-        }
+        return _apply_optional_model(
+            {
+                "prompt": {"text": text},
+                "name": name or f"relay:pr-{parsed.number}",
+                "repos": [
+                    {
+                        "url": github_https_repo_url(target.repository),
+                        "prUrl": parsed.normalized_url,
+                    }
+                ],
+                "workOnCurrentBranch": True,
+                # Existing PR — never open a second busboy PR.
+                "autoCreatePR": False,
+            },
+            target.model,
+        )
 
     text += (
         f"\n\nRelay branch intent: requested_head={target.head_branch}"
@@ -279,13 +289,15 @@ def build_create_payload(
         + " (actual head is Cursor-generated until status returns it)"
     )
 
-    payload: dict[str, Any] = {
-        "prompt": {"text": text},
-        "model": {"id": target.model},
-        "name": name or f"relay:{target.head_branch}",
-        "env": {"type": "cloud", "name": env_name},
-        "autoCreatePR": auto_create_pr,
-    }
+    payload: dict[str, Any] = _apply_optional_model(
+        {
+            "prompt": {"text": text},
+            "name": name or f"relay:{target.head_branch}",
+            "env": {"type": "cloud", "name": env_name},
+            "autoCreatePR": auto_create_pr,
+        },
+        target.model,
+    )
     # Named cloud env: never repos, never workOnCurrentBranch.
     canonical_names = frozenset({*mapping.values(), CANONICAL_ENV_NAME})
     if is_named_cloud_environment(

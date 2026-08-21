@@ -19,7 +19,7 @@ class DispatchTarget:
     repository: str
     environment: str
     head_branch: str
-    model: str
+    model: str | None = None
     base_branch: str | None = None
 
 
@@ -104,13 +104,16 @@ def validate_dispatch_target(
     repository: str,
     environment: str,
     head_branch: str,
-    model: str,
+    model: str | None = None,
     base_branch: str | None = None,
 ) -> DispatchTarget:
+    resolved_model: str | None = None
+    if model is not None and str(model).strip():
+        resolved_model = check_model(config, str(model).strip())
     return DispatchTarget(
         repository=check_repository(config, repository),
         environment=check_environment(config, environment),
         head_branch=check_head_branch(config, head_branch),
-        model=check_model(config, model),
+        model=resolved_model,
         base_branch=check_base_branch(config, base_branch),
     )

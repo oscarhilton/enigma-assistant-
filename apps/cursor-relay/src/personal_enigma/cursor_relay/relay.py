@@ -234,7 +234,7 @@ class RelayService:
             repository=str(params["repository"]),
             environment=str(params["environment"]),
             head_branch=str(params["head_branch"]),
-            model=str(params.get("model") or "composer-2"),
+            model=_optional_model_param(params),
             base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
         )
 
@@ -494,7 +494,7 @@ class RelayService:
                 repository=str(params["repository"]),
                 environment=str(params["environment"]),
                 head_branch=str(params["head_branch"]),
-                model=str(params.get("model") or "composer-2"),
+                model=_optional_model_param(params),
                 base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
             )
             prompt = str(
@@ -637,6 +637,16 @@ class RelayService:
             run_id=run_id,
         )
         return handoff
+
+
+def _optional_model_param(params: dict[str, Any]) -> str | None:
+    """Return explicit model id from dispatch params, or None for Cursor default."""
+
+    raw = params.get("model")
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text or None
 
 
 def _ticket_ids(params: dict[str, Any]) -> list[str]:
