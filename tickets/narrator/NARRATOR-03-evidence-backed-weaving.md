@@ -29,16 +29,21 @@
 
 ## Intent
 
-Factual-clause grounding, visible uncertainty, expandable receipts, mythic vs engineering projection, and Alex eval cases.
+Factual-clause grounding, visible uncertainty, expandable receipts, mythic vs engineering projection, Alex eval cases, and a selective daily-fable rendering that tells the **shape of the day** without sounding like the underlying schema.
 
 A whimsical jot cannot outrun evidence. Unknowns stay unknown. Irrelevant Titans stay silent. A multi-layer music-readiness turn may weave Goose → Harbour → relevant specialist(s) → PolarIS into **one or two short jots**, then ordinary chat. The user can react mid-conversation. Engineering/Observatory maps the jot to the hop + evidence **without CoT**.
+
+For daily fables, the trace is evidence but not a prose template. Select meaningful change; preserve mundane specificity; omit aggressively; keep the mythology legible without lore. Dryness is preferred to whimsy. Wit may be cutting toward machinery, bureaucracy, procedures, or the cast's self-importance, but remains affectionate toward the user.
 
 ## Non-goals
 
 - Auto-COMMIT because the story felt complete
 - Profiling via “favourite mythic method”
-- Forcing every cast member into the music turn
+- Forcing every cast member into the music turn or daily fable
 - Replacing C12 Life Scripts
+- Turning every event into a sentence
+- A productivity score, moral, triumph arc, diagnosis, or invented emotional interpretation
+- Divine/theological framing of the celestial cast
 
 ## Acceptance criteria
 
@@ -50,17 +55,47 @@ A whimsical jot cannot outrun evidence. Unknowns stay unknown. Irrelevant Titans
 - [ ] Observatory/FORENSIC: mythic_frame stripped; `event` + `evidence_refs` remain; no deliberation field
 - [ ] PolarIS vs Harbour split survives the story (ready ≠ should now)
 - [ ] Intention preserved on PolarIS defer (same as Harbour/RECON-08)
+- [ ] Daily-fable eval uses canonical Alex evidence without editing `timeline/**`; an ordinary day remains understandable to a reader who knows nothing about Enigma's cast
+- [ ] Daily-fable output selects roughly 2–4 meaningful beats rather than covering every available event
+- [ ] Daily-fable output may use 0–2 earned mythic cameos by default; any named cameo maps to a structured event beneath it
+- [ ] Copy eval rejects “the gods” / deity framing and accepts restrained celestial collective language where grounded (“the constellation”, “the sky”, etc.)
+- [ ] Copy eval rejects unsupported motive/emotion language (`distracted`, `anxious`, `procrastinating`, `lazy`, etc.) unless evidence explicitly supports it
+- [ ] Copy eval rejects a fable whose humour makes the user the principal punchline
+- [ ] Copy eval rejects synthetic one-event-per-sentence cadence even when each sentence is individually grounded
+- [ ] Copy eval accepts omission and an unresolved ending when that is the honest shape of the day
+
+## Canonical Alex daily-fable fixture
+
+Use **Wednesday 14 January 2026** from canonical Alex v0.2.1 as an initial tone/grounding fixture because it contains a small, legible shape without requiring invented Enigma intervention:
+
+- prior evidence: checkout decision remained unresolved on 13 January;
+- 14 January: Tom proposes climbing Sunday at The Castle;
+- the climbing event is placed at 10:00 Sunday;
+- 16:40: Alex sends Maya the recommendation to park checkout behind tokens and revisit mid-Q2 with research;
+- 16:45: checkout reminder is completed.
+
+The evaluator should permit a dry, selective account such as “one question became a decision; one Sunday acquired a climbing wall” **only when every factual element remains recoverable from the fixture**. It must not claim Alex was distracted, rescued, anxious, procrastinating, or advised by PolarIS/Mole/Goose unless future structured interaction events actually establish those facts.
+
+This fixture tests the central distinction:
+
+- **today's canonical timeline can support a restrained fable about the day;**
+- **future Enigma traces may earn additional cast cameos;**
+- the Narrator must never silently substitute the richer fictional version for the evidence actually present.
 
 ## Exit conditions
 
-Done when the music weave passes the negatives above, and Observatory can click a jot to the underlying hop without a CoT pane.
+Done when the music weave passes the negatives above, the Alex daily-fable fixture passes grounding + tone selection tests, and Observatory can click a jot to the underlying hop without a CoT pane.
 
 ## Test plan
 
 - Grounding table: each clause → fact_ref or fail
 - Music fixture weave + user mid-turn reply
+- Alex 2026-01-14 daily-fable selection + style eval
 - Negative: invent Ableton-updated; invent “session with Jordan”; speak `recovery` Titan with no fatigue evidence
+- Negative: label Alex distracted/anxious/procrastinating without evidence
+- Negative: full-cast roll call; deity language; one-event-per-sentence trace dump; user-as-punchline
 - Receipt expand: NORMAL jot → FORENSIC hop list
+- Plain-English recoverability: strip mythic proper nouns and verify the underlying account still makes sense
 
 ## Privacy constraints
 
