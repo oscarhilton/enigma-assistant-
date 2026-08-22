@@ -2,7 +2,7 @@
 
 **Status:** Binding product constraint ([ADR-026](../adr/026-ethics-creed-user-is-subject.md)) — documentation; no new runtime  
 **Date:** 2026-08-17  
-**Related:** [north-star.md](./north-star.md) · [data-retention.md](./data-retention.md) · [ADR-023](../adr/023-persistent-shadow-abstract-state-not-biography.md) · [SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md) · [tone-memory.md](./tone-memory.md) · [ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [shareable-recipes.md](./shareable-recipes.md) · [REC00](../../tickets/recipes/REC00-shareable-recipes-north-star.md) · [cortex-visualizer.md](./cortex-visualizer.md) · [polaris-search.md](./polaris-search.md) · [ADR-015](../adr/015-capability-scoped-disclosure-not-data-access.md) · [ADR-016](../adr/016-bilateral-consent-and-shared-commitments.md)
+**Related:** [north-star.md](./north-star.md) · [data-retention.md](./data-retention.md) · [ADR-023](../adr/023-persistent-shadow-abstract-state-not-biography.md) · [tone-memory.md](./tone-memory.md) · [ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [shareable-recipes.md](./shareable-recipes.md) · [cortex-visualizer.md](./cortex-visualizer.md) · [polaris-search.md](./polaris-search.md) · [ADR-015](../adr/015-capability-scoped-disclosure-not-data-access.md) · [ADR-016](../adr/016-bilateral-consent-and-shared-commitments.md)
 
 ## Creed
 
