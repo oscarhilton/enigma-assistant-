@@ -21,10 +21,17 @@ def main(argv: Sequence[str] | None = None) -> None:
             f"expired={result.expired_count}"
         )
         return
-    if args[:1] == ["retention-forget"] and len(args) >= 2:
+    if args[:1] == ["retention-forget"]:
+        assertion_id = args[1].strip() if len(args) >= 2 else ""
+        if not assertion_id:
+            print(  # noqa: T201
+                "enigma-worker: usage: enigma-worker retention-forget <assertion_id>",
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
         from personal_enigma.worker.retention import run_retained_assertion_forget
 
-        result = run_retained_assertion_forget(args[1])
+        result = run_retained_assertion_forget(assertion_id)
         print(  # noqa: T201
             f"enigma-worker: retained_assertion.forget root={result.root_assertion_id}"
         )

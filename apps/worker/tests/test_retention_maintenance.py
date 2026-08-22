@@ -362,6 +362,65 @@ def test_main_retention_ttl_dispatches(
     assert "ceramics" not in out
 
 
+def test_main_retention_forget_dispatches(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from personal_enigma.worker.retention.jobs import RetentionForgetResult
+
+    called: dict[str, str] = {}
+
+    def fake(assertion_id: str) -> RetentionForgetResult:
+        called["id"] = assertion_id
+        return RetentionForgetResult(
+            root_assertion_id=assertion_id,
+            deleted_assertion_ids=(assertion_id,),
+            deleted_derived_ids=(),
+            audit_id="audit-1",
+            trigger="forget",
+            vault_root="/tmp/private",
+        )
+
+    monkeypatch.setattr(
+        "personal_enigma.worker.retention.run_retained_assertion_forget",
+        fake,
+    )
+    main(["retention-forget", "maya-pref"])
+    out = capsys.readouterr().out
+    assert called["id"] == "maya-pref"
+    assert "retained_assertion.forget" in out
+    assert "maya-pref" in out
+    assert "ceramics" not in out
+
+
+def test_main_retention_forget_without_id_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def boom(*args: object, **kwargs: object) -> None:
+        raise AssertionError("forget must not run without an assertion id")
+
+    monkeypatch.setattr(
+        "personal_enigma.worker.retention.run_retained_assertion_forget",
+        boom,
+    )
+    with pytest.raises(SystemExit) as exited:
+        main(["retention-forget"])
+    assert exited.value.code == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "usage:" in captured.err
+    assert "retention-forget" in captured.err
+    assert captured.err.count("idle") == 0
+
+
+def test_main_retention_forget_blank_id_errors(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exited:
+        main(["retention-forget", "   "])
+    assert exited.value.code == 2
+    assert "usage:" in capsys.readouterr().err
+
+
 def test_main_default_still_idle(capsys: pytest.CaptureFixture[str]) -> None:
     main([])
     assert capsys.readouterr().out.strip() == "enigma-worker: idle"
