@@ -250,7 +250,7 @@ class _RetainedView:
 def _parse_retained_view(record: DerivedRecord) -> _RetainedView | None:
     payload = record.payload
     kind = payload.get("record_kind")
-    if kind is not None and kind != RETAINED_ASSERTION_RECORD_KIND:
+    if kind != RETAINED_ASSERTION_RECORD_KIND:
         return None
     assertion_id = payload.get("assertion_id")
     subject = payload.get("subject")
@@ -378,7 +378,7 @@ def _is_expired(view: _RetainedView, now: datetime) -> bool:
     expires_at = view.expires_at
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=UTC)
-    return expires_at <= now
+    return expires_at < now
 
 
 def _purpose_from(

@@ -135,6 +135,32 @@ def test_elapsed_ttl_is_not_current_even_if_candidate_hits() -> None:
     assert result.rejected[expired.id] == RecallRejection.NOT_CURRENT
 
 
+def test_ttl_at_exact_valid_until_is_still_current_then_expires() -> None:
+    now = datetime(2026, 8, 18, tzinfo=UTC)
+    boundary = _assertion(
+        id="gift-plan",
+        validity_kind=AssertionValidityKind.TTL,
+        valid_until=now,
+    )
+    index = ScriptedCandidateIndex(
+        hits_by_query={"ceramics": [CandidateHit(assertion_id=boundary.id, score=0.9)]}
+    )
+    authority = InMemoryGovernedMemory()
+    authority.put(boundary)
+
+    result = recall_governed_memory(
+        "ceramics", candidate_index=index, authority=authority, now=now
+    )
+    assert result.exposed_ids == (boundary.id,)
+
+    later = now + timedelta(microseconds=1)
+    result_later = recall_governed_memory(
+        "ceramics", candidate_index=index, authority=authority, now=later
+    )
+    assert result_later.exposed_ids == ()
+    assert result_later.rejected[boundary.id] == RecallRejection.NOT_CURRENT
+
+
 def test_recall_function_has_no_store_or_retain_surface() -> None:
     assert not hasattr(recall_governed_memory, "store")
     names = recall_governed_memory.__code__.co_varnames

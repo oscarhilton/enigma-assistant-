@@ -185,6 +185,13 @@ def test_superseded_row_absent_from_current_inventory() -> None:
     assert "maya-ceramics-v1" in current.derived_from
 
 
+def test_missing_record_kind_is_ignored() -> None:
+    record = _record(assertion_id="maya-ceramics")
+    record.payload.pop("record_kind", None)
+    inventory = project_memory_inventory([record], now=_NOW)
+    assert inventory.entries == []
+
+
 def test_expired_ttl_absent_even_if_row_still_present() -> None:
     past = _NOW - timedelta(days=1)
     inventory = project_memory_inventory(
@@ -201,6 +208,40 @@ def test_expired_ttl_absent_even_if_row_still_present() -> None:
         now=_NOW,
     )
     assert inventory.entries == []
+
+
+def test_ttl_at_exact_valid_until_is_still_current() -> None:
+    now = _NOW
+    inventory = project_memory_inventory(
+        [
+            _record(
+                assertion_id="gift-plan",
+                predicate="gift_history",
+                value="mug 2024",
+                purpose="temporary_case",
+                outcome="ttl",
+                valid_until=now.isoformat(),
+            )
+        ],
+        now=now,
+    )
+    assert inventory.get("gift-plan") is not None
+
+    later = now + timedelta(microseconds=1)
+    inventory_later = project_memory_inventory(
+        [
+            _record(
+                assertion_id="gift-plan",
+                predicate="gift_history",
+                value="mug 2024",
+                purpose="temporary_case",
+                outcome="ttl",
+                valid_until=now.isoformat(),
+            )
+        ],
+        now=later,
+    )
+    assert inventory_later.entries == []
 
 
 def test_ttl_current_displays_as_expiring() -> None:
