@@ -134,6 +134,63 @@ class TestCorrectionSupersession:
             assert "maya-ceramics-v1" in entry.derived_from
             assert entry.claim == "Maya likes studio pottery"
 
+            stored_v2 = store.get_record("maya-ceramics-v2")
+            assert stored_v2 is not None
+            lineage = stored_v2.lineage.derived_from
+            assert "assertion:maya-ceramics-v1" in lineage
+            assert "assertion:assertion:maya-ceramics-v1" not in lineage
+            payload_parents = stored_v2.payload["derived_from_assertion_ids"]
+            assert "assertion:maya-ceramics-v1" not in payload_parents
+
+    def test_forgetting_correction_does_not_resurrect_prior(
+        self, vault_root: Path, memory_keychain
+    ) -> None:
+        original = _assertion(id="maya-ceramics-v1", value="ceramics")
+        with PrivateVault.open(root=vault_root, keychain=memory_keychain) as vault:
+            store = VaultDurableAssertionStore(vault)
+            store.store(original, evaluate_retention(original))
+            correction = _assertion(
+                id="maya-ceramics-v2",
+                value="studio pottery",
+                evidence_refs=["EV_CHAT_2"],
+            )
+            correct_retained_assertion(store, "maya-ceramics-v1", correction)
+
+            result = store.forget("maya-ceramics-v2")
+            assert "maya-ceramics-v2" in result.deleted_assertion_ids
+            assert "maya-ceramics-v1" in result.deleted_assertion_ids
+            assert store.get_record("maya-ceramics-v1") is None
+            after = list_memory_inventory(vault._conn, subject="Maya")
+            assert after.get("maya-ceramics-v1") is None
+            assert after.get("maya-ceramics-v2") is None
+            dumped = after.model_dump_json()
+            assert "ceramics" not in dumped
+            assert "studio pottery" not in dumped
+
+    def test_forgetting_prior_keeps_independently_retained_correction(
+        self, vault_root: Path, memory_keychain
+    ) -> None:
+        original = _assertion(id="maya-ceramics-v1", value="ceramics")
+        with PrivateVault.open(root=vault_root, keychain=memory_keychain) as vault:
+            store = VaultDurableAssertionStore(vault)
+            store.store(original, evaluate_retention(original))
+            correction = _assertion(
+                id="maya-ceramics-v2",
+                value="studio pottery",
+                evidence_refs=["EV_CHAT_2"],
+            )
+            correct_retained_assertion(store, "maya-ceramics-v1", correction)
+
+            result = store.forget("maya-ceramics-v1")
+            assert "maya-ceramics-v1" in result.deleted_assertion_ids
+            assert "maya-ceramics-v2" not in result.deleted_assertion_ids
+            assert store.get_record("maya-ceramics-v2") is not None
+            after = list_memory_inventory(vault._conn, subject="Maya")
+            assert after.get("maya-ceramics-v1") is None
+            entry = after.get("maya-ceramics-v2")
+            assert entry is not None
+            assert entry.value == "studio pottery"
+
     def test_same_id_store_is_rejected_as_history_rewrite(
         self, vault_root: Path, memory_keychain
     ) -> None:

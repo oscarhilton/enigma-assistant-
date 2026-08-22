@@ -135,23 +135,66 @@ def _forgotten_refs_for(assertion_id: str, deleted_ids: set[str]) -> frozenset[s
     return frozenset(refs)
 
 
+def _payload_id_list(payload: dict[str, object], key: str) -> list[str]:
+    raw = payload.get(key)
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, str) and item]
+
+
+def _collect_superseded_lineage(
+    conn: SqlCipherConnection,
+    assertion_id: str,
+) -> set[str]:
+    """Historical assertion ids this row transitively superseded."""
+    seen: set[str] = set()
+    queue = [assertion_id]
+    while queue:
+        current_id = queue.pop()
+        record = get_derived_record(conn, current_id)
+        if record is None or not is_retained_assertion_record(record):
+            continue
+        for sid in _payload_id_list(record.payload, "supersedes"):
+            if sid not in seen:
+                seen.add(sid)
+                queue.append(sid)
+    return seen
+
+
+def _supersedes_forgotten(
+    record: DerivedRecord,
+    forgotten_assertion_ids: frozenset[str],
+) -> bool:
+    """True when this retained row is a replacement of a forgotten prior."""
+    if not is_retained_assertion_record(record):
+        return False
+    return any(
+        sid in forgotten_assertion_ids
+        for sid in _payload_id_list(record.payload, "supersedes")
+    )
+
+
 def resolve_retained_assertion_forget_plan(
     conn: SqlCipherConnection,
     assertion_id: str,
 ) -> tuple[set[str], set[str]]:
     """Compute derived rows to delete vs survive when forgetting a retained assertion."""
-    root_refs = refs_for_assertion(assertion_id)
-    candidates = _collect_dependent_record_ids(conn, root_refs)
+    historical = _collect_superseded_lineage(conn, assertion_id)
+    root_refs: set[str] = set(refs_for_assertion(assertion_id))
+    for hid in historical:
+        root_refs.update(refs_for_assertion(hid))
+    candidates = _collect_dependent_record_ids(conn, frozenset(root_refs))
     forgotten_refs: set[str] = set(root_refs)
-    to_delete: set[str] = set()
+    to_delete: set[str] = set(historical)
 
     changed = True
     while changed:
         changed = False
+        forgotten_assertions = frozenset({assertion_id} | to_delete)
         active_assertions = frozenset(
             aid
             for aid in list_retained_assertion_ids(conn)
-            if aid not in to_delete and aid != assertion_id
+            if aid not in forgotten_assertions
         )
         active_sources = frozenset(_existing_source_ids(conn))
         active_derived = frozenset(
@@ -162,6 +205,10 @@ def resolve_retained_assertion_forget_plan(
 
         for record in list_all_derived_records(conn):
             if record.id not in candidates or record.id in to_delete:
+                continue
+            if record.id == assertion_id:
+                continue
+            if _supersedes_forgotten(record, forgotten_assertions):
                 continue
             remaining = _remaining_lineage_sources(
                 record_id=record.id,

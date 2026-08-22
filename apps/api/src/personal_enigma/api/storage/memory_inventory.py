@@ -13,7 +13,6 @@ from personal_enigma.api.storage.retention_forget import list_current_retained_r
 from personal_enigma.api.storage.retention_vault import (
     RetentionVaultError,
     VaultDurableAssertionStore,
-    assertion_lineage_ref,
 )
 from personal_enigma.domain.grounding import GroundedAssertion
 from personal_enigma.domain.memory_inventory import (
@@ -74,12 +73,13 @@ def correct_retained_assertion(
     supersedes = list(correction.supersedes)
     if prior_assertion_id not in supersedes:
         supersedes.append(prior_assertion_id)
-    derived_from = list(correction.derived_from)
+    derived_from = [
+        ref
+        for ref in correction.derived_from
+        if ref != f"assertion:{prior_assertion_id}"
+    ]
     if prior_assertion_id not in derived_from:
         derived_from.insert(0, prior_assertion_id)
-    lineage_ref = assertion_lineage_ref(prior_assertion_id)
-    if lineage_ref not in derived_from:
-        derived_from.append(lineage_ref)
 
     linked = correction.model_copy(
         update={"supersedes": supersedes, "derived_from": derived_from}
