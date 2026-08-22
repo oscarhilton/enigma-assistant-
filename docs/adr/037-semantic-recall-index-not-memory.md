@@ -62,7 +62,7 @@ C30 Brain UI and C31 Goose are not recall, and recall is not a UI.
 ## Consequences
 
 - `packages/domain/semantic_recall.py` owns pipeline order, reduction, and the governed-memory filter.
-- `packages/embeddings/governed_index.py` owns approximate ID lookup over reduced meaning.
+- Approximate candidate ID lookup lives in `packages/embeddings` (currently `packages/embeddings/src/personal_enigma/embeddings/index.py`).
 - `apps/api` may adapt MemoryInventory / vault rows as the authority; it must not let index payloads skip that adapter.
 - Freeze tests: ceramics stale-index rejection, inverse re-establishment, epistemic non-upgrade, no-create, no-raw-source.
 
