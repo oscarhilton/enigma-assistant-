@@ -14,13 +14,30 @@ establish recall eligibility. Embeddings integration is a separate slice.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from sqlite3 import Connection as SqlCipherConnection
+
+from pydantic import ValidationError
 
 from personal_enigma.api.storage.memory_inventory import list_memory_inventory
 from personal_enigma.api.storage.retention_vault import VaultDurableAssertionStore
 from personal_enigma.domain.grounding import GroundedAssertion
 from personal_enigma.domain.retention import DerivedRecord
+
+
+def _aware_utc(raw: object) -> datetime | None:
+    """Parse validity timestamps the same way inventory does — naive means UTC."""
+    if raw is None:
+        return None
+    if isinstance(raw, datetime):
+        parsed = raw
+    elif isinstance(raw, str) and raw:
+        parsed = datetime.fromisoformat(raw)
+    else:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
 
 
 def assertion_from_retained_record(record: DerivedRecord) -> GroundedAssertion:
@@ -46,8 +63,9 @@ def assertion_from_retained_record(record: DerivedRecord) -> GroundedAssertion:
             "purpose_tags": payload.get("purpose_tags") or [],
             "validity_kind": payload.get("validity_kind") or "stable",
             "temporal_scope": payload.get("temporal_scope"),
-            "valid_from": payload.get("valid_from"),
-            "valid_until": payload.get("valid_until"),
+            "valid_from": _aware_utc(payload.get("valid_from")),
+            "valid_until": _aware_utc(payload.get("valid_until")),
+            "invalidated_by": payload.get("invalidated_by") or [],
         }
     )
 
@@ -77,4 +95,9 @@ class VaultInventoryAuthority:
         record = self._store.get_record(assertion_id)
         if record is None:
             return None
-        return assertion_from_retained_record(record)
+        try:
+            return assertion_from_retained_record(record)
+        except (TypeError, ValueError, ValidationError):
+            # Fail this candidate closed. A reconstructable sibling must still
+            # be judged independently — reconstruction errors are not writes.
+            return None

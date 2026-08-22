@@ -14,7 +14,10 @@ import pytest
 
 from personal_enigma.api.storage.memory_inventory import correct_retained_assertion
 from personal_enigma.api.storage.retention_vault import VaultDurableAssertionStore
-from personal_enigma.api.storage.semantic_recall import VaultInventoryAuthority
+from personal_enigma.api.storage.semantic_recall import (
+    VaultInventoryAuthority,
+    assertion_from_retained_record,
+)
 from personal_enigma.api.storage.vault import PrivateVault
 from personal_enigma.domain.grounding import (
     AssertionKind,
@@ -22,6 +25,14 @@ from personal_enigma.domain.grounding import (
     DerivationKind,
     EpistemicStatus,
     GroundedAssertion,
+)
+from personal_enigma.domain.retention import (
+    DerivedRecord,
+    DerivedRecordType,
+    LineageMetadata,
+    MemoryLayer,
+    RetentionClass,
+    RetentionPurpose,
 )
 from personal_enigma.domain.retention_gate import evaluate_retention
 from personal_enigma.domain.semantic_recall import (
@@ -327,3 +338,104 @@ def test_adapter_and_tests_do_not_import_embeddings() -> None:
         or name.startswith("personal_enigma.embeddings.")
         for name in imported
     )
+
+
+def _retained_record(assertion_id: str, **payload_overrides: object) -> DerivedRecord:
+    payload: dict[str, object] = {
+        "record_kind": "retained_assertion",
+        "assertion_id": assertion_id,
+        "kind": "preference",
+        "subject": "PERSON_Maya",
+        "predicate": "likes",
+        "value": "ceramics",
+        "epistemic_status": "user_confirmed",
+        "evidence_refs": ["EV_CHAT_1"],
+        "purpose_tags": ["user_explicit_recall"],
+        "validity_kind": "stable",
+    }
+    payload.update(payload_overrides)
+    return DerivedRecord(
+        id=assertion_id,
+        record_type=DerivedRecordType.FACT,
+        memory_layer=MemoryLayer.ACTIVE,
+        payload=payload,
+        lineage=LineageMetadata(
+            derived_from=[f"assertion:{assertion_id}"],
+            purpose=RetentionPurpose.USER_EXPLICIT_RECALL,
+            retention_class=RetentionClass.DURABLE_SHADOW,
+        ),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+
+
+def test_until_event_without_persisted_invalidated_by_does_not_abort_batch(
+    vault_root: Path, memory_keychain
+) -> None:
+    current = _assertion(id="maya-ceramics")
+    until_event = _assertion(
+        id="maya-until-event",
+        purpose_tags=["temporary_case"],
+        validity_kind=AssertionValidityKind.UNTIL_EVENT,
+        invalidated_by=["EVENT_MOVED"],
+    )
+    index = ScriptedCandidateIndex(
+        hits_by_query={
+            "ceramics": [
+                CandidateHit(assertion_id=until_event.id, score=0.99),
+                CandidateHit(assertion_id=current.id, score=0.90),
+            ]
+        }
+    )
+
+    with PrivateVault.open(root=vault_root, keychain=memory_keychain) as vault:
+        store = VaultDurableAssertionStore(vault)
+        store.store(until_event, evaluate_retention(until_event))
+        store.store(current, evaluate_retention(current))
+        stored = store.get_record(until_event.id)
+        assert stored is not None
+        assert "invalidated_by" not in stored.payload
+
+        authority = VaultInventoryAuthority(vault._conn, store)
+        result = recall_governed_memory(
+            "ceramics", candidate_index=index, authority=authority
+        )
+        assert until_event.id in result.candidate_ids
+        assert result.rejected[until_event.id] == RecallRejection.NOT_IN_GOVERNED_MEMORY
+        assert result.exposed_ids == (current.id,)
+
+
+def test_naive_validity_timestamps_are_normalized_to_utc() -> None:
+    now = datetime(2026, 1, 2, tzinfo=UTC)
+    current = assertion_from_retained_record(
+        _retained_record(
+            "maya-naive-current",
+            validity_kind="ttl",
+            valid_until="2026-01-03T00:00:00",
+        )
+    )
+    assert current.valid_until is not None
+    assert current.valid_until.tzinfo is not None
+    assert current.is_usable_now(now=now)
+
+    expired = assertion_from_retained_record(
+        _retained_record(
+            "maya-naive-expired",
+            validity_kind="ttl",
+            valid_until="2026-01-01T00:00:00",
+        )
+    )
+    assert expired.valid_until is not None
+    assert expired.valid_until.tzinfo is not None
+    assert not expired.is_usable_now(now=now)
+
+
+def test_payload_invalidated_by_is_preserved_when_present() -> None:
+    rebuilt = assertion_from_retained_record(
+        _retained_record(
+            "maya-until-event",
+            validity_kind="until_event",
+            invalidated_by=["EVENT_MOVED"],
+        )
+    )
+    assert rebuilt.validity_kind == AssertionValidityKind.UNTIL_EVENT
+    assert rebuilt.invalidated_by == ["EVENT_MOVED"]
