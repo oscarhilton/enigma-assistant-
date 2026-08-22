@@ -128,10 +128,8 @@ def enforce_write_policy(
                 "dry_run=true for a plan-only run",
                 code="live_not_authorized",
             )
-        if brief.dry_run is False and not has_live_write_authorization(brief):
-            # Explicit live create without push/PR auth is still allowed for
-            # agent work on a feature branch; omitted dry_run is not this path.
-            pass
+        # Explicit dry_run=false without push/PR flags remains allowed for
+        # feature-branch agent work. Omitted dry_run is not that path.
 
     if tool == "cancel":
         # cancel is approval-gated by role only

@@ -41,9 +41,9 @@ Preserve: fail-safe (no silent POST without write flags when omitted), idempoten
 
 ## Acceptance criteria
 
-- [ ] Explicit `dry_run=true` never `POST /v1/agents`
-- [ ] Explicit `dry_run=false` remains live subject to authorization
-- [ ] Omitted `dry_run` with sufficient auth proceeds live
-- [ ] Omitted `dry_run` without sufficient auth fails clearly (not a successful dry-run)
-- [ ] Focused dispatch + `request_review` regression tests for the four cases
-- [ ] Prompt injection does not claim `dry_run=True` when the flag was omitted
+- [x] Explicit `dry_run=true` never `POST /v1/agents`
+- [x] Explicit `dry_run=false` remains live subject to authorization
+- [x] Omitted `dry_run` with sufficient auth proceeds live
+- [x] Omitted `dry_run` without sufficient auth fails clearly (not a successful dry-run)
+- [x] Focused dispatch + `request_review` regression tests for the four cases
+- [x] Prompt injection does not claim `dry_run=True` when the flag was omitted
