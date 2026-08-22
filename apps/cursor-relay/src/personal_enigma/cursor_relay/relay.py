@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from personal_enigma.cursor_relay.allowlist import AllowlistError, validate_dispatch_target
+from personal_enigma.cursor_relay.allowlist import (
+    AllowlistError,
+    DispatchTarget,
+    validate_dispatch_target,
+)
 from personal_enigma.cursor_relay.approval import (
     ApprovalError,
     enforce_write_policy,
@@ -234,7 +238,7 @@ class RelayService:
             repository=str(params["repository"]),
             environment=str(params["environment"]),
             head_branch=str(params["head_branch"]),
-            model=str(params.get("model") or "composer-2"),
+            model=_optional_model(params),
             base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
         )
 
@@ -306,7 +310,7 @@ class RelayService:
                     "repository": target.repository,
                     "environment": env_name,
                     "environment_input": target.environment,
-                    "model": target.model,
+                    **_model_observed_fields(target),
                     "prompt_hash": ph,
                     "create_request_plan": redacted_plan,
                     **pr_observed,
@@ -344,7 +348,7 @@ class RelayService:
                 "repository": target.repository,
                 "environment": env_name,
                 "environment_input": target.environment,
-                "model": target.model,
+                **_model_observed_fields(target),
                 "agent_url": ref.url,
                 "prompt_hash": ph,
                 "create_request_plan": redacted_plan,
@@ -494,7 +498,7 @@ class RelayService:
                 repository=str(params["repository"]),
                 environment=str(params["environment"]),
                 head_branch=str(params["head_branch"]),
-                model=str(params.get("model") or "composer-2"),
+                model=_optional_model(params),
                 base_branch=str(params["base_branch"]) if params.get("base_branch") else None,
             )
             prompt = str(
@@ -637,6 +641,20 @@ class RelayService:
             run_id=run_id,
         )
         return handoff
+
+
+def _optional_model(params: dict[str, Any]) -> str | None:
+    raw = params.get("model")
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text if text else None
+
+
+def _model_observed_fields(target: DispatchTarget) -> dict[str, Any]:
+    if target.model is not None:
+        return {"model": target.model}
+    return {"model_source": "omitted"}
 
 
 def _ticket_ids(params: dict[str, Any]) -> list[str]:
