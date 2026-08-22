@@ -149,9 +149,12 @@ def _lineage_refs(assertion: GroundedAssertion, decision: RetentionDecision) -> 
         parent_ref = assertion_lineage_ref(parent_id)
         if parent_ref not in refs:
             refs.append(parent_ref)
-    for ref in decision.provenance_refs:
-        if ref not in refs:
-            refs.append(ref)
+    # Do not append decision.provenance_refs here.
+    #
+    # evaluate_retention() currently derives provenance_refs from assertion.evidence_refs
+    # and assertion.derived_from. Appending them would reintroduce raw parent assertion
+    # ids (e.g. "PARENT1") alongside namespaced refs ("assertion:PARENT1"), which can
+    # collide with SourceRecord ids in SEC-06 forget graphs.
     return refs
 
 
@@ -220,6 +223,10 @@ class VaultDurableAssertionStore:
         self._vault = vault
 
     def store(self, assertion: GroundedAssertion, decision: RetentionDecision) -> str:
+        if decision.assertion_id != assertion.id:
+            raise RetentionVaultError(
+                "RetentionDecision assertion_id does not match assertion.id"
+            )
         expected = evaluate_retention(assertion)
         if expected.outcome != RetentionOutcome.DURABLE:
             raise RetentionVaultError(

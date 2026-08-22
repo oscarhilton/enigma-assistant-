@@ -95,6 +95,15 @@ class TestRetentionVaultMapping:
         assert "EV_CHAT_1" in record.lineage.derived_from
         assert assertion.id not in record.lineage.derived_from
 
+    def test_parent_assertion_refs_are_namespaced_only(self) -> None:
+        assertion = _assertion(id="child", derived_from=["PARENT1"])
+        decision = evaluate_retention(assertion)
+        assert decision.outcome == RetentionOutcome.DURABLE
+        record = map_retention_to_derived_record(assertion, decision)
+
+        assert assertion_lineage_ref("PARENT1") in record.lineage.derived_from
+        assert "PARENT1" not in record.lineage.derived_from
+
     def test_rejects_ephemeral_gate_outcomes(self) -> None:
         assertion = _assertion(
             epistemic_status=EpistemicStatus.MODEL_INFERRED,
