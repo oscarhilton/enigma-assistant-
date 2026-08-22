@@ -14,7 +14,10 @@ from personal_enigma.api.storage.crypto import (
     wrap_key_bundle,
 )
 from personal_enigma.api.storage.keychain import MemoryKeychain
-from personal_enigma.api.storage.keys import load_or_create_key_material
+from personal_enigma.api.storage.keys import (
+    VaultKeyRecoveryError,
+    load_or_create_key_material,
+)
 from personal_enigma.api.storage.paths import VaultPaths, ensure_vault_layout
 from personal_enigma.api.storage.vault import PrivateVault
 
@@ -82,3 +85,33 @@ def test_vault_directory_never_contains_master_key(
     for path in root.rglob("*"):
         if path.is_file():
             assert mk not in path.read_bytes()
+
+def test_refuses_bootstrap_when_vault_artifacts_exist_without_master_key(
+    tmp_path: Path,
+    memory_keychain: MemoryKeychain,
+) -> None:
+    paths = VaultPaths(root=tmp_path / "private")
+    ensure_vault_layout(paths)
+    mk = generate_key()
+    bundle = WrappedKeyBundle(
+        data_key=generate_key(),
+        blob_key=generate_key(),
+        audit_key=generate_key(),
+    )
+    paths.wrapped_keys.write_bytes(wrap_key_bundle(mk, bundle))
+
+    with pytest.raises(VaultKeyRecoveryError):
+        load_or_create_key_material(memory_keychain, wrapped_keys_path=paths.wrapped_keys)
+
+
+def test_refuses_bootstrap_when_vault_db_exists_without_master_key(
+    tmp_path: Path,
+    memory_keychain: MemoryKeychain,
+) -> None:
+    paths = VaultPaths(root=tmp_path / "private")
+    ensure_vault_layout(paths)
+    paths.vault_db.write_bytes(b"encrypted-placeholder")
+
+    with pytest.raises(VaultKeyRecoveryError):
+        load_or_create_key_material(memory_keychain, wrapped_keys_path=paths.wrapped_keys)
+

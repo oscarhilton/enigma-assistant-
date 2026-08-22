@@ -6,6 +6,7 @@ FORGET (see ``forget.py``) is terminal — recoverability → zero.
 
 from __future__ import annotations
 
+import hashlib
 from sqlite3 import Connection as SqlCipherConnection
 
 from personal_enigma.api.storage.derived import get_derived_record, insert_derived_record
@@ -33,6 +34,8 @@ def compress_payload_to_shadow(payload: dict[str, object]) -> dict[str, object]:
             shadow[shadow_key] = _time_to_bucket(str(value))
         elif key in ("exact_amount",):
             shadow[shadow_key] = _amount_to_band(value)
+        elif key in ("location",):
+            shadow[shadow_key] = _location_to_coarse_region(value)
         elif key in ("subject", "body_excerpt", "display_name"):
             shadow[shadow_key] = "ABSTRACTED"
         else:
@@ -83,3 +86,18 @@ def _amount_to_band(value: object) -> str:
     if amount < 1000:
         return "UNDER_1000"
     return "OVER_1000"
+
+def _location_to_coarse_region(value: object) -> str:
+    """Reduce precise locations to coarse region tokens (not street-level text)."""
+    text = str(value).strip()
+    if not text:
+        return "UNKNOWN_REGION"
+    parts = [part.strip() for part in text.split(",") if part.strip()]
+    if len(parts) >= 2:
+        city = parts[-2] if len(parts) >= 3 else parts[-1]
+        token = "".join(ch if ch.isalnum() else "_" for ch in city.upper())
+        token = token.strip("_")[:32] or "UNKNOWN"
+        return f"REGION_{token}"
+    digest = hashlib.sha256(text.lower().encode("utf-8")).hexdigest()[:8].upper()
+    return f"REGION_BUCKET_{digest}"
+

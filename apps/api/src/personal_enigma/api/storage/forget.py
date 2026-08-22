@@ -16,6 +16,8 @@ from sqlite3 import Connection as SqlCipherConnection
 from personal_enigma.api.storage.derived import (
     append_forget_audit,
     delete_derived_record,
+    get_derived_record,
+    insert_derived_record,
     list_derived_records_for_source,
 )
 from personal_enigma.api.storage.source_record import delete_source_record, get_source_record
@@ -65,6 +67,37 @@ def resolve_forget_plan(
     return to_delete, to_survive
 
 
+
+
+def _apply_survivor_lineage_adjustments(
+    conn: SqlCipherConnection,
+    *,
+    forgotten_source_id: str,
+    survivor_ids: set[str],
+) -> None:
+    """Drop forgotten source deps and reduce confidence on surviving records."""
+    for derived_id in sorted(survivor_ids):
+        record = get_derived_record(conn, derived_id)
+        if record is None:
+            continue
+        original = list(record.lineage.derived_from)
+        if forgotten_source_id not in original:
+            continue
+        remaining = [sid for sid in original if sid != forgotten_source_id]
+        if not remaining:
+            continue
+        scale = len(remaining) / len(original)
+        updated = record.model_copy(
+            update={
+                "confidence": record.confidence * scale,
+                "lineage": record.lineage.model_copy(
+                    update={"derived_from": remaining}
+                ),
+            }
+        )
+        insert_derived_record(conn, updated)
+
+
 def forget_source(
     conn: SqlCipherConnection,
     source_id: str,
@@ -79,6 +112,12 @@ def forget_source(
 
     for derived_id in sorted(to_delete):
         delete_derived_record(conn, derived_id)
+
+    _apply_survivor_lineage_adjustments(
+        conn,
+        forgotten_source_id=source_id,
+        survivor_ids=to_survive,
+    )
 
     if delete_blob is not None and blob_ref is not None:
         delete_blob(blob_ref)

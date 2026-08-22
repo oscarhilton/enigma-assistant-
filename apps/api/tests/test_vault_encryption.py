@@ -107,3 +107,32 @@ def test_delete_source_removes_blob(
         vault.delete_source("src-del")
         assert not blob_path.exists()
         assert vault.get_source_record("src-del") is None
+
+def test_restore_raw_source_deletes_prior_blob(
+    tmp_path: Path,
+    memory_keychain: MemoryKeychain,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "private"
+    monkeypatch.setenv("ENIGMA_PRIVATE_STORAGE_ROOT", str(root))
+    with PrivateVault.open(root=root, keychain=memory_keychain) as vault:
+        first = vault.store_raw_source(
+            source="gmail",
+            external_id="msg-upsert",
+            raw_content=b"version-one",
+            record_id="src-upsert",
+        )
+        old_blob = root / "blobs" / f"{first.blob_ref}.bin"
+        assert old_blob.exists()
+
+        second = vault.store_raw_source(
+            source="gmail",
+            external_id="msg-upsert",
+            raw_content=b"version-two",
+            record_id="src-upsert",
+        )
+        assert second.blob_ref != first.blob_ref
+        assert vault.read_raw_source("src-upsert") == b"version-two"
+        assert not old_blob.exists()
+        assert vault.blob_exists(second.blob_ref)
+

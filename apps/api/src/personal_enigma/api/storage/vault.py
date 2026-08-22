@@ -125,6 +125,9 @@ class PrivateVault:
         record_id: str | None = None,
     ) -> SourceRecord:
         """Persist PRIVATE_RAW content as encrypted blob + SourceRecord metadata."""
+        prior: SourceRecord | None = None
+        if record_id is not None:
+            prior = get_source_record(self._conn, record_id)
         blob_ref = self._blobs.put(raw_content)
         content_hash = BlobStore.content_hash(raw_content)
         record = SourceRecord(
@@ -136,6 +139,8 @@ class PrivateVault:
             blob_ref=blob_ref,
         )
         insert_source_record(self._conn, record)
+        if prior is not None and prior.blob_ref != blob_ref:
+            self._blobs.delete(prior.blob_ref)
         return record
 
     def read_raw_source(self, record_id: str) -> bytes:

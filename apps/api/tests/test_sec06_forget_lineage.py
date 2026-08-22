@@ -128,6 +128,12 @@ class TestForgetLineageCentrepiece:
             assert vault.get_source_record(EMAIL_B) is not None
             assert vault.count_orphaned_derivatives() == 0
 
+            fact = vault.get_derived_record(FACT_X)
+            assert fact is not None
+            assert EMAIL_A not in fact.lineage.derived_from
+            assert EMAIL_B in fact.lineage.derived_from
+            assert fact.confidence == pytest.approx(0.5)
+
     def test_forget_email_b_then_fact_x_gone(
         self, vault_root: Path, memory_keychain
     ) -> None:
@@ -218,6 +224,17 @@ class TestDecayVsForget:
         )
         assert "Joe Atkinson" not in str(shadow.values())
         assert shadow.get("entity_ref") == "ABSTRACTED"
+
+    def test_location_decay_coarsens_precise_value(self) -> None:
+        shadow = compress_payload_to_shadow(
+            {"location": "42 Baker Street, London, UK"}
+        )
+        assert shadow.get("coarse_region") == "REGION_LONDON"
+        assert "Baker Street" not in str(shadow.values())
+
+        pinpoint = compress_payload_to_shadow({"location": "Shoreditch"})
+        assert pinpoint.get("coarse_region", "").startswith("REGION_BUCKET_")
+        assert "Shoreditch" not in str(pinpoint.values())
 
 
 class TestGcAndTtl:

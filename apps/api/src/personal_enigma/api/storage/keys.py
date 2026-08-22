@@ -22,6 +22,10 @@ class KeyHierarchyError(Exception):
     """Raised when key material cannot be loaded or created."""
 
 
+class VaultKeyRecoveryError(KeyHierarchyError):
+    """Vault exists on disk but Keychain master key is missing."""
+
+
 @dataclass(frozen=True, slots=True)
 class KeyMaterial:
     """Runtime key material for an open vault session."""
@@ -45,6 +49,16 @@ def _save_wrapped_keys(path: Path, master_key: bytes, bundle: WrappedKeyBundle) 
     path.write_bytes(wrap_key_bundle(master_key, bundle))
 
 
+def _vault_artifacts_present(wrapped_keys_path: Path) -> bool:
+    """True when on-disk vault state implies keys must not be re-bootstrapped."""
+    root = wrapped_keys_path.parent
+    if wrapped_keys_path.exists():
+        return True
+    if (root / "vault.db").exists():
+        return True
+    return False
+
+
 def load_or_create_key_material(
     keychain: KeychainBackend,
     *,
@@ -57,6 +71,11 @@ def load_or_create_key_material(
     """
     master_key = keychain.get_secret(ACCOUNT_MASTER_KEY)
     if master_key is None:
+        if _vault_artifacts_present(wrapped_keys_path):
+            raise VaultKeyRecoveryError(
+                "Vault key material exists on disk but the Keychain master key is "
+                "missing; restore Keychain backup instead of re-bootstrapping new keys."
+            )
         master_key = generate_key()
         keychain.set_secret(ACCOUNT_MASTER_KEY, master_key)
         bundle = WrappedKeyBundle(
