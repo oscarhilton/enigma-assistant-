@@ -1,6 +1,6 @@
 # Data retention & reconstructability boundary
 
-**Status:** Architecture programme (ADR-021, ADR-022, ADR-023) — implementation not started  
+**Status:** Architecture programme (ADR-021, ADR-022, ADR-023) — vault + retention adapters on main; worker TTL scheduling in RECON-05D  
 **Date:** 2026-08-17  
 **Related:** [personal-data-security.md](./personal-data-security.md) · [ethics.md](./ethics.md) · [ADR-026](../adr/026-ethics-creed-user-is-subject.md) · [cortex-visualizer.md](./cortex-visualizer.md) · [ADR-021](../adr/021-personal-data-security-boundary.md) · [ADR-022](../adr/022-private-vault-storage.md) · [ADR-023](../adr/023-persistent-shadow-abstract-state-not-biography.md) · [ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [ADR-029](../adr/029-context-compilation-request-shaped-memory.md) · [tone-memory.md](./tone-memory.md) · [SEC-01](../../tickets/security/SEC-01-secrets-encrypted-storage.md) · [SEC-06](../../tickets/security/SEC-06-retention-memory-decay-forget.md) · [SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md) · [SEC-05 Q11–Q16](../../tickets/security/SEC-05-personal-data-pilot-gate.md#lifecycle-gate-questions-pass--fail)
 
@@ -45,7 +45,7 @@ The gate answers whether an established assertion deserves persistence — for h
 
 > TTL expiry removes an item from current-memory projections at validity expiry; governed forgetting and derivative invalidation complete when the expiry propagation path runs. Projection expiry must never be reported as completed deletion.
 
-Inventory hides elapsed TTL immediately. Vault/source rows may still physically exist until `expire_ttl` runs. Derived descendants may still exist until governed expiry propagation executes. Inventory absence is not completed deletion, and C30 must not treat it as such. Future crypto (not implemented here): validity expires → current projections stop using it → expiry worker propagates invalidation → retained records removed → future crypto layer destroys relevant key material.
+Inventory hides elapsed TTL immediately. Vault/source rows may still physically exist until `expire_ttl` runs. Derived descendants may still exist until governed expiry propagation executes. Inventory absence is not completed deletion, and C30 must not treat it as such. Worker scheduling (RECON-05D) runs that expiry path via `run_retained_assertion_ttl_expiry` → `VaultDurableAssertionStore.expire_ttl` against **PrivateVault**; it does not use the ingest/Alembic operational store (`ENIGMA_DATABASE_URL`). Future crypto (not implemented here): validity expires → current projections stop using it → expiry worker propagates invalidation → retained records removed → future crypto layer destroys relevant key material.
 
 ## Semantic recall (index, not memory)
 
