@@ -17,6 +17,18 @@ This is **not** a claim of impossibility under active malware running as the use
 
 ## Decision
 
+### Transitional dual-store architecture (RECON-04A)
+
+Private mode uses **two durable SQLite stores** during the SEC-01 foundation tranche. They are **not merged** in this phase; future unification is deferred.
+
+| Store | Role | Default path | Engine |
+| --- | --- | --- | --- |
+| **PrivateVault** (this ADR) | Canonical encrypted retained / derived memory | ENIGMA_HOME private vault.db plus blobs and audit dirs | SQLCipher via sqlcipher3 |
+| **M00a operational DB** | Ingest / sync / API operational tables (Alembic) | XDG share personal-enigma private.db (unchanged) | Plain SQLite via ENIGMA_DATABASE_URL and apps/api/db |
+
+**Crossover rules (transitional):** PrivateVault does not replace apps/api/db, ENIGMA_DATABASE_URL, or worker open_worker_store(). No migration between stores in RECON-04A.
+
+
 ### Private vault layout
 
 Private mode persists under `~/.enigma/private/` (configurable via `ENIGMA_HOME` / `ENIGMA_PRIVATE_STORAGE_ROOT`). Demo and Shadow use sibling roots per [ADR-005](./005-demo-private-storage-roots.md) and [ADR-008](./008-shadow-storage-roots.md) — never shared DB files, HMAC keys, or blob directories.

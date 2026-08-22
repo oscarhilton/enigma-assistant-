@@ -16,6 +16,9 @@ dependencies = [
   "personal-enigma-simulation",
   "personal-enigma-fixtures",
   "personal-enigma-transformation",
+  "cryptography>=44.0.0",
+  "sqlcipher3>=0.6.2",
+  "keyring>=25.7.0",
 ]
 
 [project.scripts]
