@@ -49,6 +49,7 @@ from personal_enigma.cursor_relay.pr_target import (
     validate_existing_pr_head,
 )
 from personal_enigma.cursor_relay.quotas import QuotaError, QuotaTracker
+from personal_enigma.cursor_relay.review_outcome import extract_review_outcome
 
 MCP_TOOLS = ("dispatch", "status", "follow_up", "request_review", "cancel")
 
@@ -379,7 +380,8 @@ class RelayService:
         if run_id:
             run = self.cursor.get_run(agent_id, run_id)
 
-        # Never return raw transcripts — only lifecycle metadata.
+        # Never return raw transcripts — lifecycle metadata plus structured
+        # review outcome extracted from Cursor's terminal ``result`` when present.
         status = run.get("status") or agent.get("status") or "UNKNOWN"
         branches = ((run.get("git") or {}).get("branches")) or []
         prs = []
@@ -397,22 +399,35 @@ class RelayService:
         actual_head = branches[0].get("branch") if branches else None
         requested = params.get("head_branch")
         head = str(actual_head or PENDING_BRANCH)
+        review = extract_review_outcome(run=run, agent=agent)
+        extra_observed: dict[str, Any] = {
+            "lifecycle_status": status,
+            "agent_url": agent.get("url"),
+            "requested_head_branch": requested,
+            "actual_head_branch": actual_head,
+            "config": config_public_dict(self.config),
+        }
+        extra_observed.update(review)
+        verdict = review.get("review_verdict")
+        summary = f"Agent {agent_id} status={status}"
+        if isinstance(verdict, str):
+            summary = f"{summary} review_verdict={verdict}"
+        blocked = verdict == "BLOCK"
         handoff = success_handoff_for_tool(
             tool="status",
             agent_id=agent_id,
             run_id=run_id or None,
             branch=head,
             ticket_ids=_ticket_ids(params),
-            summary=f"Agent {agent_id} status={status}",
-            action_kind="no_action",
+            summary=summary,
+            action_kind="stop_needs_human" if blocked else "no_action",
             open_prs=prs,
-            extra_observed={
-                "lifecycle_status": status,
-                "agent_url": agent.get("url"),
-                "requested_head_branch": requested,
-                "actual_head_branch": actual_head,
-                "config": config_public_dict(self.config),
-            },
+            extra_observed=extra_observed,
+            residual_risks=list(review.get("review_residual_risks") or []),
+            requires_oscar=blocked,
+            oscar_reasons=(
+                [f"Review verdict BLOCK on agent {agent_id}"] if blocked else None
+            ),
         )
         self.audit.emit(
             tool="status",

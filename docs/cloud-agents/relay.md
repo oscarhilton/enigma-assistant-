@@ -84,7 +84,7 @@ Marking setup “complete” while Overview has no Name / `environment-info.name
 | Tool | AuthZ | Notes |
 | --- | --- | --- |
 | `dispatch` | `dispatcher`+ | Requires `idempotency_key`; create-path quotas |
-| `status` | `reader`+ | Server-side authenticated; read-only authz |
+| `status` | `reader`+ | Server-side authenticated; read-only authz. On terminal runs, extracts structured `review_verdict` (APPROVE/BLOCK) plus concise findings/risks from Cursor `result` when present — never a raw transcript; omitted when Cursor provides no result |
 | `follow_up` | `dispatcher`+ | Write-capable; requires `idempotency_key` |
 | `request_review` | `approver`+ | No merge; idempotency when creating a run |
 | `cancel` | `approver`+ | Approval-gated |

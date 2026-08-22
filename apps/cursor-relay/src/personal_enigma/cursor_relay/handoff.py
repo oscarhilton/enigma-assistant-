@@ -121,6 +121,9 @@ def success_handoff_for_tool(
     action_kind: str = "no_action",
     open_prs: list[dict[str, Any]] | None = None,
     extra_observed: dict[str, Any] | None = None,
+    residual_risks: list[str] | None = None,
+    requires_oscar: bool = False,
+    oscar_reasons: list[str] | None = None,
 ) -> dict[str, Any]:
     observed_extra = {
         "relay_tool": tool,
@@ -144,6 +147,9 @@ def success_handoff_for_tool(
             }
         ],
         extra_observed=observed_extra,
+        residual_risks=residual_risks,
+        requires_oscar=requires_oscar,
+        oscar_reasons=oscar_reasons,
     )
 
 
