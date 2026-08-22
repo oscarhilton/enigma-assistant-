@@ -31,11 +31,13 @@
 
 ## Acceptance criteria
 
-- [ ] Evidence/state change (clock jump, attestation, receipt, blocker cleared, calendar cancel) **recomputes** the branch tree
+- [ ] Evidence/state change (clock jump, attestation, receipt, blocker cleared, calendar cancel, **herald-class** forcing change) **recomputes** the branch tree
 - [ ] Stale branches are **visibly invalid** in Lens (label + not selectable as current)
 - [ ] New PV does not silently inherit ply-0 from the stale tree
 - [ ] Example: dentist cancel event `w2-cal-dentist-cancel` → overlap line invalid; `after_cancel: do_not_renag` holds
+- [ ] Example: calendar adapter failure → coverage flagged incomplete; Goose copy must not mask the gap; search must not treat missing events as free time
 - [ ] No COMMIT as a side effect of recalculation
+- [ ] `herald` triggers replan/quiescence; it does not cast a ranking vote
 
 ## Exit conditions
 

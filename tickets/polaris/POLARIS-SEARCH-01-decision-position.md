@@ -33,10 +33,11 @@
 
 ## Acceptance criteria
 
-- [ ] Typed `DecisionPosition` is a **minimum sufficient** snapshot of decision-relevant Context Graph (clock, open loops, blockers, availability/conflicts, attention qualification, resource/energy suitability, authority facts, provenance refs, assumptions)
+- [ ] Typed `DecisionPosition` is a **minimum sufficient** snapshot of decision-relevant Context Graph (clock, open loops, blockers, availability/conflicts, attention qualification, resource/energy suitability, **embodied observables** as *state* — fuel/appetite, exertion, recovery debt, momentum — not extra planners, authority facts, provenance refs, assumptions)
 - [ ] Same compiled inputs → stable key (transposition-ready); clock injection via existing `Clock` ([ADR-006](../../docs/adr/006-clock-injection.md))
 - [ ] Excludes `PrivatePerson`, wholesale Notes, raw MIME, chat CoT, evaluator labels
 - [ ] Unit table: Jan 15 dentist/critique overlap fixture compiles two overlapping calendar intervals + no manufactured obligation from standup existence
+- [ ] Embodied observables are situational and evidence-linked ([council.md](../../docs/architecture/council.md) “planets embody”); missing calendar coverage is represented, not treated as empty availability
 - [ ] Docs: package README pointer to [ADR-045](../../docs/adr/045-decision-position-moves-legality.md)
 
 ## Exit conditions

@@ -38,7 +38,8 @@
 - [ ] Planning depth may exceed execution depth; **only ply-0** is the executable suggestion
 - [ ] Future nodes carry **fading confidence** with depth
 - [ ] Chance / uncertainty branches (reply happens | doesn’t) are representable
-- [ ] Quiescence: extend in unstable/forcing positions (overlap, deadline cliff, blocker arrival) then stop
+- [ ] Quiescence: extend in unstable/forcing positions (overlap, deadline cliff, blocker arrival) then stop. **`herald`** (Sirius-as-Herald) is the forcing-change detector that can trigger quiescence / replan — it is **not** a value head that outranks `recovery` or `craft`
+- [ ] Incomplete coverage (`coverage_adequate: false`) must not invent empty calendars as free time
 - [ ] Pruning uses 03 effort hints + 02 legality; never prunes REST solely as “unproductive”
 - [ ] Principal variation is hypotheses, not a granted plan
 - [ ] “20 moves” is a test budget cap, not a product SLA
@@ -54,6 +55,7 @@ Done when a deterministic search on frozen Alex positions returns a PV + ply-0 +
 - Fade: confidence(ply n) ≥ confidence(ply n+1) on the PV
 - Negative: API/user payload must not include “committed_line” of length > 1
 - Chance node: waiting-on-someone has at least two successor chance outcomes
+- Coverage gap fixture: calendar fail → ply-0 is incomplete-picture, not deep work
 
 ## Privacy constraints
 

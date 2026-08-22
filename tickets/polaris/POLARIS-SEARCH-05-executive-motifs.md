@@ -33,10 +33,10 @@
 
 ## Acceptance criteria
 
-- [ ] Motifs are **position classes** ([ADR-047](../../docs/adr/047-executive-motifs-and-search-efficiency.md)): at least double-booked, waiting-on-someone, deadline compression, blocked-task, low-energy mismatch
+- [ ] Motifs are **position classes** ([ADR-047](../../docs/adr/047-executive-motifs-and-search-efficiency.md)): at least double-booked, waiting-on-someone, deadline compression, blocked-task, low-energy mismatch; plus `fuel_mismatch`, `recovery_pressure`, `coverage_inadequate` when ALEX-EVAL-01 fixtures exist
 - [ ] Strategy scripts are inspectable move-ordering / prune **priors** over legal moves only
 - [ ] Transposition-style reuse keys `DecisionPosition`; stale evidence invalidates reuse
-- [ ] Quiescence triggers for forcing motifs (conflict, deadline cliff)
+- [ ] Quiescence triggers for forcing motifs (conflict, deadline cliff) come from position/herald signals, not from a voting Sirius seat
 - [ ] C12 YAML remains product-acceptance; this ticket does not add architecture-named utterances to scripts
 - [ ] Example: `dentist-critique-overlap` classified `double_booked` → prior prefers `resolve_calendar_conflict` before deep work — still legal-only
 

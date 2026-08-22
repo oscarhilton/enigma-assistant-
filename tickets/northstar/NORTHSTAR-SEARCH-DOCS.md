@@ -8,10 +8,11 @@
 
 ## Package boundary (hard)
 
-- May edit: `docs/adr/044-*.md` … `docs/adr/048-*.md`, `docs/architecture/polaris-search.md`, `docs/architecture/eval-stubs/life_position.v0.json`
-- May amend (pointer-only, no doctrine rewrite): `docs/architecture/north-star.md`, `overview.md`, `ethics.md`, `next-action.md`, `cortex-visualizer.md`, `milestone-map.md`
-- May edit: `tickets/northstar/**`, `tickets/polaris/**`, `tickets/demo-evaluation/ALEX-EVAL-*.md`, `tickets/conversational-ui/BRAIN-*.md`, `tickets/README.md`
-- Must not edit: production code, tests, UI, schemas, migrations, Python/TS dependencies, `scenarios/alex-v1/**` timeline/content, donor ADRs 030–038 wholesale
+- May edit: `docs/adr/044-*.md` … `docs/adr/048-*.md`, `docs/architecture/polaris-search.md`, `docs/architecture/council.md`, `docs/architecture/eval-stubs/life_position.v0.json`
+- May amend (pointer-only, no doctrine rewrite): `docs/architecture/north-star.md`, `overview.md`, `ethics.md`, `next-action.md`, `cortex-visualizer.md`, `milestone-map.md`, `AGENTS.md`
+- May edit: `tickets/northstar/**`, `tickets/polaris/**`, `tickets/demo-evaluation/ALEX-EVAL-*.md`, `tickets/conversational-ui/BRAIN-*.md`, `tickets/README.md`, `tickets/conversational-ui/README.md`
+- Must not edit: production code, tests, UI, schemas (other than the eval stub above), migrations, Python/TS dependencies, `scenarios/alex-v1/**` timeline/content, donor ADRs 030–038 wholesale
+- Must not: mint ADR-049 for Council; mint a `COUNCIL-01` ticket — Council is product ontology over ADR-044–048, carried by this ticket + POLARIS-SEARCH-03 + BRAIN-* + ALEX-EVAL-01
 
 ## Hard depends
 
@@ -33,8 +34,9 @@ Capture Polaris receding-horizon search **against** existing constitution, not a
 - Enigma / Polaris / Foundry / Stimulus / Context Graph
 - Authority mapped to READ / PREVIEW / PREPARE / COMMIT **on** ADR-019 / ADR-029 (not a second ladder)
 - Memory / provenance / minimisation via ADR-023 / 029 / 036 / 037
-- Search ADRs 044–048
+- Search ADRs 044–048 (Council is a **projection** over them, not a ninth constitution)
 - Remaining ADR-030–038 review (files vs references)
+- Product language: Enigma / Vault / Council / Polaris / Goose / Foundry ([council.md](../../docs/architecture/council.md)) — functional seats before star names; internals stay typed
 
 ## ADR number mapping (this wave)
 
@@ -76,6 +78,9 @@ Restore of missing 030–035 / 038 / `product-characters.md` / `enigma-interior.
 | READ/PREVIEW/PREPARE/COMMIT vs A0–A5 / ADR-029 speech acts | Mapping table in ADR-044; no parallel ladder |
 | Missing `product-characters.md` linked from North Star | Dangling links removed; historical pointer in this ticket |
 | C30 Brain / inventory (not on `main`) | Not restored; Lens is search introspection, not a memory store |
+| North Star “Do not add nouns” vs Council | Council is an **inspectable projection**, not a front-page cast. Star aliases (Aldebaran / Spica / Canopus) stay off the always-visible layer. Conversational Assistant remains ADR-020 language boundary; Polaris is navigator/chair in product copy, not the hosted model |
+| Foundry as eval factory vs effector | One Foundry: capabilities + legality/effects, later physical/UI externalisation. Not a second searcher |
+| Dedicated COUNCIL-01 / ADR-049 | **Not created.** Seats, ranking attribution, and Goose coverage rules fit existing 044–048 + POLARIS-SEARCH-03 / BRAIN / ALEX-EVAL tickets |
 
 ## Non-goals
 
@@ -87,11 +92,12 @@ Restore of missing 030–035 / 038 / `product-characters.md` / `enigma-interior.
 ## Acceptance criteria
 
 - [x] ADR-044–048 accepted as docs-only on this branch
-- [x] [polaris-search.md](../../docs/architecture/polaris-search.md) names Enigma / Polaris / Foundry / Context Graph / Stimulus / Lens
-- [x] North Star gains squeeze 8 (local choice, not life optimisation) without replacing the thesis
-- [x] Next Action + Cortex docs point at Polaris without merging surfaces
-- [x] Implementation tickets exist with hard/soft deps and exit conditions
-- [x] Example Alex life position in docs (dentist/critique overlap) — no `scenarios/` edits
+- [x] [polaris-search.md](../../docs/architecture/polaris-search.md) names Enigma / Vault / Council / Polaris / Goose / Foundry / Context Graph / Stimulus / Lens
+- [x] [council.md](../../docs/architecture/council.md) records approved product cosmology without a competing ADR number
+- [x] North Star gains squeeze 8 (local choice, not life optimisation) without replacing the thesis; Council stays inspectable, not a theme-park cast
+- [x] Next Action + Cortex docs point at Polaris/Lens/Council without merging surfaces
+- [x] Implementation tickets exist with hard/soft deps and exit conditions (no extra Council ticket)
+- [x] Example Alex life positions in docs (dentist/critique overlap; nourishment ranking; calendar coverage gap) — no `scenarios/` edits
 - [x] ADR-030–038 review recorded above
 - [ ] Status → `done` on merge of this PR (Oscar/reviewer)
 
@@ -101,9 +107,10 @@ This ticket is **done** when the docs/tickets PR merges with ADRs 044–048 and 
 
 ## Test plan
 
-- Relative markdown links from new/amended docs resolve
+- Relative markdown links from new/amended docs resolve (`council.md`, ADRs 044–048, polaris-search, tickets)
 - `uv run ruff check .` (no Python changes expected)
 - Canonical lightweight: `uv run pytest apps/api/tests/test_turn_kernel.py` · `uv run ruff check .` (docs-only; no behavioural tests)
+- Eval stub JSON parses; new motif/lens enums cover ALEX-EVAL-01 sketches
 
 ## Privacy constraints
 

@@ -1,6 +1,6 @@
 # Polaris search programme
 
-Receding-horizon “life chess engine” for WORTH DOING. Docs constitution: [polaris-search.md](../../docs/architecture/polaris-search.md) · [ADR-044](../../docs/adr/044-receding-horizon-action-search.md)–[048](../../docs/adr/048-structured-search-trace-and-lens.md).
+Receding-horizon “life chess engine” for WORTH DOING. Docs constitution: [polaris-search.md](../../docs/architecture/polaris-search.md) · [council.md](../../docs/architecture/council.md) · [ADR-044](../../docs/adr/044-receding-horizon-action-search.md)–[048](../../docs/adr/048-structured-search-trace-and-lens.md).
 
 **Status:** design captured. Claim **one ticket per agent**. Do not claim `future` tickets until hard deps are `done`.
 
@@ -8,7 +8,7 @@ Receding-horizon “life chess engine” for WORTH DOING. Docs constitution: [po
 
 > Enigma does not optimise a person's life. It helps the user choose among locally available actions according to their own goals, constraints and current circumstances.
 
-Search depth is an internal budget. Only ply-0 may be authorised. Lens shows structured traces, not chain-of-thought.
+Search depth is an internal budget. Only ply-0 may be authorised. The Council is an advisory **projection** over one Enigma state — specialist lenses, not extra agents. Lens shows structured traces and Council assessments, not chain-of-thought.
 
 ## Tickets
 
@@ -53,7 +53,29 @@ NORTHSTAR-SEARCH-DOCS
 
 | Name | Means |
 | --- | --- |
+| Enigma | Hidden substrate / canonical world model — not a character |
+| Vault | Protected retained memory (ADR-022 / ADR-036) |
+| Council | Advisory projection of specialist assessments over one position |
+| Polaris | Chair / navigator — receding-horizon search; never overrides the user |
+| Goose | Familiar / courier — no authority; must name incomplete coverage |
+| Foundry | Capabilities + legality/effects; later physical/UI externalisation — not a searcher |
 | C12 Life Scripts | Product-acceptance episodes |
 | Strategy scripts | Polaris opening-book priors |
 | Cortex | What Enigma did (C10) |
-| Lens | Structured PV explorer (`BRAIN-*` tickets) |
+| Lens | Structured PV explorer + Council assessments (`BRAIN-*` tickets) |
+
+Functional Council seats (internal ids; star aliases are copy only — [council.md](../../docs/architecture/council.md)):
+
+| Internal id | Function | v1 |
+| --- | --- | --- |
+| `navigation` | Chair aggregate | Polaris (not a peer voter) |
+| `body` | Training / capability / session fit | Definite (Aldebaran) |
+| `nourishment` | Fuel / meals / groceries | Likely (Spica) |
+| `recovery` | Sleep / fatigue / pacing | Definite (Canopus) |
+| `people` | Promises / coordination | Likely; **name TBD** |
+| `craft` | Work units / switch cost / blockers | Likely; **name TBD** |
+| `stewardship` | Bills / admin / household | Candidate — earn via scenarios |
+| `herald` | Forcing-change / replan | Sirius-as-Herald — not a voting peer |
+| `chronicle` | Long horizon | Optional projection (Vega) |
+
+Do **not** rename `ContextGraph`, `DecisionPosition`, `CandidateMove`, `PrivateVault`, `RetentionDecision`, or `SemanticRecall` after stars.

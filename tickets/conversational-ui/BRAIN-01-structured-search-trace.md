@@ -33,11 +33,11 @@
 
 ## Acceptance criteria
 
-- [ ] Typed machine-readable trace: candidates, rejected/pruned reasons, evidence refs, uncertainty, assumptions, principal variation, authority, invalidation triggers ([ADR-048](../../docs/adr/048-structured-search-trace-and-lens.md))
-- [ ] No deliberation/CoT/hidden thought fields; reason **codes** not essays
+- [ ] Typed machine-readable trace: candidates, rejected/pruned reasons, evidence refs, uncertainty, assumptions, principal variation, authority, invalidation triggers, **specialist assessments** (per-lens factor bundles), **ranking attribution** (which lens ids materially changed ply-0), **coverage** ([ADR-048](../../docs/adr/048-structured-search-trace-and-lens.md) · [council.md](../../docs/architecture/council.md))
+- [ ] No deliberation/CoT/hidden thought fields; reason **codes** not essays; no “Aldebaran felt tired”
 - [ ] Confidence present per ply and fades with depth (from 04)
 - [ ] Feeds Lens; Cortex may ignore or show a single “search completed” event — not the tree
-- [ ] Round-trip tests; golden dentist-critique trace fixture
+- [ ] Round-trip tests; golden dentist-critique trace fixture **and** a coverage-gap fixture (`coverage_adequate: false`)
 
 ## Exit conditions
 
@@ -47,6 +47,7 @@ Done when BRAIN-02 can render from the schema alone (no live model transcript).
 
 - Schema reject unknown `chain_of_thought` / `thinking` keys
 - Invalidation trigger list non-empty on blocked-task fixture
+- Ranking attribution present on token-fuel golden trace (`nourishment` in `ranking_changed_by`)
 - Egress: raw trace must not be the default remote prompt ([ADR-029](../../docs/adr/029-context-compilation-request-shaped-memory.md))
 
 ## Privacy constraints
