@@ -34,7 +34,7 @@ Visibility (stop the theme park — sitcom brief historically in `product-charac
 | Layer | Who / what |
 | --- | --- |
 | Always visible / intuitive | You, Polaris (navigator), THE Goose, Cases |
-| Inspectable when relevant | Council (specialist lenses), Vault / Memory, Foundry / Machine, Sources |
+| Inspectable when relevant | Council (specialist lenses), Vault / Memory, Foundry / Machine, Harbour (readiness), Sources |
 | Hidden substrate | Enigma (canonical world model — not a speaking character) |
 | Forensic / advanced | Cortex, Lens, Observatory (programme truth), EvidenceBundle, lineage, egress, authority, epistemic status |
 
@@ -47,6 +47,7 @@ Next strategic frontiers (orthogonal; none authorise runtime here):
 - **Programme truth (engineering)** — Observatory first: what exists / is wired / tested / running / usable, with derived evidence, not a typed-in percent ([observatory.md](./observatory.md)).
 - **The relationship** (relational bootstrap: product taste + explicit preferences + shared motifs + current register). Humour constitution is historical ADR-038 — file not on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md).
 - **Local choice under search** — later than Observatory 01–02. Polaris receding-horizon planning over a compiled life position, never a universal life score ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)).
+- **Activity readiness** — Harbour: CAN they begin, and what stands between wanting and starting? PolarIS still decides whether now is a good move ([harbour.md](./harbour.md)). No star name. Not a tyrant.
 
 Do not implement those runtimes from this page.
 
@@ -115,7 +116,7 @@ Share **answers and assertions, not state**. "Can Oscar accept Friday 21:00?" �
 
 ### 8. Local choice, not life optimisation
 
-Enigma does not optimise a person's life. Polaris may **search** locally available futures and recommend the next bounded move; the Council may **read** specialist factors over that position. Neither may commit a principal variation, invent a universal life score, govern the user, or skip READ / PREVIEW / PREPARE / COMMIT ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md) · [ADR-046](../adr/046-local-evaluation-under-uncertainty.md)).
+Enigma does not optimise a person's life. Polaris may **search** locally available futures and recommend the next bounded move; the Council may **read** specialist factors over that position; Harbour may compile **readiness** (transition friction) without becoming a productivity tyrant. None may commit a principal variation, invent a universal life score, govern the user, or skip READ / PREVIEW / PREPARE / COMMIT ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [harbour.md](./harbour.md) · [ADR-044](../adr/044-receding-horizon-action-search.md) · [ADR-046](../adr/046-local-evaluation-under-uncertainty.md)).
 
 ## Pointers
 
@@ -132,3 +133,4 @@ Enigma does not optimise a person's life. Polaris may **search** locally availab
 | Safe agency / visibility | Visibility table on this page (historical `product-characters.md` / ADR-038 / C33 not on `main` — [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)) |
 | Local choice / search | [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md) |
 | Programme truth | [observatory.md](./observatory.md) (engineering; not a Council seat) |
+| Activity readiness | [harbour.md](./harbour.md) (CAN begin; not a planner, not a star) |

@@ -3,7 +3,7 @@
 **Status:** Approved engineering surface — documentation only; no runtime in this wave  
 **Date:** 2026-08-22  
 **Tickets:** [OBSERVATORY-01](../../tickets/observatory/OBSERVATORY-01-truth-registry.md)–[03](../../tickets/observatory/OBSERVATORY-03-runtime-probes.md)  
-**Product ontology (unchanged):** [council.md](./council.md) · [polaris-search.md](./polaris-search.md)
+**Product ontology (unchanged):** [council.md](./council.md) · [polaris-search.md](./polaris-search.md) · [harbour.md](./harbour.md)
 
 > Architecture first. Mythology second.  
 > Progress is derived from explicit ticket / exit-condition / evidence state.  
@@ -24,6 +24,15 @@ The Observatory is an **engineering-facing** truth surface. It is not Enigma, no
 | What is missing, and why? | absent / broken edge | Dependency state + reason codes |
 
 **Can I use this now?** is `USABLE == true` for that capability — never a vibe, never a dashboard percent.
+
+Visible product phrases map onto this ladder (do **not** invent a second status enum):
+
+| Phrase | Rungs that may claim it |
+| --- | --- |
+| Implemented | `IMPLEMENTED` |
+| Wired | `WIRED` |
+| Runtime-verified | `VERIFIED` evidenced **and** `RUNNING` (probe / receipt) |
+| User-usable | `USABLE` |
 
 ## Status ladder (monotonic evidence, not a mood)
 
@@ -64,8 +73,9 @@ Schema sketch: [eval-stubs/capability_status.v0.json](./eval-stubs/capability_st
 | **Cortex** | What did Enigma *do*? | [cortex-visualizer.md](./cortex-visualizer.md) |
 | **Lens** | What lines did Polaris *search*? | [ADR-048](../adr/048-structured-search-trace-and-lens.md) |
 | **Council** | How do specialist lenses *read* a position? | [council.md](./council.md) |
+| **Harbour** | What stands between intention and starting? | [harbour.md](./harbour.md) — evidence / blockers only, **never CoT** |
 
-Do **not** add Observatory seats to the Council. Do **not** name new stars to decorate the graph.
+Do **not** add Observatory or Harbour seats to the Council. Do **not** name new stars to decorate the graph. Later, a capability detail pane may attach a Harbour readiness payload (`blockers[]`, `unknowns`, evidence refs) without showing deliberation.
 
 ## Next-sprint order (visible deliverable first)
 
@@ -92,9 +102,12 @@ OBSERVATORY-03  runtime / wiring probes (RUNNING + USABLE evidence)
         │
         ▼
 Polaris Search / Lens (BRAIN-*) — later; internal chain unchanged
+        │
+        ▼
+HARBOUR-01…03  readiness (after PolarIS-01 + RECON-07)
 ```
 
-Polaris / Brain View keep their existing ticket graph ([tickets/polaris/README.md](../../tickets/polaris/README.md)). Do not claim `POLARIS-SEARCH-*` implementation until Observatory 01–02 are `done` (programme gate, not a rewrite of PolarIS internals).
+Polaris / Brain View keep their existing ticket graph ([tickets/polaris/README.md](../../tickets/polaris/README.md)). Do not claim `POLARIS-SEARCH-*` implementation until Observatory 01–02 are `done` (programme gate, not a rewrite of PolarIS internals). Harbour does not join the PolarIS graph ([tickets/harbour/](../../tickets/harbour/)).
 
 ## Out of scope
 

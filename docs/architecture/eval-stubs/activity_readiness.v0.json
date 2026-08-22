@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enigma.local/eval-stubs/activity_readiness.v0.json",
+  "title": "ActivityReadinessV0",
+  "description": "Evaluator/docs sketch of a Harbour readiness result. Not ingested by Enigma. Unknowns stay unknown. See docs/architecture/harbour.md.",
+  "type": "object",
+  "required": ["id", "activity", "epistemics", "blockers", "transition_cost"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "activity": {
+      "type": "string",
+      "description": "Stable activity / intention family (e.g. make_music)."
+    },
+    "intention_id": {
+      "type": "string",
+      "description": "Open-loop / intention handle if already persisted. Absent = compile-only."
+    },
+    "clock": { "type": "string", "format": "date-time" },
+    "epistemics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["known", "unknown"],
+      "properties": {
+        "known": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fact" }
+        },
+        "unknown": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fact" },
+          "description": "Must remain unknown. Implementations MUST reject filling these as known."
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "kind"],
+        "properties": {
+          "code": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "prerequisite",
+              "resource",
+              "location",
+              "software_state",
+              "unknown",
+              "authority"
+            ]
+          },
+          "evidence_ref": { "type": "string" }
+        }
+      }
+    },
+    "transition_cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["band"],
+      "properties": {
+        "band": {
+          "type": "string",
+          "enum": ["trivial", "small", "substantial", "unknown"]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "minimum_viable_start": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "variant_id": { "type": "string" },
+        "life_script_id": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "ready": {
+      "type": "boolean",
+      "description": "CAN begin some valid variant. Never means SHOULD now (Polaris)."
+    },
+    "deferred_intention_preserved": {
+      "type": "boolean",
+      "description": "If PolarIS defers, this must be true. Discarding the intention fails the eval."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Author reminder. Not a status override."
+    }
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "status": { "type": "string", "enum": ["known", "unknown"] },
+        "value": { "type": "string" },
+        "evidence_ref": { "type": "string" }
+      }
+    }
+  }
+}

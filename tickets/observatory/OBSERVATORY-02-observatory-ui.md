@@ -37,6 +37,7 @@ Include:
 - A clear **Can I use this now?** (`USABLE` or the demotion reason)
 - Current sprint / progress as **counts of derived rungs**, never a typed-in percent
 - Later hook for Alex benchmark integration ([RECON-08](../recon/RECON-08-alex-eval-catalogue.md) / ALEX-EVAL) — placeholder panel is enough
+- Later hook for Harbour readiness evidence / blockers ([harbour.md](../../docs/architecture/harbour.md)) — ids and reason codes only, **no chain-of-thought**
 
 Celestial visual language is **restrained and truthful**. Empty sky is honest.
 
@@ -52,8 +53,9 @@ Celestial visual language is **restrained and truthful**. Empty sky is honest.
 
 - [ ] Route is engineering/lab (Alex Lab or `/observatory`), **not** the conversational home
 - [ ] Graph nodes = capabilities; edges = hard deps; missing/broken edges labelled with reason codes
-- [ ] Detail pane: six rungs + evidence refs + last_verified + broken_wires
+- [ ] Detail pane: six rungs + evidence refs + last_verified + broken_wires; implemented / wired / runtime-verified / user-usable remain visibly distinct
 - [ ] **Can I use this now?** is a boolean + reason, bound to derived `USABLE`
+- [ ] Placeholder for Harbour `blockers[]` / unknowns (empty until HARBOUR-01); must not render deliberation text
 - [ ] Sprint strip uses the programme order in [README.md](./README.md) (01→02→RECON-06…); progress = rung counts
 - [ ] Copy tests: no “complete”, “feeling lucky”, or star-named Council aliases as node titles
 - [ ] Frozen: inspect ≠ control plane

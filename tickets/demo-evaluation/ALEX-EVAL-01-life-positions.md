@@ -21,6 +21,7 @@
 - POLARIS-SEARCH-04 (positions should be searchable; stubs can land against 01 snapshots)
 - R01 support contracts (reuse scenario ids, do not ingest them at runtime)
 - C12 Life Scripts as **sources of moments**, not as the position format
+- [RECON-08](../recon/RECON-08-alex-eval-catalogue.md) `alex-music-readiness` — cite, do not fork; readiness invariants are additive on the eval stub
 
 ## Unlocks / enhances
 
@@ -123,6 +124,7 @@ invariants:
 
 - [ ] `stewardship` is **not** forced onto every position; only add it when an admin/household fixture actually changes ranking
 - [ ] No universal life score; no ranking of Alex as a person
+- [ ] May **cite** RECON-08 `alex-music-readiness` (Harbour vs PolarIS split); do not fork a second music Alex
 
 ## Exit conditions
 

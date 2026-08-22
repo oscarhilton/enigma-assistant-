@@ -33,7 +33,9 @@
           "social_coordination",
           "fuel_mismatch",
           "recovery_pressure",
-          "coverage_inadequate"
+          "coverage_inadequate",
+          "activity_readiness",
+          "task_initiation"
         ]
       }
     },
@@ -114,6 +116,19 @@
         "coverage_adequate": {
           "type": "boolean",
           "description": "If false, ply-0 must not assume missing sources are empty (e.g. calendar adapter failed → incomplete picture, not a free afternoon)."
+        },
+        "unknowns_preserved": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Fact ids that must remain unknown. Filling them fails the eval (Harbour / Goose)."
+        },
+        "polaris_vs_harbour": {
+          "type": "string",
+          "description": "Optional responsibility split (e.g. readiness_ready_does_not_imply_ply0_now)."
+        },
+        "if_polaris_defers": {
+          "type": "string",
+          "description": "Optional (e.g. intention_preserved). Discarding a deferred intention fails."
         }
       }
     },

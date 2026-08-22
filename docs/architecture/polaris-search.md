@@ -8,6 +8,8 @@
 > **Search deeply. Act shallowly. Replan constantly.**
 >
 > **Enigma does not optimise a person's life. It helps the user choose among locally available actions according to their own goals, constraints and current circumstances.**
+>
+> **Polaris decides whether now is a good move. Harbour gets the user across the gap between wanting and starting.** ([harbour.md](./harbour.md))
 
 This page does not authorise a planner, a Brain UI, or a new authority ladder. It names how search **fits** the existing constitution.
 
@@ -31,11 +33,16 @@ STIMULUS (clock, ingest, attestation, receipts, user choice, herald-class change
       VAULT                         retained, user-controlled, forgettable
         ↓ compile
   DecisionPosition                  minimum decision-relevant snapshot
-        ↓
-     FOUNDRY                        capabilities → candidates → legality
-                                    (later: physical / UI externalisation)
-        ↓ legal moves
-     POLARIS (chair)                receding-horizon search · aggregates lenses
+        ├───────────────────────────┐
+        ↓                           ↓
+     FOUNDRY                     HARBOUR
+     capabilities →              CAN they begin?
+     legal candidates            transition friction
+     (system may attempt)        (Life Script HOW graphs)
+        └───────────┬───────────────┘
+                    ↓
+     POLARIS (chair)                SHOULD this activity *now*?
+                                    (consumes readiness; does not own it)
         ↓ specialist assessments
      COUNCIL                        body / nourishment / recovery / people / craft / …
         ↓ ply-0 suggestion only
@@ -55,6 +62,7 @@ STIMULUS (clock, ingest, attestation, receipts, user choice, herald-class change
 | **Goose** | Fetch, carry, explain gaps | Familiar / messenger | Authority; masking missing evidence |
 | **Lens** | Inspectable PV + assessments | Engine analysis pane | CoT; click-to-COMMIT |
 | **Observatory** | Programme truth (specified → usable) | Engineering ledger | Council seat; Home sky; fake % |
+| **Harbour** | CAN begin; setup / transition friction | Readiness compiler | Second planner; star name; invent facts |
 
 **Stimulus** is any typed world change that updates the Context Graph: simulation/injected clock ([ADR-006](../adr/006-clock-injection.md)), source ingest, user attestation ([ADR-028](../adr/028-conversational-constitution-attestation-dialogue-support.md)), execution receipts (historical ADR-032 — file not on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)), rejects, and blocker arrivals. **Herald-class** changes (`herald` / Sirius-as-Herald) trigger replan or quiescence; they are not a voting eval head. Event Spine grammar (historical C28) is the intended substrate; this page does not restore that ticket.
 
@@ -186,12 +194,13 @@ invariants:
 
 ## Delivery order
 
-See [tickets/polaris/README.md](../../tickets/polaris/README.md). **Programme gate:** do not claim this implementation chain until Observatory 01–02 are `done` ([observatory.md](./observatory.md)). Internal PolarIS sequence is unchanged: docs → position → moves → eval → search → motifs → Alex positions → tournament → trace → Lens → live invalidation → shadow → controlled promotion.
+See [tickets/polaris/README.md](../../tickets/polaris/README.md). **Programme gate:** do not claim this implementation chain until Observatory 01–02 are `done` ([observatory.md](./observatory.md)). Internal PolarIS sequence is unchanged: docs → position → moves → eval → search → motifs → Alex positions → tournament → trace → Lens → live invalidation → shadow → controlled promotion. Harbour ([HARBOUR-01](../../tickets/harbour/HARBOUR-01-activity-readiness-model.md)…) starts after PolarIS-01 + RECON-07 and does not rewrite this graph.
 
 ## Out of scope (this page)
 
 - Runtime packages, schemas, UI, migrations
 - Restoring missing ADR-030–035 / 038 files or `product-characters.md` / `enigma-interior.md` (reviewed in NORTHSTAR-SEARCH-DOCS; not resurrected here)
 - Personality profiling, ADHD runtime flags, `ALEX_BIOGRAPHY.md`
-- Replacing Cortex, Goose, Observatory, or the conversational constitution
+- Replacing Cortex, Goose, Observatory, Harbour, or the conversational constitution
+- Harbour as a second searcher or a star-named Council seat
 - Star-named types (`class Aldebaran`); Council as a second world model

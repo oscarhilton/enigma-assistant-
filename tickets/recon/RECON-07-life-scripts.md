@@ -23,11 +23,13 @@
 
 ## Unlocks / enhances
 
-- RECON-08 (catalogue moments from scripts); C13 quality
+- RECON-08 (catalogue moments from scripts); C13 quality; [HARBOUR-01](../harbour/HARBOUR-01-activity-readiness-model.md) (startup graphs as HOW)
 
 ## Intent
 
 C12 already froze Life Scripts as **product-acceptance episodes**. After C28-class spine lands, scripts must run against **current main** causal events — not a ghost orchestrator.
+
+**First-class use case (this ticket):** readiness / startup graphs — **HOW** an activity normally gets started (prerequisites, variants, setup). Harbour later compiles those graphs; PolarIS still decides **whether now**. Scripts remain reusable descriptions, not a rigid automation engine.
 
 This is **not** a second Life Scripts constitution and **not** PolarIS strategy scripts.
 
@@ -37,17 +39,20 @@ This is **not** a second Life Scripts constitution and **not** PolarIS strategy 
 - `ALEX_BIOGRAPHY.md`
 - PolarIS opening book
 - New Council seats
+- Auto-playing setup as COMMIT
+- Implementing Harbour types (01)
 
 ## Acceptance criteria
 
 - [ ] Existing C12 frozen rules still hold (Alex speech; public-effect assertions)
 - [ ] At least one January script exercises a spine `work.*` / assist lifecycle event as a public effect (or defers with an explicit hole the Observatory can show)
+- [ ] At least one script (or adjacent evaluator YAML) encodes a **startup graph** with ≥2 variants (example: make-music full hardware vs headphones-only) without becoming an automation engine
 - [ ] Failures attribute to world/spine/capability — not “the model felt”
 - [ ] C12 ticket is not rewritten as `todo`
 
 ## Exit conditions
 
-Done when RECON-08 can cite scripted moments as catalogue sources without ingesting them into Enigma.
+Done when RECON-08 can cite scripted moments (including one readiness/startup graph) as catalogue sources without ingesting them into Enigma, and Harbour-01 can later attach types without rewriting C12.
 
 ## Test plan
 
