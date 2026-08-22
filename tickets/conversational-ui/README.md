@@ -86,6 +86,9 @@ C00 may use evaluation artifacts **only** to establish parity during development
 | [C37](./C37-goose-pixel-observation.md) | Goose pixel observation (dogfood idle/walk/return; not C36) | **done** ([#103](https://github.com/oscarhilton/enigma-assistant-/pull/103) observational infrastructure only) |
 | [C38](./C38-shared-uncertainty-collapse.md) | Shared uncertainty collapse (one investigation, many dependents) | **future** (spec only; after C28 · [#104](https://github.com/oscarhilton/enigma-assistant-/pull/104)) |
 | [C39](./C39-handoff-working-conclusion.md) | Handoff working conclusion (compiled view, not stored state) | **future** (spec only; after C27 · [ADR-029](../../docs/adr/029-context-compilation-request-shaped-memory.md)) |
+| [BRAIN-01](./BRAIN-01-structured-search-trace.md) | Structured Polaris search trace (not CoT) | **future** (after POLARIS-SEARCH-04) |
+| [BRAIN-02](./BRAIN-02-pv-explorer.md) | Lens PV explorer in Alex Lab | **future** (after BRAIN-01) |
+| [BRAIN-03](./BRAIN-03-live-recalculation.md) | Live invalidation of stale search branches | **future** (after BRAIN-02) |
 
 ## Programme state (2026-08-18)
 
@@ -100,6 +103,8 @@ PILOT-01 — Does Enigma actually make Oscar’s day easier?
 Do not implement P02/P03, C36, or extra Goose animations here.
 
 **Deferred architecture (`future`, do not claim during PILOT-01):** [C38](./C38-shared-uncertainty-collapse.md) shared uncertainty collapse · [C39](./C39-handoff-working-conclusion.md) handoff working conclusion. Spec capture only — no `DependencyReasoningOrchestrator`, no `ReasoningPayloadService`.
+
+**Polaris Lens (`BRAIN-*`, `future`):** structured search introspection in Alex Lab ([ADR-048](../../docs/adr/048-structured-search-trace-and-lens.md)). Not C10 Cortex, not chain-of-thought, not a control plane. Do not claim until [POLARIS-SEARCH-04](../polaris/POLARIS-SEARCH-04-receding-horizon-search.md) is `done`.
 
 ## First milestone (Alex)
 
@@ -142,6 +147,7 @@ M11 Gmail ingestion scaffold is **not** sufficient for live mailbox connection.
 - [docs/architecture/conversational-stream.md](../../docs/architecture/conversational-stream.md) · [C14](./C14-conversation-activity-stream.md)
 - [docs/architecture/tone-memory.md](../../docs/architecture/tone-memory.md) · [C11](./C11-tone-memory.md) (`future`)
 - [docs/architecture/cortex-visualizer.md](../../docs/architecture/cortex-visualizer.md) · [C10](./C10-cortex-brain-visualizer.md)
+- [docs/architecture/polaris-search.md](../../docs/architecture/polaris-search.md) · [BRAIN-01](./BRAIN-01-structured-search-trace.md)–[03](./BRAIN-03-live-recalculation.md) (`future`; Lens, not CoT)
 - [ADR-020 — LLM conversational boundary](../../docs/adr/020-llm-conversational-boundary-not-truth.md)
 - [ADR-027 — Streaming presentation adapter](../../docs/adr/027-streaming-presentation-adapter.md)
 - [ADR-021 — Personal data security boundary](../../docs/adr/021-personal-data-security-boundary.md) · [SEC programme](../security/)
