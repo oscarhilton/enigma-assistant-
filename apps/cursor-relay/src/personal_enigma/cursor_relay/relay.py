@@ -13,7 +13,7 @@ from personal_enigma.cursor_relay.allowlist import (
 from personal_enigma.cursor_relay.approval import (
     ApprovalError,
     enforce_write_policy,
-    parse_job_brief_auth,
+    is_plan_only_dry_run,
 )
 from personal_enigma.cursor_relay.audit import AuditLog, hash_prompt
 from personal_enigma.cursor_relay.auth import AuthenticatedCaller
@@ -231,6 +231,7 @@ class RelayService:
             job_brief=brief if isinstance(brief, dict) else None,
             auto_create_pr=bool(params.get("auto_create_pr", False)) and not pr_url,
             merge_requested=bool(params.get("merge", False)),
+            creating=True,
         )
 
         target = validate_dispatch_target(
@@ -289,7 +290,7 @@ class RelayService:
         )
 
         # Genuine dry_run: validate + redacted plan only — never POST /v1/agents.
-        if brief_auth.dry_run:
+        if is_plan_only_dry_run(brief_auth):
             handoff = success_handoff_for_tool(
                 tool="dispatch",
                 agent_id=None,
@@ -479,12 +480,13 @@ class RelayService:
 
         create_new = bool(params.get("create_run", params.get("agent_id") is None))
         brief = params.get("job_brief")
-        enforce_write_policy(
+        brief_auth = enforce_write_policy(
             "request_review",
             caller=caller,
             job_brief=brief if isinstance(brief, dict) else None,
             auto_create_pr=False,
             merge_requested=bool(params.get("merge", False)),
+            creating=create_new,
         )
 
         if create_new:
@@ -517,10 +519,9 @@ class RelayService:
                 review_lane=True,
                 uuid_to_name=mapping,
             )
-            brief_auth = parse_job_brief_auth(brief if isinstance(brief, dict) else None)
             redacted_plan = redact_create_payload(payload)
             env_name = canonicalize_environment_name(target.environment, uuid_to_name=mapping)
-            if brief_auth.dry_run:
+            if is_plan_only_dry_run(brief_auth):
                 handoff = success_handoff_for_tool(
                     tool="request_review",
                     agent_id=None,
@@ -563,6 +564,8 @@ class RelayService:
                 summary=f"Review agent {ref.agent_id} started (no merge)",
                 action_kind="request_review",
                 extra_observed={
+                    "dry_run": False,
+                    "mutating": True,
                     "prompt_hash": ph,
                     "merge": False,
                     "requested_head_branch": target.head_branch,
