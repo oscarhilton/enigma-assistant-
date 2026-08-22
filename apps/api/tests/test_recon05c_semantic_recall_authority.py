@@ -305,9 +305,19 @@ def test_recall_has_no_write_path(
 
 
 def test_adapter_and_tests_do_not_import_embeddings() -> None:
+    import ast
+
     import personal_enigma.api.storage.semantic_recall as adapter
 
-    module_source = Path(adapter.__file__).read_text(encoding="utf-8")
-    assert "personal_enigma.embeddings" not in module_source
-    test_source = Path(__file__).read_text(encoding="utf-8")
-    assert "personal_enigma.embeddings" not in test_source
+    def _imported_modules(path: Path) -> set[str]:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        names: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names.add(node.module)
+        return names
+
+    imported = _imported_modules(Path(adapter.__file__)) | _imported_modules(Path(__file__))
+    assert not any(name == "personal_enigma.embeddings" or name.startswith("personal_enigma.embeddings.") for name in imported)
