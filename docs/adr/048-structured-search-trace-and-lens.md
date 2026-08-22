@@ -37,8 +37,11 @@ Every search emits a **structured trace**, not a prose monologue. Minimum vocabu
 | Alternatives | Next-best legal lines |
 | Authority | Rung required vs granted per move |
 | Invalidation triggers | Which stimulus would stale this tree |
+| Specialist assessments | Per-lens factor bundles (`body`, `nourishment`, `recovery`, `people`, `craft`, …) with evidence refs |
+| Ranking attribution | Which lens ids **materially changed** ply-0 vs a baseline without them |
+| Coverage | Source/capability adequacy (calendar failed → incomplete picture, not a free day) |
 
-Deliberation text, hidden chain-of-thought, and “THE Goose wondered whether…” are **not** trace fields. Models may help *fill* typed slots; the slots remain the product.
+Deliberation text, hidden chain-of-thought, and “THE Goose wondered whether…” / “Aldebaran felt tired” are **not** trace fields. Models may help *fill* typed slots; the slots remain the product. Council assessments are this structured payload — not inner lives.
 
 ### Lens (PV explorer) vs Cortex vs C30 Brain
 
@@ -46,9 +49,9 @@ Deliberation text, hidden chain-of-thought, and “THE Goose wondered whether…
 | --- | --- | --- |
 | **Cortex** (C10) | What did Enigma *do* (ingest, qualify, egress, forget)? | Observability |
 | **C30 Brain / inventory** (historical, not on `main`) | What does Enigma *remember* and why? | Memory projection |
-| **Lens** (this ADR) | What lines did Polaris *search*, with confidence fading by depth? | Search introspection |
+| **Lens** (this ADR) | What lines did Polaris *search*, with confidence fading by depth, plus structured Council assessments? | Search introspection |
 
-Ticket ids **BRAIN-01…03** name the programme. **Product copy in Alex Lab is Lens** (principal-variation explorer). Do not ship “Brain View” as theatrical inner life. Do not operate Enigma by clicking a node to COMMIT ([C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md) frozen rule still holds: inspect ≠ control plane). PREVIEW of a line is allowed; COMMIT stays Assist.
+Ticket ids **BRAIN-01…03** name the programme. **Product copy in Alex Lab is Lens** (principal-variation explorer). Do not ship “Brain View” as theatrical inner life. Lens may be nicknamed Brain View in internal tickets; it still shows **structured specialist factors, branches, PV, provenance/uncertainty, and ranking attribution** — never hidden CoT. Do not operate Enigma by clicking a node to COMMIT ([C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md) frozen rule still holds: inspect ≠ control plane). PREVIEW of a line is allowed; COMMIT stays Assist.
 
 ### Planner evaluation
 
@@ -63,7 +66,7 @@ When evidence or state changes, the tree is **recomputed**. Stale branches are m
 ## Consequences
 
 - [BRAIN-01](../../tickets/conversational-ui/BRAIN-01-structured-search-trace.md) owns the trace schema and feed.
-- [BRAIN-02](../../tickets/conversational-ui/BRAIN-02-pv-explorer.md) owns the Alex Lab explorer (current position, best line, alternatives, fading confidence, factors, provenance, assumptions, invalidation triggers).
+- [BRAIN-02](../../tickets/conversational-ui/BRAIN-02-pv-explorer.md) owns the Alex Lab explorer (current position, best line, alternatives, fading confidence, specialist factors, which lenses changed ranking, provenance, assumptions, invalidation triggers).
 - Remote prompts still must not receive the raw trace as a second biography ([ADR-029](./029-context-compilation-request-shaped-memory.md)).
 - This ADR does not authorise wiring Cortex as a search UI, nor restoring missing C30 files.
 
@@ -78,6 +81,6 @@ When evidence or state changes, the tree is **recomputed**. Stale branches are m
 
 ## Related
 
-- [polaris-search.md](../architecture/polaris-search.md) · [cortex-visualizer.md](../architecture/cortex-visualizer.md)
+- [polaris-search.md](../architecture/polaris-search.md) · [council.md](../architecture/council.md) · [cortex-visualizer.md](../architecture/cortex-visualizer.md)
 - [ADR-020](./020-llm-conversational-boundary-not-truth.md) · [ADR-026](./026-ethics-creed-user-is-subject.md) · [ADR-029](./029-context-compilation-request-shaped-memory.md)
 - [C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md) · [C14](../../tickets/conversational-ui/C14-conversation-activity-stream.md) · [C39](../../tickets/conversational-ui/C39-handoff-working-conclusion.md)

@@ -27,22 +27,25 @@ Product / experiential North Star — evaluate product decisions against this; i
 | **Bounded** | See accessed / currently held / left device / retained / dropped |
 | **Delightful** | Not a GDPR console — THE Goose with translucent cargo |
 
-Human version: a capable friend beside you, with access to an extremely safe machine and a deeply enthusiastic goose. The friend doesn't know everything. The goose doesn't understand everything. The machine can't do whatever it wants. The Vault doesn't gossip. None of them decides your life.
+Human version: a navigator beside you (Polaris), with access to an extremely safe hidden machine (Enigma) and a deeply enthusiastic goose. The navigator doesn't know everything. The goose doesn't understand everything. The machine can't do whatever it wants. The Vault doesn't gossip. The Council advises; none of them decides your life.
 
-Visibility (stop the theme park — sitcom brief historically in `product-characters.md` at `13ed0d3`, not restored on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)):
+Visibility (stop the theme park — sitcom brief historically in `product-characters.md` at `13ed0d3`, not restored on `main`; Council is an **advisory projection**, not a new cast of star-named characters — [council.md](./council.md) · [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)):
 
 | Layer | Who / what |
 | --- | --- |
-| Always visible / intuitive | You, Assistant, THE Goose, Cases |
-| Inspectable when relevant | Vault / Memory, Machine, Sources |
-| Forensic / advanced | Cortex, EvidenceBundle, lineage, egress, authority, epistemic status |
+| Always visible / intuitive | You, Polaris (navigator), THE Goose, Cases |
+| Inspectable when relevant | Council (specialist lenses), Vault / Memory, Foundry / Machine, Sources |
+| Hidden substrate | Enigma (canonical world model — not a speaking character) |
+| Forensic / advanced | Cortex, Lens, EvidenceBundle, lineage, egress, authority, epistemic status |
 
-The user should never need to learn the architecture to benefit from it. Architecture is there when they become curious. Shadows, satchel, cargo, Workbench, Engine Room stay **internal / inspectable metaphors**, not a front-page cast. Do not add nouns.
+The user should never need to learn the architecture to benefit from it. Architecture is there when they become curious. Shadows, satchel, cargo, Workbench, Engine Room stay **internal / inspectable metaphors**, not a front-page cast. Council **seats** are inspectable lenses, not extra nouns on the home screen. Do not put Aldebaran/Spica/Canopus on the always-visible layer.
+
+Conversational Assistant remains the language boundary ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)); it is not a second chair and not Enigma.
 
 Next strategic frontiers (orthogonal; neither authorises runtime here):
 
 - **The relationship** (relational bootstrap: product taste + explicit preferences + shared motifs + current register). Humour constitution is historical ADR-038 — file not on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md).
-- **Local choice under search** — Polaris receding-horizon planning over a compiled life position, never a universal life score ([polaris-search.md](./polaris-search.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)).
+- **Local choice under search** — Polaris receding-horizon planning over a compiled life position, never a universal life score ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)).
 
 Do not implement those runtimes from this page.
 
@@ -111,7 +114,7 @@ Share **answers and assertions, not state**. "Can Oscar accept Friday 21:00?" �
 
 ### 8. Local choice, not life optimisation
 
-Enigma does not optimise a person's life. Polaris may **search** locally available futures and recommend the next bounded move; it must not commit a principal variation, invent a universal life score, or skip READ / PREVIEW / PREPARE / COMMIT ([polaris-search.md](./polaris-search.md) · [ADR-044](../adr/044-receding-horizon-action-search.md) · [ADR-046](../adr/046-local-evaluation-under-uncertainty.md)).
+Enigma does not optimise a person's life. Polaris may **search** locally available futures and recommend the next bounded move; the Council may **read** specialist factors over that position. Neither may commit a principal variation, invent a universal life score, govern the user, or skip READ / PREVIEW / PREPARE / COMMIT ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md) · [ADR-046](../adr/046-local-evaluation-under-uncertainty.md)).
 
 ## Pointers
 
@@ -126,4 +129,4 @@ Enigma does not optimise a person's life. Polaris may **search** locally availab
 | Coordination | [enigma-coordination-protocol.md](./enigma-coordination-protocol.md) · [ADR-013](../adr/013-inter-enigma-coordination-trust-boundary.md)–[019](../adr/019-delegated-authority-and-execution-ladder.md) |
 | Subject, not raw material | [ethics.md](./ethics.md) · [ADR-026](../adr/026-ethics-creed-user-is-subject.md) |
 | Safe agency / visibility | Visibility table on this page (historical `product-characters.md` / ADR-038 / C33 not on `main` — [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)) |
-| Local choice / search | [polaris-search.md](./polaris-search.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md) |
+| Local choice / search | [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md) |

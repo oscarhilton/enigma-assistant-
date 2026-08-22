@@ -47,6 +47,26 @@ A node may be described with typed, inspectable factors. Illustrative catalogue 
 
 Factors are **evidence-linked**. They are not vibes and not chain-of-thought.
 
+### Specialist lenses (Council projection)
+
+The same factors group into **functional lenses** — the Council’s assessments over one `DecisionPosition` ([council.md](../architecture/council.md)). Lenses are not extra evaluators of record and not extra memories.
+
+| Internal id | Function | v1 seat |
+| --- | --- | --- |
+| `navigation` | Chair aggregate: what matters now; ply-0 | Polaris (chair, not a peer vote) |
+| `body` | Training / physical capability / session fit | Definite (product alias Aldebaran) |
+| `nourishment` | Fuel, meal timing, groceries, explicit nutrition goals | Likely definite (Spica) |
+| `recovery` | Sleep, fatigue, rest, sustainable pacing | Definite (Canopus) |
+| `people` | Promises, unanswered coordination, social consequence | Likely; **name TBD** |
+| `craft` | Project momentum, switch cost, blockers, coherent units | Likely; **name TBD** |
+| `stewardship` | Bills / admin / household / resource constraints | Candidate — earn via Alex scenarios |
+| `herald` | Forcing-change detector; replan / quiescence | Sirius-as-Herald — **not** a voting peer |
+| `chronicle` | Long-horizon trajectory | Optional projection (Vega) — not a core seat |
+
+Star names are product copy only. Types stay `body`, `recovery`, … Polaris may aggregate lens outputs; it must not emit a moral ranking of the person. Ablating a lens on an Alex position must be able to **change ply-0** or the lens is not yet earned.
+
+`herald` is stimulus/invalidation, not a value head. `chronicle` must not load months of biography into the working set.
+
 ### Uncertainty × consequence controls search effort
 
 Search budget (depth, branching, quiescence) scales with **how uncertain the node is** times **how bad a mistake would be**. Low-stakes, high-certainty positions stay shallow. Forcing / unstable positions spend more ([ADR-047](./047-executive-motifs-and-search-efficiency.md) quiescence).
@@ -79,6 +99,6 @@ Semantic models may propose factor estimates. Deterministic policy still decides
 
 ## Related
 
-- [polaris-search.md](../architecture/polaris-search.md)
+- [polaris-search.md](../architecture/polaris-search.md) · [council.md](../architecture/council.md)
 - [ADR-010](./010-next-action-not-attention.md) · [ADR-011](./011-observable-support-challenges-only.md) · [ADR-012](./012-reasoning-value-gate-decision.md) · [ADR-026](./026-ethics-creed-user-is-subject.md)
 - [next-action.md](../architecture/next-action.md) · [executive-function-support-benchmark.md](../architecture/executive-function-support-benchmark.md)
