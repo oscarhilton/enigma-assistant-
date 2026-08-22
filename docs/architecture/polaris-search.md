@@ -63,6 +63,7 @@ STIMULUS (clock, ingest, attestation, receipts, user choice, herald-class change
 | **Lens** | Inspectable PV + assessments | Engine analysis pane | CoT; click-to-COMMIT |
 | **Observatory** | Programme truth (specified → usable) | Engineering ledger | Council seat; Home sky; fake % |
 | **Harbour** | CAN begin; setup / transition friction | Readiness compiler | Second planner; star name; invent facts |
+| **Narrator** | Continuity / micro-story over real hops | Presentation | Second mind; fake CoT; invent facts |
 
 **Stimulus** is any typed world change that updates the Context Graph: simulation/injected clock ([ADR-006](../adr/006-clock-injection.md)), source ingest, user attestation ([ADR-028](../adr/028-conversational-constitution-attestation-dialogue-support.md)), execution receipts (historical ADR-032 — file not on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)), rejects, and blocker arrivals. **Herald-class** changes (`herald` / Sirius-as-Herald) trigger replan or quiescence; they are not a voting eval head. Event Spine grammar (historical C28) is the intended substrate; this page does not restore that ticket.
 

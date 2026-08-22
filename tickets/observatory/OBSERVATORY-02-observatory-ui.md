@@ -38,6 +38,7 @@ Include:
 - Current sprint / progress as **counts of derived rungs**, never a typed-in percent
 - Later hook for Alex benchmark integration ([RECON-08](../recon/RECON-08-alex-eval-catalogue.md) / ALEX-EVAL) — placeholder panel is enough
 - Later hook for Harbour readiness evidence / blockers ([harbour.md](../../docs/architecture/harbour.md)) — ids and reason codes only, **no chain-of-thought**
+- Later hook for Narrator receipts ([narrator.md](../../docs/architecture/narrator.md)): a mythic jot maps to `event` + `evidence_refs`; never deliberation
 
 Celestial visual language is **restrained and truthful**. Empty sky is honest.
 

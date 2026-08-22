@@ -12,6 +12,8 @@
 
 **Observatory** is a third sibling: **programme truth** (specified / wired / verified / running / usable), not events and not search lines ([observatory.md](./observatory.md)). Do not fold it into Cortex or the Council.
 
+**Narrator** is ordinary-chat **projection** of the same hops ([narrator.md](./narrator.md) · C14), not a fourth forensic mind and not CoT.
+
 **Ticket:** [C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md) (Cortex) · [BRAIN-02](../../tickets/conversational-ui/BRAIN-02-pv-explorer.md) (Lens, `future`)
 
 **Status:** **DEFERRED** until SEC-04 stabilises source→vault→transform→egress event flow. Scaffold landed (types, projection, placeholder panel); **not wired to HomePage**.

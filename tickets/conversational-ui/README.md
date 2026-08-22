@@ -110,6 +110,8 @@ Do not implement P02/P03, C36, or extra Goose animations here.
 
 **Harbour (later, `future`):** activity readiness ([harbour.md](../../docs/architecture/harbour.md)). C12 stays product-acceptance speech; [RECON-07](../recon/RECON-07-life-scripts.md) adds startup graphs as HOW. Not a rigid engine, not a Council seat.
 
+**Narrator (later, `future`):** human projection over C14 hops + C09 RESPOND ([narrator.md](../../docs/architecture/narrator.md) · [NARRATOR-01](../narrator/NARRATOR-01-human-projection-contract.md)–[03](../narrator/NARRATOR-03-evidence-backed-weaving.md)). Not a polish LLM, not fake CoT, not C39. Ordinary chat stays the surface.
+
 ## First milestone (Alex)
 
 Demo conversation helps Alex from **world state**, not a compiled biography. Source fragments may feel like a mystery; leftover shadow must stay a terrible detective novel ([SEC-07](../security/SEC-07-shadow-reconstruction-benchmark.md)).

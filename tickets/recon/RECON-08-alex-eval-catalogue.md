@@ -72,6 +72,8 @@ invariants:
   if_polaris_defers: intention_preserved
 ```
 
+- [ ] **Narrator cite:** same music id may be reused by [NARRATOR-03](../narrator/NARRATOR-03-evidence-backed-weaving.md) for weave/receipt evals (whimsy cannot outrun evidence; unknowns stay unknown). Do not fork a second music Alex.
+
 ## Exit conditions
 
 Done when OBSERVATORY-03 can attach a probe to at least one catalogue id, and ALEX-EVAL-01 can cite the same ids without forking a second Alex.

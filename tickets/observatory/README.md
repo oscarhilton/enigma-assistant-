@@ -32,6 +32,9 @@ Polaris Search / BRAIN-* (later; internal chain unchanged)
         │
         ▼
 HARBOUR-01…03  (after PolarIS-01 + RECON-07; not this sprint)
+        │
+        ▼
+NARRATOR-01…03  (after Observatory 01–02 + C14; presentation)
 ```
 
 | Ticket | Title | Status | Hard depends |
@@ -58,3 +61,4 @@ Do **not** claim PolarIS implementation until 01–02 are `done`.
 | Relay `RELAY_MAX_IN_FLIGHT` default `3` | Conductor **policy** is serial / max 2; slot 3 reserved. Docs first; do not silently change relay code in this wave. |
 | PolarIS-01 hard-dep NORTHSTAR-SEARCH-DOCS | Unchanged. Programme gate (do not claim yet) is Observatory 01–02. |
 | Harbour readiness | Later sibling ([harbour.md](../../docs/architecture/harbour.md)). Observatory may later show blockers/unknowns, not CoT. Implemented / wired / runtime-verified / user-usable stay the six-rung ladder. |
+| Narrator jots | Later projection ([narrator.md](../../docs/architecture/narrator.md)). Observatory maps jot → hop + evidence; strips mythic frame; no CoT. |
