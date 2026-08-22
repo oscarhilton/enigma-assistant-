@@ -54,6 +54,7 @@ STIMULUS (clock, ingest, attestation, receipts, user choice, herald-class change
 | **Foundry** | What *can* be attempted; later matter | Move generator + effector surface | Invent grants; skip PREPARE |
 | **Goose** | Fetch, carry, explain gaps | Familiar / messenger | Authority; masking missing evidence |
 | **Lens** | Inspectable PV + assessments | Engine analysis pane | CoT; click-to-COMMIT |
+| **Observatory** | Programme truth (specified → usable) | Engineering ledger | Council seat; Home sky; fake % |
 
 **Stimulus** is any typed world change that updates the Context Graph: simulation/injected clock ([ADR-006](../adr/006-clock-injection.md)), source ingest, user attestation ([ADR-028](../adr/028-conversational-constitution-attestation-dialogue-support.md)), execution receipts (historical ADR-032 — file not on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)), rejects, and blocker arrivals. **Herald-class** changes (`herald` / Sirius-as-Herald) trigger replan or quiescence; they are not a voting eval head. Event Spine grammar (historical C28) is the intended substrate; this page does not restore that ticket.
 
@@ -185,12 +186,12 @@ invariants:
 
 ## Delivery order
 
-See [tickets/polaris/README.md](../../tickets/polaris/README.md). Hard sequence: docs → position → moves → eval → search → motifs → Alex positions → tournament → trace → Lens → live invalidation → shadow → controlled promotion.
+See [tickets/polaris/README.md](../../tickets/polaris/README.md). **Programme gate:** do not claim this implementation chain until Observatory 01–02 are `done` ([observatory.md](./observatory.md)). Internal PolarIS sequence is unchanged: docs → position → moves → eval → search → motifs → Alex positions → tournament → trace → Lens → live invalidation → shadow → controlled promotion.
 
 ## Out of scope (this page)
 
 - Runtime packages, schemas, UI, migrations
 - Restoring missing ADR-030–035 / 038 files or `product-characters.md` / `enigma-interior.md` (reviewed in NORTHSTAR-SEARCH-DOCS; not resurrected here)
 - Personality profiling, ADHD runtime flags, `ALEX_BIOGRAPHY.md`
-- Replacing Cortex, Goose, or the conversational constitution
+- Replacing Cortex, Goose, Observatory, or the conversational constitution
 - Star-named types (`class Aldebaran`); Council as a second world model

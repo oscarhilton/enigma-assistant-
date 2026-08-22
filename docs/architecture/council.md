@@ -45,6 +45,7 @@ Star names (Aldebaran, Spica, …) are **copy aliases**. Internals stay `Context
 | **Goose** | Evidence courier / work projection (historical ADR-034 satchel; C14 hops) | Independent authority; masking missing evidence |
 | **Foundry** | Named capabilities, legality, governed effects — later physical/UI manifestation ([ADR-044](../adr/044-receding-horizon-action-search.md) · [ADR-019](../adr/019-delegated-authority-and-execution-ladder.md)) | A second searcher or world model |
 | **Lens** | Inspectable PV + Council assessments ([ADR-048](../adr/048-structured-search-trace-and-lens.md)) | Chain-of-thought; click-to-COMMIT |
+| **Observatory** | Programme truth registry + engineering UI ([observatory.md](./observatory.md)) | A Council seat, Home constellation, or sky theatre |
 
 Conversational **Assistant** remains the language boundary ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)): it understands and speaks. It is not a rival chair and not Enigma. Product copy may let Polaris “show the way” without putting search authority in the LLM.
 
@@ -103,3 +104,4 @@ Do not edit `scenarios/alex-v1` timeline in this wave. Positions live as evaluat
 - Voting that bypasses Assist COMMIT
 - Personality profiling; planetary “mood” as diagnosis
 - Replacing Cortex, C12 Life Scripts, or the conversational constitution
+- New named Council members to decorate an Observatory graph; Observatory is not a seat

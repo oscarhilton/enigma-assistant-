@@ -36,16 +36,17 @@ Visibility (stop the theme park — sitcom brief historically in `product-charac
 | Always visible / intuitive | You, Polaris (navigator), THE Goose, Cases |
 | Inspectable when relevant | Council (specialist lenses), Vault / Memory, Foundry / Machine, Sources |
 | Hidden substrate | Enigma (canonical world model — not a speaking character) |
-| Forensic / advanced | Cortex, Lens, EvidenceBundle, lineage, egress, authority, epistemic status |
+| Forensic / advanced | Cortex, Lens, Observatory (programme truth), EvidenceBundle, lineage, egress, authority, epistemic status |
 
 The user should never need to learn the architecture to benefit from it. Architecture is there when they become curious. Shadows, satchel, cargo, Workbench, Engine Room stay **internal / inspectable metaphors**, not a front-page cast. Council **seats** are inspectable lenses, not extra nouns on the home screen. Do not put Aldebaran/Spica/Canopus on the always-visible layer.
 
 Conversational Assistant remains the language boundary ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)); it is not a second chair and not Enigma.
 
-Next strategic frontiers (orthogonal; neither authorises runtime here):
+Next strategic frontiers (orthogonal; none authorise runtime here):
 
+- **Programme truth (engineering)** — Observatory first: what exists / is wired / tested / running / usable, with derived evidence, not a typed-in percent ([observatory.md](./observatory.md)).
 - **The relationship** (relational bootstrap: product taste + explicit preferences + shared motifs + current register). Humour constitution is historical ADR-038 — file not on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md).
-- **Local choice under search** — Polaris receding-horizon planning over a compiled life position, never a universal life score ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)).
+- **Local choice under search** — later than Observatory 01–02. Polaris receding-horizon planning over a compiled life position, never a universal life score ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)).
 
 Do not implement those runtimes from this page.
 
@@ -130,3 +131,4 @@ Enigma does not optimise a person's life. Polaris may **search** locally availab
 | Subject, not raw material | [ethics.md](./ethics.md) · [ADR-026](../adr/026-ethics-creed-user-is-subject.md) |
 | Safe agency / visibility | Visibility table on this page (historical `product-characters.md` / ADR-038 / C33 not on `main` — [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)) |
 | Local choice / search | [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md) |
+| Programme truth | [observatory.md](./observatory.md) (engineering; not a Council seat) |

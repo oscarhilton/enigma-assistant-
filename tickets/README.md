@@ -25,7 +25,7 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 1. **One agent → one ticket** (or one entire domain folder if tickets are tightly coupled and you state that in the PR).
 2. Set the ticket `Status` to `in_progress` when you claim it.
-3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), `ticket/Cxx-slug` (Conversational UI), `ticket/Pxx-slug` (PILOT-01 / My Enigma), `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow), or `ticket/POLARIS-SEARCH-*` / `ticket/ALEX-EVAL-*` / `ticket/BRAIN-*` / `ticket/NORTHSTAR-*` — see each ticket’s Branch field. Do not claim `future` tickets.
+3. Open branch: `ticket/Mxx-slug` (MVP), `ticket/Dxx-slug` (Phase 2 Demo Mode), `ticket/Rxx-slug` (Reasoning Value Gate), `ticket/Cxx-slug` (Conversational UI), `ticket/Pxx-slug` (PILOT-01 / My Enigma), `ticket/Sxx-slug` / `ticket/SExx-slug` (Phase 3 Shadow), or `ticket/POLARIS-SEARCH-*` / `ticket/ALEX-EVAL-*` / `ticket/BRAIN-*` / `ticket/NORTHSTAR-*` / `ticket/OBSERVATORY-*` / `ticket/RECON-*` — see each ticket’s Branch field. Do not claim `future` tickets. Do not claim PolarIS implementation until Observatory 01–02 are `done`.
 4. Edit **only** paths listed under that ticket’s package boundary (exact globs).
 5. Do not implement sibling domains “while you are here.”
 6. Every behavioural change needs tests.
@@ -36,6 +36,8 @@ Do not treat soft deps as blockers. Do not treat “unlocks / enhances” of an 
 
 
 ## Isolated worktrees (parallel agents)
+
+Cloud-agent concurrency is **serial by default** ([conductor-contract.md](../docs/cloud-agents/conductor-contract.md#economics-serial-by-default)): target 1, normal max 2, slot 3 reserved. Worktrees exist so a *justified* second (or reserved third) ticket can be isolated — they are not a licence to swarm.
 
 One ticket → one branch → one worktree. Do not run a second agent in the primary checkout while uncommitted programme work is sitting there.
 
@@ -83,7 +85,9 @@ Existing in-repo `.worktrees/` checkouts are legacy; prefer sibling `../enigma-w
 | shadow | [shadow/](./shadow/) | Phase 3 Shadow Mode (S01–S06) + eval (SE01–SE03) + silence track (SE04–SE10) + open-loop dues (SE11); [shadow-mode.md](../docs/architecture/shadow-mode.md) · [shadow-evaluation.md](../docs/architecture/shadow-evaluation.md) · [shadow-silence-evaluation.md](../docs/architecture/shadow-silence-evaluation.md) · [ADR-009](../docs/adr/009-silence-as-prediction.md). SE* must not edit `EnvironmentMode`. |
 | ui2 | [ui2/](./ui2/) | `apps/web/src/v2/**` — Enigma v2 launchpad beside v1 pilot shell ([UI2-01](./ui2/UI2-01-v2-shell.md)–[UI2-07](./ui2/UI2-07-real-pilot.md), [UI2-DEBUG](./ui2/UI2-DEBUG-semantic-forensics.md)) |
 | northstar | [northstar/](./northstar/) | Docs constitution only — [NORTHSTAR-SEARCH-DOCS](./northstar/NORTHSTAR-SEARCH-DOCS.md) |
-| polaris | [polaris/](./polaris/) | Receding-horizon search ([POLARIS-SEARCH-01](./polaris/POLARIS-SEARCH-01-decision-position.md)–[07](./polaris/POLARIS-SEARCH-07-controlled-promotion.md)); [architecture](../docs/architecture/polaris-search.md) · [council](../docs/architecture/council.md) · [ADR-044](../docs/adr/044-receding-horizon-action-search.md)–[048](../docs/adr/048-structured-search-trace-and-lens.md) |
+| observatory | [observatory/](./observatory/) | Programme truth registry + engineering UI + probes ([OBSERVATORY-01](./observatory/OBSERVATORY-01-truth-registry.md)–[03](./observatory/OBSERVATORY-03-runtime-probes.md)); [observatory.md](../docs/architecture/observatory.md) |
+| recon | [recon/](./recon/) | Visible reconstruction after Observatory 02: [RECON-06](./recon/RECON-06-event-action-spine.md) spine · [RECON-07](./recon/RECON-07-life-scripts.md) Life Scripts · [RECON-08](./recon/RECON-08-alex-eval-catalogue.md) Alex catalogue |
+| polaris | [polaris/](./polaris/) | Receding-horizon search ([POLARIS-SEARCH-01](./polaris/POLARIS-SEARCH-01-decision-position.md)–[07](./polaris/POLARIS-SEARCH-07-controlled-promotion.md)); later than Observatory 01–02; [architecture](../docs/architecture/polaris-search.md) · [council](../docs/architecture/council.md) · [ADR-044](../docs/adr/044-receding-horizon-action-search.md)–[048](../docs/adr/048-structured-search-trace-and-lens.md) |
 
 ## Programme state (2026-08-18)
 
@@ -128,7 +132,8 @@ Next Action (NEEDS YOU / WORTH DOING / CAN WAIT): [docs/architecture/next-action
 Support fitness overlay: [executive-function-support-benchmark.md](../docs/architecture/executive-function-support-benchmark.md) ([V2-EF-02](./demo-scenario/V2-EF-02-ef-arc-authoring.md) stretch after gate — contracts on D08f threads, **not** a second Alex package).  
 **Reasoning Value Gate:** [reasoning-value-gate.md](../docs/demo/reasoning-value-gate.md) (R01–R07); [ADR-012](../docs/adr/012-reasoning-value-gate-decision.md).  
 **Superseded by R01–R04:** [V2-EF-01](./demo-scenario/V2-EF-01-support-contract-design.md) → R01 · [EF-01](./demo-evaluation/EF-01-support-fitness-evaluator.md) → R04 · [D14](./demo-evaluation/D14-llm-judge-benchmark.md) → R03 — do not claim separately.  
-**Polaris search (docs):** [polaris-search.md](../docs/architecture/polaris-search.md) · [council.md](../docs/architecture/council.md) (ADR-044–048; Council is a projection, not a new ADR). Tickets [NORTHSTAR-SEARCH-DOCS](./northstar/NORTHSTAR-SEARCH-DOCS.md) (`in_progress`) then `future` [POLARIS-SEARCH-01](./polaris/POLARIS-SEARCH-01-decision-position.md)–[07](./polaris/POLARIS-SEARCH-07-controlled-promotion.md), [ALEX-EVAL-01](./demo-evaluation/ALEX-EVAL-01-life-positions.md)–[02](./demo-evaluation/ALEX-EVAL-02-planner-tournament.md), [BRAIN-01](./conversational-ui/BRAIN-01-structured-search-trace.md)–[03](./conversational-ui/BRAIN-03-live-recalculation.md). Do not claim search implementation until NORTHSTAR-SEARCH-DOCS is `done`. No extra `COUNCIL-01` ticket.
+**Next sprint (visible):** finish RECON-05A–D on `main` → [OBSERVATORY-01](./observatory/OBSERVATORY-01-truth-registry.md) → [02](./observatory/OBSERVATORY-02-observatory-ui.md) → [RECON-06](./recon/RECON-06-event-action-spine.md) → [RECON-07](./recon/RECON-07-life-scripts.md) → [RECON-08](./recon/RECON-08-alex-eval-catalogue.md) → [OBSERVATORY-03](./observatory/OBSERVATORY-03-runtime-probes.md).  
+**Polaris search (later):** [polaris-search.md](../docs/architecture/polaris-search.md) · [council.md](../docs/architecture/council.md) (ADR-044–048; Council is a projection, not a new ADR). Tickets [NORTHSTAR-SEARCH-DOCS](./northstar/NORTHSTAR-SEARCH-DOCS.md) then `future` [POLARIS-SEARCH-01](./polaris/POLARIS-SEARCH-01-decision-position.md)–[07](./polaris/POLARIS-SEARCH-07-controlled-promotion.md), [ALEX-EVAL-01](./demo-evaluation/ALEX-EVAL-01-life-positions.md)–[02](./demo-evaluation/ALEX-EVAL-02-planner-tournament.md), [BRAIN-01](./conversational-ui/BRAIN-01-structured-search-trace.md)–[03](./conversational-ui/BRAIN-03-live-recalculation.md). Do not claim PolarIS implementation until Observatory 01–02 are `done`. No extra `COUNCIL-01` ticket. Conductor economics: [conductor-contract.md](../docs/cloud-agents/conductor-contract.md#economics-serial-by-default).
 
 MVP baseline tag: `v0.1.0-mvp` (`6253f96`).  
 Demo freeze tag: `v0.2.0-demo` (Phase 2.5 PASS).

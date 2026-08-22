@@ -102,6 +102,7 @@ See [milestone-map.md](./milestone-map.md) for ticket ownership of each area.
 Phase 2 Demo Mode: [demo-mode.md](./demo-mode.md).  
 Background email corpus: [demo-corpus.md](./demo-corpus.md).  
 Attention surface + Next Action: [attention-surface.md](./attention-surface.md) · [next-action.md](./next-action.md).  
-Polaris search (docs): [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md).  
+Observatory (engineering truth, next visible sprint): [observatory.md](./observatory.md).  
+Polaris search (docs, later): [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md).  
 Support fitness benchmark (Phase 2.5): [executive-function-support-benchmark.md](./executive-function-support-benchmark.md).  
 Phase 3 Shadow Mode: [shadow-mode.md](./shadow-mode.md) · evaluation rubric [shadow-evaluation.md](./shadow-evaluation.md) · silence evaluation [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) ([ADR-009](../adr/009-silence-as-prediction.md)) · open loops [open-loop-commitments.md](./open-loop-commitments.md).

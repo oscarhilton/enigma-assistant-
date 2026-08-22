@@ -2,7 +2,7 @@
 
 Receding-horizon “life chess engine” for WORTH DOING. Docs constitution: [polaris-search.md](../../docs/architecture/polaris-search.md) · [council.md](../../docs/architecture/council.md) · [ADR-044](../../docs/adr/044-receding-horizon-action-search.md)–[048](../../docs/adr/048-structured-search-trace-and-lens.md).
 
-**Status:** design captured. Claim **one ticket per agent**. Do not claim `future` tickets until hard deps are `done`.
+**Status:** design captured. Claim **one ticket per agent**. Do not claim `future` tickets until hard deps are `done`. **Programme gate:** do not claim PolarIS implementation until [OBSERVATORY-01](../observatory/OBSERVATORY-01-truth-registry.md)–[02](../observatory/OBSERVATORY-02-observatory-ui.md) are `done` (Observatory is the first visible deliverable). Internal ticket graph below is unchanged.
 
 ## Principle
 
@@ -63,6 +63,7 @@ NORTHSTAR-SEARCH-DOCS
 | Strategy scripts | Polaris opening-book priors |
 | Cortex | What Enigma did (C10) |
 | Lens | Structured PV explorer + Council assessments (`BRAIN-*` tickets) |
+| Observatory | Programme truth (specified / wired / verified / running / usable) — not a Council seat |
 
 Functional Council seats (internal ids; star aliases are copy only — [council.md](../../docs/architecture/council.md)):
 
