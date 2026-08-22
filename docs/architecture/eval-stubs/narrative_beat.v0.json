@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enigma.local/eval-stubs/narrative_beat.v0.json",
+  "title": "NarrativeBeatV0",
+  "description": "Projection of a real Enigma hop or structured result into an optional user-visible jot. Not a cognition log. Not C39 agent handoff. See docs/architecture/narrator.md and ADR-027.",
+  "type": "object",
+  "required": ["id", "kind", "event", "uncertainty"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "fetch",
+        "readiness",
+        "lens",
+        "titan",
+        "bearing",
+        "foundry",
+        "prose",
+        "suppressed"
+      ]
+    },
+    "actor": { "type": "string" },
+    "from_actor": { "type": "string" },
+    "to_actor": { "type": "string" },
+    "event": {
+      "type": "string",
+      "description": "Underlying hop or result id (e.g. availability.checked). Must exist; do not invent."
+    },
+    "status": { "type": "string" },
+    "fact_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Structured fact ids the line may mention. Empty ⇒ line must not assert facts."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "uncertainty": {
+      "type": "string",
+      "enum": ["known", "unknown", "incomplete"]
+    },
+    "line": {
+      "type": ["string", "null"],
+      "description": "Optional NORMAL jot. Null/absent = suppressed. Must not outrun fact_refs."
+    },
+    "verbosity": {
+      "type": "string",
+      "enum": ["brief", "curious", "forensic", "silent"]
+    },
+    "suppress": {
+      "type": "boolean",
+      "description": "True when this actor/hop is irrelevant this turn (e.g. silent Titan)."
+    },
+    "mythic_frame": {
+      "type": ["string", "null"],
+      "description": "Optional fictional frame tag (tarot, stargazing). Never a fact source."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Author reminder. Not a status override."
+    }
+  }
+}
