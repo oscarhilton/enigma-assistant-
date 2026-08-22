@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://enigma.local/eval-stubs/life_position.v0.json",
   "title": "LifePositionV0",
-  "description": "Evaluator-only replayable life position for Polaris planner benchmarks. Never ingested by Enigma. Invariants instead of one exact move. See docs/architecture/polaris-search.md and ADR-011 / ADR-046 / ADR-047.",
+  "description": "Evaluator-only replayable life position for Polaris planner benchmarks. Never ingested by Enigma. Invariants instead of one exact move. See docs/architecture/polaris-search.md, docs/architecture/council.md, and ADR-011 / ADR-046 / ADR-047. Seats are earned when ranking_changed_by holds — not via a universal life score.",
   "type": "object",
   "required": ["id", "motif", "clock", "invariants"],
   "additionalProperties": false,
@@ -30,9 +30,31 @@
           "transition",
           "overwhelm",
           "admin_initiation",
-          "social_coordination"
+          "social_coordination",
+          "fuel_mismatch",
+          "recovery_pressure",
+          "coverage_inadequate"
         ]
       }
+    },
+    "lenses": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "navigation",
+          "body",
+          "nourishment",
+          "recovery",
+          "people",
+          "craft",
+          "stewardship",
+          "herald",
+          "chronicle"
+        ]
+      },
+      "description": "Functional Council seats that should materially contribute on this position. Internal ids only — not star names. A seat is earned when ablating it changes ply-0 or must_consider."
     },
     "clock": {
       "type": "string",
@@ -72,6 +94,26 @@
         "after_cancel": {
           "type": "string",
           "description": "Optional post-resolution invariant (e.g. do_not_renag)."
+        },
+        "ranking_changed_by": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "body",
+              "nourishment",
+              "recovery",
+              "people",
+              "craft",
+              "stewardship"
+            ]
+          },
+          "description": "Lens ids that must change ply-0 (or must_consider) vs a baseline with those lenses ablated. Not a moral ranking of the person. Chair (navigation), herald, and chronicle are not ablation seats."
+        },
+        "coverage_adequate": {
+          "type": "boolean",
+          "description": "If false, ply-0 must not assume missing sources are empty (e.g. calendar adapter failed → incomplete picture, not a free afternoon)."
         }
       }
     },

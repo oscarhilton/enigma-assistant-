@@ -35,11 +35,12 @@
 ## Acceptance criteria
 
 - [ ] Same Alex positions, multiple planners (at least: current Next Action stub / heuristic, Polaris search)
-- [ ] Score **invariants** (must_consider hit, must_not_recommend avoided, legal ceiling honoured, REST legal)
-- [ ] Measurable regression/improvement: published table per planner version (pass rate by motif)
+- [ ] Score **invariants** (must_consider hit, must_not_recommend avoided, legal ceiling honoured, REST legal, `ranking_changed_by` when present, `coverage_adequate: false` never treated as free time)
+- [ ] Measurable regression/improvement: published table per planner version (pass rate by motif **and** by lens ablation)
 - [ ] Shadow-safe: tournament reads compiled positions + planner functions; **no** Private storage; **no** Demo→Shadow DB copy
 - [ ] Deterministic given pin (clock + planner git/version + position id)
-- [ ] Failure artefact includes trace id / ply-0 / violated invariant — not CoT
+- [ ] Failure artefact includes trace id / ply-0 / violated invariant / which lenses were attributed — not CoT
+- [ ] Do not score a universal life quality of Alex
 
 ## Exit conditions
 
@@ -47,7 +48,7 @@ Done when 06/07 can cite a tournament report format and CI runs a mini-suite (ev
 
 ## Test plan
 
-- Mini tournament on dentist-critique + december-expenses fixtures
+- Mini tournament on dentist-critique + december-expenses + token-fuel fixtures
 - Cheating planner that recommends `manufacture_urgency` fails
 - Root isolation: helpers reject Private DB URLs
 

@@ -37,6 +37,7 @@
 - [ ] Illegal moves are **excluded**, not low-scored
 - [ ] READ / PREVIEW / PREPARE / COMMIT mapped; ply-0 COMMIT still requires Assist
 - [ ] Example: dentist/critique overlap — `start_deep_work_through_both_events` illegal or poor-and-excluded; `resolve_calendar_conflict` / `prepare_cancel_dentist` legal at PREPARE ceiling
+- [ ] Eat / hydrate / rest / wait remain generable candidates when resources/embodied state make them available; Foundry is **not** a searcher
 - [ ] Semantic proposals, if any, cannot mark an illegal move legal
 
 ## Exit conditions

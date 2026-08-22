@@ -33,12 +33,13 @@
 
 ## Acceptance criteria
 
-- [ ] Alex Lab explorer shows: current position, best line, alternatives, confidence **fading with depth**, evaluation factors, provenance, assumptions, invalidation triggers
-- [ ] Copy / docs: **Lens**; ticket id may stay BRAIN-02
+- [ ] Alex Lab explorer shows: current position, best line, alternatives, confidence **fading with depth**, structured Council assessments (specialist factor families), **which lenses materially changed ranking**, provenance, assumptions, invalidation triggers, coverage gaps
+- [ ] Copy / docs: **Lens**; ticket id may stay BRAIN-02. Internal nickname “Brain View” still means this structured pane — never hidden CoT
 - [ ] Explicit empty state: “structured search trace” — not “what Enigma is thinking”
 - [ ] Selecting a branch **PREVIEW**s it (inspect); does not PREPARE/COMMIT
 - [ ] Frozen C10 rule restated: observability ≠ control plane
 - [ ] Example: dentist-critique PV visible with `resolve_calendar_conflict` on ply-0 and faded later plies
+- [ ] Example: calendar-coverage-gap shows incomplete picture (Goose/courier copy allowed); Polaris must not display a hallucinated free afternoon
 
 ## Exit conditions
 
@@ -47,8 +48,9 @@ Done when a screenshot/test proves the explorer renders a golden trace with fadi
 ## Test plan
 
 - Render golden trace: PV + alternatives present
-- Negative: no “thinking” / “felt” / “wondered” strings in UI copy tests
+- Negative: no “thinking” / “felt” / “wondered” / “Aldebaran was tired” strings in UI copy tests
 - Click branch → no mutation API called
+- Ranking-changed-by chips render from golden token-fuel trace
 
 ## Privacy constraints
 

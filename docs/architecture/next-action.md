@@ -2,7 +2,7 @@
 
 **Status:** Foundational product model (design + thin domain stub)  
 **Principle:** Enigma always has something useful to offer, and never pretends something is urgent when it isn’t.  
-**Related:** [attention-surface.md](./attention-surface.md) · [ADR-010](../adr/010-next-action-not-attention.md) · [shadow-mode.md](./shadow-mode.md) · silence audit (soft) [shadow-silence-evaluation.md](./shadow-silence-evaluation.md)  
+**Related:** [attention-surface.md](./attention-surface.md) · [ADR-010](../adr/010-next-action-not-attention.md) · [shadow-mode.md](./shadow-mode.md) · silence audit (soft) [shadow-silence-evaluation.md](./shadow-silence-evaluation.md) · later planner [polaris-search.md](./polaris-search.md) · [council.md](./council.md)  
 **Tickets:** [M20](../../tickets/domain-model/M20-next-action-schemas.md) · [N01](../../tickets/next-action/N01-scorer-stub.md)–[N03](../../tickets/next-action/N03-preference-learning.md) · Demo chrome [D18](../../tickets/demo-ui/D18-demo-next-action.md)
 
 ## Objective
@@ -176,7 +176,7 @@ Demo UI ticket: [D18](../../tickets/demo-ui/D18-demo-next-action.md) (chrome onl
 
 ## Relationship to Polaris search (later, gated)
 
-[polaris-search.md](./polaris-search.md) proposes a receding-horizon planner for **WORTH DOING**. It does not replace this three-level surface, N01’s local fitness stub, or Attention policy.
+[polaris-search.md](./polaris-search.md) proposes a receding-horizon planner for **WORTH DOING**. It does not replace this three-level surface, N01’s local fitness stub, or Attention policy. Specialist Council assessments ([council.md](./council.md)) may later **advise** which local future looks better; they do not govern the user, invent a life score, or skip Assist COMMIT.
 
 - Search may look many plies ahead; product output remains **one optional next action** (or REST / NOTHING).
 - Promotion onto the live Next Action path is [POLARIS-SEARCH-07](../../tickets/polaris/POLARIS-SEARCH-07-controlled-promotion.md), after Alex life-position benchmarks and shadow comparison.

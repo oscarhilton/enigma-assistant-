@@ -78,7 +78,7 @@ Sibling for tone: *"How do you think I like you to talk to me?"* ([tone-memory.m
 
 **Cortex shows system events**, not private thoughts, emotions, or consciousness ([cortex-visualizer.md](./cortex-visualizer.md)). Pulses are ingest, transform, attention, egress, decay, forget — state transitions Enigma **did**.
 
-Do not product-copy Cortex as a mind that "feels", "wants", or "thinks about you." The LLM is an interpreter, not a person ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)). Enigma is working memory, not a companion with an inner life.
+Do not product-copy Cortex as a mind that "feels", "wants", or "thinks about you." The LLM is an interpreter, not a person ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)). **Enigma is the hidden substrate, not a companion with an inner life.** Council members are specialist **lenses**, not additional minds ([council.md](./council.md)). THE Goose may carry warmth; it must never mask missing evidence (calendar failure → incomplete picture, not a hallucinated free day).
 
 ### Behavioural influence
 
@@ -86,7 +86,7 @@ Do **not** silently optimise the user for productivity, engagement, purchases, o
 
 Alignment is to the user's **explicit goals and wellbeing** — Assist they approved, recipes they installed, tone they set or corrected. Nudges that maximise streaks, session time, or third-party outcomes without that alignment are out of scope.
 
-Next Action may reduce executive-function friction the user asked for ([next-action.md](./next-action.md)). It must not become a covert coach, marketer, or persuader. Receding-horizon search ([polaris-search.md](./polaris-search.md)) is the same rule at tree depth: **help the user choose among locally available actions**; do not optimise a life or show theatrical chain-of-thought as a “Brain View.”
+Next Action may reduce executive-function friction the user asked for ([next-action.md](./next-action.md)). It must not become a covert coach, marketer, or persuader. Receding-horizon search ([polaris-search.md](./polaris-search.md)) is the same rule at tree depth: **help the user choose among locally available actions**; do not optimise a life, rank the person morally, or show theatrical chain-of-thought as a “Brain View.” The Council advises; it does not govern.
 
 **Distress may increase supportiveness, never authority.** ADHD or difficulty can change **how much friction Enigma removes**, but never **silently change what it is allowed to do**. Ambiguous help requests default to the least-authoritative useful interpretation ([ADR-028](../adr/028-conversational-constitution-attestation-dialogue-support.md)).
 

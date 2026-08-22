@@ -291,8 +291,8 @@ Data boot is three levels ([data-boot.md](./data-boot.md) · [ADR-042](../adr/04
 
 ## Polaris search (docs programme — no runtime in this wave)
 
-Architecture: [polaris-search.md](./polaris-search.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md).  
-Tickets: [northstar/](../../tickets/northstar/) · [polaris/](../../tickets/polaris/) · ALEX-EVAL under [demo-evaluation/](../../tickets/demo-evaluation/) · BRAIN-* under [conversational-ui/](../../tickets/conversational-ui/).
+Architecture: [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md).  
+Tickets: [northstar/](../../tickets/northstar/) · [polaris/](../../tickets/polaris/) · ALEX-EVAL under [demo-evaluation/](../../tickets/demo-evaluation/) · BRAIN-* under [conversational-ui/](../../tickets/conversational-ui/). Council ontology is carried by NORTHSTAR-SEARCH-DOCS + POLARIS-SEARCH-03 + BRAIN-* + ALEX-EVAL-01 — no extra ticket.
 
 Does **not** replace Attention / Next Action / Assist. Shadow-then-promote. Alex synthetic data first.
 

@@ -21,7 +21,7 @@ A tempting product story is that Enigma “thinks 20 moves ahead” and then com
 
 The missing constitution is **receding-horizon search**: look far enough to choose the next legal move well; authorise only that move; replan when the world changes.
 
-This ADR names **Polaris** as that search engine. It does not replace Enigma, Attention, Next Action, Assist, or the LLM conversational boundary. Architecture: [polaris-search.md](../architecture/polaris-search.md).
+This ADR names **Polaris** as that search engine **and** as the product chair/navigator over specialist assessments ([council.md](../architecture/council.md)). It does not replace Enigma, Attention, Next Action, Assist, or the LLM conversational boundary. Architecture: [polaris-search.md](../architecture/polaris-search.md).
 
 ## Decision
 
@@ -31,15 +31,22 @@ This ADR names **Polaris** as that search engine. It does not replace Enigma, At
 
 Planning depth may exceed execution depth. Iterative deepening is the default search schedule. Only the next **bounded** action may be authorised. Future branches lose confidence with depth. “Twenty moves ahead” is an **internal search budget**, never a deterministic promise and never a user commitment.
 
-### Three layers (do not collapse)
+### Layers (do not collapse)
 
 | Layer | Owns | Must not |
 | --- | --- | --- |
-| **Enigma** | World truth, memory, attention, compiler, authority policy | Optimise a life; treat the model as truth |
-| **Polaris** | Receding-horizon search over legal local moves | Define reality, grant authority, or execute effects |
-| **Foundry** | Named capabilities and governed effects | Invent permissions or skip READ → PREVIEW → PREPARE → COMMIT |
+| **Enigma** | Hidden cognitive substrate; canonical world model; compiler; policy | Be a character with separate opinions; optimise a life |
+| **Vault** | Protected retained memory — user-controlled, forgettable, provenance-aware | A Council-owned second store; gossip |
+| **Council** | User-facing advisory **projection** of specialist lenses over one Enigma state | Separate memories, agents, truths, or sovereign decisions |
+| **Polaris** | Chair / navigator: receding-horizon search; next bounded move | Override the user; define reality; execute |
+| **Goose** | Familiar / courier: fetch, carry, explain gaps | Independent authority; mask missing evidence |
+| **Foundry** | Capabilities + governed effects; later physical/UI externalisation of the model | A second searcher; skip READ → PREVIEW → PREPARE → COMMIT |
+
+Mythology is product/interface ontology. Internals stay `ContextGraph`, `DecisionPosition`, `CandidateMove`, `PrivateVault`, … ([council.md](../architecture/council.md)).
 
 Semantic models may **propose or rank** candidate lines. They do not define the position, legality, or permission ([ADR-020](./020-llm-conversational-boundary-not-truth.md) · [ADR-012](./012-reasoning-value-gate-decision.md): semantics yes, authority no).
+
+Polaris may **aggregate** specialist assessments. It never overrules the user's will. The Council serves the user; it does not govern them.
 
 ### Horizon rules
 
@@ -65,6 +72,8 @@ Distress may increase supportiveness, never authority ([ADR-028](./028-conversat
 ### Product principle (frozen)
 
 > **Enigma does not optimise a person's life. It helps the user choose among locally available actions according to their own goals, constraints and current circumstances.**
+>
+> **Search deeply. Act shallowly. Replan constantly.** Show branches of possible futures, not a deterministic life plan.
 
 ## Consequences
 
@@ -84,6 +93,6 @@ Distress may increase supportiveness, never authority ([ADR-028](./028-conversat
 
 ## Related
 
-- [polaris-search.md](../architecture/polaris-search.md)
+- [polaris-search.md](../architecture/polaris-search.md) · [council.md](../architecture/council.md)
 - [ADR-010](./010-next-action-not-attention.md) · [ADR-019](./019-delegated-authority-and-execution-ladder.md) · [ADR-020](./020-llm-conversational-boundary-not-truth.md) · [ADR-026](./026-ethics-creed-user-is-subject.md) · [ADR-029](./029-context-compilation-request-shaped-memory.md)
 - [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md)

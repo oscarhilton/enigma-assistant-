@@ -30,12 +30,17 @@
 - Personality profiling
 - Replacing Attention qualification
 - Productivity-max objective
+- Star-named classes or extra agent runtimes (`class Aldebaran`)
 
 ## Acceptance criteria
 
 - [ ] Evaluator scores **local successor positions** for this user/now ([ADR-046](../../docs/adr/046-local-evaluation-under-uncertainty.md))
 - [ ] No single global life score field on user or world
 - [ ] Factors may include urgency, consequence, effort, switching cost, momentum, energy suitability, uncertainty reduction, reversibility, optionality, blockers released, social consequence — all evidence-linked
+- [ ] Factors group into **functional Council lenses** with internal ids `body`, `nourishment`, `recovery`, `people`, `craft`, optional `stewardship` ([ADR-046](../../docs/adr/046-local-evaluation-under-uncertainty.md) · [council.md](../../docs/architecture/council.md)). Product aliases (Aldebaran / Spica / Canopus) are copy only — no star-named types
+- [ ] Ablation: removing `nourishment` / `recovery` / `people` / `craft` on the corresponding ALEX-EVAL-01 position **changes** ply-0 or `must_consider` (seat earned by decision impact, not a zodiac)
+- [ ] No majority vote that binds COMMIT; Polaris aggregates; user still authors
+- [ ] `herald` is **not** a value head; `chronicle` is not a required core seat
 - [ ] Urgency multiplies only when urgency exists (ADR-010 parity)
 - [ ] REST / NOTHING / wait remain eligible
 - [ ] Policy/prior separate from value: tests show an illegal move never “wins” by score
@@ -48,9 +53,10 @@ Done when 04 can ask “how does this successor look?” without a global object
 
 ## Test plan
 
-- Factor table on Alex fixtures (expenses, brunch, token blocker)
+- Factor table on Alex fixtures (expenses, brunch, token blocker, token-fuel, recovery-pressure)
 - Negative: adding a `life_score` field to the person record fails lint/test
 - REST wins over high-effort deep work under high load / short free window (N01 parity)
+- Ablation: `alex-2026-01-19-token-fuel` without `nourishment` must not still require `eat_or_hydrate` in ply-0
 
 ## Privacy constraints
 

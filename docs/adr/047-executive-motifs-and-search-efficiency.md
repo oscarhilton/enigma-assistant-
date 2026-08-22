@@ -34,8 +34,11 @@ A **motif** is a class of `DecisionPosition`, not a personality trait. First cor
 | Low-energy / high-effort mismatch | Capacity signals vs a heavy candidate ([ADR-011](./011-observable-support-challenges-only.md) situational tags) |
 | Transition / switching cost | Imminent calendar boundary |
 | Overwhelm / too many threads | Many OPEN loops; initiation is the bottleneck |
+| Fuel mismatch | Observable empty-fuel / meal-timing vs a heavy candidate (earns `nourishment`) |
+| Recovery pressure | Fatigue / late hour vs finishing work tonight (earns `recovery`) |
+| Coverage inadequate | A required source failed; picture is incomplete, not empty |
 
-Motifs are **evaluator- and search-facing**. They are not written onto the person record. No `ALEX_BIOGRAPHY.md`. No ADHD flag in runtime ([ADR-011](./011-observable-support-challenges-only.md)).
+Motifs are **evaluator- and search-facing**. They are not written onto the person record. No `ALEX_BIOGRAPHY.md`. No ADHD flag in runtime ([ADR-011](./011-observable-support-challenges-only.md)). Motifs classify the **position**; Council **lenses** assess it ([council.md](../architecture/council.md)). Star names are not motif ids.
 
 ### Strategy scripts (opening-book metaphor)
 
@@ -77,6 +80,6 @@ Strategy scripts encode **what to try when this situation obtains**, not **what 
 
 ## Related
 
-- [polaris-search.md](../architecture/polaris-search.md)
+- [polaris-search.md](../architecture/polaris-search.md) · [council.md](../architecture/council.md)
 - [ADR-011](./011-observable-support-challenges-only.md) · [ADR-024](./024-shareable-recipes-procedure-never-personal-state.md) · [ADR-025](./025-tone-memory-how-to-speak-not-who-you-are.md) · [ADR-026](./026-ethics-creed-user-is-subject.md)
 - [C12](../../tickets/conversational-ui/C12-life-scripts.md) · [executive-function-support-benchmark.md](../architecture/executive-function-support-benchmark.md)

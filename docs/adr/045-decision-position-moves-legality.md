@@ -40,7 +40,7 @@ Minimum contents (illustrative, not a schema freeze):
 | Blockers / waiting-on | External dependencies |
 | Availability / conflicts | Calendar as situation, not as obligation ([attention-surface.md](../architecture/attention-surface.md)) |
 | Attention qualification | NEEDS YOU vs CONTEXT vs CAN WAIT — not merged into moves |
-| Resources | Time, effort budget, energy suitability (observable, not a diagnosis) |
+| Resources / embodied observables | Time, effort budget; energy, fuel/appetite, exertion, recovery debt, momentum — **state**, not extra planners ([council.md](../architecture/council.md) “planets embody”) |
 | Authority facts | What rungs are granted for which capabilities |
 | Provenance refs | Evidence / assertion ids that would invalidate the position |
 | Assumptions | Explicit, typed, falsifiable |
@@ -49,7 +49,7 @@ Do **not** include raw mail bodies, Notes wholesale, `PrivatePerson`, diagnostic
 
 ### Candidate moves come from capabilities
 
-**Foundry** enumerates **candidate moves** from named capabilities (query, prepare, communicate, wait, rest, nothing, ask-the-user, …). A move is a typed, bounded action plus predicted local effects — not English advice.
+**Foundry** enumerates **candidate moves** from named capabilities (query, prepare, communicate, wait, rest, nothing, ask-the-user, …) and is also where permitted action is later **externalised** into matter / UI. A move is a typed, bounded action plus predicted local effects — not English advice. Foundry is not a searcher.
 
 Shareable recipes ([ADR-024](./024-shareable-recipes-procedure-never-personal-state.md)) may later appear as **procedure-shaped move generators**. They still bind to *this* user’s graph locally and still cannot skip authority.
 
@@ -96,5 +96,5 @@ PREPARE / COMMIT
 
 ## Related
 
-- [polaris-search.md](../architecture/polaris-search.md)
+- [polaris-search.md](../architecture/polaris-search.md) · [council.md](../architecture/council.md)
 - [ADR-015](./015-capability-scoped-disclosure-not-data-access.md) · [ADR-019](./019-delegated-authority-and-execution-ladder.md) · [ADR-023](./023-persistent-shadow-abstract-state-not-biography.md) · [ADR-024](./024-shareable-recipes-procedure-never-personal-state.md) · [ADR-029](./029-context-compilation-request-shaped-memory.md)
