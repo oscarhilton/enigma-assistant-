@@ -52,7 +52,7 @@ This pilot assumes a **trusted transport** (Secure MCP Tunnel) to a single relay
 | **Existing PR (`pr_url`)** | Native Cursor `repos[].prUrl` + `workOnCurrentBranch=true`; **no** `env` (mutually exclusive). `autoCreatePR` forced false. Branch identity comes from the GitHub PR head — not a stale agent workspace / `cursor/auto-*` reconstruction |
 | Stale-workspace guard | Create against `cursor/auto-*` without `pr_url` is denied (`stale_workspace_branch`) |
 | Branch claim | Dispatch/review create reports `branch=pending` + `requested_head_branch`; `actual_head_branch` only from `status` (except existing-PR mode records PR URL identity immediately) |
-| `dry_run` | `job_brief.authorization.dry_run=true` validates and returns a redacted request plan — **no** `POST /v1/agents` |
+| `dry_run` | Explicit `job_brief.authorization.dry_run=true` validates and returns a redacted request plan — **no** `POST /v1/agents`. Explicit `false` is live (subject to authorization). **Omitting** `dry_run` is live create intent: proceed live when `allow_push` or `allow_open_pr` is set; otherwise fail `live_not_authorized` — do **not** silently downgrade to a successful dry-run |
 | HTTP 400 | Only truncated `code` / `message` / `field` validation entries — never headers, credentials, or raw bodies. Unknown env name → `cursor_env_not_found` |
 | PR permission failures | `createPullRequest` / “Resource not accessible by integration” → `host_permission_blocker` (host GitHub App/token config — **not** a branch failure) |
 
