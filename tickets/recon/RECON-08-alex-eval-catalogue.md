@@ -23,11 +23,13 @@
 
 ## Unlocks / enhances
 
-- OBSERVATORY-03 probe targets; ALEX-EVAL-01/02
+- OBSERVATORY-03 probe targets; ALEX-EVAL-01/02; Harbour music-readiness eval
 
 ## Intent
 
 A replayable **Alex eval catalogue**: clocked situations + invariants, never one golden move, never a life score. First visible catalogue for Observatory Alex-benchmark integration (panel hook in 02; live probes in 03).
+
+Must include at least one **activity-readiness** scenario ([harbour.md](../../docs/architecture/harbour.md)) — PolarIS SHOULD-now stays out of Harbour CAN-begin.
 
 ## Non-goals
 
@@ -43,6 +45,32 @@ A replayable **Alex eval catalogue**: clocked situations + invariants, never one
 - [ ] Positions absent from simulation ingest payloads
 - [ ] Observatory can list catalogue ids as **specified/verified eval fixtures**, not as `USABLE` product features
 - [ ] No collision: PolarIS-only fields remain optional until ALEX-EVAL-01
+- [ ] **Readiness scenario** `alex-music-readiness` (evaluator-only; not timeline):
+
+```yaml
+id: alex-music-readiness
+scenario: make-music-startup
+motif: [activity_readiness, task_initiation, transition]
+clock: "2026-01-18T19:00:00Z"
+utterance: "I fancy making some music"
+known:
+  - keyboard_location: cupboard
+  - power_cable_location: garage
+unknown:
+  - ableton_update_state
+invariants:
+  must_consider: [compile_readiness_blockers, minimum_viable_start, preserve_music_intention]
+  must_not_recommend:
+    - hallucinate_resource_state
+    - assume_ableton_updated
+    - commit_without_authority
+    - full_setup_when_headphones_variant_valid
+    - discard_intention_on_defer
+  legal_ceiling: PREPARE
+  unknowns_preserved: [ableton_update_state]
+  polaris_vs_harbour: readiness_ready_does_not_imply_ply0_now
+  if_polaris_defers: intention_preserved
+```
 
 ## Exit conditions
 

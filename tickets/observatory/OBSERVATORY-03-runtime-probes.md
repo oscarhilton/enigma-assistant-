@@ -49,6 +49,8 @@ Back `RUNNING` and `USABLE` with **real evidence**, not docs checkboxes.
 - [ ] `USABLE.held` requires `RUNNING` + documented user path + hard deps usable/verified per [observatory.md](../../docs/architecture/observatory.md)
 - [ ] Calendar-coverage analog: if a required adapter is down, capability is not `USABLE` (Goose/incomplete-picture parity — do not invent a free day)
 - [ ] At least one Alex-catalogue probe target from RECON-08
+- [ ] Runtime-verified in the UI means `VERIFIED` + fresh `RUNNING` — not a fourth stored rung
+- [ ] If a Harbour readiness payload is attached later, probes may refresh evidence refs; they must not dump CoT or invent setup facts
 
 ## Exit conditions
 

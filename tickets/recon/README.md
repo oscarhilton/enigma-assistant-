@@ -12,4 +12,6 @@ Visible order after Observatory 01–02:
 
 Earlier RECON-04 / 05A–D (vault, retention, recall, worker) are the **current tranche** on `main` — finish those before Observatory-01. Ticket files for 05C/D may live only on `main`; this folder does not re-own them and this docs branch must not merge `main` to pull them.
 
-C38 / C39 stay parked until this spine exists ([C38](../conversational-ui/C38-shared-uncertainty-collapse.md)).
+[RECON-07](./RECON-07-life-scripts.md) also specifies **startup / readiness graphs** (HOW) for later Harbour — not a rigid automation engine.
+
+C38 / C39 stay parked until this spine exists ([C38](../conversational-ui/C38-shared-uncertainty-collapse.md)). Harbour tickets live under [harbour/](../harbour/).

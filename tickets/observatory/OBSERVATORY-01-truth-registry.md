@@ -46,7 +46,8 @@ with evidence refs and dependency state ([observatory.md](../../docs/architectur
 - [ ] Each rung is `{ held, evidence_refs[] }`; `held: true` with empty refs **fails** validation
 - [ ] No `percent_complete` / `progress` field is accepted (`additionalProperties: false`)
 - [ ] Headline status = highest rung whose evidence is sufficient **and** whose hard deps are not demoting
-- [ ] Seed at least: calendar READ, Assist PREPARE, Next Action stub, Goose courier, PolarIS search (docs-only → `SPECIFIED` at most)
+- [ ] Seed at least: calendar READ, Assist PREPARE, Next Action stub, Goose courier, PolarIS search, Harbour readiness (docs-only → `SPECIFIED` at most)
+- [ ] Headline rungs remain distinguishable as implemented / wired / runtime-verified (`VERIFIED`+`RUNNING`) / user-usable — no second enum
 - [ ] Exit test: forging `USABLE.held=true` without probe/user-path refs is rejected
 - [ ] Exit test: a capability whose hard dep is not `VERIFIED` cannot headline `USABLE`
 - [ ] Docs remain the constitution; this ticket does not rewrite [council.md](../../docs/architecture/council.md)

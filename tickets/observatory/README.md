@@ -29,6 +29,9 @@ OBSERVATORY-03  runtime / wiring probes
         │
         ▼
 Polaris Search / BRAIN-* (later; internal chain unchanged)
+        │
+        ▼
+HARBOUR-01…03  (after PolarIS-01 + RECON-07; not this sprint)
 ```
 
 | Ticket | Title | Status | Hard depends |
@@ -54,3 +57,4 @@ Do **not** claim PolarIS implementation until 01–02 are `done`.
 | C28 ticket file missing on `main` | [RECON-06](../recon/RECON-06-event-action-spine.md) lands the spine on **current** `main`; do not wholesale-restore donor C28. |
 | Relay `RELAY_MAX_IN_FLIGHT` default `3` | Conductor **policy** is serial / max 2; slot 3 reserved. Docs first; do not silently change relay code in this wave. |
 | PolarIS-01 hard-dep NORTHSTAR-SEARCH-DOCS | Unchanged. Programme gate (do not claim yet) is Observatory 01–02. |
+| Harbour readiness | Later sibling ([harbour.md](../../docs/architecture/harbour.md)). Observatory may later show blockers/unknowns, not CoT. Implemented / wired / runtime-verified / user-usable stay the six-rung ladder. |
