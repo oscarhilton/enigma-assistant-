@@ -4,7 +4,7 @@ Legal write path::
 
     GroundedAssertion
       → evaluate_retention()
-      → RetentionDecision (DURABLE only in RECON-05A)
+      → RetentionDecision (DURABLE | TTL)
       → map_retention_to_derived_record()
       → PrivateVault.store_derived()
 
