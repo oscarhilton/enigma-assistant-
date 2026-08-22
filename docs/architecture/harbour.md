@@ -25,6 +25,7 @@ Externalise **working-memory friction** (what stands between intention and start
 | **Goose** | Carry / fetch / report setup facts; help name friction | Independent authority; smile a gap away |
 | **Craft / Council** | Why the activity *matters* on this position (assessments) | Own canonical readiness or world state |
 | **Observatory** | What the programme is *true* about (implemented / wired / runtime-verified / user-usable) | Show Harbour CoT |
+| **Narrator** | How the turn is *told* ([narrator.md](./narrator.md)) | Invent readiness facts to decorate a jot |
 
 All of the above share **one** Enigma Context Graph / Vault. No per-character memory, no per-role truth.
 

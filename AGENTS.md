@@ -65,6 +65,7 @@ Behavioural changes without tests are not done.
 | Receding-horizon search (docs) | `docs/architecture/polaris-search.md` · `docs/architecture/council.md` · ADR-044–048; implementation tickets under `tickets/polaris/` (`future`; after Observatory 01–02) |
 | Programme truth / Observatory | `docs/architecture/observatory.md`; tickets `tickets/observatory/` then `tickets/recon/RECON-06`…`08` |
 | Activity readiness / Harbour | `docs/architecture/harbour.md`; tickets `tickets/harbour/` (after PolarIS-01 + RECON-07; not a planner) |
+| Human projection / Narrator | `docs/architecture/narrator.md`; tickets `tickets/narrator/` (after Observatory 01–02 + C14; not a second LLM) |
 | Local embeddings | `packages/embeddings` |
 | Fixtures | `packages/fixtures` |
 | Demo simulation / clock / env | `packages/simulation` |

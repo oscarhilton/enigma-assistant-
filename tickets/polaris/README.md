@@ -65,6 +65,8 @@ NORTHSTAR-SEARCH-DOCS
 | Lens | Structured PV explorer + Council assessments (`BRAIN-*` tickets) |
 | Observatory | Programme truth (specified / wired / verified / running / usable) — not a Council seat |
 | Harbour | CAN the user begin? Setup / transition friction — not a planner, not a star ([harbour.md](../../docs/architecture/harbour.md)) |
+| Titans | Embodied / ambient state (council “planets embody”) — not extra seats |
+| Narrator | Human projection / continuity — not a mind ([narrator.md](../../docs/architecture/narrator.md)) |
 
 Functional Council seats (internal ids; star aliases are copy only — [council.md](../../docs/architecture/council.md)):
 

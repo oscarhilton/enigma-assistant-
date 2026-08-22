@@ -83,6 +83,7 @@ Restore of missing 030–035 / 038 / `product-characters.md` / `enigma-interior.
 | Dedicated COUNCIL-01 / ADR-049 | **Not created.** Seats, ranking attribution, and Goose coverage rules fit existing 044–048 + POLARIS-SEARCH-03 / BRAIN / ALEX-EVAL tickets |
 | Observatory vs PolarIS as “next” | Observatory 01–02 are the first visible deliverable ([observatory.md](../../docs/architecture/observatory.md)). PolarIS internal graph is unchanged; do not claim PolarIS implementation until 01–02 are `done`. No new Council stars for the graph. |
 | Harbour vs PolarIS / Foundry / Council | Harbour is CAN-begin / transition friction ([harbour.md](../../docs/architecture/harbour.md)). Not a planner, not Foundry, not a seat, no star name, **no ADR-049**. |
+| Narrator vs C09 / C14 / Lens | Narrator is a projection layer ([narrator.md](../../docs/architecture/narrator.md)). Reuses ADR-020/027/048. Not a second LLM, not fake CoT, not ADR-049. Titans = existing planetary state, not new stars. |
 
 ## Non-goals
 

@@ -5,7 +5,7 @@
 
 Presentation is part of Enigma’s magic. The conversational surface is not a flat chat log and not a fake chain-of-thought. It is a **structured projection of real Core events** plus the prose Enigma actually wrote.
 
-This page is the conversation **activity layer**. Cortex ([cortex-visualizer.md](./cortex-visualizer.md) · [C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md)) is a different projection of overlapping feeds — forensic / 3D, not the in-thread activity UI.
+This page is the conversation **activity layer**. Cortex ([cortex-visualizer.md](./cortex-visualizer.md) · [C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md)) is a different projection of overlapping feeds — forensic / 3D, not the in-thread activity UI. [Narrator](./narrator.md) may later jot a `NarrativeBeat` **over** these same hops — it must not invent a parallel cognition log.
 
 ## Authority (unchanged)
 

@@ -74,6 +74,7 @@ Schema sketch: [eval-stubs/capability_status.v0.json](./eval-stubs/capability_st
 | **Lens** | What lines did Polaris *search*? | [ADR-048](../adr/048-structured-search-trace-and-lens.md) |
 | **Council** | How do specialist lenses *read* a position? | [council.md](./council.md) |
 | **Harbour** | What stands between intention and starting? | [harbour.md](./harbour.md) — evidence / blockers only, **never CoT** |
+| **Narrator** | How did the turn *read* as a micro-story? | [narrator.md](./narrator.md) — map jot → hop + evidence; **strip mythic frame; no CoT** |
 
 Do **not** add Observatory or Harbour seats to the Council. Do **not** name new stars to decorate the graph. Later, a capability detail pane may attach a Harbour readiness payload (`blockers[]`, `unknowns`, evidence refs) without showing deliberation.
 
@@ -105,6 +106,9 @@ Polaris Search / Lens (BRAIN-*) — later; internal chain unchanged
         │
         ▼
 HARBOUR-01…03  readiness (after PolarIS-01 + RECON-07)
+        │
+        ▼
+NARRATOR-01…03  human projection (after C14; not this sprint)
 ```
 
 Polaris / Brain View keep their existing ticket graph ([tickets/polaris/README.md](../../tickets/polaris/README.md)). Do not claim `POLARIS-SEARCH-*` implementation until Observatory 01–02 are `done` (programme gate, not a rewrite of PolarIS internals). Harbour does not join the PolarIS graph ([tickets/harbour/](../../tickets/harbour/)).

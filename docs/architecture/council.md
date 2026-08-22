@@ -47,6 +47,7 @@ Star names (Aldebaran, Spica, …) are **copy aliases**. Internals stay `Context
 | **Lens** | Inspectable PV + Council assessments ([ADR-048](../adr/048-structured-search-trace-and-lens.md)) | Chain-of-thought; click-to-COMMIT |
 | **Observatory** | Programme truth registry + engineering UI ([observatory.md](./observatory.md)) | A Council seat, Home constellation, or sky theatre |
 | **Harbour** | Activity readiness / transition friction ([harbour.md](./harbour.md)) | A Council seat, a star, or a second planner |
+| **Narrator** | Human projection / continuity ([narrator.md](./narrator.md)) | A second mind, polish LLM, or epistemology |
 
 Conversational **Assistant** remains the language boundary ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)): it understands and speaks. It is not a rival chair and not Enigma. Product copy may let Polaris “show the way” without putting search authority in the LLM.
 
@@ -60,6 +61,8 @@ North Star still forbids a theme-park cast ([north-star.md](./north-star.md)). C
 | **Planetary / gas-giant imagery** | Embodied forces and *state* — energy, appetite, exertion, recovery, emotion (only if attested), momentum | Observables on `DecisionPosition` — **not** extra planners |
 
 Planets do not vote. They are circumstances the lenses read.
+
+**Titans** (product language) = this same embodied/ambient-state category — not extra Council members, not a named roster, not a star. [Narrator](./narrator.md) may jot an attested Titan; an unattested one stays silent. Do not diagnose “planetary mood.”
 
 ## Functional Council v1 (names after function)
 

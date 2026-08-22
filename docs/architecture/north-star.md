@@ -34,13 +34,13 @@ Visibility (stop the theme park — sitcom brief historically in `product-charac
 | Layer | Who / what |
 | --- | --- |
 | Always visible / intuitive | You, Polaris (navigator), THE Goose, Cases |
-| Inspectable when relevant | Council (specialist lenses), Vault / Memory, Foundry / Machine, Harbour (readiness), Sources |
+| Inspectable when relevant | Council (specialist lenses), Titans (embodied state), Vault / Memory, Foundry / Machine, Harbour (readiness), Sources |
 | Hidden substrate | Enigma (canonical world model — not a speaking character) |
 | Forensic / advanced | Cortex, Lens, Observatory (programme truth), EvidenceBundle, lineage, egress, authority, epistemic status |
 
 The user should never need to learn the architecture to benefit from it. Architecture is there when they become curious. Shadows, satchel, cargo, Workbench, Engine Room stay **internal / inspectable metaphors**, not a front-page cast. Council **seats** are inspectable lenses, not extra nouns on the home screen. Do not put Aldebaran/Spica/Canopus on the always-visible layer.
 
-Conversational Assistant remains the language boundary ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)); it is not a second chair and not Enigma.
+Conversational Assistant remains the language boundary ([ADR-020](../adr/020-llm-conversational-boundary-not-truth.md)); it is not a second chair and not Enigma. **Narrator** is how ordinary chat carries continuity across layers — not a front-page character ([narrator.md](./narrator.md)). Mythology is presentation, never epistemology.
 
 Next strategic frontiers (orthogonal; none authorise runtime here):
 
@@ -48,6 +48,7 @@ Next strategic frontiers (orthogonal; none authorise runtime here):
 - **The relationship** (relational bootstrap: product taste + explicit preferences + shared motifs + current register). Humour constitution is historical ADR-038 — file not on `main`; see [NORTHSTAR-SEARCH-DOCS](../../tickets/northstar/NORTHSTAR-SEARCH-DOCS.md).
 - **Local choice under search** — later than Observatory 01–02. Polaris receding-horizon planning over a compiled life position, never a universal life score ([polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)).
 - **Activity readiness** — Harbour: CAN they begin, and what stands between wanting and starting? PolarIS still decides whether now is a good move ([harbour.md](./harbour.md)). No star name. Not a tyrant.
+- **Human projection** — Narrator weaves selective micro-story beats over real events; ordinary chat stays the surface ([narrator.md](./narrator.md)). Not a second LLM.
 
 Do not implement those runtimes from this page.
 
@@ -134,3 +135,4 @@ Enigma does not optimise a person's life. Polaris may **search** locally availab
 | Local choice / search | [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md) |
 | Programme truth | [observatory.md](./observatory.md) (engineering; not a Council seat) |
 | Activity readiness | [harbour.md](./harbour.md) (CAN begin; not a planner, not a star) |
+| Human projection | [narrator.md](./narrator.md) (continuity; facts only; no CoT) |
