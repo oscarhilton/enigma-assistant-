@@ -62,8 +62,8 @@ C30 Brain UI and C31 Goose are not recall, and recall is not a UI.
 ## Consequences
 
 - `packages/domain/semantic_recall.py` owns pipeline order, reduction, and the governed-memory filter.
-- Approximate candidate ID lookup lives in `packages/embeddings` (currently `packages/embeddings/src/personal_enigma/embeddings/index.py`).
-- `apps/api` may adapt MemoryInventory / vault rows as the authority; it must not let index payloads skip that adapter.
+- Approximate candidate ID lookup lives in `packages/embeddings` (currently `packages/embeddings/src/personal_enigma/embeddings/index.py`). Embeddings remain a separate slice; recall tests may use any `CandidateAssertionIndex`.
+- `apps/api/storage/semantic_recall.py` (`VaultInventoryAuthority`, RECON-05C) adapts current MemoryInventory + vault payloads as the authority. Index hits and leftover vault rows cannot skip that adapter.
 - Freeze tests: ceramics stale-index rejection, inverse re-establishment, epistemic non-upgrade, no-create, no-raw-source.
 
 ## Non-goals
@@ -78,5 +78,6 @@ C30 Brain UI and C31 Goose are not recall, and recall is not a UI.
 
 - [ADR-036](./036-retention-gate-life-memory.md)
 - [data-retention.md](../architecture/data-retention.md)
-- [C32](../../tickets/conversational-ui/C32-semantic-recall.md)
+- [C32](../../tickets/conversational-ui/C32-semantic-recall.md) (donor slice A)
+- [RECON-05C](../../tickets/conversational-ui/RECON-05C-semantic-recall-authority.md)
 - [M14](../../tickets/retrieval/M14-local-embeddings.md)
