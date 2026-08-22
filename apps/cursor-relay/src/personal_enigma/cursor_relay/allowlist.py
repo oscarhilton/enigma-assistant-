@@ -19,7 +19,7 @@ class DispatchTarget:
     repository: str
     environment: str
     head_branch: str
-    model: str
+    model: str | None = None
     base_branch: str | None = None
 
 
@@ -98,19 +98,30 @@ def check_base_branch(config: RelayConfig, branch: str | None) -> str | None:
     )
 
 
+def resolve_model(config: RelayConfig, model: str | None) -> str | None:
+    """Validate an explicit model against the allowlist; omitted model stays omitted."""
+
+    if model is None:
+        return None
+    stripped = str(model).strip()
+    if not stripped:
+        return None
+    return check_model(config, stripped)
+
+
 def validate_dispatch_target(
     config: RelayConfig,
     *,
     repository: str,
     environment: str,
     head_branch: str,
-    model: str,
+    model: str | None = None,
     base_branch: str | None = None,
 ) -> DispatchTarget:
     return DispatchTarget(
         repository=check_repository(config, repository),
         environment=check_environment(config, environment),
         head_branch=check_head_branch(config, head_branch),
-        model=check_model(config, model),
+        model=resolve_model(config, model),
         base_branch=check_base_branch(config, base_branch),
     )

@@ -257,9 +257,8 @@ def build_create_payload(
             f"repository={target.repository} "
             "(branch identity from GitHub PR head; workOnCurrentBranch=true)"
         )
-        return {
+        pr_payload: dict[str, Any] = {
             "prompt": {"text": text},
-            "model": {"id": target.model},
             "name": name or f"relay:pr-{parsed.number}",
             "repos": [
                 {
@@ -271,6 +270,9 @@ def build_create_payload(
             # Existing PR — never open a second busboy PR.
             "autoCreatePR": False,
         }
+        if target.model is not None:
+            pr_payload["model"] = {"id": target.model}
+        return pr_payload
 
     text += (
         f"\n\nRelay branch intent: requested_head={target.head_branch}"
@@ -281,11 +283,12 @@ def build_create_payload(
 
     payload: dict[str, Any] = {
         "prompt": {"text": text},
-        "model": {"id": target.model},
         "name": name or f"relay:{target.head_branch}",
         "env": {"type": "cloud", "name": env_name},
         "autoCreatePR": auto_create_pr,
     }
+    if target.model is not None:
+        payload["model"] = {"id": target.model}
     # Named cloud env: never repos, never workOnCurrentBranch.
     canonical_names = frozenset({*mapping.values(), CANONICAL_ENV_NAME})
     if is_named_cloud_environment(
