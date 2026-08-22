@@ -1,12 +1,12 @@
 """RECON-05A — minimal C29 retention→vault adapter tests.
 
-This suite specifies only the first adapter wire:
+This suite specifies the first adapter wire:
 - retention gate decision is required before durable vault write
 - retained assertions are stored as SEC-06 DerivedRecord rows with record_kind marker
 - epistemic status is never silently upgraded at the persistence boundary
 
 Deliberately out of scope here (RECON-05B+): retained-assertion forget propagation,
-TTL expiry sweep, memory inventory query/correction, semantic recall adapters.
+memory inventory query/correction, semantic recall adapters.
 """
 
 from __future__ import annotations
@@ -126,7 +126,7 @@ class TestRetentionVaultMapping:
         with pytest.raises(RetentionVaultError, match="Vault write rejected"):
             map_retention_to_derived_record(assertion, decision)
 
-    def test_ttl_gate_outcome_is_not_persistable_in_recon05a(self) -> None:
+    def test_maps_ttl_decision_to_derived_record(self) -> None:
         assertion = _assertion(
             id="ttl-gift",
             kind=AssertionKind.FACT,
@@ -138,8 +138,12 @@ class TestRetentionVaultMapping:
         )
         decision = evaluate_retention(assertion)
         assert decision.outcome == RetentionOutcome.TTL
-        with pytest.raises(RetentionVaultError, match="RECON-05A supports DURABLE"):
-            map_retention_to_derived_record(assertion, decision)
+        record = map_retention_to_derived_record(assertion, decision)
+
+        assert record.id == assertion.id
+        assert is_retained_assertion_record(record)
+        assert record.payload["retention_decision"]["outcome"] == RetentionOutcome.TTL.value
+        assert record.payload["valid_until"] == "2026-06-01T00:00:00+00:00"
 
     def test_epistemic_status_is_not_upgraded_in_payload(self) -> None:
         assertion = _assertion(
@@ -248,7 +252,7 @@ class TestVaultDurableAssertionStore:
             with pytest.raises(RetentionVaultError, match="does not match canonical"):
                 store.store(assertion, supplied)
 
-    def test_ttl_retention_is_unsupported_in_recon05a(
+    def test_ttl_retention_is_persistable(
         self, vault_root: Path, memory_keychain
     ) -> None:
         assertion = _assertion(
@@ -264,9 +268,9 @@ class TestVaultDurableAssertionStore:
         assert decision.outcome == RetentionOutcome.TTL
         with PrivateVault.open(root=vault_root, keychain=memory_keychain) as vault:
             store = VaultDurableAssertionStore(vault)
-            with pytest.raises(RetentionVaultError, match="unsupported for non-durable"):
-                store.store(assertion, decision)
-            assert store.list_retained_ids() == []
+            stored_id = store.store(assertion, decision)
+            assert stored_id == assertion.id
+            assert store.list_retained_ids() == [assertion.id]
 
     def test_in_place_rewrite_is_forbidden(
         self, vault_root: Path, memory_keychain

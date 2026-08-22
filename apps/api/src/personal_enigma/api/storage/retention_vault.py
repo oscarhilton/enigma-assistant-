@@ -4,7 +4,7 @@ Legal write path::
 
     GroundedAssertion
       → evaluate_retention()
-      → RetentionDecision (DURABLE only in RECON-05A)
+      → RetentionDecision (DURABLE | TTL)
       → map_retention_to_derived_record()
       → PrivateVault.store_derived()
 
@@ -29,6 +29,7 @@ from personal_enigma.domain.retention import (
     RetentionPurpose,
 )
 from personal_enigma.domain.retention_gate import (
+    ForgetCascadeResult,
     RetentionDecision,
     RetentionOutcome,
     evaluate_retention,
@@ -73,10 +74,10 @@ def assert_retention_write_allowed(
         )
         raise RetentionVaultError(msg)
 
-    if decision.outcome != RetentionOutcome.DURABLE:
+    if decision.outcome not in (RetentionOutcome.DURABLE, RetentionOutcome.TTL):
         raise RetentionVaultError(
-            "Vault write rejected: RECON-05A supports DURABLE retention only "
-            f"(got {decision.outcome.value})"
+            "Vault write rejected: only DURABLE and TTL retention outcomes "
+            f"may persist (got {decision.outcome.value})"
         )
 
     if assertion.epistemic_status in _INFERENCE_NOT_DURABLE_STATUSES:
@@ -203,6 +204,18 @@ def map_retention_to_derived_record(
     )
 
 
+def forget_retained_assertion(
+    conn: SqlCipherConnection,
+    assertion_id: str,
+) -> ForgetCascadeResult:
+    """Delete a retained assertion and unjustified dependent derived state."""
+    from personal_enigma.api.storage.retention_forget import (
+        forget_retained_assertion_with_propagation,
+    )
+
+    return forget_retained_assertion_with_propagation(conn, assertion_id)
+
+
 def list_retained_assertion_ids(conn: SqlCipherConnection) -> list[str]:
     """Return assertion ids for retained-assertion rows in the vault."""
 
@@ -228,9 +241,9 @@ class VaultDurableAssertionStore:
                 "RetentionDecision assertion_id does not match assertion.id"
             )
         expected = evaluate_retention(assertion)
-        if expected.outcome != RetentionOutcome.DURABLE:
+        if expected.outcome not in (RetentionOutcome.DURABLE, RetentionOutcome.TTL):
             raise RetentionVaultError(
-                "Vault persistence unsupported for non-durable retention outcomes in RECON-05A "
+                "Vault persistence unsupported for non-retainable gate outcomes "
                 f"(gate returned {expected.outcome.value})"
             )
         if not _decision_matches_expected(decision, expected):
@@ -261,9 +274,31 @@ class VaultDurableAssertionStore:
         now: datetime | None = None,
     ) -> str | None:
         decision = evaluate_retention(assertion, now=now)
-        if decision.outcome != RetentionOutcome.DURABLE:
+        if decision.outcome not in (RetentionOutcome.DURABLE, RetentionOutcome.TTL):
             return None
         return self.store(assertion, decision)
+
+    def forget(self, assertion_id: str) -> ForgetCascadeResult:
+        return forget_retained_assertion(self._vault._conn, assertion_id)
+
+    def expire_ttl(self, *, now: datetime | None = None) -> list[ForgetCascadeResult]:
+        from personal_enigma.api.storage.retention_forget import expire_retained_assertions
+
+        return expire_retained_assertions(self._vault._conn, now=now)
+
+    def list_current_retained(self) -> list[DerivedRecord]:
+        from personal_enigma.api.storage.retention_forget import (
+            list_current_retained_records,
+        )
+
+        return list_current_retained_records(self._vault._conn)
+
+    def list_current_memory(self) -> list[DerivedRecord]:
+        from personal_enigma.api.storage.retention_forget import (
+            list_current_memory_records,
+        )
+
+        return list_current_memory_records(self._vault._conn)
 
     def list_retained_ids(self) -> list[str]:
         return list_retained_assertion_ids(self._vault._conn)
