@@ -4,7 +4,7 @@ Legal write path::
 
     GroundedAssertion
       → evaluate_retention()
-      → RetentionDecision (DURABLE | TTL)
+      → RetentionDecision (DURABLE only in RECON-05A)
       → map_retention_to_derived_record()
       → PrivateVault.store_derived()
 
@@ -73,9 +73,10 @@ def assert_retention_write_allowed(
         )
         raise RetentionVaultError(msg)
 
-    if decision.outcome not in (RetentionOutcome.DURABLE, RetentionOutcome.TTL):
+    if decision.outcome != RetentionOutcome.DURABLE:
         raise RetentionVaultError(
-            f"Vault write rejected for outcome {decision.outcome.value}"
+            "Vault write rejected: RECON-05A supports DURABLE retention only "
+            f"(got {decision.outcome.value})"
         )
 
     if assertion.epistemic_status in _INFERENCE_NOT_DURABLE_STATUSES:
@@ -148,12 +149,25 @@ def _lineage_refs(assertion: GroundedAssertion, decision: RetentionDecision) -> 
         parent_ref = assertion_lineage_ref(parent_id)
         if parent_ref not in refs:
             refs.append(parent_ref)
-        if parent_id not in refs:
-            refs.append(parent_id)
     for ref in decision.provenance_refs:
         if ref not in refs:
             refs.append(ref)
     return refs
+
+
+def _decision_matches_expected(
+    supplied: RetentionDecision,
+    expected: RetentionDecision,
+) -> bool:
+    """True when a caller-supplied decision matches the gate output."""
+
+    return (
+        supplied.outcome == expected.outcome
+        and supplied.retention_class == expected.retention_class
+        and supplied.purpose == expected.purpose
+        and supplied.lifetime == expected.lifetime
+        and supplied.rejection_reason == expected.rejection_reason
+    )
 
 
 def map_retention_to_derived_record(
@@ -206,13 +220,30 @@ class VaultDurableAssertionStore:
         self._vault = vault
 
     def store(self, assertion: GroundedAssertion, decision: RetentionDecision) -> str:
-        existing = self.get_record(assertion.id)
-        if existing is not None:
+        expected = evaluate_retention(assertion)
+        if expected.outcome != RetentionOutcome.DURABLE:
             raise RetentionVaultError(
-                f"In-place rewrite of retained assertion {assertion.id!r} is forbidden; "
-                "mint a new assertion id and supersede instead"
+                "Vault persistence unsupported for non-durable retention outcomes in RECON-05A "
+                f"(gate returned {expected.outcome.value})"
             )
-        record = map_retention_to_derived_record(assertion, decision)
+        if not _decision_matches_expected(decision, expected):
+            raise RetentionVaultError(
+                "Supplied RetentionDecision does not match canonical retention gate output"
+            )
+
+        existing_any = self._vault.get_derived_record(assertion.id)
+        if existing_any is not None:
+            if is_retained_assertion_record(existing_any):
+                raise RetentionVaultError(
+                    f"In-place rewrite of retained assertion {assertion.id!r} is forbidden; "
+                    "mint a new assertion id and supersede instead"
+                )
+            raise RetentionVaultError(
+                "DerivedRecord id collision: refusing to overwrite an existing non-retained row "
+                f"with id {assertion.id!r}"
+            )
+
+        record = map_retention_to_derived_record(assertion, expected)
         self._vault.store_derived(record)
         return record.id
 
@@ -223,7 +254,7 @@ class VaultDurableAssertionStore:
         now: datetime | None = None,
     ) -> str | None:
         decision = evaluate_retention(assertion, now=now)
-        if decision.outcome not in (RetentionOutcome.DURABLE, RetentionOutcome.TTL):
+        if decision.outcome != RetentionOutcome.DURABLE:
             return None
         return self.store(assertion, decision)
 

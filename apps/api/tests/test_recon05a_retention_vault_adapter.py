@@ -93,6 +93,7 @@ class TestRetentionVaultMapping:
         assert assertion_lineage_ref(assertion.id) in record.lineage.derived_from
         assert retention_decision_lineage_ref(assertion.id) in record.lineage.derived_from
         assert "EV_CHAT_1" in record.lineage.derived_from
+        assert assertion.id not in record.lineage.derived_from
 
     def test_rejects_ephemeral_gate_outcomes(self) -> None:
         assertion = _assertion(
@@ -114,6 +115,21 @@ class TestRetentionVaultMapping:
         decision = evaluate_retention(assertion)
         assert decision.outcome == RetentionOutcome.REJECT
         with pytest.raises(RetentionVaultError, match="Vault write rejected"):
+            map_retention_to_derived_record(assertion, decision)
+
+    def test_ttl_gate_outcome_is_not_persistable_in_recon05a(self) -> None:
+        assertion = _assertion(
+            id="ttl-gift",
+            kind=AssertionKind.FACT,
+            predicate="gift_history",
+            purpose_tags=["temporary_case"],
+            validity_kind=AssertionValidityKind.TTL,
+            temporal_scope="gift_planning_2026",
+            valid_until=datetime(2026, 6, 1, tzinfo=UTC),
+        )
+        decision = evaluate_retention(assertion)
+        assert decision.outcome == RetentionOutcome.TTL
+        with pytest.raises(RetentionVaultError, match="RECON-05A supports DURABLE"):
             map_retention_to_derived_record(assertion, decision)
 
     def test_epistemic_status_is_not_upgraded_in_payload(self) -> None:
@@ -202,6 +218,47 @@ class TestVaultDurableAssertionStore:
             assert store.list_retained_ids() == []
             assert store.get_record("direct-write") is None
 
+    def test_store_recomputes_gate_and_rejects_mismatched_decision(
+        self, vault_root: Path, memory_keychain
+    ) -> None:
+        assertion = _assertion(id="maya-ceramics")
+        expected = evaluate_retention(assertion)
+        assert expected.outcome == RetentionOutcome.DURABLE
+        supplied = RetentionDecision(
+            assertion_id=assertion.id,
+            outcome=expected.outcome,
+            retention_class=expected.retention_class,
+            purpose=RetentionPurpose.LIFE_FACT,
+            lifetime=expected.lifetime,
+            provenance_refs=list(expected.provenance_refs),
+            rejection_reason=expected.rejection_reason,
+            rationale="caller-supplied mismatch",
+        )
+        with PrivateVault.open(root=vault_root, keychain=memory_keychain) as vault:
+            store = VaultDurableAssertionStore(vault)
+            with pytest.raises(RetentionVaultError, match="does not match canonical"):
+                store.store(assertion, supplied)
+
+    def test_ttl_retention_is_unsupported_in_recon05a(
+        self, vault_root: Path, memory_keychain
+    ) -> None:
+        assertion = _assertion(
+            id="ttl-gift",
+            kind=AssertionKind.FACT,
+            predicate="gift_history",
+            purpose_tags=["temporary_case"],
+            validity_kind=AssertionValidityKind.TTL,
+            temporal_scope="gift_planning_2026",
+            valid_until=datetime(2026, 6, 1, tzinfo=UTC),
+        )
+        decision = evaluate_retention(assertion)
+        assert decision.outcome == RetentionOutcome.TTL
+        with PrivateVault.open(root=vault_root, keychain=memory_keychain) as vault:
+            store = VaultDurableAssertionStore(vault)
+            with pytest.raises(RetentionVaultError, match="unsupported for non-durable"):
+                store.store(assertion, decision)
+            assert store.list_retained_ids() == []
+
     def test_in_place_rewrite_is_forbidden(
         self, vault_root: Path, memory_keychain
     ) -> None:
@@ -219,26 +276,36 @@ class TestVaultDurableAssertionStore:
             assert record is not None
             assert record.payload["value"] == "ceramics"
 
-    def test_ttl_decision_persists_lifetime_fields(
+    def test_id_collision_with_non_retained_row_is_rejected(
         self, vault_root: Path, memory_keychain
     ) -> None:
         assertion = _assertion(
-            id="ttl-gift",
-            kind=AssertionKind.FACT,
-            predicate="gift_history",
-            purpose_tags=["temporary_case"],
-            validity_kind=AssertionValidityKind.TTL,
-            temporal_scope="gift_planning_2026",
-            valid_until=datetime(2026, 6, 1, tzinfo=UTC),
+            id="collision-id",
+            subject="PERSON_Maya",
+            predicate="likes",
+            value="ceramics",
         )
         decision = evaluate_retention(assertion)
-        assert decision.outcome == RetentionOutcome.TTL
+        assert decision.outcome == RetentionOutcome.DURABLE
 
         with PrivateVault.open(root=vault_root, keychain=memory_keychain) as vault:
+            vault.store_derived_new(
+                record_id="collision-id",
+                record_type=DerivedRecordType.FACT,
+                payload={"label": "preexisting", "predicate": "likes", "value": "cats"},
+                derived_from=["SRC_X"],
+                purpose=RetentionPurpose.LIFE_FACT,
+            )
+            existing = vault.get_derived_record("collision-id")
+            assert existing is not None
+            assert is_retained_assertion_record(existing) is False
+            assert existing.payload.get("label") == "preexisting"
+
             store = VaultDurableAssertionStore(vault)
-            store.store(assertion, decision)
-            record = store.get_record("ttl-gift")
-            assert record is not None
-            assert record.lineage.retention_class == RetentionClass.ACTIVE_UNTIL_RESOLVED
-            assert record.lineage.expires_after_resolution is not None
+            with pytest.raises(RetentionVaultError, match="id collision"):
+                store.store(assertion, decision)
+            after = vault.get_derived_record("collision-id")
+            assert after is not None
+            assert is_retained_assertion_record(after) is False
+            assert after.payload.get("label") == "preexisting"
 
