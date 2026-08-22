@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from personal_enigma.cursor_relay.allowlist import DispatchTarget
+from personal_enigma.cursor_relay.approval import parse_job_brief_auth
 
 # Allowlisted UUID → Cursor *API registry* name for env.name serialization.
 # IMPORTANT: this is the dashboard-registered Cloud Environment name that
@@ -236,12 +237,13 @@ def build_create_payload(
     if review_lane:
         text = "[REVIEW LANE — do not merge, do not push to main/master]\n" + text
     if job_brief:
-        auth = job_brief.get("authorization") or {}
+        brief_auth = parse_job_brief_auth(job_brief)
+        # Omitted dry_run is live intent — never inject dry_run=True.
         text += (
             "\n\nJob brief authorization: "
-            f"dry_run={auth.get('dry_run', True)} "
-            f"allow_push={auth.get('allow_push', False)} "
-            f"allow_open_pr={auth.get('allow_open_pr', False)} "
+            f"dry_run={brief_auth.dry_run is True} "
+            f"allow_push={brief_auth.allow_push} "
+            f"allow_open_pr={brief_auth.allow_open_pr} "
             f"allow_merge=false (relay enforced)."
         )
 
