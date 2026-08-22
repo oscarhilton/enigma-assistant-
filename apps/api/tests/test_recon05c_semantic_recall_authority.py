@@ -7,7 +7,7 @@ only inventory/vault authority may admit them as current memory.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -319,5 +319,11 @@ def test_adapter_and_tests_do_not_import_embeddings() -> None:
                 names.add(node.module)
         return names
 
-    imported = _imported_modules(Path(adapter.__file__)) | _imported_modules(Path(__file__))
-    assert not any(name == "personal_enigma.embeddings" or name.startswith("personal_enigma.embeddings.") for name in imported)
+    imported = _imported_modules(Path(adapter.__file__)) | _imported_modules(
+        Path(__file__)
+    )
+    assert not any(
+        name == "personal_enigma.embeddings"
+        or name.startswith("personal_enigma.embeddings.")
+        for name in imported
+    )
