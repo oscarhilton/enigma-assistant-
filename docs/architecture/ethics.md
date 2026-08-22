@@ -2,7 +2,7 @@
 
 **Status:** Binding product constraint ([ADR-026](../adr/026-ethics-creed-user-is-subject.md)) — documentation; no new runtime  
 **Date:** 2026-08-17  
-**Related:** [north-star.md](./north-star.md) · [data-retention.md](./data-retention.md) · [ADR-023](../adr/023-persistent-shadow-abstract-state-not-biography.md) · [SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md) · [tone-memory.md](./tone-memory.md) · [ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [ADR-038](../adr/038-humour-constitution-not-user-trainable.md) · [shareable-recipes.md](./shareable-recipes.md) · [REC00](../../tickets/recipes/REC00-shareable-recipes-north-star.md) · [cortex-visualizer.md](./cortex-visualizer.md) · [ADR-015](../adr/015-capability-scoped-disclosure-not-data-access.md) · [ADR-016](../adr/016-bilateral-consent-and-shared-commitments.md)
+**Related:** [north-star.md](./north-star.md) · [data-retention.md](./data-retention.md) · [ADR-023](../adr/023-persistent-shadow-abstract-state-not-biography.md) · [SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md) · [tone-memory.md](./tone-memory.md) · [ADR-025](../adr/025-tone-memory-how-to-speak-not-who-you-are.md) · [shareable-recipes.md](./shareable-recipes.md) · [REC00](../../tickets/recipes/REC00-shareable-recipes-north-star.md) · [cortex-visualizer.md](./cortex-visualizer.md) · [polaris-search.md](./polaris-search.md) · [ADR-015](../adr/015-capability-scoped-disclosure-not-data-access.md) · [ADR-016](../adr/016-bilateral-consent-and-shared-commitments.md)
 
 ## Creed
 
@@ -86,7 +86,7 @@ Do **not** silently optimise the user for productivity, engagement, purchases, o
 
 Alignment is to the user's **explicit goals and wellbeing** — Assist they approved, recipes they installed, tone they set or corrected. Nudges that maximise streaks, session time, or third-party outcomes without that alignment are out of scope.
 
-Next Action may reduce executive-function friction the user asked for ([next-action.md](./next-action.md)). It must not become a covert coach, marketer, or persuader.
+Next Action may reduce executive-function friction the user asked for ([next-action.md](./next-action.md)). It must not become a covert coach, marketer, or persuader. Receding-horizon search ([polaris-search.md](./polaris-search.md)) is the same rule at tree depth: **help the user choose among locally available actions**; do not optimise a life or show theatrical chain-of-thought as a “Brain View.”
 
 **Distress may increase supportiveness, never authority.** ADHD or difficulty can change **how much friction Enigma removes**, but never **silently change what it is allowed to do**. Ambiguous help requests default to the least-authoritative useful interpretation ([ADR-028](../adr/028-conversational-constitution-attestation-dialogue-support.md)).
 

@@ -61,6 +61,7 @@ Behavioural changes without tests are not done.
 | Transformer | `packages/transformation` |
 | Attention | `packages/attention` |
 | NextAction schemas | `packages/domain` ([next-action.md](docs/architecture/next-action.md), ADR-010) |
+| Receding-horizon search (docs) | `docs/architecture/polaris-search.md` · ADR-044–048; implementation tickets under `tickets/polaris/` (`future`) |
 | Local embeddings | `packages/embeddings` |
 | Fixtures | `packages/fixtures` |
 | Demo simulation / clock / env | `packages/simulation` |

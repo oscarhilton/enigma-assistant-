@@ -286,3 +286,44 @@ Data boot is three levels ([data-boot.md](./data-boot.md) · [ADR-042](../adr/04
 | P02 | Alex Life Scripts as browser product tests | `done` | [P02](../../tickets/pilot/P02-alex-life-scripts-as-product-tests.md) | **1** constitutional |
 | P04 | Alex Full-Life Reprime (HF messy synthetic life) | `future` (Goose flight cert) | [P04](../../tickets/pilot/P04-alex-full-life-reprime.md) | **2** noisy life — not UI2-06 |
 | P03 | Calendar READ + SUPPORT (no writes) | `in_progress` | [P03](../../tickets/pilot/P03-calendar-read-support.md) | **3** My Enigma |
+
+---
+
+## Polaris search (docs programme — no runtime in this wave)
+
+Architecture: [polaris-search.md](./polaris-search.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md).  
+Tickets: [northstar/](../../tickets/northstar/) · [polaris/](../../tickets/polaris/) · ALEX-EVAL under [demo-evaluation/](../../tickets/demo-evaluation/) · BRAIN-* under [conversational-ui/](../../tickets/conversational-ui/).
+
+Does **not** replace Attention / Next Action / Assist. Shadow-then-promote. Alex synthetic data first.
+
+```text
+NORTHSTAR-SEARCH-DOCS
+    │
+    ▼
+POLARIS-SEARCH-01 DecisionPosition
+    │
+    ▼
+POLARIS-SEARCH-02 Move generation + legality
+    │
+    ▼
+POLARIS-SEARCH-03 Local evaluator
+    │
+    ▼
+POLARIS-SEARCH-04 Receding-horizon search
+    │
+    ├──────────────┐
+    ▼              ▼
+05 Motifs     ALEX-EVAL-01 Life positions
+    │              │
+    │              ▼
+    │         ALEX-EVAL-02 Planner tournament
+    │              │
+    ▼              ▼
+BRAIN-01 Trace → BRAIN-02 Lens → BRAIN-03 live invalidation
+    │
+    ▼
+POLARIS-SEARCH-06 Shadow mode
+    │
+    ▼
+POLARIS-SEARCH-07 Controlled promotion
+```

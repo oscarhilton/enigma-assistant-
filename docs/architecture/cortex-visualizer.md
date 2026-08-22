@@ -8,7 +8,9 @@
 
 **Preferred name:** **Cortex** (not “Neural View” or “Brain View” in product copy).
 
-**Ticket:** [C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md)
+**Polaris Lens** (Alex Lab PV explorer) is a **sibling forensic surface**, not a rename of Cortex and not a mind ([ADR-048](../adr/048-structured-search-trace-and-lens.md) · [polaris-search.md](./polaris-search.md)). Cortex shows what Enigma **did**. Lens shows structured **search lines** (candidates, pruned reasons, evidence, fading confidence, invalidation triggers) — never chain-of-thought. Ticket prefix `BRAIN-*`; product copy **Lens**. Lens is also not a control plane: PREVIEW of a line is allowed; COMMIT stays Assist.
+
+**Ticket:** [C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md) (Cortex) · [BRAIN-02](../../tickets/conversational-ui/BRAIN-02-pv-explorer.md) (Lens, `future`)
 
 **Status:** **DEFERRED** until SEC-04 stabilises source→vault→transform→egress event flow. Scaffold landed (types, projection, placeholder panel); **not wired to HomePage**.
 
@@ -49,9 +51,10 @@ The Cortex module **never** writes world model, vault, attention policy, or rete
 
 | Shows | Does not show |
 | --- | --- |
-| Checkpoint jumps, attention qualification, egress disclosures | Token-level LLM “thinking” |
+| Checkpoint jumps, attention qualification, egress disclosures | Token-level LLM “thinking” / chain-of-thought |
 | Source ingest pulses (future Private) | Chat transcript as source of truth |
 | Memory decay / forget operations (SEC-06) | Raw mail bodies or Notes text |
+| (Nothing: search PVs belong in **Lens**, not Cortex) | Polaris principal variation as a granted plan or as CoT |
 
 Cross-reference: [ADR-020](../adr/020-llm-conversational-boundary-not-truth.md) — conversational boundary is not truth; Cortex observes Core, not the remote model’s internal state.
 
@@ -208,3 +211,4 @@ Do not add `@react-three/fiber` until the scene ticket is actively claimed — k
 - [SEC-02](../../tickets/security/SEC-02-audited-remote-egress-gate.md) — disclosure ledger
 - [SEC-07](../../tickets/security/SEC-07-shadow-reconstruction-benchmark.md) — dual-metric benchmark
 - [ethics.md](./ethics.md) · [ADR-026](../adr/026-ethics-creed-user-is-subject.md) — Cortex is events, not a mind
+- [polaris-search.md](./polaris-search.md) · [ADR-048](../adr/048-structured-search-trace-and-lens.md) — Lens is structured search introspection, not Cortex and not CoT

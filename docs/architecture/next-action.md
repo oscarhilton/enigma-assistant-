@@ -174,6 +174,16 @@ Demo UI ticket: [D18](../../tickets/demo-ui/D18-demo-next-action.md) (chrome onl
 
 [attention-surface.md](./attention-surface.md) freezes interrupt discipline (compression, calendar ≠ obligation, Done/Snooze Demo-only). This doc freezes the **companion** output: optional Next Action that fills the executive-function gap between “needs you” and “can wait.”
 
+## Relationship to Polaris search (later, gated)
+
+[polaris-search.md](./polaris-search.md) proposes a receding-horizon planner for **WORTH DOING**. It does not replace this three-level surface, N01’s local fitness stub, or Attention policy.
+
+- Search may look many plies ahead; product output remains **one optional next action** (or REST / NOTHING).
+- Promotion onto the live Next Action path is [POLARIS-SEARCH-07](../../tickets/polaris/POLARIS-SEARCH-07-controlled-promotion.md), after Alex life-position benchmarks and shadow comparison.
+- Until then the current scorer (or Demo stubs) remains user-visible ([POLARIS-SEARCH-06](../../tickets/polaris/POLARIS-SEARCH-06-shadow-mode.md)).
+
+Do not fold search trees into `AttentionItem`. Do not treat a principal variation as a committed plan.
+
 ## Shadow (later, soft)
 
 Shadow audits **silence** ([shadow-silence-evaluation.md](./shadow-silence-evaluation.md) · [shadow-evaluation.md](./shadow-evaluation.md)): Done/Snooze intervening actions stay Demo/Assisted.
@@ -186,6 +196,7 @@ Next Action may still exist in Shadow as an **observation** of what would have b
 | --- | --- |
 | `NextAction` + enums | `packages/domain` (M20) |
 | Scorer / ranking stub | `packages/attention` or successor package (N01) — must not widen `AttentionItem` |
+| Receding-horizon planner | Polaris tickets (`future`) — local eval + search; not a global life score ([ADR-046](../adr/046-local-evaluation-under-uncertainty.md)) |
 | Something-else cycle API | Core + Demo (N02); Demo chrome D18 |
 | Preference memory | Private-local cautious stats (N03); never remote raw rejects with PII |
 | Demo surface stubs | `apps/web` / demo API (D18) |
