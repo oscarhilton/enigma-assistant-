@@ -24,7 +24,7 @@
 
 ## Unlocks / enhances
 
-- All `POLARIS-SEARCH-*`, `ALEX-EVAL-*`, `BRAIN-*` tickets (`future` until this ticket is `done`)
+- All `POLARIS-SEARCH-*`, `ALEX-EVAL-*`, `BRAIN-*` tickets (`future` until this ticket is `done`; **programme gate:** do not claim PolarIS implementation until Observatory 01–02 are `done`)
 
 ## Intent
 
@@ -81,6 +81,7 @@ Restore of missing 030–035 / 038 / `product-characters.md` / `enigma-interior.
 | North Star “Do not add nouns” vs Council | Council is an **inspectable projection**, not a front-page cast. Star aliases (Aldebaran / Spica / Canopus) stay off the always-visible layer. Conversational Assistant remains ADR-020 language boundary; Polaris is navigator/chair in product copy, not the hosted model |
 | Foundry as eval factory vs effector | One Foundry: capabilities + legality/effects, later physical/UI externalisation. Not a second searcher |
 | Dedicated COUNCIL-01 / ADR-049 | **Not created.** Seats, ranking attribution, and Goose coverage rules fit existing 044–048 + POLARIS-SEARCH-03 / BRAIN / ALEX-EVAL tickets |
+| Observatory vs PolarIS as “next” | Observatory 01–02 are the first visible deliverable ([observatory.md](../../docs/architecture/observatory.md)). PolarIS internal graph is unchanged; do not claim PolarIS implementation until 01–02 are `done`. No new Council stars for the graph. |
 
 ## Non-goals
 

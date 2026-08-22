@@ -17,6 +17,7 @@ Operating manual for humans and coding agents working in this monorepo.
 ## Parallelism
 
 - Prefer **one ticket per agent / branch**.
+- **Cloud-agent economics:** serial by default; target **1**, normal max **2**; reserve slot 3. Parallelise only when independence is real and saved wall-clock is worth extra agent spend ([conductor-contract.md](docs/cloud-agents/conductor-contract.md#economics-serial-by-default)). Isolated worktrees describe *how* to isolate a second ticket — they do not authorise a standing swarm.
 - **Isolated worktrees:** claim `ticket/<prefix>-<slug>` and `git worktree add ../enigma-wt-<ticket> -b ticket/<prefix>-<slug>`. One ticket per worktree. Uncommitted work stays in the primary checkout — do not split dirty files. Full convention: [tickets/README.md](tickets/README.md#isolated-worktrees-parallel-agents).
 - Stay inside the ticket’s **package boundary** (exact file globs in each ticket).
 - Respect **hard** vs **soft (~)** dependencies — soft deps must not block start ([tickets/README.md](tickets/README.md)).
@@ -61,7 +62,8 @@ Behavioural changes without tests are not done.
 | Transformer | `packages/transformation` |
 | Attention | `packages/attention` |
 | NextAction schemas | `packages/domain` ([next-action.md](docs/architecture/next-action.md), ADR-010) |
-| Receding-horizon search (docs) | `docs/architecture/polaris-search.md` · `docs/architecture/council.md` · ADR-044–048; implementation tickets under `tickets/polaris/` (`future`) |
+| Receding-horizon search (docs) | `docs/architecture/polaris-search.md` · `docs/architecture/council.md` · ADR-044–048; implementation tickets under `tickets/polaris/` (`future`; after Observatory 01–02) |
+| Programme truth / Observatory | `docs/architecture/observatory.md`; tickets `tickets/observatory/` then `tickets/recon/RECON-06`…`08` |
 | Local embeddings | `packages/embeddings` |
 | Fixtures | `packages/fixtures` |
 | Demo simulation / clock / env | `packages/simulation` |

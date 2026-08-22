@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enigma.local/eval-stubs/capability_status.v0.json",
+  "title": "CapabilityStatusV0",
+  "description": "Machine-readable programme-truth record for one capability. Headline status is derived; do not store percent_complete. See docs/architecture/observatory.md.",
+  "type": "object",
+  "required": ["id", "rungs", "dependencies"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable capability id (e.g. calendar.read, assist.propose, polaris.search)."
+    },
+    "title": { "type": "string" },
+    "ticket_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Owning tickets. Status is not copied from ticket Status fields without evidence."
+    },
+    "rungs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "SPECIFIED",
+        "IMPLEMENTED",
+        "WIRED",
+        "VERIFIED",
+        "RUNNING",
+        "USABLE"
+      ],
+      "properties": {
+        "SPECIFIED": { "$ref": "#/$defs/rung" },
+        "IMPLEMENTED": { "$ref": "#/$defs/rung" },
+        "WIRED": { "$ref": "#/$defs/rung" },
+        "VERIFIED": { "$ref": "#/$defs/rung" },
+        "RUNNING": { "$ref": "#/$defs/rung" },
+        "USABLE": { "$ref": "#/$defs/rung" }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hard", "soft"],
+      "properties": {
+        "hard": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Capability ids that demote this headline when unmet."
+        },
+        "soft": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "broken_wires": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge", "reason_code"],
+        "additionalProperties": false,
+        "properties": {
+          "edge": { "type": "string" },
+          "reason_code": { "type": "string" },
+          "evidence_ref": { "type": "string" }
+        }
+      }
+    },
+    "last_verified": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Clock of the newest successful VERIFIED or probe evidence. Absent means never."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Author-side reminder. Not a status override."
+    }
+  },
+  "$defs": {
+    "rung": {
+      "type": "object",
+      "required": ["held", "evidence_refs"],
+      "additionalProperties": false,
+      "properties": {
+        "held": {
+          "type": "boolean",
+          "description": "Derived, not a mood. True only when evidence_refs are sufficient for this rung. Implementations MUST reject held=true when evidence_refs is empty. No percent_complete field exists."
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ticket paths, test paths, CI run URLs, or probe ids. Empty ⇒ held must be false."
+        }
+      }
+    }
+  }
+}

@@ -104,7 +104,9 @@ Do not implement P02/P03, C36, or extra Goose animations here.
 
 **Deferred architecture (`future`, do not claim during PILOT-01):** [C38](./C38-shared-uncertainty-collapse.md) shared uncertainty collapse · [C39](./C39-handoff-working-conclusion.md) handoff working conclusion. Spec capture only — no `DependencyReasoningOrchestrator`, no `ReasoningPayloadService`.
 
-**Polaris Lens (`BRAIN-*`, `future`):** structured search introspection in Alex Lab ([ADR-048](../../docs/adr/048-structured-search-trace-and-lens.md) · [council.md](../../docs/architecture/council.md)). Shows specialist assessments, branches, PV, provenance/uncertainty, and which lenses changed ranking — never CoT, never a control plane, never a second Council of agents. Not C10 Cortex. Do not claim until [POLARIS-SEARCH-04](../polaris/POLARIS-SEARCH-04-receding-horizon-search.md) is `done`.
+**Observatory (next visible sprint, `future`):** programme truth UI ([observatory.md](../../docs/architecture/observatory.md) · [OBSERVATORY-01](../observatory/OBSERVATORY-01-truth-registry.md)–[03](../observatory/OBSERVATORY-03-runtime-probes.md)). Not Cortex, not Lens, not Council. C28-class spine returns as [RECON-06](../recon/RECON-06-event-action-spine.md) after Observatory 02.
+
+**Polaris Lens (`BRAIN-*`, `future`):** structured search introspection in Alex Lab ([ADR-048](../../docs/adr/048-structured-search-trace-and-lens.md) · [council.md](../../docs/architecture/council.md)). Shows specialist assessments, branches, PV, provenance/uncertainty, and which lenses changed ranking — never CoT, never a control plane, never a second Council of agents. Not C10 Cortex. Do not claim until [POLARIS-SEARCH-04](../polaris/POLARIS-SEARCH-04-receding-horizon-search.md) is `done` (and Observatory 01–02 are done).
 
 ## First milestone (Alex)
 

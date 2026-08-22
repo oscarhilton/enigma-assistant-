@@ -10,6 +10,8 @@
 
 **Polaris Lens** (Alex Lab PV explorer) is a **sibling forensic surface**, not a rename of Cortex and not a mind ([ADR-048](../adr/048-structured-search-trace-and-lens.md) · [polaris-search.md](./polaris-search.md) · [council.md](./council.md)). Cortex shows what Enigma **did**. Lens shows structured **search lines** and **Council assessments** (specialist factors, which lenses changed ranking, candidates, pruned reasons, evidence, fading confidence, invalidation triggers) — never chain-of-thought. Ticket prefix `BRAIN-*`; product copy **Lens**. Lens is also not a control plane: PREVIEW of a line is allowed; COMMIT stays Assist.
 
+**Observatory** is a third sibling: **programme truth** (specified / wired / verified / running / usable), not events and not search lines ([observatory.md](./observatory.md)). Do not fold it into Cortex or the Council.
+
 **Ticket:** [C10](../../tickets/conversational-ui/C10-cortex-brain-visualizer.md) (Cortex) · [BRAIN-02](../../tickets/conversational-ui/BRAIN-02-pv-explorer.md) (Lens, `future`)
 
 **Status:** **DEFERRED** until SEC-04 stabilises source→vault→transform→egress event flow. Scaffold landed (types, projection, placeholder panel); **not wired to HomePage**.

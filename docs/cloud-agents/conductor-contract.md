@@ -33,6 +33,26 @@ The conductor MUST NOT (unless the job brief **explicitly authorizes**):
 - Change ticket `Status` fields
 - Alter production or shared storage configuration
 
+Oscar-only merge is unchanged: the relay cannot merge; agents do not merge `main`.
+
+## Economics (serial by default)
+
+**Governing principle:** parallelise only when independence is real **and** saved wall-clock time is worth extra agent spend.
+
+| Rule | Policy |
+| --- | --- |
+| Default shape | **Serial** — one implementation agent at a time |
+| Target concurrency | **1** cloud agent |
+| Normal max | **2** (second slot only for a genuinely independent ticket) |
+| Slot 3 | **Reserved** for time-sensitive / independent work — not a standing parallel lane |
+| Fixes | **Reuse** the implementation agent; do not spawn a reviewer/fixer swarm |
+| Review | Do **not** `request_review` on a knowingly unstable head |
+| Verify | Prefer **local / GitHub CI** for routine work; reserve cloud review agents for architecture, security, and high-risk boundaries |
+| Model | Routine jobs use Cursor **true DEFAULT** by **omitting** `model` (see [relay.md](./relay.md)). Do not send `composer-2` “just in case.” |
+| Merge | Oscar-only; unchanged |
+
+This is orchestration policy, not a second constitution. It does not rewrite PolarIS, Council, or Observatory doctrine.
+
 ## Output handoff
 
 Write JSON (stdout or agreed artifact path) with:

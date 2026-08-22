@@ -289,12 +289,29 @@ Data boot is three levels ([data-boot.md](./data-boot.md) · [ADR-042](../adr/04
 
 ---
 
-## Polaris search (docs programme — no runtime in this wave)
+## Next sprint (visible — Observatory first)
+
+Architecture: [observatory.md](./observatory.md). Tickets: [observatory/](../../tickets/observatory/) · [recon/](../../tickets/recon/).
+
+```text
+Finish RECON-05A–D (current tranche on main)
+    → OBSERVATORY-01 truth registry
+    → OBSERVATORY-02 engineering UI     ← first visible deliverable
+    → RECON-06 C28 event / action spine
+    → RECON-07 Life Scripts
+    → RECON-08 Alex eval catalogue
+    → OBSERVATORY-03 runtime / wiring probes
+    → later: Polaris Search / BRAIN-* (chain unchanged below)
+```
+
+Do not claim PolarIS implementation until Observatory 01–02 are `done`. No new Council stars.
+
+## Polaris search (docs programme — later than Observatory 01–02)
 
 Architecture: [polaris-search.md](./polaris-search.md) · [council.md](./council.md) · [ADR-044](../adr/044-receding-horizon-action-search.md)–[048](../adr/048-structured-search-trace-and-lens.md).  
 Tickets: [northstar/](../../tickets/northstar/) · [polaris/](../../tickets/polaris/) · ALEX-EVAL under [demo-evaluation/](../../tickets/demo-evaluation/) · BRAIN-* under [conversational-ui/](../../tickets/conversational-ui/). Council ontology is carried by NORTHSTAR-SEARCH-DOCS + POLARIS-SEARCH-03 + BRAIN-* + ALEX-EVAL-01 — no extra ticket.
 
-Does **not** replace Attention / Next Action / Assist. Shadow-then-promote. Alex synthetic data first.
+Does **not** replace Attention / Next Action / Assist. Shadow-then-promote. Alex synthetic data first. Internal PolarIS graph unchanged:
 
 ```text
 NORTHSTAR-SEARCH-DOCS
