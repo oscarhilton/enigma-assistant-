@@ -4,6 +4,7 @@
 | --- | --- |
 | Status | `in_progress` |
 | Branch | `cursor/recon-05c-semantic-recall-authority-e4af` |
+| PR | [#147](https://github.com/oscarhilton/enigma-assistant-/pull/147) (draft, do not merge) |
 | Domain | `conversational-ui` |
 | Programme | Dependency-minimal recovery of C32 slice A **authority** only |
 
