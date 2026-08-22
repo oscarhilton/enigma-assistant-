@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enigma.local/eval-stubs/life_position.v0.json",
+  "title": "LifePositionV0",
+  "description": "Evaluator-only replayable life position for Polaris planner benchmarks. Never ingested by Enigma. Invariants instead of one exact move. See docs/architecture/polaris-search.md and ADR-011 / ADR-046 / ADR-047.",
+  "type": "object",
+  "required": ["id", "motif", "clock", "invariants"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable position id (e.g. alex-2026-01-15-dentist-critique)."
+    },
+    "scenario": {
+      "type": "string",
+      "description": "Optional link to an alex-v1 support-contract scenario id."
+    },
+    "motif": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "double_booked",
+          "waiting_on_someone",
+          "deadline_compression",
+          "blocked_task",
+          "low_energy_mismatch",
+          "transition",
+          "overwhelm",
+          "admin_initiation",
+          "social_coordination"
+        ]
+      }
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Injected simulation clock for the position."
+    },
+    "support_challenges": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string" },
+      "description": "Evaluator-only tags aligned with support_contract.v0.json; never a person record."
+    },
+    "invariants": {
+      "type": "object",
+      "required": ["must_not_recommend"],
+      "additionalProperties": false,
+      "properties": {
+        "must_consider": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "At least one of these legal move families should appear in the searched set or PV ply-0 candidates."
+        },
+        "must_not_recommend": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ply-0 must not be one of these poor / illegal families."
+        },
+        "must_not_treat_as_obligation": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "legal_ceiling": {
+          "type": "string",
+          "enum": ["READ", "PREVIEW", "PREPARE", "COMMIT"],
+          "description": "Highest authority the position itself authorises; COMMIT still requires Assist."
+        },
+        "after_cancel": {
+          "type": "string",
+          "description": "Optional post-resolution invariant (e.g. do_not_renag)."
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Author-side reminder. Not consumed by Enigma."
+    }
+  }
+}
