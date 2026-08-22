@@ -108,6 +108,8 @@ Do not implement P02/P03, C36, or extra Goose animations here.
 
 **Polaris Lens (`BRAIN-*`, `future`):** structured search introspection in Alex Lab ([ADR-048](../../docs/adr/048-structured-search-trace-and-lens.md) · [council.md](../../docs/architecture/council.md)). Shows specialist assessments, branches, PV, provenance/uncertainty, and which lenses changed ranking — never CoT, never a control plane, never a second Council of agents. Not C10 Cortex. Do not claim until [POLARIS-SEARCH-04](../polaris/POLARIS-SEARCH-04-receding-horizon-search.md) is `done` (and Observatory 01–02 are done).
 
+**Harbour (later, `future`):** activity readiness ([harbour.md](../../docs/architecture/harbour.md)). C12 stays product-acceptance speech; [RECON-07](../recon/RECON-07-life-scripts.md) adds startup graphs as HOW. Not a rigid engine, not a Council seat.
+
 ## First milestone (Alex)
 
 Demo conversation helps Alex from **world state**, not a compiled biography. Source fragments may feel like a mystery; leftover shadow must stay a terrible detective novel ([SEC-07](../security/SEC-07-shadow-reconstruction-benchmark.md)).

@@ -59,11 +59,12 @@ NORTHSTAR-SEARCH-DOCS
 | Polaris | Chair / navigator — receding-horizon search; never overrides the user |
 | Goose | Familiar / courier — no authority; must name incomplete coverage |
 | Foundry | Capabilities + legality/effects; later physical/UI externalisation — not a searcher |
-| C12 Life Scripts | Product-acceptance episodes |
+| C12 Life Scripts | Product-acceptance episodes; RECON-07 also uses scripts for **HOW** startup graphs (not a rigid engine) |
 | Strategy scripts | Polaris opening-book priors |
 | Cortex | What Enigma did (C10) |
 | Lens | Structured PV explorer + Council assessments (`BRAIN-*` tickets) |
 | Observatory | Programme truth (specified / wired / verified / running / usable) — not a Council seat |
+| Harbour | CAN the user begin? Setup / transition friction — not a planner, not a star ([harbour.md](../../docs/architecture/harbour.md)) |
 
 Functional Council seats (internal ids; star aliases are copy only — [council.md](../../docs/architecture/council.md)):
 

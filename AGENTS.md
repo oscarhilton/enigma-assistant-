@@ -64,6 +64,7 @@ Behavioural changes without tests are not done.
 | NextAction schemas | `packages/domain` ([next-action.md](docs/architecture/next-action.md), ADR-010) |
 | Receding-horizon search (docs) | `docs/architecture/polaris-search.md` · `docs/architecture/council.md` · ADR-044–048; implementation tickets under `tickets/polaris/` (`future`; after Observatory 01–02) |
 | Programme truth / Observatory | `docs/architecture/observatory.md`; tickets `tickets/observatory/` then `tickets/recon/RECON-06`…`08` |
+| Activity readiness / Harbour | `docs/architecture/harbour.md`; tickets `tickets/harbour/` (after PolarIS-01 + RECON-07; not a planner) |
 | Local embeddings | `packages/embeddings` |
 | Fixtures | `packages/fixtures` |
 | Demo simulation / clock / env | `packages/simulation` |

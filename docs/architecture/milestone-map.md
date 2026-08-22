@@ -302,9 +302,10 @@ Finish RECON-05A–D (current tranche on main)
     → RECON-08 Alex eval catalogue
     → OBSERVATORY-03 runtime / wiring probes
     → later: Polaris Search / BRAIN-* (chain unchanged below)
+    → later: HARBOUR-01…03 after PolarIS-01 + RECON-07
 ```
 
-Do not claim PolarIS implementation until Observatory 01–02 are `done`. No new Council stars.
+Do not claim PolarIS implementation until Observatory 01–02 are `done`. No new Council stars. Harbour is not a star and does not join the PolarIS graph.
 
 ## Polaris search (docs programme — later than Observatory 01–02)
 
