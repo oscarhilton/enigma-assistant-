@@ -16,6 +16,8 @@ from personal_enigma.cursor_relay.handoff import validate_handoff
 from personal_enigma.cursor_relay.pr_target import (
     HttpGitHubPrResolver,
     MockGitHubPrResolver,
+    PrTargetError,
+    ResolvedPrHead,
     is_cursor_pr_permission_failure,
     parse_github_pr_url,
     validate_existing_pr_head,
@@ -195,13 +197,23 @@ def test_http_github_resolver_sends_token_header(monkeypatch: pytest.MonkeyPatch
         return httpx.Response(
             200,
             request=request,
-            json={"head": {"ref": "cursor/sprint2-relay-pr-target-47cd"}},
+            json={
+                "head": {
+                    "ref": "cursor/sprint2-relay-pr-target-47cd",
+                    "repo": {
+                        "full_name": "oscarhilton/enigma-assistant-",
+                        "fork": False,
+                    },
+                }
+            },
         )
 
     monkeypatch.setattr(httpx, "get", fake_get)
     resolver = HttpGitHubPrResolver(token="ghp_test_token")
     parsed = parse_github_pr_url(PR_URL)
-    assert resolver.resolve_head_branch(parsed) == PR_HEAD
+    resolved = resolver.resolve_head(parsed)
+    assert resolved.ref == PR_HEAD
+    assert resolved.repo_full_name == "oscarhilton/enigma-assistant-"
     headers = captured["headers"]
     assert isinstance(headers, dict)
     assert headers["Authorization"] == "Bearer ghp_test_token"
@@ -291,6 +303,24 @@ def test_validate_existing_pr_head_allowlists_resolved_branch(
         validate_existing_pr_head(relay_config, parsed=parsed, resolver=github)
         == PR_HEAD
     )
+
+
+def test_validate_existing_pr_head_rejects_untrusted_fork_head_repo(
+    relay_config: RelayConfig,
+) -> None:
+    parsed = parse_github_pr_url(PR_URL)
+    github = MockGitHubPrResolver(
+        heads={
+            PR_URL: ResolvedPrHead(
+                ref=PR_HEAD,
+                repo_full_name="evilcorp/enigma-assistant-",
+                repo_is_fork=True,
+            )
+        }
+    )
+    with pytest.raises(PrTargetError) as excinfo:
+        validate_existing_pr_head(relay_config, parsed=parsed, resolver=github)
+    assert excinfo.value.code == "pr_head_repo_mismatch"
 
 
 def test_redact_preserves_pr_target_shape() -> None:

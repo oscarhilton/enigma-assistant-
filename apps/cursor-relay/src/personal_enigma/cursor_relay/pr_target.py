@@ -50,6 +50,19 @@ class ParsedPrUrl:
         return f"{self.owner}/{self.repo}"
 
 
+@dataclass(frozen=True)
+class ResolvedPrHead:
+    """Resolved PR head identity from GitHub.
+
+    `repo_full_name` is required so the relay can reject fork/untrusted heads
+    before using `ref` for allowlist checks.
+    """
+
+    ref: str
+    repo_full_name: str
+    repo_is_fork: bool | None = None
+
+
 def parse_github_pr_url(pr_url: str) -> ParsedPrUrl:
     """Parse and normalize a GitHub pull request URL."""
 
@@ -183,21 +196,24 @@ def is_cursor_pr_permission_failure(
 class GitHubPrResolver(Protocol):
     """Resolve the live GitHub head ref for an existing pull request."""
 
-    def resolve_head_branch(self, pr: ParsedPrUrl) -> str: ...
+    def resolve_head(self, pr: ParsedPrUrl) -> ResolvedPrHead: ...
 
 
 @dataclass
 class MockGitHubPrResolver:
     """Test double mapping normalized PR URLs to head branch names."""
 
-    heads: dict[str, str] = field(default_factory=dict)
+    heads: dict[str, str | ResolvedPrHead] = field(default_factory=dict)
 
-    def resolve_head_branch(self, pr: ParsedPrUrl) -> str:
-        head = self.heads.get(pr.normalized_url)
-        if not head:
+    def resolve_head(self, pr: ParsedPrUrl) -> ResolvedPrHead:
+        item = self.heads.get(pr.normalized_url)
+        if not item:
             msg = f"No mock GitHub head configured for {pr.normalized_url}"
             raise PrTargetError(msg, code="pr_head_unresolved")
-        return head
+        if isinstance(item, ResolvedPrHead):
+            return item
+        # Default: same-repository head, matching `pr_url` repo.
+        return ResolvedPrHead(ref=str(item), repo_full_name=pr.repository, repo_is_fork=False)
 
 
 class HttpGitHubPrResolver:
@@ -223,7 +239,7 @@ class HttpGitHubPrResolver:
             headers["Authorization"] = f"Bearer {self._token}"
         return headers
 
-    def resolve_head_branch(self, pr: ParsedPrUrl) -> str:
+    def resolve_head(self, pr: ParsedPrUrl) -> ResolvedPrHead:
         url = f"https://api.github.com/repos/{pr.owner}/{pr.repo}/pulls/{pr.number}"
         try:
             response = httpx.get(
@@ -249,11 +265,23 @@ class HttpGitHubPrResolver:
             raise PrTargetError(msg, code="pr_head_unresolved") from exc
 
         data = response.json()
-        head_ref = (data.get("head") or {}).get("ref")
+        head = data.get("head") or {}
+        head_ref = head.get("ref")
         if not head_ref or not str(head_ref).strip():
             msg = f"GitHub PR head ref missing for {pr.normalized_url}"
             raise PrTargetError(msg, code="pr_head_unresolved")
-        return str(head_ref).strip()
+        head_repo = head.get("repo") or {}
+        head_repo_full_name = head_repo.get("full_name")
+        if not head_repo_full_name or not str(head_repo_full_name).strip():
+            msg = f"GitHub PR head repository missing for {pr.normalized_url}"
+            raise PrTargetError(msg, code="pr_head_unresolved")
+        fork_val = head_repo.get("fork")
+        repo_is_fork: bool | None = fork_val if isinstance(fork_val, bool) else None
+        return ResolvedPrHead(
+            ref=str(head_ref).strip(),
+            repo_full_name=str(head_repo_full_name).strip(),
+            repo_is_fork=repo_is_fork,
+        )
 
 
 def validate_existing_pr_head(
@@ -264,7 +292,19 @@ def validate_existing_pr_head(
 ) -> str:
     """Resolve GitHub PR head and run it through the relay branch allowlist."""
 
-    head = resolver.resolve_head_branch(parsed)
+    resolved = resolver.resolve_head(parsed)
+    expected_repo = normalize_repository(parsed.repository)
+    actual_repo = normalize_repository(resolved.repo_full_name)
+    if actual_repo != expected_repo:
+        fork_hint = ""
+        if resolved.repo_is_fork is True:
+            fork_hint = " (fork)"
+        msg = (
+            "Refusing PR target: GitHub PR head repository "
+            f"'{actual_repo}'{fork_hint} does not match expected '{expected_repo}'"
+        )
+        raise PrTargetError(msg, code="pr_head_repo_mismatch")
+    head = resolved.ref
     try:
         return check_head_branch(config, head)
     except AllowlistError as exc:
