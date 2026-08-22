@@ -111,6 +111,8 @@ Configured via env (defaults match the named environment above):
 - `RELAY_GITHUB_TOKEN` (optional; server-side only — resolves private-repo PR heads for `dispatch.pr_url`; falls back to `GITHUB_TOKEN`)
 - `RELAY_MAX_IN_FLIGHT` / `RELAY_MAX_SPEND_UNITS`
 
+**Conductor economics (policy, not a silent code change):** serial by default; operate at **1** in-flight agent, normal max **2**. Treat a third slot as **reserved** for genuinely independent, time-sensitive work — not a standing swarm. Code default today is `RELAY_MAX_IN_FLIGHT=3`; operators should set `2` unless Oscar has authorized slot 3. Prefer local/CI verification; omit `model` on routine `dispatch` / `request_review` so Cursor uses true DEFAULT ([test_default_model_passthrough.py](../../apps/cursor-relay/tests/test_default_model_passthrough.py)). Oscar-only merge unchanged (`allow_merge` denied). Full policy: [conductor-contract.md](./conductor-contract.md#economics-serial-by-default).
+
 Head branches `main` / `master` are forbidden as **heads**. Base branches fail closed (exact allowlist or allowed prefix). Denials are audited.
 
 ## Single-instance pilot (in-memory stores)

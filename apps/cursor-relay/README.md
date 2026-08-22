@@ -46,7 +46,8 @@ Set at deploy time (server-side only):
 
 - `CURSOR_API_KEY`
 - `RELAY_TUNNEL_CALLER` (JSON `{caller_id, roles, display_name?}`)
-- Optional: `RELAY_ALLOWED_REPOS`, `RELAY_ALLOWED_ENVIRONMENTS`, `RELAY_MAX_IN_FLIGHT`, `RELAY_MAX_SPEND_UNITS`, `RELAY_AUDIT_PATH`
+- Optional: `RELAY_ALLOWED_REPOS`, `RELAY_ALLOWED_ENVIRONMENTS`, `RELAY_MAX_IN_FLIGHT` (policy: operate at 1, max 2; slot 3 reserved — [conductor-contract.md](../../docs/cloud-agents/conductor-contract.md#economics-serial-by-default)), `RELAY_MAX_SPEND_UNITS`, `RELAY_AUDIT_PATH`
+- Routine dispatch **omits** `model` (Cursor true DEFAULT). Do not send a composer id unless the job brief requires it.
 
 Run MCP stdio:
 

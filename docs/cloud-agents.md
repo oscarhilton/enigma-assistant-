@@ -67,6 +67,8 @@ For merge/release decisions, branch topology, or stacked PRs, dispatch **one con
 
 Workers implement tickets; conductors read evidence and recommend branch/commit/PR actions **without** pushing or opening PRs unless the job explicitly authorizes it.
 
+**Economics:** serial by default; target **1** cloud agent, normal max **2**; reserve slot 3; reuse the implementer for fixes; do not review unstable heads; prefer local/CI verify; omit `model` for true DEFAULT; Oscar-only merge. Parallelise only when independence is real and saved wall-clock is worth the spend. Full table: [conductor-contract.md](./cloud-agents/conductor-contract.md#economics-serial-by-default).
+
 ## Hooks (`.cursor/hooks.json`)
 
 Hooks are **defence in depth**, not a hard security boundary. `beforeShellExecution` uses `failClosed: false` so a broken or missing guard script fails open and allows the command through. **GitHub branch protection on `main` remains the real lock** against accidental default-branch updates. Keep `failClosed: false` for the pilot unless hook probes all pass and a deliberate flip is documented.
